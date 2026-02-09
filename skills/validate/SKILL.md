@@ -60,7 +60,7 @@ Determine which gates to run:
 - If `--gate=<name>` specified: run ONLY that gate
 - Otherwise: run all enabled gates from config + always include "spec"
 
-For each gate in order [build, tests, wiring, security, spec], perform the following sequence:
+For each gate in order [review, build, tests, wiring, security, spec], perform the following sequence:
 
 1. Invoke the gate skill using Skill tool: `skill: "gate-{gateName}"` (e.g., `gate-build`, `gate-tests`)
 2. After completion, read `.specwright/state/workflow.json` and check `gates.{gateName}.status`
@@ -88,6 +88,7 @@ Set `lastUpdated` to current ISO timestamp in workflow.json.
 Output structured summary:
 ```
 === VALIDATION RESULTS ===
+Gate: review   [PASS/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
 Gate: build    [PASS/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
 Gate: tests    [PASS/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
 Gate: wiring   [PASS/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
