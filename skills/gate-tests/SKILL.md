@@ -9,12 +9,12 @@ allowed-tools:
   - Read
   - Grep
   - Glob
+  - mcp__plugin_oh-my-claudecode_omc-tools__ast_grep_search
 ---
 
 # Specwright Gate: Test Quality
 
-Three-tier test quality analysis. Tier 1 blocks the pipeline, Tier 2 warns, Tier 3 is informational.
-All analysis is language-agnostic — uses Grep, Glob, and LLM reasoning rather than language-specific tools.
+Three-tier test quality analysis. Tier 1 blocks, Tier 2 warns, Tier 3 is informational. Prefer `ast_grep_search` for structural queries (fallback to Grep).
 
 Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
 
@@ -68,15 +68,15 @@ For each test file in scope:
 - Use Grep to find test functions/methods (patterns vary by language)
 - Use Grep to find assertion calls (assert, expect, should, etc.)
 - Calculate: `density = total assertions / total test functions`
-- Threshold: >= 2 assertions per test (configurable)
+- Threshold: >= 2.5 assertions per test (configurable)
 - Note: LLM should recognize assertion patterns for the project's test framework
 
 ### 3c: Tautological Tests
-Search for tests that always pass regardless of implementation:
-- Tests with zero assertions
-- Tests that assert a value equals itself
-- Tests that only check truthy/falsy without meaningful comparison
-- Use Grep + LLM analysis to detect these patterns
+Tests that always pass:
+- Zero assertions, self-equality checks, truthy-only checks
+- Assertions passing under trivial mutations (constant return, branch swap, conditional removal). Non-constraining assertions (checking definedness vs expected value) are BLOCK.
+- If loose check (optional field) vs weak assertion (computed value definedness) is unclear, invoke AskUserQuestion.
+- Detection: Grep + LLM analysis
 - Threshold: Zero tautological tests
 
 ### 3d: Changed Code Has Tests
@@ -92,7 +92,7 @@ Tier 2 failures do NOT block but record warnings.
 
 ### 4a: Negative Test Ratio
 Count test functions matching error/invalid/failure patterns.
-- Threshold: >= 25% of tests cover error cases
+- Threshold: >= 30% of tests cover error cases
 
 ### 4b: Test-to-Code Ratio
 Compare total test lines to total source lines in scope.
@@ -117,7 +117,7 @@ Check for tests that depend on external state:
 
 ## Step 5: Tier 3 — Detection Rules (INFO only)
 
-Flag test quality opportunities: weak assertions (not-null instead of specific value checks), over-mocking (>5 dependencies), missing boundary values (zero/negative/large for numeric parameters), and long setup functions (>50 lines). These are informational suggestions for improvement.
+Flag test quality opportunities: weak assertions (not-null vs specific values), over-mocking (>5 dependencies), missing boundary values (zero/negative/large), long setup (>50 lines).
 
 ## Step 6: Update Gate Status
 

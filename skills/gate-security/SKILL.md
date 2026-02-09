@@ -9,11 +9,14 @@ allowed-tools:
   - Read
   - Grep
   - Glob
+  - mcp__plugin_oh-my-claudecode_omc-tools__ast_grep_search
 ---
 
 # Specwright Gate: Security Review
 
 Three-phase security review. Phase 1 (pattern detection) can block. Phase 2 (architectural) warns. Phase 3 (business logic) is informational.
+
+Prefer `ast_grep_search` for structural queries. Fallback to Grep if unavailable.
 
 Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
 

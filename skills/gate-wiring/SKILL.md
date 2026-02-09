@@ -9,12 +9,15 @@ allowed-tools:
   - Read
   - Grep
   - Glob
+  - mcp__plugin_oh-my-claudecode_omc-tools__ast_grep_search
 ---
 
 # Specwright Gate: Wiring and Integration
 
 Verifies that all code is properly wired: exports used, imports follow architecture rules,
 no dead code, and no circular dependencies. All analysis is LLM-driven using Grep/Glob.
+
+Prefer `ast_grep_search` for structural queries. Fallback to Grep if unavailable.
 
 Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
 
