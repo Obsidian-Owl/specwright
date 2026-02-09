@@ -32,7 +32,7 @@ Check each gate in the `gates` object of workflow.json.
 Only check gates that are enabled in `config.json` `gates.enabled` (plus "spec" which is always enabled).
 
 For each enabled gate:
-- If status !== "PASS": add to failed gates list
+- If status is not "PASS" and not "WARN": add to failed gates list
 
 If any gates failed:
 ```

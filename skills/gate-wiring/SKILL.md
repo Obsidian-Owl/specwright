@@ -113,7 +113,7 @@ Document any new inter-module dependencies added by this epic.
 | Severity | Meaning | Gate Effect |
 |----------|---------|-------------|
 | BLOCK | Must fix before merge | FAIL gate |
-| WARN | Should fix, non-blocking | PASS with warnings |
+| WARN | Should fix, non-blocking | WARN status |
 | INFO | Informational | PASS |
 
 ## Step 8: Baseline Check

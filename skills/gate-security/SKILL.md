@@ -69,7 +69,7 @@ Detect injection vulnerabilities and sensitive data exposure. Use Grep + semanti
 
 Each genuine finding = BLOCK.
 
-### 2e: SAST Tool (Optional)
+### 2c: SAST Tool (Optional)
 If `gates.security.sastTool` is configured:
 - Run the configured SAST tool
 - Parse output for findings
@@ -77,7 +77,7 @@ If `gates.security.sastTool` is configured:
 
 If no SAST tool configured, skip.
 
-### 2f: Vulnerability Scanner (Optional)
+### 2d: Vulnerability Scanner (Optional)
 If `gates.security.vulnScanner` is configured:
 - Run the scanner
 - Parse output for known vulnerabilities
