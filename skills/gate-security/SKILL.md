@@ -40,6 +40,7 @@ Determine scope:
 ```bash
 git diff --name-only main...HEAD 2>/dev/null || git diff --name-only HEAD~10
 ```
+If zero changed files in scope: write ERROR status, STOP.
 
 ## Step 2: Phase 1 — Automated Detection (BLOCK severity)
 
@@ -90,69 +91,51 @@ If unavailable, note as INFO.
 
 Phase 2 findings do NOT block the gate.
 
-### 3a: Authentication Coverage
-Search for route/endpoint definitions in changed files:
-- Check if authentication/authorization middleware is applied
-- Public endpoints should be explicitly marked
-- Endpoints in sensitive areas without auth = WARN
+### 3a: Auth Coverage
+Search route/endpoint definitions in changed files. Verify auth middleware applied. Endpoints in sensitive areas without auth = WARN.
 
 ### 3b: Input Validation
-Search for request handling code in changed files:
-- Check for input validation before processing
-- Request handlers without validation = WARN
+Search request handlers in changed files. Handlers without validation = WARN.
 
-### 3c: Error Information Leakage
-Search for error handling in API/response code:
-- Raw error messages returned to clients = WARN
-- Stack traces in responses = WARN
-- Internal details in error responses = WARN
+### 3c: Error Leakage
+Search error handling in API code. Raw errors, stack traces, or internal details in responses = WARN.
 
 ### 3d: HTTPS/TLS
-If configuration files are changed:
-- Check for insecure protocol usage (http:// in production configs) = WARN
-- Disabled TLS verification = WARN
+If config files changed: insecure protocol usage or disabled TLS verification = WARN.
 
 ### 3e: Dependency Security
-If package manifest files changed (package.json, go.mod, Cargo.toml, requirements.txt):
-- Note new dependencies as INFO
-- Known insecure version ranges = WARN
+If package manifests changed: new dependencies = INFO, known insecure versions = WARN.
 
 ## Step 4: Phase 3 — Sensitive Domain Review (INFO only)
 
 Only run if changes touch files matching sensitive patterns from config.
+Check authorization context (data queries without user filtering), audit logging (CUD operations without audit trail), and data encryption (plaintext sensitive fields). All findings = INFO recommendation.
 
-### 4a: Authorization Context
-Check that data access verifies requesting user owns the data.
-- Data queries without user context filtering = INFO recommendation
+## Step 5: Baseline Check
+If `.specwright/baselines/gate-security.json` exists, load entries (`{finding, file, reason, expires}` with ISO dates; null = no expiry). For matching findings: downgrade BLOCK->WARN, WARN->INFO. Ignore expired entries. Partial match (same category, different line): AskUserQuestion. Log all downgrades in evidence.
 
-### 4b: Audit Logging
-Check that sensitive operations have audit logging.
-- Create/update/delete operations without audit trail = INFO recommendation
-
-### 4c: Data Encryption
-Check that sensitive data at rest uses encryption.
-- Plaintext storage of sensitive fields = INFO recommendation
-
-## Step 5: Update Gate Status
+## Step 6: Update Gate Status
 
 **Self-critique checkpoint:** Did I cite proof for each check? Did I assume gaps are future work? Would an auditor agree? If ambiguous, FAIL.
 
 Determine final status:
-- Any Phase 1 BLOCK = FAIL
-- Only WARN and INFO = PASS
+- Incomplete analysis: ERROR (invoke AskUserQuestion)
+- Any Phase 1 BLOCK: FAIL
+- Only WARN (Phase 2): WARN
+- Only INFO or no findings: PASS
 
 Update `.specwright/state/workflow.json` `gates.security`:
 ```json
-{"status": "PASS|FAIL", "lastRun": "<ISO>", "evidence": "{specDir}/evidence/security-report.md"}
+{"status": "PASS|WARN|FAIL|ERROR", "lastRun": "<ISO>", "evidence": "{specDir}/evidence/security-report.md"}
 ```
 
-## Step 6: Save Evidence
+## Step 7: Save Evidence
 
 Write `{specDir}/evidence/security-report.md` with three sections (Phase 1 findings in a BLOCK table, Phase 2 findings in a WARN table, Phase 3 as INFO text) plus summary counts. Format: Epic/Date/Status header, then table of all Phase 1 checks (Secrets, SQL Injection, Command Injection, Sensitive Logging, SAST, Vuln Scan) with PASS/FAIL/SKIP, table of Phase 2 checks (Auth Coverage, Input Validation, Error Leakage, HTTPS/TLS, Dependencies) with PASS/WARN, Phase 3 recommendations or "Skipped", and summary with BLOCK/WARN/INFO counts.
 
-## Step 7: Output Result
+## Step 8: Output Result
 ```
-SECURITY GATE: {PASS|FAIL}
+SECURITY GATE: {PASS|WARN|FAIL}
 Phase 1 (Detection): {count} BLOCK findings
 Phase 2 (Architecture): {count} warnings
 Phase 3 (Business Logic): {count} recommendations

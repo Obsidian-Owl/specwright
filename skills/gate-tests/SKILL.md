@@ -51,6 +51,7 @@ Filter to source files (exclude test files) to identify what needs test coverage
 
 ### 2c: Get test files for changed source files
 Map changed source files to their corresponding test files using naming conventions from the language.
+If `commands.test` is null AND zero test files found: write ERROR status, STOP.
 
 ## Step 3: Tier 1 — Essential Checks (BLOCK on failure)
 
@@ -119,29 +120,31 @@ Check for tests that depend on external state:
 
 Flag test quality opportunities: weak assertions (not-null vs specific values), over-mocking (>5 dependencies), missing boundary values (zero/negative/large), long setup (>50 lines).
 
-## Step 6: Update Gate Status
+## Step 6: Baseline Check
+If `.specwright/baselines/gate-tests.json` exists: matching entries downgrade BLOCK->WARN, WARN->INFO. Expired entries ignored. Partial match: AskUserQuestion. Log downgrades in evidence.
+
+## Step 7: Update Gate Status
 
 **Self-critique checkpoint:** Before finalizing — did I accept anything without citing proof? Did I give benefit of the doubt? Would a skeptical auditor agree? Gaps are not future work. TODOs are not addressed. Partial implementations do not match intent. If ambiguous, FAIL.
 
 Determine final status:
+- Incomplete analysis: ERROR (invoke AskUserQuestion)
 - Any Tier 1 failure: FAIL
-- All Tier 1 pass, Tier 2 warnings: PASS (with warnings noted)
+- All Tier 1 pass, any Tier 2 warning: WARN
 - All pass: PASS
 
 Update `.specwright/state/workflow.json` `gates.tests`:
 ```json
-{"status": "PASS|FAIL", "lastRun": "<ISO>", "evidence": "{specDir}/evidence/test-quality.md"}
+{"status": "PASS|WARN|FAIL|ERROR", "lastRun": "<ISO>", "evidence": "{specDir}/evidence/test-quality.md"}
 ```
 
-## Step 7: Save Evidence
+## Step 8: Save Evidence
+Write `{specDir}/evidence/test-quality.md`: Tier 1 table (Coverage, Assertion Density, Tautological, Changed Code Coverage with PASS/FAIL + detail), Tier 2 table (Negative Ratio, Test:Code Ratio, Flaky, Mock Ratio, Isolation with PASS/WARN + detail), Tier 3 findings with file:line.
 
-Write `{specDir}/evidence/test-quality.md` with three sections (Tier 1 BLOCK checks, Tier 2 WARN checks, Tier 3 INFO findings). Format: Epic/Date/Status header, Tier 1 table with Coverage, Assertion Density, Tautological Tests, and Changed Code Coverage rows (PASS/FAIL + detail), Tier 2 table with Negative Test Ratio, Test:Code Ratio, Flaky Patterns, Mock Ratio, Test Isolation rows (PASS/WARN + detail), and Tier 3 findings with file:line references.
-
-## Step 8: Output Result
+## Step 9: Output Result
 ```
-TESTS GATE: {PASS|FAIL}
+TESTS GATE: {PASS|WARN|FAIL}
 Tier 1 (BLOCK): {pass}/{total} passed
 Tier 2 (WARN): {pass}/{total} passed
 Tier 3 (INFO): {count} findings
-Evidence: {specDir}/evidence/test-quality.md
 ```

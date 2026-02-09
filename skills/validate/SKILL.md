@@ -66,7 +66,9 @@ For each gate in order [review, build, tests, wiring, security, spec], perform t
 2. After completion, read `.specwright/state/workflow.json` and check `gates.{gateName}.status`
 3. Handle result:
    - Status `"FAIL"` + no `--no-stop-on-failure` flag: release lock, report failure, STOP
+   - Status `"WARN"` + no `--no-stop-on-failure`: proceed (non-blocking)
    - Status `"PASS"`: proceed to next gate
+   - Status `"ERROR"` + no `--no-stop-on-failure`: release lock, report error, STOP
    - Skill not found or invocation failure: mark as `"ERROR"`, log issue, continue only if `--no-stop-on-failure` set
 
 Note: Skip gates not in the enabled list (except "spec" which always runs).
@@ -75,7 +77,7 @@ Note: Skip gates not in the enabled list (except "spec" which always runs).
 Read all gate results from workflow.json:
 - Extract status (PASS/FAIL/SKIP) for each gate
 - Extract evidence paths from gate results
-- Calculate overall: PASS if all gates PASS, otherwise FAIL
+- Calculate overall (precedence: FAIL > ERROR > WARN > PASS): FAIL if any FAIL, ERROR if any ERROR, WARN if any WARN, else PASS
 
 ### 9. Release Pipeline Lock
 Clear the `lock` field in workflow.json.
@@ -95,7 +97,7 @@ Gate: wiring   [PASS/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
 Gate: security [PASS/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
 Gate: spec     [PASS/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
 
-Overall: PASS/FAIL
+Overall: PASS/WARN/FAIL/ERROR
 ```
 
 Only show gates that are enabled. Mark disabled gates as SKIP.
