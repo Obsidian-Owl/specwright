@@ -1,0 +1,9 @@
+# Local development state (dogfooding)
+.specwright/
+.claude/
+
+# OS
+.DS_Store
+
+# OMC working directories
+.omc/

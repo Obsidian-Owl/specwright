@@ -1,0 +1,10 @@
+{
+  "name": "specwright",
+  "displayName": "Specwright",
+  "version": "0.1.0",
+  "description": "Spec-driven development workflow with quality gates, evidence capture, learning loops, and compaction recovery",
+  "author": "ObsidianOwl",
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "hooks": "./hooks/hooks.json"
+}
