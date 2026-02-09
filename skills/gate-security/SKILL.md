@@ -57,32 +57,13 @@ Exclusions (do NOT flag):
 
 Each genuine secret leak = BLOCK.
 
-### 2b: SQL Injection Patterns
-Search for string concatenation in SQL contexts:
-- Raw SQL with variable interpolation
-- String concatenation in query building
-- Use Grep to find patterns like string concat near SQL keywords (SELECT, INSERT, UPDATE, DELETE)
+### 2b: SQL Injection, Command Injection, and Sensitive Logging
+Detect injection vulnerabilities and sensitive data exposure. Use Grep + semantic analysis to identify:
+- SQL injection: string concatenation in SQL contexts (raw queries with variable interpolation). Exclude parameterized queries, ORM builders, and constant concatenation.
+- Command injection: shell command construction with user input (`exec`, `system`, `spawn`, `popen` with variables).
+- Sensitive data in logs: log statements containing password, token, secret, SSN, or credit card data.
 
-Exclusions:
-- Parameterized queries (using placeholders like `$1`, `?`, `:param`)
-- ORM query builders
-- Constant string concatenation
-
-Each genuine SQL injection pattern = BLOCK.
-
-### 2c: Command Injection
-Search for shell command construction with user input:
-- `exec()`, `system()`, `spawn()`, `popen()` with variable arguments
-- Template strings or concatenation in command construction
-
-Each genuine command injection = BLOCK.
-
-### 2d: Sensitive Data in Logs
-Search for logging statements that might expose sensitive data:
-- Log calls containing variable names like `password`, `token`, `secret`, `ssn`, `creditCard`
-- Use Grep + LLM analysis to determine if actual sensitive data is logged
-
-Each genuine PII/secret logging = BLOCK.
+Each genuine finding = BLOCK.
 
 ### 2e: SAST Tool (Optional)
 If `gates.security.sastTool` is configured:
@@ -160,40 +141,7 @@ Update `.specwright/state/workflow.json` `gates.security`:
 
 ## Step 6: Save Evidence
 
-Write `{specDir}/evidence/security-report.md`:
-```markdown
-# Security Gate Report
-Epic: {epicId}
-Date: {timestamp}
-Status: {PASS|FAIL}
-
-## Phase 1: Automated Detection (BLOCK)
-| Check | Result | Findings |
-|-------|--------|----------|
-| Secrets | PASS/FAIL | N patterns found |
-| SQL Injection | PASS/FAIL | N patterns found |
-| Command Injection | PASS/FAIL | N patterns found |
-| Sensitive Logging | PASS/FAIL | N patterns found |
-| SAST Tool | PASS/FAIL/SKIP | {results} |
-| Vulnerability Scan | PASS/FAIL/SKIP | {results} |
-
-## Phase 2: Architectural Review (WARN)
-| Check | Result | Details |
-|-------|--------|---------|
-| Auth Coverage | PASS/WARN | {details} |
-| Input Validation | PASS/WARN | {details} |
-| Error Leakage | PASS/WARN | {details} |
-| HTTPS/TLS | PASS/WARN | {details} |
-| Dependencies | PASS/WARN | {details} |
-
-## Phase 3: Sensitive Domain (INFO)
-{recommendations or "Skipped — no sensitive domain changes"}
-
-## Summary
-BLOCK: {count}
-WARN: {count}
-INFO: {count}
-```
+Write `{specDir}/evidence/security-report.md` with three sections (Phase 1 findings in a BLOCK table, Phase 2 findings in a WARN table, Phase 3 as INFO text) plus summary counts. Format: Epic/Date/Status header, then table of all Phase 1 checks (Secrets, SQL Injection, Command Injection, Sensitive Logging, SAST, Vuln Scan) with PASS/FAIL/SKIP, table of Phase 2 checks (Auth Coverage, Input Validation, Error Leakage, HTTPS/TLS, Dependencies) with PASS/WARN, Phase 3 recommendations or "Skipped", and summary with BLOCK/WARN/INFO counts.
 
 ## Step 7: Output Result
 ```

@@ -115,17 +115,7 @@ Check for tests that depend on external state:
 
 ## Step 5: Tier 3 — Detection Rules (INFO only)
 
-### 5a: Weak Assertions
-Flag assertions that could be more specific (e.g., checking not-null when a specific value is expected).
-
-### 5b: Over-Mocking
-Flag test functions with excessive mock setup (>5 mocked dependencies).
-
-### 5c: Missing Boundary Values
-For functions with numeric parameters, check if tests include zero, negative, and large values.
-
-### 5d: Long Setup Functions
-Flag test helper/setup functions longer than 50 lines.
+Flag test quality opportunities: weak assertions (not-null instead of specific value checks), over-mocking (>5 dependencies), missing boundary values (zero/negative/large for numeric parameters), and long setup functions (>50 lines). These are informational suggestions for improvement.
 
 ## Step 6: Update Gate Status
 
@@ -141,33 +131,7 @@ Update `.specwright/state/workflow.json` `gates.tests`:
 
 ## Step 7: Save Evidence
 
-Write `{specDir}/evidence/test-quality.md`:
-```markdown
-# Test Quality Report
-Epic: {epicId}
-Date: {timestamp}
-Status: {PASS|FAIL}
-
-## Tier 1: Essential (BLOCK)
-| Check | Result | Detail |
-|-------|--------|--------|
-| Coverage | PASS/FAIL | XX% (>= 80%) |
-| Assertion Density | PASS/FAIL | X.X (>= 2) |
-| Tautological Tests | PASS/FAIL | N found |
-| Changed Code Coverage | PASS/FAIL | X/Y files covered |
-
-## Tier 2: Quality Signals (WARN)
-| Check | Result | Detail |
-|-------|--------|--------|
-| Negative Test Ratio | PASS/WARN | XX% (>= 25%) |
-| Test:Code Ratio | PASS/WARN | X.X:1 |
-| Flaky Patterns | PASS/WARN | N found |
-| Mock Ratio | PASS/WARN | X.X |
-| Test Isolation | PASS/WARN | N issues |
-
-## Tier 3: Detection Rules (INFO)
-{findings with file:line references}
-```
+Write `{specDir}/evidence/test-quality.md` with three sections (Tier 1 BLOCK checks, Tier 2 WARN checks, Tier 3 INFO findings). Format: Epic/Date/Status header, Tier 1 table with Coverage, Assertion Density, Tautological Tests, and Changed Code Coverage rows (PASS/FAIL + detail), Tier 2 table with Negative Test Ratio, Test:Code Ratio, Flaky Patterns, Mock Ratio, Test Isolation rows (PASS/WARN + detail), and Tier 3 findings with file:line references.
 
 ## Step 8: Output Result
 ```

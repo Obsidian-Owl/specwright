@@ -60,62 +60,16 @@ Determine which gates to run:
 - If `--gate=<name>` specified: run ONLY that gate
 - Otherwise: run all enabled gates from config + always include "spec"
 
-Run gates in this order (skip any not enabled):
+For each gate in order [build, tests, wiring, security, spec], perform the following sequence:
 
-**Gate: build**
+1. Invoke the gate skill using Skill tool: `skill: "gate-{gateName}"` (e.g., `gate-build`, `gate-tests`)
+2. After completion, read `.specwright/state/workflow.json` and check `gates.{gateName}.status`
+3. Handle result:
+   - Status `"FAIL"` + no `--no-stop-on-failure` flag: release lock, report failure, STOP
+   - Status `"PASS"`: proceed to next gate
+   - Skill not found or invocation failure: mark as `"ERROR"`, log issue, continue only if `--no-stop-on-failure` set
 
-Invoke the gate skill using the Skill tool:
-
-    skill: "gate-build"
-
-After the gate skill completes, read `.specwright/state/workflow.json` and check `gates.build.status`.
-- If `gates.build.status` is `"FAIL"` and `--no-stop-on-failure` is NOT set: release pipeline lock, report failure, and STOP.
-- If `gates.build.status` is `"PASS"`: proceed to the next gate.
-- If the gate skill is not found or fails to invoke: mark gate as `"ERROR"`, log the issue, and continue if `--no-stop-on-failure` is set.
-
-**Gate: tests**
-
-Invoke the gate skill using the Skill tool:
-
-    skill: "gate-tests"
-
-After the gate skill completes, read `.specwright/state/workflow.json` and check `gates.tests.status`.
-- If `gates.tests.status` is `"FAIL"` and `--no-stop-on-failure` is NOT set: release pipeline lock, report failure, and STOP.
-- If `gates.tests.status` is `"PASS"`: proceed to the next gate.
-- If the gate skill is not found or fails to invoke: mark gate as `"ERROR"`, log the issue, and continue if `--no-stop-on-failure` is set.
-
-**Gate: wiring**
-
-Invoke the gate skill using the Skill tool:
-
-    skill: "gate-wiring"
-
-After the gate skill completes, read `.specwright/state/workflow.json` and check `gates.wiring.status`.
-- If `gates.wiring.status` is `"FAIL"` and `--no-stop-on-failure` is NOT set: release pipeline lock, report failure, and STOP.
-- If `gates.wiring.status` is `"PASS"`: proceed to the next gate.
-- If the gate skill is not found or fails to invoke: mark gate as `"ERROR"`, log the issue, and continue if `--no-stop-on-failure` is set.
-
-**Gate: security**
-
-Invoke the gate skill using the Skill tool:
-
-    skill: "gate-security"
-
-After the gate skill completes, read `.specwright/state/workflow.json` and check `gates.security.status`.
-- If `gates.security.status` is `"FAIL"` and `--no-stop-on-failure` is NOT set: release pipeline lock, report failure, and STOP.
-- If `gates.security.status` is `"PASS"`: proceed to the next gate.
-- If the gate skill is not found or fails to invoke: mark gate as `"ERROR"`, log the issue, and continue if `--no-stop-on-failure` is set.
-
-**Gate: spec** (always runs)
-
-Invoke the gate skill using the Skill tool:
-
-    skill: "gate-spec"
-
-After the gate skill completes, read `.specwright/state/workflow.json` and check `gates.spec.status`.
-- If `gates.spec.status` is `"FAIL"` and `--no-stop-on-failure` is NOT set: release pipeline lock, report failure, and STOP.
-- If `gates.spec.status` is `"PASS"`: proceed to the next step.
-- If the gate skill is not found or fails to invoke: mark gate as `"ERROR"`, log the issue, and continue if `--no-stop-on-failure` is set.
+Note: Skip gates not in the enabled list (except "spec" which always runs).
 
 ### 8. Compile Evidence Report
 Read all gate results from workflow.json:
