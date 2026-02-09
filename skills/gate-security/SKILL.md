@@ -14,8 +14,6 @@ allowed-tools:
 
 # Specwright Gate: Security Review
 
-Three-phase security review. Phase 1 (pattern detection) can block. Phase 2 (architectural) warns. Phase 3 (business logic) is informational.
-
 Prefer `ast_grep_search` for structural queries. Fallback to Grep if unavailable.
 
 Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
@@ -77,7 +75,7 @@ If `gates.security.sastTool` is configured:
 - Parse output for findings
 - HIGH/CRITICAL = BLOCK, MEDIUM = WARN, LOW = INFO
 
-If no SAST tool configured, note as INFO: "No SAST tool configured. Consider adding one for deeper analysis."
+If no SAST tool configured, skip.
 
 ### 2f: Vulnerability Scanner (Optional)
 If `gates.security.vulnScanner` is configured:
@@ -116,7 +114,7 @@ If `.specwright/baselines/gate-security.json` exists, load entries (`{finding, f
 
 ## Step 6: Update Gate Status
 
-**Self-critique checkpoint:** Did I cite proof for each check? Did I assume gaps are future work? Would an auditor agree? If ambiguous, FAIL.
+**Self-critique checkpoint:** Before finalizing — did I accept anything without citing proof? Did I give benefit of the doubt? Would a skeptical auditor agree? Gaps are not future work. TODOs are not addressed. Partial implementations do not match intent. If ambiguous, FAIL.
 
 Determine final status:
 - Incomplete analysis: ERROR (invoke AskUserQuestion)

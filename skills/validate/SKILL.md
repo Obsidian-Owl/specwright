@@ -75,7 +75,7 @@ Note: Skip gates not in the enabled list (except "spec" which always runs).
 
 ### 8. Compile Evidence Report
 Read all gate results from workflow.json:
-- Extract status (PASS/FAIL/SKIP) for each gate
+- Extract status (PASS/WARN/FAIL/ERROR/SKIP) for each gate
 - Extract evidence paths from gate results
 - Calculate overall (precedence: FAIL > ERROR > WARN > PASS): FAIL if any FAIL, ERROR if any ERROR, WARN if any WARN, else PASS
 
@@ -90,12 +90,12 @@ Set `lastUpdated` to current ISO timestamp in workflow.json.
 Output structured summary:
 ```
 === VALIDATION RESULTS ===
-Gate: review   [PASS/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
-Gate: build    [PASS/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
-Gate: tests    [PASS/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
-Gate: wiring   [PASS/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
-Gate: security [PASS/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
-Gate: spec     [PASS/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
+Gate: review   [PASS/WARN/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
+Gate: build    [PASS/WARN/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
+Gate: tests    [PASS/WARN/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
+Gate: wiring   [PASS/WARN/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
+Gate: security [PASS/WARN/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
+Gate: spec     [PASS/WARN/FAIL/ERROR/SKIP]  Evidence: {path}  Last Run: {timestamp}
 
 Overall: PASS/WARN/FAIL/ERROR
 ```
