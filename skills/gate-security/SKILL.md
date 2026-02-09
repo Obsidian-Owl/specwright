@@ -15,6 +15,8 @@ allowed-tools:
 
 Three-phase security review. Phase 1 (pattern detection) can block. Phase 2 (architectural) warns. Phase 3 (business logic) is informational.
 
+Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
+
 ## Step 1: Read Configuration and State
 
 Read `.specwright/config.json` for:
@@ -129,6 +131,8 @@ Check that sensitive data at rest uses encryption.
 - Plaintext storage of sensitive fields = INFO recommendation
 
 ## Step 5: Update Gate Status
+
+**Self-critique checkpoint:** Did I cite proof for each check? Did I assume gaps are future work? Would an auditor agree? If ambiguous, FAIL.
 
 Determine final status:
 - Any Phase 1 BLOCK = FAIL

@@ -16,6 +16,8 @@ allowed-tools:
 Three-tier test quality analysis. Tier 1 blocks the pipeline, Tier 2 warns, Tier 3 is informational.
 All analysis is language-agnostic — uses Grep, Glob, and LLM reasoning rather than language-specific tools.
 
+Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
+
 ## Step 1: Read Configuration and State
 
 Read `.specwright/config.json` for:
@@ -118,6 +120,8 @@ Check for tests that depend on external state:
 Flag test quality opportunities: weak assertions (not-null instead of specific value checks), over-mocking (>5 dependencies), missing boundary values (zero/negative/large for numeric parameters), and long setup functions (>50 lines). These are informational suggestions for improvement.
 
 ## Step 6: Update Gate Status
+
+**Self-critique checkpoint:** Before finalizing — did I accept anything without citing proof? Did I give benefit of the doubt? Would a skeptical auditor agree? Gaps are not future work. TODOs are not addressed. Partial implementations do not match intent. If ambiguous, FAIL.
 
 Determine final status:
 - Any Tier 1 failure: FAIL

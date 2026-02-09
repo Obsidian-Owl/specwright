@@ -15,6 +15,8 @@ allowed-tools:
 
 Verifies that every acceptance criterion in the spec has corresponding implementation and test evidence.
 
+Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
+
 ## Step 1: Read Configuration and State
 Read `.specwright/config.json` for `integration.omc` (agent delegation mode).
 Read `.specwright/state/workflow.json` to get current epic and specDir.
@@ -88,6 +90,9 @@ Extract mapping from code-reviewer response.
 Count PASS / FAIL / WARN statuses.
 
 ## Step 5: Update Gate Status
+
+**Self-critique checkpoint:** Before finalizing — did I accept anything without citing proof? Did I give benefit of the doubt? Would a skeptical auditor agree? Gaps are not future work. TODOs are not addressed. Partial implementations do not match intent. If ambiguous, FAIL.
+
 Update `.specwright/state/workflow.json` `gates.spec`:
 ```json
 {

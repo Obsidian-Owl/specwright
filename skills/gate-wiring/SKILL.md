@@ -16,6 +16,8 @@ allowed-tools:
 Verifies that all code is properly wired: exports used, imports follow architecture rules,
 no dead code, and no circular dependencies. All analysis is LLM-driven using Grep/Glob.
 
+Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
+
 ## Step 1: Read Configuration and State
 
 Read `.specwright/config.json` for:
@@ -111,6 +113,8 @@ Document any new inter-module dependencies added by this epic.
 | INFO | Informational | PASS |
 
 ## Step 8: Update Gate Status
+
+**Self-critique checkpoint:** Before finalizing — did I accept anything without citing proof? Did I give benefit of the doubt? Would a skeptical auditor agree? Gaps are not future work. TODOs are not addressed. Partial implementations do not match intent. If ambiguous, FAIL.
 
 Update `.specwright/state/workflow.json` `gates.wiring`:
 ```json
