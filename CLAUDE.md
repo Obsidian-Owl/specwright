@@ -5,18 +5,18 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 ## Workflow
 
 ```
-/specwright:init → /specwright:plan → /specwright:build → /specwright:verify → /specwright:ship
+/sw-init → /sw-plan → /sw-build → /sw-verify → /sw-ship
 ```
 
 | Skill | Purpose |
 |-------|---------|
-| `init` | Project setup. Creates constitution + charter. Configures gates and hooks. |
-| `plan` | Triage, research, design, critic review, decompose. Produces specs. |
-| `build` | TDD implementation of one work unit. |
-| `verify` | Interactive quality gates. Shows findings, validates against spec. |
-| `ship` | Trunk-based merge to main. |
-| `status` | Current state and progress. |
-| `learn` | Post-ship capture of patterns and learnings. |
+| `sw-init` | Project setup. Creates constitution + charter. Configures gates and hooks. |
+| `sw-plan` | Triage, research, design, critic review, decompose. Produces specs. |
+| `sw-build` | TDD implementation of one work unit. |
+| `sw-verify` | Interactive quality gates. Shows findings, validates against spec. |
+| `sw-ship` | Trunk-based merge to main. |
+| `sw-status` | Current state and progress. |
+| `sw-learn` | Post-ship capture of patterns and learnings. |
 
 ## Anchor Documents
 

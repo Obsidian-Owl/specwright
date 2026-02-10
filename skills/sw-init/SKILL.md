@@ -1,5 +1,5 @@
 ---
-name: init
+name: sw-init
 description: >-
   Initializes Specwright in a project. Detects stack, asks about practices,
   creates constitution and charter, configures quality gates and hooks.

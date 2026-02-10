@@ -1,5 +1,5 @@
 ---
-name: verify
+name: sw-verify
 description: >-
   Orchestrates quality gates for the current work unit. Runs enabled gates
   in dependency order, shows findings interactively, produces an aggregate
@@ -90,7 +90,7 @@ and be able to discuss or override before proceeding to ship.
 
 | Condition | Action |
 |-----------|--------|
-| No active work unit | STOP: "Nothing to verify. Run /specwright:plan and /specwright:build first." |
+| No active work unit | STOP: "Nothing to verify. Run /sw-plan and /sw-build first." |
 | No gates enabled in config | WARN and skip to ready-to-ship state |
 | Gate skill file not found | ERROR for that gate, continue with remaining gates |
 | All gates skipped by user | WARN: "All gates skipped. Proceed at own risk." |

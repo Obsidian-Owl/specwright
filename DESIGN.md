@@ -38,13 +38,13 @@ What is this repo? What are we building? Who are the consumers? Architectural in
 
 | Skill | Purpose | Key Innovation |
 |-------|---------|----------------|
-| `init` | Project setup | Ask, detect, configure. Creates constitution + charter |
-| `plan` | Understand + design + decompose | Triage, deep research, critic review, user questions throughout |
-| `build` | TDD implementation | Tester → executor delegation. Context doc travels with agents |
-| `verify` | Interactive quality gates | Shows findings, not badges. Orchestrates gate skills in dependency order |
-| `ship` | Trunk-based merge | PR with evidence-mapped body |
-| `status` | Where am I, what's done, what's next | Supports --reset to abandon work |
-| `learn` | Post-ship capture. What worked, what to remember | Promotes patterns to constitution |
+| `sw-init` | Project setup | Ask, detect, configure. Creates constitution + charter |
+| `sw-plan` | Understand + design + decompose | Triage, deep research, critic review, user questions throughout |
+| `sw-build` | TDD implementation | Tester → executor delegation. Context doc travels with agents |
+| `sw-verify` | Interactive quality gates | Shows findings, not badges. Orchestrates gate skills in dependency order |
+| `sw-ship` | Trunk-based merge | PR with evidence-mapped body |
+| `sw-status` | Where am I, what's done, what's next | Supports --reset to abandon work |
+| `sw-learn` | Post-ship capture. What worked, what to remember | Promotes patterns to constitution |
 
 ### Internal Gate Skills (5)
 
@@ -139,13 +139,13 @@ Target: 600 tokens per SKILL.md (40% of the 1,500 token ceiling).
 ```
 specwright/
 ├── skills/           # SKILL.md files (12 skills)
-│   ├── init/         # User-facing
-│   ├── plan/
-│   ├── build/
-│   ├── verify/
-│   ├── ship/
-│   ├── status/
-│   ├── learn/
+│   ├── sw-init/      # User-facing
+│   ├── sw-plan/
+│   ├── sw-build/
+│   ├── sw-verify/
+│   ├── sw-ship/
+│   ├── sw-status/
+│   ├── sw-learn/
 │   ├── gate-build/   # Internal (invoked by verify)
 │   ├── gate-tests/
 │   ├── gate-security/

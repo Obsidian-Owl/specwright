@@ -31,23 +31,23 @@ In Claude Code, add the marketplace and install the plugin:
 
 Initialize your project:
 ```
-/specwright:init
+/sw-init
 ```
 
 Create a specification:
 ```
-/specwright:plan payment-integration
+/sw-plan payment-integration
 ```
 
 Build with test-first discipline:
 ```
-/specwright:build payment-integration
+/sw-build payment-integration
 ```
 
 Verify quality and ship:
 ```
-/specwright:verify
-/specwright:ship payment-integration
+/sw-verify
+/sw-ship payment-integration
 ```
 
 ## Workflow
@@ -66,13 +66,13 @@ Verify quality and ship:
 ## Skills
 
 **User-Facing** (7 core skills):
-- `/specwright:init` — Project configuration and setup
-- `/specwright:plan` — Specification with triage, research, design, critic, decompose
-- `/specwright:build` — TDD implementation with test-first discipline
-- `/specwright:verify` — Interactive quality gates with findings
-- `/specwright:ship` — Trunk-based PR with evidence mapping
-- `/specwright:status` — Workflow progress and state
-- `/specwright:learn` — Pattern capture and promotion
+- `/sw-init` — Project configuration and setup
+- `/sw-plan` — Specification with triage, research, design, critic, decompose
+- `/sw-build` — TDD implementation with test-first discipline
+- `/sw-verify` — Interactive quality gates with findings
+- `/sw-ship` — Trunk-based PR with evidence mapping
+- `/sw-status` — Workflow progress and state
+- `/sw-learn` — Pattern capture and promotion
 
 **Quality Gates** (5 gates, configurable):
 - `gate-build` — Compilation, test pass (BLOCK)
