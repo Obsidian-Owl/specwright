@@ -1,141 +1,72 @@
 ---
 name: gate-security
 description: >-
-  Three-phase security review: automated pattern detection (block),
-  architectural security review (warn), and sensitive domain review (info).
-argument-hint: "[epic-id]"
+  Detects leaked secrets, injection patterns, and sensitive data exposure
+  across changed files. Uses real tooling when configured, LLM judgment
+  for analysis. Internal gate — invoked by verify.
 allowed-tools:
-  - Bash
   - Read
-  - Grep
+  - Bash
   - Glob
-  - mcp__plugin_oh-my-claudecode_omc-tools__ast_grep_search
+  - Grep
+  - Write
 ---
 
-# Specwright Gate: Security Review
+# Gate: Security
 
-Prefer `ast_grep_search` for structural queries. Fallback to Grep if unavailable.
+## Goal
 
-Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
+Ensure the codebase doesn't leak secrets, introduce injection vulnerabilities,
+or expose sensitive data. Use real security tooling when available. Use LLM
+judgment for analysis that tools can't do.
 
-## Step 1: Read Configuration and State
+## Inputs
 
-Read `.specwright/config.json` for:
-- `gates.security.sensitiveFiles` — file patterns to protect
-- `gates.security.secretPatterns` — patterns that indicate leaked secrets
-- `gates.security.sastTool` — optional SAST tool command (if configured)
-- `gates.security.vulnScanner` — optional vulnerability scanner command
+- `.specwright/config.json` -- `commands.lint`, SAST tool config if available
+- `.specwright/state/workflow.json` -- current work unit
+- Changed files (detected via `git diff`)
 
-Read `.specwright/state/workflow.json` for epic context.
-If no epic active, STOP.
+## Outputs
 
-Create evidence directory:
-```bash
-mkdir -p {specDir}/evidence/
-```
+- Evidence file at `.specwright/work/{id}/evidence/security-report.md`
+- Gate status in workflow.json
+- Findings shown inline with severity, location, and remediation
 
-Determine scope:
-```bash
-git diff --name-only main...HEAD 2>/dev/null || git diff --name-only HEAD~10
-```
-If zero changed files in scope: write ERROR status, STOP.
+## Constraints
 
-## Step 2: Phase 1 — Automated Detection (BLOCK severity)
+**Scope (MEDIUM freedom):**
+- Focus on changed files. Use `git diff --name-only` against main branch.
+- If no changed files detected, check all files in work scope.
 
-Any Phase 1 finding sets gate status to FAIL.
+**Phase 1 — Detection (LOW freedom, BLOCK severity):**
+- Scan for secrets: API keys, tokens, passwords, private keys in source files.
+- Scan for .env files, credential files, or key files staged for commit.
+- Check .gitignore covers sensitive patterns.
+- If a configured SAST tool exists (e.g., `semgrep`, `eslint-plugin-security`), run it.
+- Any secret or credential found = BLOCK finding.
 
-### 2a: Secret Detection
-Search changed files for patterns indicating leaked secrets:
-- Use patterns from `config.json` `gates.security.secretPatterns`
-- Default patterns: `API_KEY`, `SECRET`, `PASSWORD`, `TOKEN`, `PRIVATE_KEY`, `aws_access_key`, `ssh-rsa`
-- Also search for: hardcoded connection strings, base64-encoded credentials, private keys
+**Phase 2 — Analysis (HIGH freedom, WARN severity):**
+- Review changed code for injection patterns (SQL, command, XSS, path traversal).
+- Check that external data is treated as untrusted (per Constitution X3).
+- Check that authentication/authorization patterns aren't weakened (per X2).
+- Findings are WARN unless clearly exploitable (then BLOCK).
 
-```
-Grep pattern="{each secret pattern}" in changed files
-```
+**Verdict (LOW freedom):**
+- Follow `protocols/gate-verdict.md`.
+- Any BLOCK finding = gate FAIL.
+- WARN-only findings = gate WARN (passes but flagged).
+- Cite Constitution X1-X4 where relevant.
 
-Exclusions (do NOT flag):
-- Test files with obvious dummy values
-- Example/sample configuration files
-- Environment variable references (reading from env is safe)
+## Protocol References
 
-Each genuine secret leak = BLOCK.
+- `protocols/gate-verdict.md` -- verdict rendering
+- `protocols/evidence.md` -- evidence storage
+- `protocols/state.md` -- gate status updates
 
-### 2b: SQL Injection, Command Injection, and Sensitive Logging
-Detect injection vulnerabilities and sensitive data exposure. Use Grep + semantic analysis to identify:
-- SQL injection: string concatenation in SQL contexts (raw queries with variable interpolation). Exclude parameterized queries, ORM builders, and constant concatenation.
-- Command injection: shell command construction with user input (`exec`, `system`, `spawn`, `popen` with variables).
-- Sensitive data in logs: log statements containing password, token, secret, SSN, or credit card data.
+## Failure Modes
 
-Each genuine finding = BLOCK.
-
-### 2c: SAST Tool (Optional)
-If `gates.security.sastTool` is configured:
-- Run the configured SAST tool
-- Parse output for findings
-- HIGH/CRITICAL = BLOCK, MEDIUM = WARN, LOW = INFO
-
-If no SAST tool configured, skip.
-
-### 2d: Vulnerability Scanner (Optional)
-If `gates.security.vulnScanner` is configured:
-- Run the scanner
-- Parse output for known vulnerabilities
-- CRITICAL/HIGH CVEs = BLOCK, MEDIUM = WARN, LOW = INFO
-
-If unavailable, note as INFO.
-
-## Step 3: Phase 2 — Architectural Review (WARN severity)
-
-Phase 2 findings do NOT block the gate.
-
-### 3a: Auth Coverage
-Search route/endpoint definitions in changed files. Verify auth middleware applied. Endpoints in sensitive areas without auth = WARN.
-
-### 3b: Input Validation
-Search request handlers in changed files. Handlers without validation = WARN.
-
-### 3c: Error Leakage
-Search error handling in API code. Raw errors, stack traces, or internal details in responses = WARN.
-
-### 3d: HTTPS/TLS
-If config files changed: insecure protocol usage or disabled TLS verification = WARN.
-
-### 3e: Dependency Security
-If package manifests changed: new dependencies = INFO, known insecure versions = WARN.
-
-## Step 4: Phase 3 — Sensitive Domain Review (INFO only)
-
-Only run if changes touch files matching sensitive patterns from config.
-Check authorization context (data queries without user filtering), audit logging (CUD operations without audit trail), and data encryption (plaintext sensitive fields). All findings = INFO recommendation.
-
-## Step 5: Baseline Check
-If `.specwright/baselines/gate-security.json` exists, load entries (`{finding, file, reason, expires}` with ISO dates; null = no expiry). For matching findings: downgrade BLOCK->WARN, WARN->INFO. Ignore expired entries. Partial match (same category, different line): AskUserQuestion. Log all downgrades in evidence.
-
-## Step 6: Update Gate Status
-
-**Self-critique checkpoint:** Before finalizing — did I accept anything without citing proof? Did I give benefit of the doubt? Would a skeptical auditor agree? Gaps are not future work. TODOs are not addressed. Partial implementations do not match intent. If ambiguous, FAIL.
-
-Determine final status:
-- Incomplete analysis: ERROR (invoke AskUserQuestion)
-- Any Phase 1 BLOCK: FAIL
-- Only WARN (Phase 2): WARN
-- Only INFO or no findings: PASS
-
-Update `.specwright/state/workflow.json` `gates.security`:
-```json
-{"status": "PASS|WARN|FAIL|ERROR", "lastRun": "<ISO>", "evidence": "{specDir}/evidence/security-report.md"}
-```
-
-## Step 7: Save Evidence
-
-Write `{specDir}/evidence/security-report.md` with three sections (Phase 1 findings in a BLOCK table, Phase 2 findings in a WARN table, Phase 3 as INFO text) plus summary counts. Format: Epic/Date/Status header, then table of all Phase 1 checks (Secrets, SQL Injection, Command Injection, Sensitive Logging, SAST, Vuln Scan) with PASS/FAIL/SKIP, table of Phase 2 checks (Auth Coverage, Input Validation, Error Leakage, HTTPS/TLS, Dependencies) with PASS/WARN, Phase 3 recommendations or "Skipped", and summary with BLOCK/WARN/INFO counts.
-
-## Step 8: Output Result
-```
-SECURITY GATE: {PASS|WARN|FAIL}
-Phase 1 (Detection): {count} BLOCK findings
-Phase 2 (Architecture): {count} warnings
-Phase 3 (Business Logic): {count} recommendations
-Evidence: {specDir}/evidence/security-report.md
-```
+| Condition | Action |
+|-----------|--------|
+| No SAST tool configured | Skip tool-based detection, rely on LLM analysis |
+| No changed files detected | Scan all project source files |
+| SAST tool not installed | WARN finding, suggest installation, continue with LLM |

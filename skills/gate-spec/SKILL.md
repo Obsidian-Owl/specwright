@@ -1,148 +1,78 @@
 ---
 name: gate-spec
 description: >-
-  Spec compliance verification. Maps each acceptance criterion from spec.md
-  to implementation evidence. Flags unverified criteria as FAIL.
-argument-hint: "[epic-id]"
+  Maps every acceptance criterion from the spec to implementation evidence
+  and test evidence. Criteria without evidence fail. The ultimate quality
+  gate. Internal — invoked by verify.
 allowed-tools:
-  - Bash
   - Read
-  - Grep
+  - Bash
   - Glob
+  - Grep
+  - Write
+  - Task
 ---
 
-# Specwright Gate: Spec Compliance
+# Gate: Spec Compliance
 
-Verifies that every acceptance criterion in the spec has corresponding implementation and test evidence.
+## Goal
 
-Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
+Prove that the implementation actually does what was asked for. Every
+acceptance criterion in the spec must map to implementation evidence
+(file:line) and test evidence (test name at file:line). This is the gate
+that closes the loop.
 
-## Step 1: Read Configuration and State
-Read `.specwright/config.json` for `integration.omc` (agent delegation mode).
-Read `.specwright/state/workflow.json` to get current epic and specDir.
-If no epic active, STOP: "No active epic. Run /specwright:specify first."
+## Inputs
 
-## Step 2: Load Spec
-Read `.specwright/epics/{specDir}/spec.md` and extract all acceptance criteria.
-Parse lines matching `- [ ]` or `- [x]` under "Acceptance Criteria" headings.
-Build a numbered list of all criteria.
-If spec.md has zero acceptance criteria: write ERROR status, STOP.
+- `.specwright/work/{id}/spec.md` -- acceptance criteria
+- `.specwright/state/workflow.json` -- current work unit
+- The codebase (implementation and tests)
 
-## Step 3: Map Criteria to Evidence
+## Outputs
 
-Delegate to code-reviewer agent for thorough mapping.
+- Evidence file at `.specwright/work/{id}/evidence/spec-compliance.md`
+- Compliance matrix: each criterion → implementation ref + test ref + status
+- Gate status in workflow.json
 
-**Agent Delegation:**
+## Constraints
 
-Read `.specwright/config.json` `integration.omc` to determine delegation mode.
+**Criteria extraction (LOW freedom):**
+- Parse spec.md for all acceptance criteria (lines matching `- [ ] AC-*`).
+- Number them. Every single one must be mapped. No skipping.
 
-**If OMC is available** (`integration.omc` is true):
-Use the Task tool with `subagent_type`:
+**Evidence mapping (HIGH freedom):**
+- For each criterion, search the codebase for implementation evidence.
+- For each criterion, search test files for test evidence.
+- Delegate to `specwright-reviewer` for thorough analysis if needed.
+- Evidence must be specific: file path and line number, not "somewhere in src/".
 
-    subagent_type: "oh-my-claudecode:code-reviewer"
-    description: "Map spec to evidence"
-    prompt: |
-      Map acceptance criteria to implementation evidence.
+**Verdict (LOW freedom):**
+- Follow `protocols/gate-verdict.md`.
+- Criterion with both implementation AND test evidence = PASS.
+- Criterion with implementation but no test = WARN.
+- Criterion with neither = FAIL.
+- Overall: if ANY criterion is FAIL, gate is FAIL.
+- Self-critique: would a skeptical auditor agree with each mapping?
 
-      Acceptance Criteria:
-      {numbered criteria list}
-
-      Project root: {cwd}
-      Changed files: {git diff --name-only}
-
-      For EACH criterion, provide:
-      1. Status: PASS / FAIL / WARN
-      2. Test name and file:line that verifies it
-      3. Implementation file:line reference
-      4. Reason if FAIL or WARN
-
-      Rules:
-      - Criterion with no corresponding test = FAIL
-      - Criterion with test that doesn't actually assert the behavior = WARN
-      - Criterion with clear test coverage = PASS
-
-**If OMC is NOT available** (standalone mode):
-Use the Task tool with `model`:
-
-    prompt: |
-      Map acceptance criteria to implementation evidence.
-
-      Acceptance Criteria:
-      {numbered criteria list}
-
-      Project root: {cwd}
-      Changed files: {git diff --name-only}
-
-      For EACH criterion, provide:
-      1. Status: PASS / FAIL / WARN
-      2. Test name and file:line that verifies it
-      3. Implementation file:line reference
-      4. Reason if FAIL or WARN
-
-      Rules:
-      - Criterion with no corresponding test = FAIL
-      - Criterion with test that doesn't actually assert the behavior = WARN
-      - Criterion with clear test coverage = PASS
-    model: "opus"
-    description: "Map spec to evidence"
-
-## Step 4: Parse Evidence Response
-Extract mapping from code-reviewer response.
-Count PASS / FAIL / WARN statuses.
-
-## Step 5: Baseline Check
-If `.specwright/baselines/gate-spec.json` exists, load entries (`{finding, file, reason, expires}` with ISO dates; null = no expiry). For matching findings: downgrade BLOCK->WARN, WARN->INFO. Ignore expired entries. Partial match (same category, different line): AskUserQuestion. Log all downgrades in evidence.
-
-## Step 6: Update Gate Status
-
-**Self-critique checkpoint:** Before finalizing — did I accept anything without citing proof? Did I give benefit of the doubt? Would a skeptical auditor agree? Gaps are not future work. TODOs are not addressed. Partial implementations do not match intent. If ambiguous, FAIL.
-
-Determine final status:
-- Incomplete analysis: ERROR (invoke AskUserQuestion)
-- Any criterion FAIL: FAIL
-- Any criterion WARN (test doesn't assert behavior): WARN
-- All PASS: PASS
-
-Update `.specwright/state/workflow.json` `gates.spec`:
-```json
-{
-  "status": "PASS|WARN|FAIL|ERROR",
-  "lastRun": "<ISO-timestamp>",
-  "evidence": "{specDir}/evidence/spec-compliance.md",
-  "verified": {pass_count},
-  "unverified": {fail_count}
-}
+**Compliance matrix format:**
+```
+| # | Criterion | Implementation | Test | Status |
+|---|-----------|---------------|------|--------|
+| AC-1 | Description | file:line | test_name at file:line | PASS |
 ```
 
-## Step 7: Write Evidence Report
-Create `{specDir}/evidence/spec-compliance.md`:
-```markdown
-# Spec Compliance Report
-Generated: {timestamp}
+## Protocol References
 
-## Summary
-- Total Criteria: {total}
-- Verified (PASS): {pass_count}
-- Unverified (FAIL): {fail_count}
-- Warnings: {warn_count}
+- `protocols/gate-verdict.md` -- verdict rendering and self-critique
+- `protocols/evidence.md` -- evidence storage
+- `protocols/state.md` -- gate status updates
+- `protocols/delegation.md` -- reviewer agent delegation
 
-## Criteria Mapping
+## Failure Modes
 
-### Criterion 1: {description}
-- Status: PASS
-- Test: {test name} ({file}:{line})
-- Implementation: {file}:{line}
-
-### Criterion 2: {description}
-- Status: FAIL
-- Reason: No test found verifying this behavior
-```
-
-## Step 8: Output Result
-```
-SPEC GATE: {PASS|WARN|FAIL}
-Criteria: {total} total, {verified} verified, {unverified} unverified
-Evidence: {specDir}/evidence/spec-compliance.md
-
-{if FAIL: List unverified criteria}
-```
+| Condition | Action |
+|-----------|--------|
+| No spec.md found | Gate ERROR: "No spec found for this work unit" |
+| No acceptance criteria in spec | Gate ERROR: "Spec has no acceptance criteria" |
+| Implementation exists but tests don't | WARN per criterion, gate WARN overall |
+| Can't determine mapping with confidence | FAIL the criterion. Don't guess. |

@@ -1,180 +1,72 @@
 ---
 name: gate-wiring
 description: >-
-  Integration and wiring verification. Detects dead code, unused exports,
-  architecture layer violations, and circular dependencies using LLM analysis.
-argument-hint: "[epic-id]"
+  Detects unused exports, orphaned files, architecture layer violations,
+  and circular dependencies across changed files. Delegates to architect
+  agent for structural analysis. Internal gate — invoked by verify.
 allowed-tools:
-  - Bash
   - Read
-  - Grep
+  - Bash
   - Glob
-  - mcp__plugin_oh-my-claudecode_omc-tools__ast_grep_search
+  - Grep
+  - Write
+  - Task
 ---
 
-# Specwright Gate: Wiring and Integration
+# Gate: Wiring
 
-Verifies that all code is properly wired: exports used, imports follow architecture rules,
-no dead code, and no circular dependencies. All analysis is LLM-driven using Grep/Glob.
+## Goal
 
-Prefer `ast_grep_search` for structural queries. Fallback to Grep if unavailable.
+Ensure the codebase is properly connected — no dead code, no orphaned
+files, no architecture violations. Code that compiles and passes tests
+can still be wired incorrectly.
 
-Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
+## Inputs
 
-## Step 1: Read Configuration and State
+- `.specwright/config.json` -- architecture layers, project structure
+- `.specwright/state/workflow.json` -- current work unit
+- Changed files (via `git diff`)
 
-Read `.specwright/config.json` for:
-- `project.languages` — file extensions and import patterns
-- `architecture.style` and `architecture.layers` — layer rules
-- `gates.wiring` — wiring-specific config (checkImports, checkEndpoints, checkEvents)
+## Outputs
 
-Read `.specwright/state/workflow.json` for epic context.
-If no epic active, STOP.
+- Evidence file at `.specwright/work/{id}/evidence/wiring-report.md`
+- Gate status in workflow.json
+- Findings with specific file:line references and remediation
 
-Create evidence directory:
-```bash
-mkdir -p {specDir}/evidence/
-```
+## Constraints
 
-## Step 2: Determine Scope
+**Scope (MEDIUM freedom):**
+- Focus on changed files and their immediate dependents.
+- Use `git diff --name-only` against main branch.
 
-Get changed files in this epic:
-```bash
-git diff --name-only main...HEAD 2>/dev/null || git diff --name-only HEAD~10
-```
-Filter to source files (exclude tests, configs, docs).
-Identify which modules/directories were modified.
-If zero changed files in scope: write ERROR status, STOP.
+**Analysis (HIGH freedom):**
+- Delegate to `specwright-architect` for structural analysis.
+- The architect checks:
+  - **Unused exports**: Public functions/types exported but never imported.
+  - **Orphaned files**: Files not imported by anything in the dependency graph.
+  - **Layer violations**: Imports crossing architecture layer boundaries (e.g., UI importing directly from database layer). Layers from `config.json` `architecture.layers`.
+  - **Circular dependencies**: Import cycles that may cause runtime issues.
+- Use real tooling when available (e.g., `madge`, `knip`, `ts-prune`).
+- Fall back to LLM analysis when tools aren't configured.
 
-## Step 3: Phase 1 — Dead Code Detection
+**Verdict (LOW freedom):**
+- Follow `protocols/gate-verdict.md`.
+- WARN severity for most findings (wiring issues rarely block functionality).
+- BLOCK only for circular dependencies in changed files.
+- This gate is advisory — it helps clean up, not block shipping.
 
-### 3a: Unused Exports
-For each new or modified source file:
-- Use Grep to find all exported symbols (functions, classes, types, constants)
-  - The pattern depends on language (e.g., `export` in TS, capitalized names in Go, `pub` in Rust, `def` in Python)
-- For each exported symbol, search the entire codebase for imports/usage
-- Symbol with zero external references = WARN
-- Symbol in changed files with zero external references = BLOCK (new dead code)
+## Protocol References
 
-### 3b: Orphaned Files
-Check if any new files are not imported/referenced by any other file:
-- New file with zero inbound references = WARN
+- `protocols/gate-verdict.md` -- verdict rendering
+- `protocols/evidence.md` -- evidence storage
+- `protocols/state.md` -- gate status updates
+- `protocols/delegation.md` -- architect agent delegation
 
-## Step 4: Phase 2 — Integration Path Verification
+## Failure Modes
 
-### 4a: Architecture Layer Compliance
-If `architecture.layers` is configured (e.g., ["handler", "service", "repository"]):
-- Verify imports follow the layer hierarchy (top layers can import lower layers, not vice versa)
-- Use Grep to check import statements in each file
-- Layer violation (e.g., repository importing handler) = BLOCK
-
-If architecture is "none" or not configured, skip this check.
-
-### 4b: Module Boundary Enforcement
-If project structure is "multi-service" or "monorepo":
-- Check that modules don't import each other's internal packages
-- Shared code should be in designated shared directories
-- Cross-module internal import = BLOCK
-
-### 4c: New Public Interfaces
-For each new public API, endpoint, or interface:
-- Verify it is documented (if documentation conventions exist)
-- Verify it is referenced/consumed by at least one caller
-- New interface with zero consumers = WARN
-
-## Step 5: Phase 3 — Event/Integration Verification (if configured)
-
-Only run if `gates.wiring.checkEvents` is true in config.
-
-### 5a: Event Publishers and Subscribers
-Search for event publishing patterns and verify matching subscribers exist.
-- Publisher without subscriber = WARN
-- Subscriber without matching publisher = BLOCK
-
-### 5b: API Contract Consistency
-If the project has API definitions (OpenAPI, GraphQL schema, protobuf):
-- Verify implementation matches contract
-- Mismatches = BLOCK
-
-## Step 6: Phase 4 — Dependency Analysis
-
-### 6a: Circular Dependencies
-Analyze import statements across modules to detect circular dependency chains.
-- Use Grep to extract imports from each file
-- Build a mental dependency graph
-- Any circular chain = BLOCK
-
-### 6b: New Dependencies
-Document any new inter-module dependencies added by this epic.
-- List new dependency relationships as INFO
-
-## Step 7: Compile and Score
-
-| Severity | Meaning | Gate Effect |
-|----------|---------|-------------|
-| BLOCK | Must fix before merge | FAIL gate |
-| WARN | Should fix, non-blocking | WARN status |
-| INFO | Informational | PASS |
-
-## Step 8: Baseline Check
-If `.specwright/baselines/gate-wiring.json` exists: matching entries downgrade BLOCK->WARN, WARN->INFO. Expired ignored. Partial match: AskUserQuestion. Log downgrades in evidence.
-
-## Step 9: Update Gate Status
-
-**Self-critique checkpoint:** Before finalizing — did I accept anything without citing proof? Did I give benefit of the doubt? Would a skeptical auditor agree? Gaps are not future work. TODOs are not addressed. Partial implementations do not match intent. If ambiguous, FAIL.
-
-Determine final status:
-- Incomplete analysis: ERROR (invoke AskUserQuestion)
-- Any BLOCK finding: FAIL
-- Only WARN findings: WARN
-- Only INFO or no findings: PASS
-
-Update `.specwright/state/workflow.json` `gates.wiring`:
-```json
-{"status": "PASS|WARN|FAIL|ERROR", "lastRun": "<ISO>", "evidence": "{specDir}/evidence/wiring-report.md"}
-```
-
-## Step 10: Save Evidence
-
-Write `{specDir}/evidence/wiring-report.md`:
-```markdown
-# Wiring Gate Report
-Epic: {epicId}
-Date: {timestamp}
-Status: PASS/WARN/FAIL
-
-## Phase 1: Dead Code Detection
-{findings with file:line}
-
-## Phase 2: Integration Paths
-### Layer Compliance: PASS/FAIL
-{findings}
-### Module Boundaries: PASS/FAIL
-{findings}
-### Public Interfaces: PASS/WARN
-{findings}
-
-## Phase 3: Event/Integration (if applicable)
-{findings or "Skipped — not configured"}
-
-## Phase 4: Dependencies
-### Circular Dependencies: PASS/FAIL
-{findings}
-### New Dependencies
-{list}
-
-## Summary
-BLOCK: N findings
-WARN: N findings
-INFO: N findings
-```
-
-## Step 11: Output Result
-```
-WIRING GATE: PASS/WARN/FAIL
-Phase 1 (Dead Code): X findings
-Phase 2 (Integration): X findings
-Phase 3 (Events): X findings or "skipped"
-Phase 4 (Dependencies): X findings
-Evidence: {specDir}/evidence/wiring-report.md
-```
+| Condition | Action |
+|-----------|--------|
+| No changed files detected | Analyze all project source files |
+| No architecture layers configured | Skip layer violation check |
+| Wiring tool not installed | Fall back to LLM-based analysis |
+| Too many files to analyze | Focus on changed files only, note incomplete scope |

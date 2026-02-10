@@ -1,142 +1,86 @@
 ---
 name: ship
 description: >-
-  Evidence-based PR creation. Verifies all gates passed, commits remaining
-  changes, and creates PR with evidence mapping.
-argument-hint: "[epic-id]"
+  Ships the current work unit. Verifies all gates passed, creates a PR
+  with evidence-mapped body, updates workflow state to shipped.
+argument-hint: ""
 allowed-tools:
-  - Bash
   - Read
   - Write
-  - Grep
+  - Bash
   - Glob
+  - Grep
+  - AskUserQuestion
 ---
 
-# Specwright Ship: Evidence-Based PR Creation
+# Specwright Ship
 
-Creates a pull request with full evidence mapping and spec compliance verification.
+## Goal
 
-## Step 1: Read Configuration and State
+Merge the current work unit to main via a pull request. The PR body maps
+evidence to acceptance criteria so reviewers can verify the work. Only
+ships when gates have passed.
 
-Read `.specwright/config.json` for:
-- `git.prTool` — PR creation tool (gh, glab, none)
-- `git.commitFormat` — commit message format
-- `integration.omc` — OMC agent availability
+## Inputs
 
-Read `.specwright/state/workflow.json` for current epic context and gate status.
-If no active epic, STOP: "No active epic. Run /specwright:specify first."
+- `.specwright/state/workflow.json` -- current work unit, gate results
+- `.specwright/work/{id}/spec.md` -- acceptance criteria for PR body
+- `.specwright/work/{id}/evidence/` -- gate evidence files
+- `.specwright/config.json` -- git config (PR tool, branch prefix, main branch)
 
-## Step 2: Verify All Gates Passed
+## Outputs
 
-Check each gate in the `gates` object of workflow.json.
-Only check gates that are enabled in `config.json` `gates.enabled` (plus "spec" which is always enabled).
+- Pull request created with evidence-mapped body
+- `workflow.json` currentWork status set to `shipped`
+- Feature branch cleaned up after merge (if configured)
 
-For each enabled gate:
-- If status is not "PASS" and not "WARN": add to failed gates list
+## Constraints
 
-If any gates failed:
-```
-Cannot ship: The following gates have not passed:
-{list failed gates}
+**Pre-flight checks (LOW freedom):**
+- Verify `currentWork` exists and status is `verifying` or `building`.
+- Check gate results in workflow.json:
+  - All enabled gates must have status PASS, WARN, or SKIP.
+  - If any gate is FAIL or has no result: STOP and tell the user to run verify.
+- Check evidence freshness: gate results older than 30 minutes trigger a warning.
+- Check for uncommitted changes. If any, ask user: commit them or abort.
 
-Run /specwright:validate to check all gates.
-```
-STOP.
+**PR creation (MEDIUM freedom):**
+- Follow `protocols/git.md` for branch and push operations.
+- Create PR using `gh pr create` (or tool from `config.json` `git.prTool`).
+- PR body structure:
+  ```
+  ## Summary
+  <1-3 bullet points from spec description>
 
-## Step 3: Check for Uncommitted Changes
+  ## Acceptance Criteria
+  <For each criterion: status + evidence reference>
 
-Run `git status --porcelain` to detect changes.
+  ## Gate Results
+  <Summary table: gate, status, findings count>
 
-If changes exist:
-1. List modified files
-2. Stage specific files (NEVER `git add -A`)
-3. Commit with format from config:
-   ```
-   feat({epic-id}): final changes
+  ## Evidence
+  <Links to evidence files or inline summaries>
+  ```
+- Use HEREDOC for PR body to preserve formatting.
 
-   Co-Authored-By: Claude <noreply@anthropic.com>
-   ```
+**State updates (LOW freedom):**
+- Follow `protocols/state.md`.
+- Set `currentWork.status` to `shipped` after PR creation.
+- Release lock.
 
-## Step 4: Push Branch
+## Protocol References
 
-```bash
-git push -u origin {branch-name}
-```
-Get branch name from workflow.json or current git branch.
+- `protocols/git.md` -- branch, push, PR creation
+- `protocols/state.md` -- workflow state updates
+- `protocols/evidence.md` -- evidence references for PR body
 
-## Step 5: Generate PR Body
+## Failure Modes
 
-Read the PR template from `.specwright/templates/pr-template.md`.
-
-Populate the template with:
-1. **Summary**: Read spec.md for epic description
-2. **Changes**: Run `git diff main...HEAD --name-only` and group by directory
-3. **Evidence**: Map each enabled gate to its evidence file from workflow.json
-4. **Acceptance Criteria**: Read `{specDir}/evidence/spec-compliance.md` for the criteria mapping
-5. **Complexity**: Read tasks.md for total complexity score
-
-## Step 6: Create Pull Request
-
-Based on `config.json` `git.prTool`:
-
-**If "gh" (GitHub CLI):**
-```bash
-gh pr create --title "feat: {epic-name}" --body "{pr-body}" --base main --head {branch}
-```
-
-**If "glab" (GitLab CLI):**
-```bash
-glab mr create --title "feat: {epic-name}" --description "{pr-body}" --target-branch main --source-branch {branch}
-```
-
-**If "none":**
-- Output the PR body for manual creation
-- Skip automated PR creation
-
-Capture PR/MR URL from output.
-
-## Step 7: Update Workflow State
-
-Update `.specwright/state/workflow.json`:
-```json
-{
-  "currentEpic": {
-    "...existing",
-    "status": "shipped",
-    "prUrl": "{pr-url}",
-    "shippedAt": "{ISO-timestamp}"
-  }
-}
-```
-
-## Step 8: Summary
-
-```
-Epic {epic-name} shipped successfully!
-
-Pull Request: {pr-url}
-Branch: {branch-name}
-Quality Gates: All PASS
-
-Next steps:
-1. Request review from team members
-2. Address any feedback
-3. Merge when approved
-
-Evidence preserved in {specDir}/evidence/
-```
-
-## Compaction Recovery
-
-If compaction occurs:
-1. Read workflow.json — if status is "shipped" with prUrl, output summary and stop
-2. If status is "tasks-complete" with all gates PASS, resume at Step 3
-
-## Error Handling
-
-| Error | Action |
-|-------|--------|
-| No workflow state | "No active epic. Run /specwright:specify first." |
-| Gates not all PASS | List failed gates, suggest /specwright:validate |
-| Git push fails | Show error, suggest checking remote access |
-| PR creation fails | Show error, check if PR already exists |
+| Condition | Action |
+|-----------|--------|
+| Gates not passed | STOP: "Run /specwright:verify first" |
+| No git changes to ship | STOP: "Nothing to ship. No changes detected." |
+| PR creation fails | Show error. Don't update state. User can retry. |
+| Evidence files missing | WARN in PR body: "Evidence not available for gate X" |
+| gh CLI not installed | STOP: "Install gh CLI or configure alternative PR tool" |
+| Compaction during ship | Read workflow.json, check if PR was already created |

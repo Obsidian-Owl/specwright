@@ -1,277 +1,97 @@
 ---
 name: init
 description: >-
-  Initialize Specwright in your project. Interactive wizard that configures
-  spec-driven development with quality gates, learning, and compaction recovery.
-argument-hint: "[--reset]"
+  Initializes Specwright in a project. Detects stack, asks about practices,
+  creates constitution and charter, configures quality gates and hooks.
+argument-hint: ""
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - Glob
+  - Grep
 ---
 
-# Specwright Init: Project Initialization Wizard
+# Specwright Init
 
-Sets up spec-driven development in your project with an interactive configuration wizard.
+## Goal
 
-## Arguments
+Set up Specwright in this project by understanding how the user works,
+what they're building, and what quality standards they expect. Produce
+configuration and anchor documents that will guide all future work.
 
-Parse `$ARGUMENTS` for:
-- **Empty**: Initialize new project or detect existing
-- `--reset`: Reset configuration (preserves epics and learnings)
+## Inputs
 
-## Pre-flight Checks
+- The codebase (scan for language, framework, dependencies, test runner)
+- The user (ask about practices, vision, quality expectations)
 
-### Check for Existing Installation
-1. Check if `.specwright/config.json` exists
-2. If exists AND no `--reset` flag:
-   - Read existing config
-   - Show current configuration summary
-   - Ask user via AskUserQuestion: "Specwright is already initialized. What would you like to do?"
-     - Options: "Keep current config", "Reconfigure (preserve data)", "Full reset (preserve epics)"
-   - If "Keep current config": exit with summary
-   - If "Reconfigure": proceed with wizard, preserve `.specwright/state/`, `.specwright/epics/`, `.specwright/memory/`
-   - If "Full reset": delete config.json only, proceed with wizard
+## Outputs
 
-### Check for OMC
-Detect oh-my-claudecode installation:
-1. Check if the `oh-my-claudecode:help` skill is available (try invoking it mentally)
-2. Check if `~/.claude/plugins/installed_plugins.json` contains `oh-my-claudecode`
-3. Set `omcDetected = true/false` for later config
+When complete, ALL of the following exist:
 
-## Interactive Configuration Wizard
+- `.specwright/config.json` -- detected + configured project settings
+- `.specwright/CONSTITUTION.md` -- development practices the AI must follow
+- `.specwright/CHARTER.md` -- technology vision and project identity
+- `.specwright/state/workflow.json` -- initialized empty state
+- Quality gates configured in config based on user preferences
+- Hooks set up if the user wants them
 
-Use `AskUserQuestion` for each configuration section. Group related questions where possible (AskUserQuestion supports up to 4 questions per call).
+## Constraints
 
-### Round 1: Project Identity
+**Detection (MEDIUM freedom):**
+- Scan the codebase to detect: language(s), framework(s), package manager,
+  test runner, existing linting/formatting, git workflow, CI/CD presence.
+- Read dependency manifests (package.json, go.mod, requirements.txt, Cargo.toml, etc.).
+- Don't guess what you can detect. Don't ask what you can infer.
 
-Use AskUserQuestion with these questions:
+**User conversation (HIGH freedom):**
+- Ask the user about things you CANNOT detect from the codebase:
+  - What is this project? Who uses it? (→ CHARTER.md)
+  - Testing philosophy and coverage expectations? (→ CONSTITUTION.md)
+  - Security requirements? (→ gate config)
+  - Code review standards? (→ CONSTITUTION.md)
+  - Any practices or patterns they insist on? (→ CONSTITUTION.md)
+- Use AskUserQuestion with concrete options based on what you detected.
+- Batch related questions. Maximum 3-4 questions per interaction.
+- Don't ask about things the codebase already answers.
 
-**Question 1:** "What is your project name?"
-- header: "Project"
-- options: [auto-detect from package.json/go.mod/Cargo.toml name, "Enter custom name"]
+**Constitution creation (HIGH freedom):**
+- The constitution captures the user's development practices as clear rules.
+- Rules should be specific and actionable, not vague aspirations.
+- Bad: "Write clean code." Good: "All public functions must have error handling."
+- The user must approve the constitution before it's saved.
 
-**Question 2:** "What is your project structure?"
-- header: "Structure"
-- options: ["Single app", "Multi-service/microservices", "Monorepo"]
+**Charter creation (HIGH freedom):**
+- The charter captures the project's identity and vision.
+- What is this project? What problem does it solve? Who are the consumers?
+- What are the architectural invariants (things that won't change)?
+- What technologies are foundational (not up for debate)?
+- Keep it concise -- one page, not a business plan.
+- The user must approve the charter before it's saved.
 
-### Round 2: Language & Framework
+**Configuration (LOW freedom):**
+- Write `.specwright/config.json` with detected and configured values.
+- Create `.specwright/state/workflow.json` with empty initial state.
+- Create directory structure: `.specwright/state/`, `.specwright/work/`, `.specwright/baselines/`.
+- Follow `protocols/state.md` for state file format.
 
-**Question 1:** "What are your primary programming languages?"
-- header: "Languages"
-- multiSelect: true
-- options: ["TypeScript/JavaScript", "Python", "Go", "Rust"]
-- (User can select "Other" for additional languages)
+**Gate configuration (MEDIUM freedom):**
+- Ask the user which quality checks matter to them.
+- Default gates: build, security, spec-compliance. Others based on what's available.
+- If the project has a test runner: enable test quality gate.
+- If the project has a linter: enable lint gate.
+- Configure thresholds based on user's stated expectations.
 
-**Question 2:** "What is your primary framework?" (adapt options based on language selection)
-- header: "Framework"
-- options: Dynamic based on language — e.g., for TS: ["Next.js", "Express", "Fastify", "None"]; for Python: ["FastAPI", "Django", "Flask", "None"]; for Go: ["Echo", "Gin", "Standard library", "None"]; for Rust: ["Axum", "Actix", "None"]
-- Note: Since AskUserQuestion options are static, provide the most common frameworks and let user pick "Other"
-- options: ["Next.js", "FastAPI", "Express/Fastify", "None/Other"]
+## Protocol References
 
-### Round 3: Build & Test Commands
+- `protocols/state.md` -- workflow.json initialization
+- `protocols/context.md` -- config.json format
 
-**Question 1:** "What is your build command?"
-- header: "Build"
-- options: Detect from project files:
-  - package.json → "npm run build" or "pnpm build"
-  - go.mod → "go build ./..."
-  - Cargo.toml → "cargo build"
-  - pyproject.toml → "python -m build"
-  - Fallback: "Enter custom command"
+## Failure Modes
 
-**Question 2:** "What is your test command?"
-- header: "Tests"
-- options: Similar detection logic:
-  - package.json → "npm test" or "pnpm test"
-  - go.mod → "go test ./..."
-  - Cargo.toml → "cargo test"
-  - pytest.ini/pyproject.toml → "pytest"
-  - Fallback: "Enter custom command"
-
-**Question 3:** "What is your lint command? (optional)"
-- header: "Lint"
-- options: ["eslint .", "golangci-lint run", "ruff check .", "None"]
-
-### Round 4: Architecture
-
-**Question 1:** "What architecture style does your project follow?"
-- header: "Architecture"
-- options: ["Layered (controller/service/repository)", "Hexagonal (ports & adapters)", "Modular (feature modules)", "None/Flat"]
-
-**Question 2:** "Name your architecture layers (comma-separated, e.g., 'handler,service,repository'):"
-- Only ask if architecture is not "None/Flat"
-- header: "Layers"
-- options: ["handler,service,repository (Recommended)", "controller,service,dao", "api,domain,infrastructure"]
-
-### Round 5: Git Workflow
-
-**Question 1:** "What is your Git branching strategy?"
-- header: "Git"
-- options: ["GitHub Flow (feature branches → main)", "GitFlow (develop + release branches)", "Trunk-based (short-lived branches)"]
-
-**Question 2:** "What PR tool do you use?"
-- header: "PR Tool"
-- options: ["gh (GitHub CLI) (Recommended)", "glab (GitLab CLI)", "None"]
-
-**Question 3:** "What branch prefix do you use?"
-- header: "Prefix"
-- options: ["feat/", "feature/", "None"]
-
-**Question 4:** "What commit format?"
-- header: "Commits"
-- options: ["Conventional (feat:, fix:, etc.) (Recommended)", "Freeform"]
-
-### Round 6: Quality Gates
-
-**Question 1:** "Which quality gates do you want to enable?"
-- header: "Gates"
-- multiSelect: true
-- options: ["Build gate (build + test pass)", "Test quality gate (coverage, assertions)", "Wiring gate (integration verification)", "Security gate (secrets, vulnerabilities)"]
-- Note: Spec compliance gate is always enabled
-
-**Question 2:** "Any sensitive file patterns to protect? (e.g., .env, secrets/)"
-- header: "Security"
-- options: [".env, .pem, .key, credentials (Recommended defaults)", "Custom patterns", "None"]
-
-## Generate Configuration
-
-After collecting all answers, generate `.specwright/config.json`:
-
-```json
-{
-  "project": {
-    "name": "{collected_name}",
-    "structure": "{single-app|multi-service|monorepo}",
-    "languages": ["{collected_languages}"],
-    "frameworks": {"{language}": "{framework}"}
-  },
-  "commands": {
-    "build": "{collected_build_cmd}",
-    "test": "{collected_test_cmd}",
-    "lint": "{collected_lint_cmd_or_null}",
-    "format": null
-  },
-  "architecture": {
-    "style": "{layered|hexagonal|modular|none}",
-    "layers": ["{collected_layers}"],
-    "communication": null
-  },
-  "gates": {
-    "enabled": ["{collected_gates}"],
-    "wiring": {
-      "checkImports": true,
-      "checkEndpoints": true,
-      "checkEvents": false
-    },
-    "security": {
-      "sensitiveFiles": ["{collected_patterns}"],
-      "secretPatterns": ["API_KEY", "SECRET", "PASSWORD", "TOKEN", "PRIVATE_KEY"]
-    }
-  },
-  "git": {
-    "workflow": "{github-flow|gitflow|trunk-based}",
-    "prTool": "{gh|glab|none}",
-    "branchPrefix": "{feat/|feature/|}",
-    "commitFormat": "{conventional|freeform}"
-  },
-  "integration": {
-    "omc": "{omcDetected}",
-    "omcAgents": {
-      "architect": "opus",
-      "executor": "sonnet",
-      "code-reviewer": "opus",
-      "build-fixer": "sonnet",
-      "researcher": "sonnet"
-    }
-  }
-}
-```
-
-## Create Directory Structure
-
-```bash
-mkdir -p .specwright/state
-mkdir -p .specwright/memory
-mkdir -p .specwright/epics
-mkdir -p .specwright/templates
-mkdir -p .specwright/domains
-```
-
-## Copy and Customize Templates
-
-Read the following template files from the specwright plugin's `templates/` directory
-(this is the `templates/` directory at the root of the specwright plugin, adjacent to the `skills/` directory):
-
-| Source (plugin root) | Destination (project) |
-|---------------------|-----------------------|
-| `templates/spec-template.md` | `.specwright/templates/spec-template.md` |
-| `templates/plan-template.md` | `.specwright/templates/plan-template.md` |
-| `templates/tasks-template.md` | `.specwright/templates/tasks-template.md` |
-| `templates/context-template.md` | `.specwright/templates/context-template.md` |
-| `templates/pr-template.md` | `.specwright/templates/pr-template.md` |
-
-For each row: Read the source file, then Write its contents to the destination path.
-
-## Create Initial Constitution
-
-Read `templates/constitution-template.md` from the specwright plugin's `templates/` directory (same location as above: the plugin root `templates/` directory).
-Replace `{PROJECT_NAME}` with the collected project name.
-Replace `{DATE}` with current date.
-Write to `.specwright/memory/constitution.md`.
-
-## Create Initial State Files
-
-### `.specwright/memory/patterns.md`
-```markdown
-# {PROJECT_NAME} Patterns
-
-> Cross-epic learnings and established patterns.
-> Updated by /specwright:learn-review and /specwright:learn-consolidate.
-
----
-
-_No patterns established yet. Patterns will be captured as you build epics._
-```
-
-### `.specwright/state/workflow.json`
-```json
-{
-  "version": "1.0",
-  "currentEpic": null,
-  "gates": {},
-  "lock": null,
-  "lastUpdated": "{ISO_TIMESTAMP}"
-}
-```
-
-## Output Summary
-
-Display the initialization summary:
-
-```
-Specwright initialized successfully!
-
-Project: {name}
-Languages: {languages}
-Architecture: {style}
-Quality Gates: {enabled gates}
-OMC Integration: {yes/no}
-
-Directory structure created at .specwright/
-  config.json     — Project configuration
-  memory/         — Constitution and patterns
-  state/          — Workflow state
-  epics/          — Epic specifications
-  templates/      — Customizable templates
-  domains/        — Domain roadmaps
-
-Next steps:
-1. Review .specwright/memory/constitution.md — add your project principles
-2. Run /specwright:roadmap {domain} — plan your first domain
-3. Run /specwright:specify {epic-id} — specify your first epic
-```
-
-## Compaction Recovery
-
-If this skill is interrupted by compaction:
-1. Check if `.specwright/config.json` already exists (partial init)
-2. Check which directories exist
-3. Resume from the point of interruption
-4. Don't re-ask questions if config.json has the answers
+| Condition | Action |
+|-----------|--------|
+| .specwright/ already exists | Ask user: reconfigure, or abort |
+| No dependency manifest found | Ask user about language and framework directly |
+| User unsure about practices | Suggest sensible defaults based on detected stack, let them adjust |
+| Compaction during init | Check which files exist, resume from next missing artifact |

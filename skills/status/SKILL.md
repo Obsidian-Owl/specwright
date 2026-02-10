@@ -1,98 +1,63 @@
 ---
 name: status
 description: >-
-  Show current Specwright workflow status. Displays active epic,
-  task progress, gate results, and learning queue size.
+  Shows current Specwright state — active work unit, task progress, gate
+  results, and lock status. Supports --reset to abandon work in progress.
+argument-hint: "[--reset]"
+allowed-tools:
+  - Read
+  - Write
+  - Glob
+  - AskUserQuestion
 ---
 
-# Specwright Status: Workflow Dashboard
+# Specwright Status
 
-Displays current project status at a glance. No arguments needed.
+## Goal
 
-## Step 1: Check Initialization
+Tell the user where they are. What's in progress, what's done, what's
+next. If they're stuck, give them a way out with `--reset`.
 
-Check if `.specwright/config.json` exists.
-If not: output "Specwright not initialized. Run /specwright:init first." and STOP.
+## Inputs
 
-## Step 2: Read Configuration
+- `.specwright/state/workflow.json` -- all state
+- `.specwright/config.json` -- project info
+- `.specwright/work/` -- work unit directories
 
-Read `.specwright/config.json` for project name and enabled gates.
+## Outputs
 
-## Step 3: Read Workflow State
+- Formatted status display showing:
+  - Current work unit (if any): ID, description, status
+  - Task progress: completed/total
+  - Gate results: status per gate, freshness
+  - Lock status: who holds it, how long
+  - Next action recommendation
 
-Read `.specwright/state/workflow.json`.
+## Constraints
 
-## Step 4: Gather Status Information
+**Display (HIGH freedom):**
+- Read workflow.json and format it clearly for the user.
+- Show gate results with freshness (e.g., "PASS (12 min ago)").
+- If no active work: say so and suggest `/specwright:plan`.
+- If work is complete: suggest `/specwright:ship`.
+- Be concise. This is a dashboard, not a report.
 
-### Active Epic
-If `currentEpic` exists and status is not "complete":
-- Epic ID and name
-- Current status (specified, in-progress, tasks-complete, shipped)
-- Branch name
-- Spec directory path
+**Reset mode (LOW freedom):**
+- If `--reset` argument is given:
+  - Confirm with user: "This will abandon work unit '{id}'. Are you sure?"
+  - If confirmed: set `currentWork.status` to `abandoned`, release lock, clear gates.
+  - Follow `protocols/state.md` for mutations.
+  - Do NOT delete work directory — keep artifacts for reference.
 
-If no active epic: "No active epic."
+## Protocol References
 
-### Task Progress
-If an active epic exists, read `{specDir}/tasks.md`:
-- Count total tasks (T### pattern)
-- Count completed from `tasksCompleted` in workflow.json
-- Count failed from `tasksFailed`
-- Show progress: "X/Y tasks complete (Z failed)"
+- `protocols/state.md` -- workflow state reading and reset mutations
+- `protocols/context.md` -- config loading
 
-### Gate Results
-For each enabled gate in config:
-- Read status from workflow.json gates object
-- Show PASS/FAIL/PENDING with last run timestamp
+## Failure Modes
 
-### Learning Queue
-Read `.specwright/state/learning-queue.jsonl`:
-- Count lines (entries)
-- Show count and suggest review if >= 5
-
-### Constitution
-Read `.specwright/memory/constitution.md`:
-- Count principles (## Principle headings)
-- Show last modified date
-
-### Recent Git Activity
-```bash
-git log --oneline -5
-```
-Show last 5 commits on current branch.
-
-## Step 5: Display Dashboard
-
-```
-=== Specwright Status ===
-
-Project: {name}
-Languages: {from config}
-Architecture: {style}
-
---- Active Epic ---
-{epic-id}: {epic-name}
-Status: {status}
-Branch: {branch}
-Progress: {completed}/{total} tasks ({failed} failed)
-
---- Quality Gates ---
-Build:    {PASS/FAIL/PENDING}  {last run or "not run"}
-Tests:    {PASS/FAIL/PENDING}  {last run or "not run"}
-Wiring:   {PASS/FAIL/PENDING}  {last run or "not run"}
-Security: {PASS/FAIL/PENDING}  {last run or "not run"}
-Spec:     {PASS/FAIL/PENDING}  {last run or "not run"}
-
---- Learning ---
-Queue: {N} entries pending
-{if >= 5: "Run /specwright:learn-review to process"}
-
---- Constitution ---
-{N} principles defined
-Last updated: {date}
-
---- Recent Commits ---
-{last 5 commits}
-```
-
-If no active epic, simplify the output to show only project info, learning queue, and constitution status.
+| Condition | Action |
+|-----------|--------|
+| workflow.json doesn't exist | "Specwright not initialized. Run /specwright:init" |
+| workflow.json parse error | Show raw error. Suggest manual fix or re-init. |
+| Stale lock detected (>30 min) | Offer to auto-clear with warning |
