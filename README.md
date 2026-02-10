@@ -21,29 +21,30 @@ Most AI development frameworks focus on the specification phase. Specwright clos
 
 ## Installation
 
-```bash
-claude plugin add Obsidian-Owl/specwright
+In Claude Code, add the marketplace:
+```
+/plugin marketplace add Obsidian-Owl/specwright
 ```
 
 ## Quick Start
 
 Initialize your project:
-```bash
+```
 /specwright:init
 ```
 
 Create a specification:
-```bash
+```
 /specwright:plan payment-integration
 ```
 
 Build with test-first discipline:
-```bash
+```
 /specwright:build payment-integration
 ```
 
 Verify quality and ship:
-```bash
+```
 /specwright:verify
 /specwright:ship payment-integration
 ```
@@ -145,6 +146,6 @@ MIT License. Copyright (c) 2026 ObsidianOwl.
 
 ---
 
-**Version**: 0.1.0
+**Version**: 0.1.1
 **Author**: ObsidianOwl
 **Repository**: https://github.com/Obsidian-Owl/specwright

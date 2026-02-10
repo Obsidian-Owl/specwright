@@ -1,4 +1,5 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "specwright",
   "owner": {
     "name": "Obsidian-Owl"
@@ -6,9 +7,9 @@
   "plugins": [
     {
       "name": "specwright",
-      "source": ".",
+      "source": "./",
       "description": "Spec-driven development with quality gates. Ensures you get what you asked for.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "ObsidianOwl",
         "url": "https://github.com/Obsidian-Owl"
