@@ -21,9 +21,10 @@ Most AI development frameworks focus on the specification phase. Specwright clos
 
 ## Installation
 
-In Claude Code, add the marketplace:
+In Claude Code, add the marketplace and install the plugin:
 ```
 /plugin marketplace add Obsidian-Owl/specwright
+/plugin install specwright@specwright
 ```
 
 ## Quick Start

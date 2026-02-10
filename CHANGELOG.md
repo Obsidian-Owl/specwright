@@ -9,11 +9,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 - Plugin source path in marketplace.json (`"."` → `"./"`) — was preventing installation
-- Installation command in README (`claude plugin add` → `/plugin marketplace add`)
+- Installation command in README — now shows both steps (marketplace add + plugin install)
 - Removed `bash` language tag from slash command code blocks in README
 
 ### Added
 - `$schema` reference in marketplace.json for validation
+- `strict: false` in marketplace.json to prevent manifest merge conflicts
 
 ### Removed
 - `displayName` field from plugin.json (not in official schema)
