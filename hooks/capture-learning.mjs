@@ -8,8 +8,10 @@
  * Receives JSON via stdin from Claude Code PostToolUse event.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
+
+const MAX_QUEUE_SIZE = 100;
 
 const cwd = process.env.CLAUDE_CWD || process.cwd();
 const specDir = join(cwd, '.specwright');
@@ -66,12 +68,60 @@ const entry = JSON.stringify({
   type: 'error'
 });
 
+const lockPath = join(dirname(queueFile), 'learning-queue.lock');
+
+// Stale lock check (>30 seconds)
+if (existsSync(lockPath)) {
+  try {
+    const lockTime = new Date(readFileSync(lockPath, 'utf-8'));
+    if (Date.now() - lockTime.getTime() > 30000) {
+      unlinkSync(lockPath);
+    }
+  } catch {}
+}
+
+// Acquire lock
+let lockAcquired = false;
 try {
-  // Append to queue file
+  writeFileSync(lockPath, new Date().toISOString(), { flag: 'wx' });
+  lockAcquired = true;
+} catch (err) {
+  if (err.code === 'EEXIST') {
+    process.exit(0);
+  }
+  process.exit(0);
+}
+
+try {
+  // Transactional append: write-then-rename
   const existing = existsSync(queueFile) ? readFileSync(queueFile, 'utf-8') : '';
-  writeFileSync(queueFile, existing + entry + '\n');
+
+  // Guard: max queue size
+  const lineCount = existing.split('\n').filter(Boolean).length;
+  if (lineCount >= MAX_QUEUE_SIZE) {
+    process.exit(0);
+  }
+
+  const updated = existing + entry + '\n';
+  const tmpFile = queueFile + '.tmp';
+
+  writeFileSync(tmpFile, updated);
+  try {
+    renameSync(tmpFile, queueFile);
+  } catch {
+    try {
+      unlinkSync(tmpFile);
+    } catch {}
+    throw new Error('rename failed');
+  }
 } catch {
   // Silent — don't fail the tool use for learning capture errors
+} finally {
+  if (lockAcquired) {
+    try {
+      unlinkSync(lockPath);
+    } catch {}
+  }
 }
 
 process.exit(0);
