@@ -15,6 +15,8 @@ allowed-tools:
 
 Verifies that every acceptance criterion in the spec has corresponding implementation and test evidence.
 
+Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
+
 ## Step 1: Read Configuration and State
 Read `.specwright/config.json` for `integration.omc` (agent delegation mode).
 Read `.specwright/state/workflow.json` to get current epic and specDir.
@@ -24,6 +26,7 @@ If no epic active, STOP: "No active epic. Run /specwright:specify first."
 Read `.specwright/epics/{specDir}/spec.md` and extract all acceptance criteria.
 Parse lines matching `- [ ]` or `- [x]` under "Acceptance Criteria" headings.
 Build a numbered list of all criteria.
+If spec.md has zero acceptance criteria: write ERROR status, STOP.
 
 ## Step 3: Map Criteria to Evidence
 
@@ -87,11 +90,23 @@ Use the Task tool with `model`:
 Extract mapping from code-reviewer response.
 Count PASS / FAIL / WARN statuses.
 
-## Step 5: Update Gate Status
+## Step 5: Baseline Check
+If `.specwright/baselines/gate-spec.json` exists, load entries (`{finding, file, reason, expires}` with ISO dates; null = no expiry). For matching findings: downgrade BLOCK->WARN, WARN->INFO. Ignore expired entries. Partial match (same category, different line): AskUserQuestion. Log all downgrades in evidence.
+
+## Step 6: Update Gate Status
+
+**Self-critique checkpoint:** Before finalizing — did I accept anything without citing proof? Did I give benefit of the doubt? Would a skeptical auditor agree? Gaps are not future work. TODOs are not addressed. Partial implementations do not match intent. If ambiguous, FAIL.
+
+Determine final status:
+- Incomplete analysis: ERROR (invoke AskUserQuestion)
+- Any criterion FAIL: FAIL
+- Any criterion WARN (test doesn't assert behavior): WARN
+- All PASS: PASS
+
 Update `.specwright/state/workflow.json` `gates.spec`:
 ```json
 {
-  "status": "PASS|FAIL",
+  "status": "PASS|WARN|FAIL|ERROR",
   "lastRun": "<ISO-timestamp>",
   "evidence": "{specDir}/evidence/spec-compliance.md",
   "verified": {pass_count},
@@ -99,7 +114,7 @@ Update `.specwright/state/workflow.json` `gates.spec`:
 }
 ```
 
-## Step 6: Write Evidence Report
+## Step 7: Write Evidence Report
 Create `{specDir}/evidence/spec-compliance.md`:
 ```markdown
 # Spec Compliance Report
@@ -123,9 +138,9 @@ Generated: {timestamp}
 - Reason: No test found verifying this behavior
 ```
 
-## Step 7: Output Result
+## Step 8: Output Result
 ```
-SPEC GATE: {PASS|FAIL}
+SPEC GATE: {PASS|WARN|FAIL}
 Criteria: {total} total, {verified} verified, {unverified} unverified
 Evidence: {specDir}/evidence/spec-compliance.md
 

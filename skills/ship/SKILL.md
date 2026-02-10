@@ -2,7 +2,7 @@
 name: ship
 description: >-
   Evidence-based PR creation. Verifies all gates passed, commits remaining
-  changes, creates PR with evidence mapping, and runs final code review.
+  changes, and creates PR with evidence mapping.
 argument-hint: "[epic-id]"
 allowed-tools:
   - Bash
@@ -32,7 +32,7 @@ Check each gate in the `gates` object of workflow.json.
 Only check gates that are enabled in `config.json` `gates.enabled` (plus "spec" which is always enabled).
 
 For each enabled gate:
-- If status !== "PASS": add to failed gates list
+- If status is not "PASS" and not "WARN": add to failed gates list
 
 If any gates failed:
 ```
@@ -95,56 +95,7 @@ glab mr create --title "feat: {epic-name}" --description "{pr-body}" --target-br
 
 Capture PR/MR URL from output.
 
-## Step 7: Final Code Review
-
-Delegate to code-reviewer agent for final review.
-
-**Agent Delegation:**
-
-Read `.specwright/config.json` `integration.omc` to determine delegation mode.
-
-**If OMC is available** (`integration.omc` is true):
-Use the Task tool with `subagent_type`:
-
-    subagent_type: "oh-my-claudecode:code-reviewer"
-    description: "Review code for ship"
-    prompt: |
-      Final code review for epic {epic-name}:
-
-      1. Spec Compliance: Verify acceptance criteria from spec-compliance.md
-      2. Architecture: Check adherence to config.json architecture rules
-      3. Test Quality: Review test-quality.md findings
-      4. Security: Review security-report.md findings
-      5. Code Quality: Check for anti-patterns, error handling
-
-      Evidence files: {list paths}
-
-      Provide summary with APPROVED or NEEDS_REVISION verdict.
-
-**If OMC is NOT available** (standalone mode):
-Use the Task tool with `model`:
-
-    prompt: |
-      Final code review for epic {epic-name}:
-
-      1. Spec Compliance: Verify acceptance criteria from spec-compliance.md
-      2. Architecture: Check adherence to config.json architecture rules
-      3. Test Quality: Review test-quality.md findings
-      4. Security: Review security-report.md findings
-      5. Code Quality: Check for anti-patterns, error handling
-
-      Evidence files: {list paths}
-
-      Provide summary with APPROVED or NEEDS_REVISION verdict.
-    model: "opus"
-    description: "Review code for ship"
-
-Output findings:
-- Critical issues: Warn user, suggest fixes before merge
-- Minor issues: Note them, allow merge
-- Clean: Confirm quality
-
-## Step 8: Update Workflow State
+## Step 7: Update Workflow State
 
 Update `.specwright/state/workflow.json`:
 ```json
@@ -158,7 +109,7 @@ Update `.specwright/state/workflow.json`:
 }
 ```
 
-## Step 9: Summary
+## Step 8: Summary
 
 ```
 Epic {epic-name} shipped successfully!
@@ -169,7 +120,7 @@ Quality Gates: All PASS
 
 Next steps:
 1. Request review from team members
-2. Address any code review feedback
+2. Address any feedback
 3. Merge when approved
 
 Evidence preserved in {specDir}/evidence/
@@ -189,4 +140,3 @@ If compaction occurs:
 | Gates not all PASS | List failed gates, suggest /specwright:validate |
 | Git push fails | Show error, suggest checking remote access |
 | PR creation fails | Show error, check if PR already exists |
-| Code review finds critical issues | Warn user, suggest fixes |

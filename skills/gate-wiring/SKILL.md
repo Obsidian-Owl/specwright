@@ -9,12 +9,17 @@ allowed-tools:
   - Read
   - Grep
   - Glob
+  - mcp__plugin_oh-my-claudecode_omc-tools__ast_grep_search
 ---
 
 # Specwright Gate: Wiring and Integration
 
 Verifies that all code is properly wired: exports used, imports follow architecture rules,
 no dead code, and no circular dependencies. All analysis is LLM-driven using Grep/Glob.
+
+Prefer `ast_grep_search` for structural queries. Fallback to Grep if unavailable.
+
+Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
 
 ## Step 1: Read Configuration and State
 
@@ -39,6 +44,7 @@ git diff --name-only main...HEAD 2>/dev/null || git diff --name-only HEAD~10
 ```
 Filter to source files (exclude tests, configs, docs).
 Identify which modules/directories were modified.
+If zero changed files in scope: write ERROR status, STOP.
 
 ## Step 3: Phase 1 — Dead Code Detection
 
@@ -107,24 +113,35 @@ Document any new inter-module dependencies added by this epic.
 | Severity | Meaning | Gate Effect |
 |----------|---------|-------------|
 | BLOCK | Must fix before merge | FAIL gate |
-| WARN | Should fix, non-blocking | PASS with warnings |
+| WARN | Should fix, non-blocking | WARN status |
 | INFO | Informational | PASS |
 
-## Step 8: Update Gate Status
+## Step 8: Baseline Check
+If `.specwright/baselines/gate-wiring.json` exists: matching entries downgrade BLOCK->WARN, WARN->INFO. Expired ignored. Partial match: AskUserQuestion. Log downgrades in evidence.
+
+## Step 9: Update Gate Status
+
+**Self-critique checkpoint:** Before finalizing — did I accept anything without citing proof? Did I give benefit of the doubt? Would a skeptical auditor agree? Gaps are not future work. TODOs are not addressed. Partial implementations do not match intent. If ambiguous, FAIL.
+
+Determine final status:
+- Incomplete analysis: ERROR (invoke AskUserQuestion)
+- Any BLOCK finding: FAIL
+- Only WARN findings: WARN
+- Only INFO or no findings: PASS
 
 Update `.specwright/state/workflow.json` `gates.wiring`:
 ```json
-{"status": "PASS|FAIL", "lastRun": "<ISO>", "evidence": "{specDir}/evidence/wiring-report.md"}
+{"status": "PASS|WARN|FAIL|ERROR", "lastRun": "<ISO>", "evidence": "{specDir}/evidence/wiring-report.md"}
 ```
 
-## Step 9: Save Evidence
+## Step 10: Save Evidence
 
 Write `{specDir}/evidence/wiring-report.md`:
 ```markdown
 # Wiring Gate Report
 Epic: {epicId}
 Date: {timestamp}
-Status: PASS/FAIL
+Status: PASS/WARN/FAIL
 
 ## Phase 1: Dead Code Detection
 {findings with file:line}
@@ -152,9 +169,9 @@ WARN: N findings
 INFO: N findings
 ```
 
-## Step 10: Output Result
+## Step 11: Output Result
 ```
-WIRING GATE: PASS/FAIL
+WIRING GATE: PASS/WARN/FAIL
 Phase 1 (Dead Code): X findings
 Phase 2 (Integration): X findings
 Phase 3 (Events): X findings or "skipped"
