@@ -69,6 +69,12 @@ if (toolName === 'Bash') {
     console.error('BLOCKED: Destructive git operation — requires explicit user approval');
     process.exit(2);
   }
+
+  // Block broad git staging commands
+  if (/git\s+add\s+(--all|-A|\.(\s|$))/.test(cmd)) {
+    console.error('BLOCKED: Broad git staging (git add -A / git add . / git add --all). Stage specific files by name.');
+    process.exit(2);
+  }
 }
 
 // Check file edits for sensitive files

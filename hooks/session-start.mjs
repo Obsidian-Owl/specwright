@@ -38,6 +38,24 @@ if (existsSync(constitutionPath)) {
   }
 }
 
+// Load established patterns
+const patternsPath = join(specDir, 'memory', 'patterns.md');
+if (existsSync(patternsPath)) {
+  try {
+    const patterns = readFileSync(patternsPath, 'utf-8');
+    if (!patterns.includes('No patterns established yet')) {
+      const patternHeadings = patterns.match(/^## .+$/gm);
+      if (patternHeadings && patternHeadings.length > 0) {
+        output.push('ESTABLISHED PATTERNS:');
+        patternHeadings.forEach(p => output.push(`  ${p.replace('## ', '')}`));
+        output.push('');
+      }
+    }
+  } catch {
+    // Silent — don't fail session start for patterns read errors
+  }
+}
+
 // Load active epic from workflow state
 const workflowPath = join(specDir, 'state', 'workflow.json');
 if (existsSync(workflowPath)) {
