@@ -1,0 +1,55 @@
+name: Validate
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  version-consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check version consistency
+        run: |
+          PLUGIN_VERSION=$(jq -r '.version' .claude-plugin/plugin.json)
+          MARKETPLACE_VERSION=$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)
+
+          if [ "$PLUGIN_VERSION" != "$MARKETPLACE_VERSION" ]; then
+            echo "::error::Version mismatch: plugin.json ($PLUGIN_VERSION) != marketplace.json ($MARKETPLACE_VERSION)"
+            exit 1
+          fi
+
+          echo "Versions match: $PLUGIN_VERSION"
+
+  skill-frontmatter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate SKILL.md frontmatter
+        run: |
+          ERRORS=0
+          for file in skills/*/SKILL.md; do
+            [ -f "$file" ] || continue
+
+            # Extract frontmatter (between first two --- lines)
+            FRONTMATTER=$(sed -n '/^---$/,/^---$/p' "$file" | sed '1d;$d')
+
+            # Check for name field
+            if ! echo "$FRONTMATTER" | grep -q '^name:'; then
+              echo "::error file=$file::Missing 'name' in frontmatter"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            # Check for description field
+            if ! echo "$FRONTMATTER" | grep -q '^description:'; then
+              echo "::error file=$file::Missing 'description' in frontmatter"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+
+          if [ $ERRORS -gt 0 ]; then
+            echo "::error::Found $ERRORS frontmatter issue(s)"
+            exit 1
+          fi
+
+          echo "All SKILL.md files have valid frontmatter"

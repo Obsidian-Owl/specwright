@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get current version
+        id: current
+        run: |
+          VERSION=$(jq -r '.version' .claude-plugin/plugin.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate new version
+        id: next
+        run: |
+          IFS='.' read -r major minor patch <<< "${{ steps.current.outputs.version }}"
+          case "${{ inputs.bump }}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          echo "version=${major}.${minor}.${patch}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            COMMITS=$(git log "${PREV_TAG}..HEAD" --oneline --no-merges)
+          else
+            COMMITS=$(git log --oneline --no-merges -20)
+          fi
+
+          # Format commits as markdown bullets
+          BODY=$(echo "$COMMITS" | sed 's/^[a-f0-9]* /- /')
+
+          # Write to file (multi-line safe)
+          echo "$BODY" > /tmp/changelog_body.md
+
+          # Also set as output using delimiter
+          {
+            echo "body<<CHANGELOG_EOF"
+            echo "$BODY"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update plugin.json
+        run: |
+          jq --arg v "${{ steps.next.outputs.version }}" '.version = $v' \
+            .claude-plugin/plugin.json > tmp.json && mv tmp.json .claude-plugin/plugin.json
+
+      - name: Update marketplace.json
+        run: |
+          jq --arg v "${{ steps.next.outputs.version }}" '.plugins[0].version = $v' \
+            .claude-plugin/marketplace.json > tmp.json && mv tmp.json .claude-plugin/marketplace.json
+
+      - name: Update README.md
+        run: |
+          sed -i "s/^\*\*Version\*\*: .*/**Version**: ${{ steps.next.outputs.version }}/" README.md
+
+      - name: Update CHANGELOG.md
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          NEW_VERSION="${{ steps.next.outputs.version }}"
+          BODY=$(cat /tmp/changelog_body.md)
+
+          # Create new section
+          {
+            # Copy header (lines before first ## [)
+            sed -n '1,/^## \[/{ /^## \[/!p }' CHANGELOG.md
+            echo ""
+            echo "## [${NEW_VERSION}] - ${DATE}"
+            echo ""
+            echo "### Changed"
+            echo ""
+            echo "$BODY"
+            echo ""
+            # Copy rest of file starting from first ## [
+            sed -n '/^## \[/,$p' CHANGELOG.md
+          } > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
+
+      - name: Commit and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .claude-plugin/plugin.json .claude-plugin/marketplace.json README.md CHANGELOG.md
+          git commit -m "chore(release): v${{ steps.next.outputs.version }}"
+          git tag -a "v${{ steps.next.outputs.version }}" -m "v${{ steps.next.outputs.version }}"
+          git push origin main --follow-tags
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.next.outputs.version }}" \
+            --title "v${{ steps.next.outputs.version }}" \
+            --notes-file /tmp/changelog_body.md
