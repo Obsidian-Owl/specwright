@@ -1,5 +1,5 @@
 ---
-name: status
+name: sw-status
 description: >-
   Shows current Specwright state — active work unit, task progress, gate
   results, and lock status. Supports --reset to abandon work in progress.
@@ -38,8 +38,8 @@ next. If they're stuck, give them a way out with `--reset`.
 **Display (HIGH freedom):**
 - Read workflow.json and format it clearly for the user.
 - Show gate results with freshness (e.g., "PASS (12 min ago)").
-- If no active work: say so and suggest `/specwright:plan`.
-- If work is complete: suggest `/specwright:ship`.
+- If no active work: say so and suggest `/sw-plan`.
+- If work is complete: suggest `/sw-ship`.
 - Be concise. This is a dashboard, not a report.
 
 **Reset mode (LOW freedom):**
@@ -58,6 +58,6 @@ next. If they're stuck, give them a way out with `--reset`.
 
 | Condition | Action |
 |-----------|--------|
-| workflow.json doesn't exist | "Specwright not initialized. Run /specwright:init" |
+| workflow.json doesn't exist | "Specwright not initialized. Run /sw-init" |
 | workflow.json parse error | Show raw error. Suggest manual fix or re-init. |
 | Stale lock detected (>30 min) | Offer to auto-clear with warning |

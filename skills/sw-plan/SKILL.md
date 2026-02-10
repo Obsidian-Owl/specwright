@@ -1,5 +1,5 @@
 ---
-name: plan
+name: sw-plan
 description: >-
   Understands the user's request, researches the codebase deeply, designs
   a solution, challenges it adversarially, and produces actionable specs.

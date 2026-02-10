@@ -1,5 +1,5 @@
 ---
-name: ship
+name: sw-ship
 description: >-
   Ships the current work unit. Verifies all gates passed, creates a PR
   with evidence-mapped body, updates workflow state to shipped.
@@ -78,7 +78,7 @@ ships when gates have passed.
 
 | Condition | Action |
 |-----------|--------|
-| Gates not passed | STOP: "Run /specwright:verify first" |
+| Gates not passed | STOP: "Run /sw-verify first" |
 | No git changes to ship | STOP: "Nothing to ship. No changes detected." |
 | PR creation fails | Show error. Don't update state. User can retry. |
 | Evidence files missing | WARN in PR body: "Evidence not available for gate X" |

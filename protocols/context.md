@@ -20,7 +20,7 @@ Load when needed for alignment/verification:
 
 ```javascript
 if (!exists('.specwright/config.json')) {
-  error("Run /specwright:init first.");
+  error("Run /sw-init first.");
 }
 ```
 
@@ -28,7 +28,7 @@ if (!exists('.specwright/config.json')) {
 
 ```javascript
 if (!state.currentWorkUnit && requiresWorkUnit) {
-  error("Run /specwright:plan first.");
+  error("Run /sw-plan first.");
 }
 ```
 

@@ -1,5 +1,5 @@
 ---
-name: build
+name: sw-build
 description: >-
   TDD implementation of one work unit. Delegates test writing to the tester
   agent and implementation to the executor agent. Commits per task.
@@ -97,8 +97,8 @@ When delegating, include in the prompt:
 
 | Condition | Action |
 |-----------|--------|
-| No active work unit | STOP: "Run /specwright:plan first" |
-| Build/test command not configured | STOP: "Configure commands in config.json or run /specwright:init" |
+| No active work unit | STOP: "Run /sw-plan first" |
+| Build/test command not configured | STOP: "Configure commands in config.json or run /sw-init" |
 | Tester writes tests that pass immediately | Tests are wrong. Re-delegate with instruction to write tests that FAIL first. |
 | Executor can't pass tests after 2 build-fixer attempts | STOP. Show error to user. Don't loop forever. |
 | Compaction during build | Read workflow.json, find last completed task, resume next task |

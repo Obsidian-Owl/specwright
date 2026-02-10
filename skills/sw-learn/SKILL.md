@@ -1,5 +1,5 @@
 ---
-name: learn
+name: sw-learn
 description: >-
   Captures patterns and learnings from the current work unit. Reviews
   build failures, gate findings, and architecture decisions. Promotes
