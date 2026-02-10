@@ -147,6 +147,6 @@ MIT License. Copyright (c) 2026 ObsidianOwl.
 
 ---
 
-**Version**: 0.1.1
+**Version**: 0.1.2
 **Author**: ObsidianOwl
 **Repository**: https://github.com/Obsidian-Owl/specwright

@@ -5,6 +5,13 @@ All notable changes to Specwright will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [0.1.2] - 2026-02-10
+
+### Changed
+
+- ci: add automated release and PR validation workflows
+
 ## [0.1.1] - 2026-02-11
 
 ### Fixed
