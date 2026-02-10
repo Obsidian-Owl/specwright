@@ -8,6 +8,7 @@
     {
       "name": "specwright",
       "source": "./",
+      "strict": false,
       "description": "Spec-driven development with quality gates. Ensures you get what you asked for.",
       "version": "0.1.1",
       "author": {
