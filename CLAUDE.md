@@ -1,111 +1,57 @@
-# Specwright: Spec-Driven Development
+# Specwright
 
-This project uses Specwright for disciplined, spec-driven development with quality gates.
+Spec-driven app development with quality gates. Ensures the user gets what they asked for.
 
-## Configuration
-
-Read `.specwright/config.json` for all project-specific commands, architecture rules, and conventions. NEVER hardcode language or framework assumptions.
-
-## Core Workflow
+## Workflow
 
 ```
-/specwright:init → /specwright:specify → /specwright:build → /specwright:validate → /specwright:ship
+/specwright:init → /specwright:plan → /specwright:build → /specwright:verify → /specwright:ship
 ```
 
-### 1. Initialize (`/specwright:init`)
-Interactive wizard that configures your project. Run once. Creates `.specwright/` directory with config, templates, constitution, and state.
+| Skill | Purpose |
+|-------|---------|
+| `init` | Project setup. Creates constitution + charter. Configures gates and hooks. |
+| `plan` | Triage, research, design, critic review, decompose. Produces specs. |
+| `build` | TDD implementation of one work unit. |
+| `verify` | Interactive quality gates. Shows findings, validates against spec. |
+| `ship` | Trunk-based merge to main. |
+| `status` | Current state and progress. |
+| `learn` | Post-ship capture of patterns and learnings. |
 
-### 2. Specify (`/specwright:specify <epic-id>`)
-Creates spec.md, plan.md, and tasks.md for an epic. Loads constitution and patterns for context. User approves spec before proceeding to build.
+## Anchor Documents
 
-### 3. Build (`/specwright:build [epic-id] [task-id]`)
-TDD implementation loop. Builds one task at a time: RED (failing test) → GREEN (pass) → REFACTOR. Commits per task. Acquires pipeline lock.
+Two persistent documents drive all decisions:
 
-### 4. Validate (`/specwright:validate [--gate=<name>]`)
-Runs quality gates sequentially. Gates are configurable in config.json. Each gate produces evidence in `.specwright/epics/{id}/evidence/`.
+- **`.specwright/CONSTITUTION.md`** -- Development practices. How the user wants code written. The AI MUST follow these.
+- **`.specwright/CHARTER.md`** -- Technology vision. What this repo is, who consumes it, architectural invariants.
 
-### 5. Ship (`/specwright:ship`)
-Creates PR with evidence mapping. Verifies all gates passed. Runs final code review. Updates workflow state.
+Both are created during init, referenced during plan, validated during verify.
 
-## Supporting Skills
+## Architecture
 
-| Skill | Purpose | Trigger |
-|-------|---------|---------|
-| `/specwright:roadmap` | Domain-level planning with complexity scoring | "plan domain", "roadmap" |
-| `/specwright:status` | Show current workflow state and progress | "status", "where am I" |
-| `/specwright:constitution` | Edit project principles | "edit principles", "constitution" |
-| `/specwright:learn-review` | Review captured learnings from build failures | "review learnings" |
-| `/specwright:learn-consolidate` | Auto-group and promote patterns | "consolidate learnings" |
+- `skills/` -- SKILL.md files (goal + constraints, not procedures)
+- `protocols/` -- Shared protocols for fragile operations (loaded on demand)
+- `agents/` -- Agent prompt definitions
+- `.specwright/` -- Runtime state, config, anchor docs, work artifacts
 
-## Quality Gates
+See `DESIGN.md` for the full architecture document.
 
-| Gate | What It Checks | Skill |
-|------|---------------|-------|
-| Build | Build + test commands pass | `/specwright:gate-build` |
-| Tests | Test quality, coverage, assertions | `/specwright:gate-tests` |
-| Wiring | Dead code, unused exports, integration | `/specwright:gate-wiring` |
-| Security | Secrets, injection, sensitive data | `/specwright:gate-security` |
-| Spec | Acceptance criteria coverage | `/specwright:gate-spec` |
+## Protocols
 
-## State & Memory
+Skills reference shared protocols in `protocols/` for fragile operations:
+- `delegation.md` -- Agent delegation (custom subagents + agent teams)
+- `state.md` -- Workflow state mutations and locking
+- `git.md` -- Trunk-based git operations
+- `recovery.md` -- Compaction recovery
+- `evidence.md` -- Gate evidence format
+- `gate-verdict.md` -- Verdict rendering with self-critique
+- `context.md` -- Anchor doc and config loading
 
-All state lives in `.specwright/`:
-- `config.json` — Project configuration (languages, commands, architecture)
-- `memory/constitution.md` — Non-negotiable development principles
-- `memory/patterns.md` — Cross-epic learnings and established patterns
-- `state/workflow.json` — Active epic, gate results, pipeline lock
-- `state/learning-queue.jsonl` — Captured build failures for review
-- `epics/{id}/` — Epic artifacts (spec.md, plan.md, tasks.md, evidence/)
-- `templates/` — Customizable document templates
+## Key Rules
 
-## Compaction Recovery Protocol
-
-**CRITICAL:** After compaction (context window reset), IMMEDIATELY:
-
-1. Read `.specwright/state/workflow.json` to recover active epic context
-2. If `currentEpic` exists and status is not "complete":
-   - Read `{specDir}/spec.md` for requirements
-   - Read `{specDir}/plan.md` for architecture context
-   - Read `{specDir}/tasks.md` for task list and progress
-   - Check `tasksCompleted` array to find where you left off
-3. Read `.specwright/memory/constitution.md` for project principles
-4. Resume from the last checkpoint
-
-**NEVER continue work after compaction without reloading spec artifacts.**
-
-## Pipeline Locking
-
-Build and validate skills acquire a pipeline lock in `workflow.json` to prevent concurrent runs:
-- Lock includes skill name and timestamp
-- Stale locks (>30 minutes) auto-clear
-- Force unlock: `/specwright:validate --unlock`
-
-## Agent Delegation
-
-Specwright uses specialized agents for different tasks:
-
-| Agent | Model | Role |
-|-------|-------|------|
-| architect | opus | Spec review, architecture decisions, quality verification |
-| executor | sonnet | TDD implementation, one task at a time |
-| code-reviewer | opus | Spec compliance, code quality review |
-| build-fixer | sonnet | Minimal fixes for build/test failures |
-| researcher | sonnet | Documentation lookup, technical research |
-
-### OMC Integration
-If oh-my-claudecode is installed (detected via `config.json` `integration.omc`):
-- Use OMC tiered agents: `Task(subagent_type="oh-my-claudecode:{agent}", ...)`
-- Respects OMC execution modes (ultrawork, ecomode)
-
-If OMC is NOT installed:
-- Use native Claude Code: `Task(prompt="...", model="{model}")`
-
-## Anti-Patterns
-
-- **NEVER** implement without loading spec artifacts first
-- **NEVER** skip the TDD cycle (test must fail before implementation)
-- **NEVER** mark a task complete without build + test verification
-- **NEVER** assume language/framework — always read config.json
-- **NEVER** auto-promote learnings — human approval required
-- **NEVER** continue after compaction without rereading state
-- **NEVER** use `git add -A` — stage specific files only
+- **NEVER** implement without a plan/spec loaded
+- **NEVER** continue after compaction without reading `protocols/recovery.md`
+- **NEVER** use `git add -A` -- stage specific files only
+- **NEVER** hardcode language/framework assumptions -- read config
+- Quality gates default to FAIL. Evidence must prove PASS.
+- Constitution and charter are validated, not just referenced.

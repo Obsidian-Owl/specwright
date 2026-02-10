@@ -1,72 +1,65 @@
 ---
 name: gate-build
 description: >-
-  Build and test verification gate. Runs build and test commands from config,
-  captures output as evidence for the validation pipeline.
+  Runs configured build and test commands. Captures output as evidence.
+  Returns PASS if commands exit 0, FAIL otherwise. Internal gate — invoked
+  by verify, not directly by users.
 allowed-tools:
-  - Bash
   - Read
+  - Bash
+  - Glob
   - Write
 ---
 
-# Specwright Gate: Build and Test
+# Gate: Build
 
-Default verdict is FAIL. Evidence must be cited before any verdict. Absence of evidence is evidence of non-compliance.
+## Goal
 
-## Step 1: Read Configuration and State
-Read `.specwright/config.json` for `commands.build` and `commands.test`.
-Read `.specwright/state/workflow.json`. Extract `currentEpic.id` and `currentEpic.specDir`.
-If no epic active, STOP: "No active epic. Run /specwright:specify first."
-If `commands.build` is null and `commands.test` is null: write ERROR status, STOP.
+Confirm the codebase compiles and tests pass. This is the most basic gate —
+if the code doesn't build or tests don't pass, nothing else matters.
 
-## Step 2: Create Evidence Directory
-```bash
-mkdir -p {specDir}/evidence/
-```
+## Inputs
 
-## Step 3: Run Build Command
-```bash
-{commands.build} 2>&1 | tee {specDir}/evidence/build-output.txt
-```
-If exit code non-zero: update `gates.build` to `{"status":"FAIL","lastRun":"<ISO>","evidence":"{specDir}/evidence/build-output.txt"}`, update `lastUpdated`, output FAIL result, STOP.
+- `.specwright/config.json` -- `commands.build` and `commands.test`
+- `.specwright/state/workflow.json` -- current work unit for evidence path
 
-## Step 4: Run Test Command
-```bash
-{commands.test} 2>&1 | tee {specDir}/evidence/test-output.txt
-```
+## Outputs
 
-## Step 5: Parse Test Results
-Parse the test output to determine: total tests, passed, failed, skipped.
-Note: The output format varies by language/framework — use LLM reasoning to parse whatever format the test runner produces.
-If ANY tests FAIL or ANY tests SKIPPED without justification: update gate to FAIL, STOP.
+- Evidence file at `.specwright/work/{id}/evidence/build-report.md`
+- Gate status update in workflow.json: PASS, FAIL, or ERROR
+- Console output showing results inline (users see findings, not just badges)
 
-## Step 6: Check for Warnings
-Scan build output for compilation warnings. Log count if found.
+## Constraints
 
-## Step 7: Baseline Check
-If `.specwright/baselines/gate-build.json` exists, load entries (`{finding, file, reason, expires}` with ISO dates; null = no expiry). For matching findings: downgrade BLOCK->WARN, WARN->INFO. Ignore expired entries. Partial match (same category, different line): AskUserQuestion. Log all downgrades in evidence.
+**Execution (LOW freedom):**
+- Read build command from `config.json` `commands.build`. Run it. Capture output.
+- Read test command from `config.json` `commands.test`. Run it. Capture output.
+- If a command is null/missing, SKIP that check (not FAIL).
+- If both commands are null, gate status is SKIP.
+- Timeout: 5 minutes per command. If exceeded, status is ERROR.
 
-## Step 8: Update Gate Status
+**Verdict (LOW freedom):**
+- Follow `protocols/gate-verdict.md` for verdict rendering.
+- Build exit code 0 + test exit code 0 = PASS.
+- Any non-zero exit code = FAIL.
+- Show failing output inline so the user sees what broke.
 
-**Self-critique checkpoint:** Before finalizing — did I accept anything without citing proof? Did I give benefit of the doubt? Would a skeptical auditor agree? Gaps are not future work. TODOs are not addressed. Partial implementations do not match intent. If ambiguous, FAIL.
+**Evidence (LOW freedom):**
+- Follow `protocols/evidence.md` for file format and storage.
+- Write evidence file with: command run, exit code, stdout/stderr, timestamp.
+- Update `workflow.json` gates section per `protocols/state.md`.
 
-Determine final status:
-- Gate cannot complete (partial results): ERROR (invoke AskUserQuestion)
-- Build/test failure: FAIL
-- All pass, compilation warnings present: WARN
-- All pass, no warnings: PASS
+## Protocol References
 
-Update `.specwright/state/workflow.json` `gates.build`:
-```json
-{"status": "PASS|WARN|FAIL|ERROR", "lastRun": "<ISO>", "evidence": "{specDir}/evidence/build-output.txt"}
-```
-Update `lastUpdated`.
+- `protocols/gate-verdict.md` -- default-FAIL, self-critique, visibility
+- `protocols/evidence.md` -- evidence storage and freshness
+- `protocols/state.md` -- gate status updates
 
-## Step 9: Output Result
-```
-BUILD GATE: {PASS|WARN|FAIL}
-- Build: SUCCESS/FAILED
-- Tests: X passed, 0 failed, 0 skipped
-- Warnings: N compilation warnings
-- Evidence: {specDir}/evidence/
-```
+## Failure Modes
+
+| Condition | Action |
+|-----------|--------|
+| Build command not configured | SKIP build check, continue to test check |
+| Test command not configured | SKIP test check |
+| Both commands null | Gate status = SKIP |
+| Command times out (>5min) | Gate status = ERROR with timeout message |

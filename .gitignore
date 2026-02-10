@@ -5,5 +5,12 @@
 # OS
 .DS_Store
 
-# OMC working directories
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+*.secret
+
+# Plugin working directories
 .omc/

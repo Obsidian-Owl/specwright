@@ -2,8 +2,21 @@
   "name": "specwright",
   "displayName": "Specwright",
   "version": "0.1.0",
-  "description": "Spec-driven development workflow with quality gates, evidence capture, learning loops, and compaction recovery",
-  "author": "ObsidianOwl",
+  "description": "Spec-driven development with quality gates. Ensures you get what you asked for.",
+  "author": {
+    "name": "ObsidianOwl",
+    "url": "https://github.com/Obsidian-Owl"
+  },
+  "homepage": "https://github.com/Obsidian-Owl/specwright",
+  "repository": "https://github.com/Obsidian-Owl/specwright",
+  "license": "MIT",
+  "keywords": [
+    "spec-driven",
+    "quality-gates",
+    "tdd",
+    "workflow",
+    "verification"
+  ],
   "skills": "./skills/",
   "agents": "./agents/",
   "hooks": "./hooks/hooks.json"
