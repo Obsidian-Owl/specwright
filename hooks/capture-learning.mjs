@@ -73,8 +73,8 @@ const lockPath = join(dirname(queueFile), 'learning-queue.lock');
 // Stale lock check (>30 seconds)
 if (existsSync(lockPath)) {
   try {
-    const lockTime = new Date(readFileSync(lockPath, 'utf-8'));
-    if (Date.now() - lockTime.getTime() > 30000) {
+    const lockTime = new Date(readFileSync(lockPath, 'utf-8').trim());
+    if (isNaN(lockTime.getTime()) || Date.now() - lockTime.getTime() > 30000) {
       unlinkSync(lockPath);
     }
   } catch {}
@@ -96,23 +96,21 @@ try {
   // Transactional append: write-then-rename
   const existing = existsSync(queueFile) ? readFileSync(queueFile, 'utf-8') : '';
 
-  // Guard: max queue size
+  // Guard: max queue size — do not append if at limit
   const lineCount = existing.split('\n').filter(Boolean).length;
-  if (lineCount >= MAX_QUEUE_SIZE) {
-    process.exit(0);
-  }
+  if (lineCount < MAX_QUEUE_SIZE) {
+    const updated = existing + entry + '\n';
+    const tmpFile = queueFile + '.tmp';
 
-  const updated = existing + entry + '\n';
-  const tmpFile = queueFile + '.tmp';
-
-  writeFileSync(tmpFile, updated);
-  try {
-    renameSync(tmpFile, queueFile);
-  } catch {
+    writeFileSync(tmpFile, updated);
     try {
-      unlinkSync(tmpFile);
-    } catch {}
-    throw new Error('rename failed');
+      renameSync(tmpFile, queueFile);
+    } catch {
+      try {
+        unlinkSync(tmpFile);
+      } catch {}
+      throw new Error('rename failed');
+    }
   }
 } catch {
   // Silent — don't fail the tool use for learning capture errors
