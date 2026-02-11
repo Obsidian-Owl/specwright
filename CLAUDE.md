@@ -15,6 +15,7 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | `sw-build` | TDD implementation of one work unit. |
 | `sw-verify` | Interactive quality gates. Shows findings, validates against spec. |
 | `sw-ship` | Trunk-based merge to main. |
+| `sw-guard` | Detect stack and interactively configure guardrails (hooks, CI, settings). |
 | `sw-status` | Current state and progress. |
 | `sw-learn` | Post-ship capture of patterns and learnings. |
 

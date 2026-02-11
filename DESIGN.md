@@ -32,9 +32,9 @@ How the user wants code written. Testing standards, coding conventions, security
 **CHARTER.md** -- Technology Vision
 What is this repo? What are we building? Who are the consumers? Architectural invariants. The things that don't change. Referenced by plan to ensure alignment, validated by verify.
 
-## Skills (12)
+## Skills (13)
 
-### User-Facing (7)
+### User-Facing (8)
 
 | Skill | Purpose | Key Innovation |
 |-------|---------|----------------|
@@ -44,6 +44,7 @@ What is this repo? What are we building? Who are the consumers? Architectural in
 | `sw-verify` | Interactive quality gates | Shows findings, not badges. Orchestrates gate skills in dependency order |
 | `sw-ship` | Trunk-based merge | PR with evidence-mapped body |
 | `sw-status` | Where am I, what's done, what's next | Supports --reset to abandon work |
+| `sw-guard` | Detect stack, configure guardrails interactively | Layer-by-layer approval (session, commit, push, CI/CD) |
 | `sw-learn` | Post-ship capture. What worked, what to remember | Promotes patterns to constitution |
 
 ### Internal Gate Skills (5)
@@ -138,12 +139,13 @@ Target: 600 tokens per SKILL.md (40% of the 1,500 token ceiling).
 
 ```
 specwright/
-├── skills/           # SKILL.md files (12 skills)
+├── skills/           # SKILL.md files (13 skills)
 │   ├── sw-init/      # User-facing
 │   ├── sw-plan/
 │   ├── sw-build/
 │   ├── sw-verify/
 │   ├── sw-ship/
+│   ├── sw-guard/
 │   ├── sw-status/
 │   ├── sw-learn/
 │   ├── gate-build/   # Internal (invoked by verify)
