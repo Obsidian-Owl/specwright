@@ -14,11 +14,41 @@
 
 ---
 
-## The Problem
+Most spec-driven frameworks help you plan. Then they leave you on your own.
 
-AI coding assistants drift from requirements, skip testing, introduce regressions, and ship code that doesn't match what was asked for. Most AI development frameworks address only the specification phase — they help you plan, then leave you on your own.
+Specwright closes the **entire loop** — plan, build, verify, ship, learn. Every requirement is tracked to implementation evidence. Every PR ships with proof, not promises.
 
-**Specwright closes the entire loop.** Specs define the target. Quality gates verify the result. Nothing ships without evidence of compliance.
+### Without Specwright
+
+- AI optimises for "task done" not "feature works"
+- Fast delivery of broken, unwired code
+- Tests pass but features aren't connected
+- Context loss during long sessions causes drift
+- No evidence trail for what was verified
+- Every project re-invents the same workflow
+
+### With Specwright
+
+- Specs before implementation, always
+- Wiring verification catches orphaned code and broken connections
+- Evidence-based PRs with gate proof for every acceptance criterion
+- Compaction recovery reloads full context automatically
+- Learning system captures failures and promotes patterns across sessions
+- One install, configure once, works with any language or framework
+
+## What Makes This Different
+
+Other tools in this space focus on the **specification phase** — they help you write a plan, then hand off to the AI. The hard part isn't planning. It's everything after: does the code actually do what was asked? Is it wired up? Is it secure? Can you prove it?
+
+Specwright focuses on the **verification and evidence** side — the part where AI agents actually fail.
+
+**Evidence Pipeline** — Five sequential gates capture proof into structured reports. PRs ship with a compliance matrix mapping every acceptance criterion to code and test evidence. Reviewers don't have to trust — they can verify.
+
+**Wiring Verification** — Static analysis catches orphaned files, unused exports, layer violations, and circular dependencies. Other tools check if code compiles and tests pass. Specwright checks if the code is actually connected.
+
+**Learning System** — Failures are captured, patterns are promoted, project memory compounds. The system gets smarter with every session. Knowledge survives context windows.
+
+**Compaction Recovery** — All stateful skills support resume-from-crash. When Claude's context window compacts, Specwright reloads full state from disk. The only plugin in this space that handles context loss gracefully.
 
 ## How It Works
 
@@ -41,11 +71,11 @@ graph LR
 
 | Phase | What Happens | Key Innovation |
 |-------|-------------|----------------|
-| **Init** | Detect stack, configure gates, create constitution + charter | Auto-detection, not questionnaires |
-| **Plan** | Triage, deep research, design, adversarial critic review | Every plan challenged before commitment |
+| **Init** | Detect stack, configure gates, create anchor documents | Auto-detection — don't ask what you can infer |
+| **Plan** | Triage, deep research, design, adversarial critic review | Every plan challenged before you commit |
 | **Build** | TDD — tester writes hard-to-pass tests, executor makes them pass | Adversarial test-first, not test-after |
-| **Verify** | 5 quality gates with evidence | Findings shown, not just pass/fail badges |
-| **Ship** | PR with acceptance criteria mapped to evidence | Reviewers can verify every requirement |
+| **Verify** | 5 quality gates with evidence capture | Findings shown inline, not just pass/fail badges |
+| **Ship** | PR with acceptance criteria mapped to evidence | Every requirement traceable to code + test |
 | **Learn** | Capture patterns, promote to constitution | Knowledge compounds across sessions |
 
 ## Quick Start
@@ -96,7 +126,7 @@ Every work unit passes through configurable gates before shipping. **Default sta
 | **Build** | Compilation + test suite pass | BLOCK |
 | **Tests** | Assertion strength, boundary coverage, mock discipline | BLOCK/WARN |
 | **Security** | Leaked secrets, injection patterns, sensitive data | BLOCK |
-| **Wiring** | Dead code, orphaned files, layer violations, circular deps | WARN |
+| **Wiring** | Orphaned files, unused exports, layer violations, circular deps | WARN |
 | **Spec** | Every acceptance criterion mapped to code + test evidence | BLOCK |
 
 ## Anchor Documents
@@ -106,17 +136,6 @@ Two persistent documents drive all decisions and survive context compaction:
 **`CONSTITUTION.md`** — Development practices the AI must follow. Testing standards, coding conventions, security requirements. Not suggestions — rules.
 
 **`CHARTER.md`** — Technology vision and architectural invariants. What this project is, who consumes it, what doesn't change.
-
-## Why Specwright?
-
-| | Specwright | Other AI Frameworks |
-|---|-----------|---------------------|
-| **Workflow** | plan → build → verify → ship → learn | plan only |
-| **Context** | Constitution + Charter persist across sessions | session-based, lost on compaction |
-| **Critique** | Every plan challenged by adversarial architect | no critic phase |
-| **Verification** | Every requirement mapped to code + test evidence | "it works" (trust me) |
-| **Testing** | Tester writes hard-to-pass tests *before* implementation | standard mocks, test-after |
-| **Learning** | Patterns promoted from real development | manual documentation |
 
 ## Skills
 
@@ -169,7 +188,7 @@ See `DESIGN.md` for the complete architecture document.
 ```
 specwright/
 ├── skills/       # 13 SKILL.md files (8 user + 5 gates)
-├── protocols/    # Shared protocols (loaded on demand)
+├── protocols/    # 7 shared protocols (loaded on demand)
 ├── agents/       # 6 custom subagent definitions
 ├── hooks/        # Session lifecycle hooks
 ├── DESIGN.md     # Full architecture
