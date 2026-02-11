@@ -47,6 +47,7 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `evidence.md` -- Gate evidence format
 - `gate-verdict.md` -- Verdict rendering with self-critique
 - `context.md` -- Anchor doc and config loading
+- `insights.md` -- External Claude Code insights data access
 
 ## Key Rules
 

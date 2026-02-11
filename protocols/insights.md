@@ -1,6 +1,6 @@
 # Insights Protocol
 
-**System boundary crossing.** Claude Code writes session insights to `~/.claude/usage-data/`. This protocol governs reading that data for sw-learn enrichment.
+**System boundary crossing.** Claude Code writes session insights to `~/.claude/usage-data/`. This protocol governs reading that data for learning enrichment.
 
 ## Data Location
 
@@ -83,7 +83,7 @@ If stale:
 **Section label:**
 "Session Patterns"
 
-**Visually separate** from other sw-learn findings.
+**Visually separate** from other learning findings.
 
 ## Privacy
 
