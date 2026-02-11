@@ -34,6 +34,11 @@ Initialize your project:
 /sw-init
 ```
 
+Optionally, set up automated guardrails (linters, hooks, CI checks):
+```
+/sw-guard
+```
+
 Create a specification:
 ```
 /sw-plan payment-integration
@@ -65,8 +70,9 @@ Verify quality and ship:
 
 ## Skills
 
-**User-Facing** (7 core skills):
+**User-Facing** (8 core skills):
 - `/sw-init` — Project configuration and setup
+- `/sw-guard` — Detect stack and interactively configure guardrails (hooks, CI, settings)
 - `/sw-plan` — Specification with triage, research, design, critic, decompose
 - `/sw-build` — TDD implementation with test-first discipline
 - `/sw-verify` — Interactive quality gates with findings
@@ -120,7 +126,7 @@ See `DESIGN.md` for the complete architecture document.
 
 ```
 specwright/
-├── skills/       # 12 SKILL.md files (7 user + 5 gates)
+├── skills/       # 13 SKILL.md files (8 user + 5 gates)
 ├── protocols/    # Shared protocols (loaded on demand)
 ├── agents/       # Custom subagent definitions
 ├── hooks/        # Session lifecycle hooks
