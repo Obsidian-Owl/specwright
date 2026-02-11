@@ -29,6 +29,7 @@ work benefits.
 - `.specwright/work/{id}/evidence/` -- gate evidence files
 - `.specwright/work/{id}/plan.md` -- architecture decisions
 - `.specwright/CONSTITUTION.md` -- existing practices
+- `.specwright/learnings/` -- prior work unit learnings (for retrospective)
 - Git log for the work unit's commits
 
 ## Outputs
@@ -37,7 +38,7 @@ work benefits.
 - User-approved patterns promoted to one of:
   - `.specwright/CONSTITUTION.md` (new practice rule)
   - `.specwright/patterns.md` (reusable pattern library)
-- Dismissed learnings are not saved (no archive clutter)
+- `.specwright/learnings/{work-id}.json` -- only written when at least one finding is promoted (not all dismissed)
 
 ## Constraints
 
@@ -58,10 +59,26 @@ work benefits.
 - If promoting to patterns: append to `.specwright/patterns.md` (create if doesn't exist).
 - User must approve exact wording before saving.
 
+**Retrospective (MEDIUM freedom):**
+- When `.specwright/learnings/` has 2+ files from previous work units, read them and surface recurring patterns.
+- Show patterns that appear in the same category across 2+ units, citing which work units.
+- If directory empty, missing, or <2 files: silently skip.
+
+**Persistence (LOW freedom):**
+- Write `.specwright/learnings/{work-id}.json` only when at least one finding is promoted.
+- If all learnings dismissed, no file is written.
+- Schema: `{ "workId": "string", "timestamp": "ISO 8601", "findings": [{ "category": "build | security | testing | architecture | friction", "source": "gate-evidence | git-log | plan | insights", "description": "string", "proposedRule": "string | null", "disposition": "promoted-constitution | promoted-patterns | dismissed" }] }`
+
+**Enrichment (MEDIUM freedom):**
+- Optional phase governed by `protocols/insights.md` for session pattern enrichment.
+- Reference the protocol for facets, privacy, staleness, and fallback behavior.
+- Silently skip if insights unavailable or stale per protocol rules.
+
 ## Protocol References
 
 - `protocols/context.md` -- anchor doc loading
 - `protocols/state.md` -- workflow state reading
+- `protocols/insights.md` -- session pattern enrichment
 
 ## Failure Modes
 
@@ -69,4 +86,5 @@ work benefits.
 |-----------|--------|
 | No completed work unit | "Nothing to learn from. Complete a build cycle first." |
 | No evidence files | Skip evidence scanning, focus on git log and plan |
-| User dismisses all learnings | That's fine. Not every work unit produces patterns. |
+| User dismisses all learnings | No persistence file written. No archive clutter. |
+| Insights unavailable/stale | Silently skip enrichment per `protocols/insights.md` |
