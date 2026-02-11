@@ -95,8 +95,9 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `gate-verdict.md` | Self-critique, baseline check, verdict rendering | ~150 |
 | `context.md` | Config/state/anchor doc loading | ~100 |
 | `insights.md` | External CC insights data access | ~150 |
+| `learning-lifecycle.md` | Compaction triggers, tier structure, theme format | ~150 |
 
-Total: ~1120 tokens (loaded on demand, not all at once).
+Total: ~1270 tokens (loaded on demand, not all at once).
 
 ## Skill Anatomy
 

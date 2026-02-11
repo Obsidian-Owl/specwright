@@ -48,6 +48,7 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `gate-verdict.md` -- Verdict rendering with self-critique
 - `context.md` -- Anchor doc and config loading
 - `insights.md` -- External Claude Code insights data access
+- `learning-lifecycle.md` -- Compaction triggers and tiered memory
 
 ## Key Rules
 
