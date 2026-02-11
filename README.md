@@ -1,33 +1,60 @@
-# Specwright
+<p align="center">
+  <img src=".github/banner.svg" alt="Specwright — Craft quality software with AI discipline" width="100%">
+</p>
 
-**Craft quality software with AI discipline**
+<p align="center">
+  <a href="https://github.com/Obsidian-Owl/specwright/releases"><img src="https://img.shields.io/github/v/release/Obsidian-Owl/specwright?style=flat-square&color=f59e0b&label=version" alt="Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Obsidian-Owl/specwright?style=flat-square&color=475569" alt="License"></a>
+  <a href="https://github.com/Obsidian-Owl/specwright/stargazers"><img src="https://img.shields.io/github/stars/Obsidian-Owl/specwright?style=flat-square&color=475569" alt="Stars"></a>
+</p>
 
-Specwright is a Claude Code plugin for spec-driven app development. It ensures you get what you asked for by combining specification planning, test-driven development, quality gates, and evidence capture into a cohesive workflow.
+<p align="center">
+  <b>AI agents optimise for <i>done</i>. Specwright optimises for <i>works</i>.</b>
+</p>
 
-AI agents optimise for done. Specwright optimises for works.
+---
 
-## Why Specwright?
+## The Problem
 
-Most AI development frameworks focus on the specification phase. Specwright closes the entire loop:
+AI coding assistants drift from requirements, skip testing, introduce regressions, and ship code that doesn't match what was asked for. Most AI development frameworks address only the specification phase — they help you plan, then leave you on your own.
 
-| Feature | Specwright | Competitors |
-|---------|-----------|-------------|
-| Full workflow loop | plan → build → verify → ship → learn | plan only |
-| Anchor documents | Constitution + Charter persist context | session-based only |
-| Adversarial critique | Every plan challenged by critic agent | rarely included |
-| Spec compliance gate | Maps every requirement to code + tests | not verified |
-| Adversarial testing | Tester writes hard-to-pass tests | standard mocks |
-| Learning system | Patterns promoted from real development | manual documentation |
+**Specwright closes the entire loop.** Specs define the target. Quality gates verify the result. Nothing ships without evidence of compliance.
 
-## Installation
+## How It Works
 
-In Claude Code, add the marketplace and install the plugin:
+```mermaid
+graph LR
+    A["/sw-init"] --> B["/sw-plan"]
+    B --> C["/sw-build"]
+    C --> D["/sw-verify"]
+    D --> E["/sw-ship"]
+    E --> F["/sw-learn"]
+    F -.->|patterns feed back| B
+
+    style A fill:#1e293b,stroke:#f59e0b,color:#f8fafc
+    style B fill:#1e293b,stroke:#f59e0b,color:#f8fafc
+    style C fill:#1e293b,stroke:#f59e0b,color:#f8fafc
+    style D fill:#1e293b,stroke:#f59e0b,color:#f8fafc
+    style E fill:#1e293b,stroke:#f59e0b,color:#f8fafc
+    style F fill:#1e293b,stroke:#f59e0b,color:#f8fafc
+```
+
+| Phase | What Happens | Key Innovation |
+|-------|-------------|----------------|
+| **Init** | Detect stack, configure gates, create constitution + charter | Auto-detection, not questionnaires |
+| **Plan** | Triage, deep research, design, adversarial critic review | Every plan challenged before commitment |
+| **Build** | TDD — tester writes hard-to-pass tests, executor makes them pass | Adversarial test-first, not test-after |
+| **Verify** | 5 quality gates with evidence | Findings shown, not just pass/fail badges |
+| **Ship** | PR with acceptance criteria mapped to evidence | Reviewers can verify every requirement |
+| **Learn** | Capture patterns, promote to constitution | Knowledge compounds across sessions |
+
+## Quick Start
+
+Install the plugin:
 ```
 /plugin marketplace add Obsidian-Owl/specwright
 /plugin install specwright@specwright
 ```
-
-## Quick Start
 
 Initialize your project:
 ```
@@ -39,80 +66,92 @@ Optionally, set up automated guardrails (linters, hooks, CI checks):
 /sw-guard
 ```
 
-Create a specification:
+Then plan, build, verify, ship:
 ```
-/sw-plan payment-integration
-```
-
-Build with test-first discipline:
-```
-/sw-build payment-integration
-```
-
-Verify quality and ship:
-```
+/sw-plan add-user-authentication
+/sw-build
 /sw-verify
-/sw-ship payment-integration
+/sw-ship
 ```
 
-## Workflow
+## Six Specialized Agents
 
-```
-   /init          /plan         /build      /verify       /ship      /learn
-    |              |              |            |             |          |
-    v              v              v            v             v          v
- CONFIG  ->   SPECIFICATION  ->  TDD  ->  QUALITY GATES  ->  PR  ->  PATTERNS
-  Auto        Deep research    RED-GREEN  5 gate suite    Evidence   Promote to
- Configure    Critic review    REFACTOR   findings       mapping    Constitution
-  Gates       Decompose       Per-task   Spec compli-
-             User checkpoints  commits    ance proof
-```
+Specwright delegates to purpose-built agents — each with a distinct role, model, and adversarial stance:
+
+| Agent | Model | Role | Mindset |
+|-------|-------|------|---------|
+| **Architect** | Opus | Design review, critic, structural analysis | *"What did you miss? What will break?"* |
+| **Tester** | Opus | Write tests designed to be hard to pass | *"How can I prove this is wrong?"* |
+| **Executor** | Sonnet | Make the tests pass. Minimal code, maximum correctness. | *"What's the simplest thing that works?"* |
+| **Reviewer** | Opus | Spec compliance verification | *"Show me the evidence."* |
+| **Build Fixer** | Sonnet | Fix build/test failures with minimal diffs | *"Get green, don't refactor."* |
+| **Researcher** | Sonnet | External documentation and API lookup | *"What does the official doc say?"* |
+
+## Five Quality Gates
+
+Every work unit passes through configurable gates before shipping. **Default stance: FAIL.** Evidence must prove PASS.
+
+| Gate | Checks | Severity |
+|------|--------|----------|
+| **Build** | Compilation + test suite pass | BLOCK |
+| **Tests** | Assertion strength, boundary coverage, mock discipline | BLOCK/WARN |
+| **Security** | Leaked secrets, injection patterns, sensitive data | BLOCK |
+| **Wiring** | Dead code, orphaned files, layer violations, circular deps | WARN |
+| **Spec** | Every acceptance criterion mapped to code + test evidence | BLOCK |
+
+## Anchor Documents
+
+Two persistent documents drive all decisions and survive context compaction:
+
+**`CONSTITUTION.md`** — Development practices the AI must follow. Testing standards, coding conventions, security requirements. Not suggestions — rules.
+
+**`CHARTER.md`** — Technology vision and architectural invariants. What this project is, who consumes it, what doesn't change.
+
+## Why Specwright?
+
+| | Specwright | Other AI Frameworks |
+|---|-----------|---------------------|
+| **Workflow** | plan → build → verify → ship → learn | plan only |
+| **Context** | Constitution + Charter persist across sessions | session-based, lost on compaction |
+| **Critique** | Every plan challenged by adversarial architect | no critic phase |
+| **Verification** | Every requirement mapped to code + test evidence | "it works" (trust me) |
+| **Testing** | Tester writes hard-to-pass tests *before* implementation | standard mocks, test-after |
+| **Learning** | Patterns promoted from real development | manual documentation |
 
 ## Skills
 
-**User-Facing** (8 core skills):
-- `/sw-init` — Project configuration and setup
-- `/sw-guard` — Detect stack and interactively configure guardrails (hooks, CI, settings)
-- `/sw-plan` — Specification with triage, research, design, critic, decompose
-- `/sw-build` — TDD implementation with test-first discipline
-- `/sw-verify` — Interactive quality gates with findings
-- `/sw-ship` — Trunk-based PR with evidence mapping
-- `/sw-status` — Workflow progress and state
-- `/sw-learn` — Pattern capture and promotion
+<table>
+<tr><td>
 
-**Quality Gates** (5 gates, configurable):
-- `gate-build` — Compilation, test pass (BLOCK)
-- `gate-tests` — Coverage, assertions, structure (BLOCK/WARN)
-- `gate-security` — Secrets, injection, sensitive data (BLOCK)
-- `gate-wiring` — Dead code, unused exports, layer violations (WARN)
-- `gate-spec` — Every acceptance criterion has evidence (BLOCK)
+**Core Workflow**
+| Skill | Purpose |
+|-------|---------|
+| `/sw-init` | Project setup, constitution, charter |
+| `/sw-plan` | Research, design, critic, spec |
+| `/sw-build` | TDD implementation |
+| `/sw-verify` | Quality gates |
+| `/sw-ship` | PR with evidence |
 
-## Key Features
+</td><td>
 
-**Anchor Documents** — Two persistent documents drive all decisions:
-- `CONSTITUTION.md` — Development practices the AI must follow
-- `CHARTER.md` — Technology vision and architectural invariants
+**Utilities**
+| Skill | Purpose |
+|-------|---------|
+| `/sw-guard` | Configure guardrails (hooks, CI) |
+| `/sw-status` | Progress and state |
+| `/sw-learn` | Pattern capture |
 
-**Evidence Trail** — Every gate run produces timestamped artifacts for audit and learning.
+</td></tr>
+</table>
 
-**Compaction Recovery** — All stateful skills support resume-from-crash. Partial progress is preserved.
-
-**Agents** — Six specialized agents handle creative work:
-- architect (opus) — Strategic design advisor
-- tester (opus) — Adversarial test engineer. Writes tests that are genuinely hard to pass.
-- executor (sonnet) — TDD implementation
-- reviewer (opus) — Spec compliance verification
-- build-fixer (sonnet) — Auto-fix build failures
-- researcher (sonnet) — Documentation lookup
-
-## Configuration
+<details>
+<summary><b>Configuration</b></summary>
 
 Specwright reads project configuration from `.specwright/config.json`:
 
 ```json
 {
   "project": { "name": "...", "languages": [...] },
-  "architecture": { "style": "layered|hexagonal|modular" },
   "commands": { "build": "...", "test": "...", "lint": "..." },
   "gates": { "enabled": ["build", "tests", "wiring", "security", "spec"] }
 }
@@ -120,7 +159,10 @@ Specwright reads project configuration from `.specwright/config.json`:
 
 All configuration is project-specific. Specwright never assumes language, framework, or architecture.
 
-## Architecture
+</details>
+
+<details>
+<summary><b>Architecture</b></summary>
 
 See `DESIGN.md` for the complete architecture document.
 
@@ -128,31 +170,25 @@ See `DESIGN.md` for the complete architecture document.
 specwright/
 ├── skills/       # 13 SKILL.md files (8 user + 5 gates)
 ├── protocols/    # Shared protocols (loaded on demand)
-├── agents/       # Custom subagent definitions
+├── agents/       # 6 custom subagent definitions
 ├── hooks/        # Session lifecycle hooks
 ├── DESIGN.md     # Full architecture
 └── README.md
 ```
 
+</details>
+
 ## Contributing
 
-Specwright is open source and community-driven.
+Specwright is open source under the MIT license.
 
-To contribute:
-1. Fork the repository at github.com/Obsidian-Owl/specwright
+1. Fork at [github.com/Obsidian-Owl/specwright](https://github.com/Obsidian-Owl/specwright)
 2. Create a feature branch
-3. Make your changes
-4. Ensure tests pass
-5. Submit a pull request
-
-See `CLAUDE.md` for development guidelines.
-
-## License
-
-MIT License. Copyright (c) 2026 ObsidianOwl.
+3. See `CLAUDE.md` for development guidelines
+4. Submit a pull request
 
 ---
 
-**Version**: 0.2.0
-**Author**: ObsidianOwl
-**Repository**: https://github.com/Obsidian-Owl/specwright
+<p align="center">
+  <sub>Built by <a href="https://github.com/Obsidian-Owl">ObsidianOwl</a> · MIT License · v0.2.0</sub>
+</p>
