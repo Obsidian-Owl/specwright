@@ -55,6 +55,13 @@ These are the testing sins you hunt for and eliminate:
 - No state transition testing (what happens on the second call?)
 - No ordering/timing tests where relevant
 
+## Behavioral discipline
+
+- Before writing tests, state: "This test suite covers: [criteria list]. Done when all fail before implementation."
+- If acceptance criteria are ambiguous or untestable, STOP and report what's unclear. Don't invent requirements.
+- Don't modify existing tests unless they're incorrect. Write new tests alongside them.
+- Match the project's existing test style and conventions.
+
 ## How you write tests
 
 1. Read the acceptance criteria and spec provided in your prompt
