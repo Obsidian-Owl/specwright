@@ -16,7 +16,7 @@
 
 Most spec-driven frameworks help you plan. Then they leave you on your own.
 
-Specwright closes the **entire loop** — plan, build, verify, ship, learn. Every requirement is tracked to implementation evidence. Every PR ships with proof, not promises.
+Specwright closes the **entire loop** — design, plan, build, verify, ship, learn. Every requirement is tracked to implementation evidence. Every PR ships with proof, not promises.
 
 ### Without Specwright
 
@@ -59,6 +59,7 @@ graph LR
     C --> D["/sw-build"]
     D --> E["/sw-verify"]
     E --> F["/sw-ship"]
+    F -.->|next work unit| D
     F --> G["/sw-learn"]
     G -.->|patterns feed back| B
 
@@ -99,10 +100,12 @@ Optionally, set up automated guardrails (linters, hooks, CI checks):
 /sw-guard
 ```
 
-Then design, plan, build, verify, ship:
+Then design, plan, and iterate per work unit:
 ```
 /sw-design add-user-authentication
 /sw-plan
+
+# for each work unit:
 /sw-build
 /sw-verify
 /sw-ship
