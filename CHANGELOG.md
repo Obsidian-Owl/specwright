@@ -7,6 +7,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.5.0] - 2026-02-12
+
+### Changed
+
+- fix(docs): address stale wording from wiring gate findings
+- docs: update README and CHANGELOG for design/plan split
+- docs: update DESIGN.md and CLAUDE.md for design/plan split
+- feat(skills): update sw-verify and sw-status for design/plan split
+- feat(skills): add design.md to sw-build inputs and context envelope
+- feat(skills): rewrite sw-plan for decomposition and specs only
+- fix(protocols): add null-to-designing transition in state table
+- feat(skills): create sw-design skill for interactive solution architecture
+- feat(protocols): add designing status and sw-design handoff
+- fix(agents): correct executor description, add tester negative constraints
+- docs(design): add behavioral discipline as principle #7
+- feat(sw-build): scope REFACTOR step and add behavioral envelope
+- feat(sw-plan): add simplicity bias to Design phase
+- feat(agents): add Karpathy-aligned behavioral discipline sections
+
 ## [0.5.0] - 2026-02-13
 
 ### Added
