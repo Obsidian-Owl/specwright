@@ -10,6 +10,7 @@ allowed-tools:
   - Write
   - Glob
   - Grep
+  - AskUserQuestion
 ---
 
 # Specwright Init
@@ -69,6 +70,21 @@ When complete, ALL of the following exist:
 - Keep it concise -- one page, not a business plan.
 - The user must approve the charter before it's saved.
 
+**Git workflow configuration (MEDIUM freedom):**
+- Detect git workflow by scanning:
+  - Branch names (`git branch -a`): look for `develop`, `release/*`, `hotfix/*` (→ gitflow), feature branches (→ github-flow/trunk-based)
+  - Remote configuration (`git remote -v`)
+  - CI files referencing branch names (`.github/workflows/*.yml`, `.gitlab-ci.yml`, `Jenkinsfile`)
+- Present detected workflow with confidence level to the user.
+- Use AskUserQuestion to confirm or override:
+  - Strategy: trunk-based, github-flow, gitflow, custom
+  - Branch prefix (default: `feat/` or detected)
+  - Merge strategy: squash, rebase, merge
+  - PR required: yes/no
+  - Commit format: conventional, freeform, custom
+- Store results in `config.json` `git` section. See `protocols/git.md` for field reference.
+- If existing `config.json` has old git schema (missing new fields like `mergeStrategy`, `prRequired`, `branchPerWorkUnit`): offer to migrate by adding new fields with sensible defaults.
+
 **Configuration (LOW freedom):**
 - Write `.specwright/config.json` with detected and configured values.
 - Create `.specwright/state/workflow.json` with empty initial state.
@@ -86,6 +102,7 @@ When complete, ALL of the following exist:
 
 - `protocols/state.md` -- workflow.json initialization
 - `protocols/context.md` -- config.json format
+- `protocols/git.md` -- git config field reference and strategy definitions
 
 ## Failure Modes
 
@@ -94,4 +111,5 @@ When complete, ALL of the following exist:
 | .specwright/ already exists | Ask user: reconfigure, or abort |
 | No dependency manifest found | Ask user about language and framework directly |
 | User unsure about practices | Suggest sensible defaults based on detected stack, let them adjust |
+| Old config.json git schema detected | Show diff of old vs new fields. Offer migration with AskUserQuestion. Preserve existing values, add new fields with defaults. |
 | Compaction during init | Check which files exist, resume from next missing artifact |

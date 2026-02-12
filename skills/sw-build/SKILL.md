@@ -51,6 +51,15 @@ After all tasks:
 - You implement ONE work unit via TDD. You NEVER run quality gates, create PRs, ship code, or start the next work unit.
 - After all tasks for this unit are committed, STOP and present the handoff to `/sw-verify`.
 
+**Branch setup (LOW freedom) — FIRST action before any coding:**
+- Read `config.json` `git` section. Follow `protocols/git.md` branch lifecycle.
+- If `git.branchPerWorkUnit` is true (default):
+  - Check if branch `{git.branchPrefix}{work-unit-id}` already exists (recovery case).
+  - If exists: `git checkout {branch}`. Pull latest if remote tracking exists.
+  - If not: checkout `git.baseBranch`, pull latest, create branch.
+- If `git.branchPerWorkUnit` is false: stay on current branch.
+- All task commits happen on the feature branch. NEVER commit to baseBranch.
+
 **Task loop (MEDIUM freedom):**
 - Work one task at a time. Complete it before starting the next.
 - If no task ID given, pick the next incomplete task from spec.md.

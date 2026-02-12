@@ -14,7 +14,7 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | `sw-plan` | Triage, research, design, critic review, decompose. Produces specs. |
 | `sw-build` | TDD implementation of one work unit. |
 | `sw-verify` | Interactive quality gates. Shows findings, validates against spec. |
-| `sw-ship` | Trunk-based merge to main. |
+| `sw-ship` | Strategy-aware merge via PR. |
 | `sw-guard` | Detect stack and interactively configure guardrails (hooks, CI, settings). |
 | `sw-status` | Current state and progress. |
 | `sw-learn` | Post-ship capture of patterns and learnings. |
@@ -43,7 +43,7 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `stage-boundary.md` -- Stage scope, termination, and handoff enforcement
 - `delegation.md` -- Agent delegation (custom subagents + agent teams)
 - `state.md` -- Workflow state mutations and locking
-- `git.md` -- Trunk-based git operations
+- `git.md` -- Strategy-aware git operations (branch lifecycle, commits, PRs)
 - `recovery.md` -- Compaction recovery
 - `evidence.md` -- Gate evidence format
 - `gate-verdict.md` -- Verdict rendering with self-critique
