@@ -26,6 +26,9 @@
       "findings": { "block": 0, "warn": 0, "info": 0 }
     }
   },
+  "workUnits": [
+    { "id": "string", "description": "string", "status": "pending | planning | building | verifying | shipped | abandoned", "order": "number" }
+  ],
   "lock": {
     "skill": "string",
     "since": "ISO timestamp"
@@ -35,6 +38,25 @@
 ```
 
 `currentWork` is null when no work is active. `lock` is null when unlocked.
+`workUnits` is null for single-unit work (backward compatible). When present, `currentWork` still points to the active unit.
+
+## State Transitions
+
+Valid transitions for `currentWork.status`:
+
+| From | To | Triggered by |
+|------|----|-------------|
+| `planning` | `building` | sw-build |
+| `building` | `verifying` | sw-verify |
+| `verifying` | `building` | fix after failed verify |
+| `verifying` | `shipped` | sw-ship |
+| `shipped` | `planning` | next unit advancement |
+| any | `abandoned` | sw-status --reset |
+
+**Enforcement:** Skills MUST check `currentWork.status` before mutating. If the current status is not a valid "from" state for the intended transition, STOP with:
+> "Cannot transition from {current} to {target}. Run /sw-{correct-skill} instead."
+
+When `workUnits` exists, also update the matching entry's status in the array.
 
 ## Read-Modify-Write Sequence
 
