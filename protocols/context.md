@@ -28,7 +28,7 @@ if (!exists('.specwright/config.json')) {
 
 ```javascript
 if (!state.currentWorkUnit && requiresWorkUnit) {
-  error("Run /sw-plan first.");
+  error("Run /sw-design first.");
 }
 ```
 
