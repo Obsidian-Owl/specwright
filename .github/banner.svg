@@ -51,21 +51,23 @@
 
   <!-- Workflow pipeline (decorative, behind text) -->
   <g opacity="0.12">
-    <!-- Pipeline nodes -->
-    <circle cx="200" cy="210" r="18" stroke="#f59e0b" stroke-width="1" fill="none"/>
-    <circle cx="360" cy="210" r="18" stroke="#f59e0b" stroke-width="1" fill="none"/>
-    <circle cx="520" cy="210" r="18" stroke="#f59e0b" stroke-width="1" fill="none"/>
-    <circle cx="680" cy="210" r="18" stroke="#f59e0b" stroke-width="1" fill="none"/>
-    <circle cx="840" cy="210" r="18" stroke="#f59e0b" stroke-width="1" fill="none"/>
-    <circle cx="1000" cy="210" r="18" stroke="#f59e0b" stroke-width="1" fill="none"/>
+    <!-- Pipeline nodes (7: init, design, plan, build, verify, ship, learn) -->
+    <circle cx="170" cy="210" r="18" stroke="#f59e0b" stroke-width="1" fill="none"/>
+    <circle cx="310" cy="210" r="18" stroke="#f59e0b" stroke-width="1" fill="none"/>
+    <circle cx="450" cy="210" r="18" stroke="#f59e0b" stroke-width="1" fill="none"/>
+    <circle cx="590" cy="210" r="18" stroke="#f59e0b" stroke-width="1" fill="none"/>
+    <circle cx="730" cy="210" r="18" stroke="#f59e0b" stroke-width="1" fill="none"/>
+    <circle cx="870" cy="210" r="18" stroke="#f59e0b" stroke-width="1" fill="none"/>
+    <circle cx="1010" cy="210" r="18" stroke="#f59e0b" stroke-width="1" fill="none"/>
     <!-- Connectors -->
-    <line x1="218" y1="210" x2="342" y2="210" stroke="#f59e0b" stroke-width="1"/>
-    <line x1="378" y1="210" x2="502" y2="210" stroke="#f59e0b" stroke-width="1"/>
-    <line x1="538" y1="210" x2="662" y2="210" stroke="#f59e0b" stroke-width="1"/>
-    <line x1="698" y1="210" x2="822" y2="210" stroke="#f59e0b" stroke-width="1"/>
-    <line x1="858" y1="210" x2="982" y2="210" stroke="#f59e0b" stroke-width="1"/>
+    <line x1="188" y1="210" x2="292" y2="210" stroke="#f59e0b" stroke-width="1"/>
+    <line x1="328" y1="210" x2="432" y2="210" stroke="#f59e0b" stroke-width="1"/>
+    <line x1="468" y1="210" x2="572" y2="210" stroke="#f59e0b" stroke-width="1"/>
+    <line x1="608" y1="210" x2="712" y2="210" stroke="#f59e0b" stroke-width="1"/>
+    <line x1="748" y1="210" x2="852" y2="210" stroke="#f59e0b" stroke-width="1"/>
+    <line x1="888" y1="210" x2="992" y2="210" stroke="#f59e0b" stroke-width="1"/>
     <!-- Return arc (the closed loop) -->
-    <path d="M 1000 228 Q 1000 290 600 290 Q 200 290 200 228" stroke="#f59e0b" stroke-width="1" fill="none" stroke-dasharray="6 4"/>
+    <path d="M 1010 228 Q 1010 290 590 290 Q 170 290 170 228" stroke="#f59e0b" stroke-width="1" fill="none" stroke-dasharray="6 4"/>
   </g>
 
   <!-- Spec icon (small geometric mark) -->
@@ -93,22 +95,24 @@
 
   <!-- Pipeline labels -->
   <g font-family="'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace" font-size="11" fill="#64748b" text-anchor="middle">
-    <text x="200" y="250">init</text>
-    <text x="360" y="250">plan</text>
-    <text x="520" y="250">build</text>
-    <text x="680" y="250">verify</text>
-    <text x="840" y="250">ship</text>
-    <text x="1000" y="250">learn</text>
+    <text x="170" y="250">init</text>
+    <text x="310" y="250">design</text>
+    <text x="450" y="250">plan</text>
+    <text x="590" y="250">build</text>
+    <text x="730" y="250">verify</text>
+    <text x="870" y="250">ship</text>
+    <text x="1010" y="250">learn</text>
   </g>
 
   <!-- Pipeline node fills (small bright dots) -->
   <g filter="url(#glow)">
-    <circle cx="200" cy="210" r="3" fill="#f59e0b" opacity="0.6"/>
-    <circle cx="360" cy="210" r="3" fill="#f59e0b" opacity="0.6"/>
-    <circle cx="520" cy="210" r="3" fill="#f59e0b" opacity="0.6"/>
-    <circle cx="680" cy="210" r="3" fill="#f59e0b" opacity="0.6"/>
-    <circle cx="840" cy="210" r="3" fill="#f59e0b" opacity="0.6"/>
-    <circle cx="1000" cy="210" r="3" fill="#f59e0b" opacity="0.6"/>
+    <circle cx="170" cy="210" r="3" fill="#f59e0b" opacity="0.6"/>
+    <circle cx="310" cy="210" r="3" fill="#f59e0b" opacity="0.6"/>
+    <circle cx="450" cy="210" r="3" fill="#f59e0b" opacity="0.6"/>
+    <circle cx="590" cy="210" r="3" fill="#f59e0b" opacity="0.6"/>
+    <circle cx="730" cy="210" r="3" fill="#f59e0b" opacity="0.6"/>
+    <circle cx="870" cy="210" r="3" fill="#f59e0b" opacity="0.6"/>
+    <circle cx="1010" cy="210" r="3" fill="#f59e0b" opacity="0.6"/>
   </g>
 
   <!-- Version tag -->
