@@ -29,6 +29,7 @@ codebase stays green between tasks.
 - `.specwright/state/workflow.json` -- current work unit and task progress
 - `.specwright/work/{id}/spec.md` -- acceptance criteria to implement
 - `.specwright/work/{id}/plan.md` -- architecture decisions
+- `.specwright/work/{id}/design.md` -- solution design from sw-design
 - `.specwright/work/{id}/context.md` -- research findings, file paths, gotchas
 - `.specwright/CONSTITUTION.md` -- coding standards to follow
 - `.specwright/config.json` -- build/test commands, agent config
@@ -80,7 +81,7 @@ The sequence is strict: RED → GREEN → REFACTOR. Never skip RED.
 **Context envelope (LOW freedom):**
 When delegating, include in the prompt:
 - The specific task and its acceptance criteria
-- Relevant sections of plan.md and context.md
+- Relevant sections of design.md, plan.md, and context.md
 - File paths the agent needs to read or modify
 - The constitution's relevant practices
 - Build and test commands from config.json
@@ -113,7 +114,7 @@ When delegating, include in the prompt:
 
 | Condition | Action |
 |-----------|--------|
-| No active work unit | STOP: "Run /sw-plan first" |
+| No active work unit | STOP: "Run /sw-design and /sw-plan first" |
 | Build/test command not configured | STOP: "Configure commands in config.json or run /sw-init" |
 | Tester writes tests that pass immediately | Tests are wrong. Re-delegate with instruction to write tests that FAIL first. |
 | Executor can't pass tests after 2 build-fixer attempts | STOP. Show error to user. Don't loop forever. |
