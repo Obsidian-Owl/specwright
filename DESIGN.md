@@ -4,7 +4,7 @@
 
 Specwright is a Claude Code plugin for spec-driven app development. It ensures the user gets what they asked for through quality gates that verify implementation against requirements.
 
-**Scope:** Application development (backend, agentic systems, data pipelines). Trunk-based development workflow.
+**Scope:** Application development (backend, agentic systems, data pipelines). Configurable git workflow (trunk-based, github-flow, gitflow, custom).
 
 **Unique value:** The full loop -- understand deeply, plan with adversarial review, build with discipline, verify against requirements, ship cleanly. No other meta-prompting framework closes this loop.
 
@@ -42,7 +42,7 @@ What is this repo? What are we building? Who are the consumers? Architectural in
 | `sw-plan` | Understand + design + decompose | Triage, deep research, critic review, user questions throughout |
 | `sw-build` | TDD implementation | Tester → executor delegation. Context doc travels with agents |
 | `sw-verify` | Interactive quality gates | Shows findings, not badges. Orchestrates gate skills in dependency order |
-| `sw-ship` | Trunk-based merge | PR with evidence-mapped body |
+| `sw-ship` | Strategy-aware merge | PR with evidence-mapped body |
 | `sw-status` | Where am I, what's done, what's next | Supports --reset to abandon work |
 | `sw-guard` | Detect stack, configure guardrails interactively | Layer-by-layer approval (session, commit, push, CI/CD) |
 | `sw-learn` | Post-ship capture. What worked, what to remember | Promotes patterns to constitution |
@@ -90,7 +90,7 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `stage-boundary.md` | Stage scope, termination, handoff enforcement | ~180 |
 | `delegation.md` | Agent delegation (custom subagents + agent teams) | ~200 |
 | `state.md` | Workflow state read-modify-write, lock handling | ~200 |
-| `git.md` | Branch, stage, commit, push (trunk-based) | ~150 |
+| `git.md` | Strategy-aware branch lifecycle, commit format, PR creation | ~450 |
 | `recovery.md` | Compaction recovery procedure | ~120 |
 | `evidence.md` | Gate evidence format and storage | ~100 |
 | `gate-verdict.md` | Self-critique, baseline check, verdict rendering | ~150 |
@@ -98,7 +98,7 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `insights.md` | External CC insights data access | ~150 |
 | `learning-lifecycle.md` | Compaction triggers, tier structure, theme format | ~150 |
 
-Total: ~1450 tokens (loaded on demand, not all at once).
+Total: ~1750 tokens (loaded on demand, not all at once).
 
 ## Skill Anatomy
 
