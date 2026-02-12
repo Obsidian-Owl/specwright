@@ -2,7 +2,7 @@
 name: specwright-executor
 description: >-
   Focused task executor for TDD implementation. Builds exactly one work unit
-  at a time. Writes tests first, then implementation, then refactors.
+  at a time. Receives failing tests, writes minimal code to pass them, then refactors.
 model: sonnet
 tools:
   - Read
