@@ -12,7 +12,7 @@ At the start of execution, state what this skill does and does NOT do:
 
 - NEVER begin work belonging to the next stage in the workflow
 - NEVER invoke or simulate another skill's workflow
-- NEVER write code during planning, create PRs during building, or start new units during shipping
+- NEVER write specs during designing, write code during planning, create PRs during building, or start new units during shipping
 
 ## Termination
 
@@ -26,6 +26,7 @@ When the skill's work is complete:
 
 | After completing | Next command | Purpose |
 |-----------------|-------------|---------|
+| sw-design | `/sw-plan` | Break design into work units with specs |
 | sw-plan | `/sw-build` | Implement the spec |
 | sw-build | `/sw-verify` | Run quality gates |
 | sw-verify (PASS) | `/sw-ship` | Create PR and ship |

@@ -12,7 +12,7 @@
   "currentWork": {
     "id": "string, kebab-case",
     "description": "string",
-    "status": "planning | building | verifying | shipped | abandoned",
+    "status": "designing | planning | building | verifying | shipped | abandoned",
     "workDir": ".specwright/work/{id}",
     "tasksTotal": "number | null",
     "tasksCompleted": ["task-id strings"],
@@ -46,6 +46,8 @@ Valid transitions for `currentWork.status`:
 
 | From | To | Triggered by |
 |------|----|-------------|
+| (none) | `designing` | sw-design (new work) |
+| `designing` | `planning` | sw-plan |
 | `planning` | `building` | sw-build |
 | `building` | `verifying` | sw-verify |
 | `verifying` | `building` | fix after failed verify |
