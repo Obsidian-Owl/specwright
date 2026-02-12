@@ -98,7 +98,7 @@ and be able to discuss or override before proceeding to ship.
 
 | Condition | Action |
 |-----------|--------|
-| No active work unit | STOP: "Nothing to verify. Run /sw-plan and /sw-build first." |
+| No active work unit | STOP: "Nothing to verify. Run /sw-design, /sw-plan, and /sw-build first." |
 | No gates enabled in config | WARN and skip to ready-to-ship state |
 | Gate skill file not found | ERROR for that gate, continue with remaining gates |
 | All gates skipped by user | WARN: "All gates skipped. Proceed at own risk." |

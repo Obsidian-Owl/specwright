@@ -45,7 +45,7 @@ next. If they're stuck, give them a way out with `--reset`.
     2. [BUILDING] git-operations-overhaul  ← current
     3. [PENDING] state-enhancements
   ```
-- If no active work: say so and suggest `/sw-plan`.
+- If no active work: say so and suggest `/sw-design`.
 - If work is complete: suggest `/sw-ship`.
 - Be concise. This is a dashboard, not a report.
 
