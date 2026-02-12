@@ -80,6 +80,10 @@ ships when gates have passed.
 **State updates (LOW freedom):**
 - Follow `protocols/state.md`.
 - Set `currentWork.status` to `shipped` after PR creation.
+- If `workUnits` array exists:
+  - Update the matching entry's status to `shipped`.
+  - If more pending units exist: set next pending unit as `currentWork` with status `planning`. Handoff: "Next: {unit-name}. Run `/sw-build`."
+  - If no more units: "All work units complete."
 - Release lock.
 
 ## Protocol References
