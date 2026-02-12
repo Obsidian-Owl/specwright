@@ -44,6 +44,13 @@ work benefits.
 
 ## Constraints
 
+**Stage boundary (LOW freedom):**
+- Follow `protocols/stage-boundary.md`.
+- You capture learnings and promote patterns. You NEVER start new work units, run builds, or create PRs.
+- After learnings are captured, STOP and present the handoff:
+  - If more work units pending: "Run `/sw-build` to start the next unit."
+  - If no more units: "All work units complete. Learnings captured."
+
 **Discovery (HIGH freedom):**
 - Scan evidence files, git log, and plan.md for patterns worth remembering.
 - Look for: things that broke, things surprisingly hard, things that worked well.
@@ -79,6 +86,7 @@ work benefits.
 
 ## Protocol References
 
+- `protocols/stage-boundary.md` -- scope, termination, and handoff
 - `protocols/context.md` -- anchor doc loading
 - `protocols/state.md` -- workflow state reading
 - `protocols/insights.md` -- session pattern enrichment
