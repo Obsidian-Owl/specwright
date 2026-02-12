@@ -20,7 +20,7 @@ Specwright is a Claude Code plugin for spec-driven app development. It ensures t
 
 5. **Context at the right time** -- The right information available to the right agent at the right moment. Anchor documents (constitution, charter) provide persistent context. Research phase provides implementation context.
 
-6. **Adversarial quality** -- Every plan gets challenged by a critic. Every implementation gets verified against requirements. Default stance is "prove it works," not "assume it works."
+6. **Adversarial quality** -- Every design gets challenged by a critic. Every implementation gets verified against requirements. Default stance is "prove it works," not "assume it works."
 
 7. **Behavioral discipline** -- Agents follow Karpathy-aligned rules: surface confusion instead of guessing, prefer simplicity over speculation, make surgical changes, state success criteria before starting. Each agent prompt includes a tailored "Behavioral discipline" section.
 

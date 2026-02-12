@@ -27,7 +27,7 @@ Two persistent documents drive all decisions:
 - **`.specwright/CONSTITUTION.md`** -- Development practices. How the user wants code written. The AI MUST follow these.
 - **`.specwright/CHARTER.md`** -- Technology vision. What this repo is, who consumes it, architectural invariants.
 
-Both are created during init, referenced during plan, validated during verify.
+Both are created during init, referenced during design and plan, validated during verify.
 
 ## Architecture
 

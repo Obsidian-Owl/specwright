@@ -193,7 +193,7 @@ See `DESIGN.md` for the complete architecture document.
 ```
 specwright/
 ├── skills/       # 14 SKILL.md files (9 user + 5 gates)
-├── protocols/    # 9 shared protocols (loaded on demand)
+├── protocols/    # 10 shared protocols (loaded on demand)
 ├── agents/       # 6 custom subagent definitions
 ├── hooks/        # Session lifecycle hooks
 ├── DESIGN.md     # Full architecture
@@ -214,5 +214,5 @@ Specwright is open source under the MIT license.
 ---
 
 <p align="center">
-  <sub>Built by <a href="https://github.com/Obsidian-Owl">ObsidianOwl</a> · MIT License · v0.2.0</sub>
+  <sub>Built by <a href="https://github.com/Obsidian-Owl">ObsidianOwl</a> · MIT License · v0.5.0</sub>
 </p>
