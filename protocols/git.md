@@ -1,40 +1,72 @@
 # Git Operations Protocol
 
-## Trunk-Based Development
+All git behavior is driven by `config.json` `git` section. Nothing is hardcoded.
 
-**Branch creation:**
+## Branch Lifecycle
+
+**Create** (at build start):
 ```bash
-git checkout -b {prefix}{id}
+git checkout config.git.baseBranch
+git pull origin config.git.baseBranch
+git checkout -b {config.git.branchPrefix}{work-unit-id}
 ```
-Use `config.json` `git.branchPrefix` (default: "feat/").
+If branch already exists (recovery): `git checkout {branch}`.
 
-**Main branch:**
-Read from `config.json` `git.mainBranch` (default: "main").
+**Work**: All task commits happen on the feature branch. Never on baseBranch.
+
+**Push** (at ship):
+```bash
+git push -u origin {branch}
+```
+
+**Cleanup** (after merge, if `config.git.cleanupBranch`):
+```bash
+git checkout config.git.baseBranch && git branch -d {branch}
+```
+
+## Strategy: Branch + PR Targets
+
+Read `config.git.strategy`:
+
+| Strategy | Branch from | PR targets | Merge style |
+|----------|------------|------------|-------------|
+| `trunk-based` | baseBranch | baseBranch | squash (default) |
+| `github-flow` | baseBranch | baseBranch | merge or squash |
+| `gitflow` | `develop` | `develop` (feature), `main` (release) | merge |
+| `custom` | ask user | ask user | ask user |
+
+For `custom` strategy: prompt the user with AskUserQuestion for each git operation that would normally be derived from config. This is the escape hatch.
 
 ## Staging Rules
 
 **ALWAYS stage specific files by path:**
 ```bash
-git add src/foo.ts src/bar.ts
+git add src/foo.ts protocols/git.md
 ```
 
-**NEVER use:**
-- `git add -A`
-- `git add .`
-- `git add --all`
+**NEVER use:** `git add -A`, `git add .`, `git add --all`
 
 ## Commit Format
 
-Read `config.json` `git.commitFormat`:
+Read `config.git.commitFormat`:
 
-**conventional format:**
+**conventional** (default):
 ```
 {type}({scope}): {description}
+```
+Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `ci`.
+Scope: detect from changed file paths (e.g., `protocols`, `skills`, `gate-*`).
 
-Co-Authored-By: Claude <noreply@anthropic.com>
+**freeform**: No enforced structure. Descriptive message referencing work unit.
+
+**custom**: Use `config.git.commitTemplate` as the pattern. Substitute `{type}`, `{scope}`, `{description}` placeholders.
+
+**Scope detection:**
+```bash
+git diff --name-only config.git.baseBranch...HEAD 2>/dev/null || git diff --name-only HEAD~10
 ```
 
-**Use HEREDOC for multi-line messages:**
+**Always use HEREDOC for commits:**
 ```bash
 git commit -m "$(cat <<'EOF'
 feat(auth): implement OAuth flow
@@ -44,19 +76,18 @@ EOF
 )"
 ```
 
-## Diff for Scope Detection
+The `Co-Authored-By` trailer is always included.
+
+## PR Creation
+
+Read `config.git.prTool` (default: `gh`).
+If `config.git.prRequired` is false: ask user preference.
 
 ```bash
-git diff --name-only main...HEAD 2>/dev/null || git diff --name-only HEAD~10
+gh pr create --title "{title}" --base {target} --body "$(cat <<'EOF'
+{body}
+EOF
+)"
 ```
 
-## Ship (Trunk-Based)
-
-1. Squash commits on feature branch (if configured)
-2. Merge to main branch
-3. Delete feature branch after merge
-
-**Push:**
-```bash
-git push -u origin {branch}
-```
+PR title follows the configured commit format style.
