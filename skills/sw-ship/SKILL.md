@@ -36,6 +36,15 @@ ships when gates have passed.
 
 ## Constraints
 
+**Stage boundary (LOW freedom):**
+- Follow `protocols/stage-boundary.md`.
+- You create PRs and mark work as shipped. You NEVER start new work, run builds, or begin the next work unit.
+- After PR creation, STOP and present:
+  - The PR URL
+  - "Consider running `/sw-learn` to capture learnings."
+  - If more work units pending: "Then run `/sw-build` for the next unit."
+  - If no more units: "All work units complete."
+
 **Pre-flight checks (LOW freedom):**
 - Verify `currentWork` exists and status is `verifying` or `building`.
 - Check gate results in workflow.json:
@@ -70,6 +79,7 @@ ships when gates have passed.
 
 ## Protocol References
 
+- `protocols/stage-boundary.md` -- scope, termination, and handoff
 - `protocols/git.md` -- branch, push, PR creation
 - `protocols/state.md` -- workflow state updates
 - `protocols/evidence.md` -- evidence references for PR body

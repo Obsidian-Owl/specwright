@@ -46,6 +46,11 @@ After all tasks:
 
 ## Constraints
 
+**Stage boundary (LOW freedom):**
+- Follow `protocols/stage-boundary.md`.
+- You implement ONE work unit via TDD. You NEVER run quality gates, create PRs, ship code, or start the next work unit.
+- After all tasks for this unit are committed, STOP and present the handoff to `/sw-verify`.
+
 **Task loop (MEDIUM freedom):**
 - Work one task at a time. Complete it before starting the next.
 - If no task ID given, pick the next incomplete task from spec.md.
@@ -88,6 +93,7 @@ When delegating, include in the prompt:
 
 ## Protocol References
 
+- `protocols/stage-boundary.md` -- scope, termination, and handoff
 - `protocols/state.md` -- workflow state and locking
 - `protocols/git.md` -- commit discipline
 - `protocols/delegation.md` -- agent delegation with fallback
