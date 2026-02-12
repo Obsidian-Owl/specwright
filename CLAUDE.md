@@ -42,7 +42,7 @@ See `DESIGN.md` for the full architecture document.
 Skills reference shared protocols in `protocols/` for fragile operations:
 - `stage-boundary.md` -- Stage scope, termination, and handoff enforcement
 - `delegation.md` -- Agent delegation (custom subagents + agent teams)
-- `state.md` -- Workflow state mutations and locking
+- `state.md` -- Workflow state, work unit queue, and transition validation
 - `git.md` -- Strategy-aware git operations (branch lifecycle, commits, PRs)
 - `recovery.md` -- Compaction recovery
 - `evidence.md` -- Gate evidence format
