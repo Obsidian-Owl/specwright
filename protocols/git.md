@@ -2,6 +2,40 @@
 
 All git behavior is driven by `config.json` `git` section. Nothing is hardcoded.
 
+## Config Schema
+
+```json
+{
+  "git": {
+    "strategy": "trunk-based",
+    "baseBranch": "main",
+    "branchPrefix": "feat/",
+    "mergeStrategy": "squash",
+    "prRequired": true,
+    "commitFormat": "conventional",
+    "commitTemplate": null,
+    "branchPerWorkUnit": true,
+    "cleanupBranch": true,
+    "prTool": "gh"
+  }
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `strategy` | enum | `trunk-based` | `trunk-based`, `github-flow`, `gitflow`, `custom` |
+| `baseBranch` | string | `main` | Primary integration branch |
+| `branchPrefix` | string | `feat/` | Prefix for feature branches |
+| `mergeStrategy` | enum | `squash` | `squash`, `rebase`, `merge` |
+| `prRequired` | boolean | `true` | Whether PRs are required for shipping |
+| `commitFormat` | enum | `conventional` | `conventional`, `freeform`, `custom` |
+| `commitTemplate` | string | `null` | Template for `custom` format. Placeholders: `{type}`, `{scope}`, `{description}` |
+| `branchPerWorkUnit` | boolean | `true` | Create a branch per work unit |
+| `cleanupBranch` | boolean | `true` | Delete branch after merge |
+| `prTool` | string | `gh` | CLI tool for PR creation |
+
+Missing fields fall back to defaults. Old config schemas (e.g., `defaultBranch` instead of `baseBranch`, `conventionalCommits` instead of `commitFormat`) are detected and migrated by sw-init.
+
 ## Branch Lifecycle
 
 **Create** (at build start):
