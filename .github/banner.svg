@@ -67,7 +67,7 @@
     <line x1="748" y1="210" x2="852" y2="210" stroke="#f59e0b" stroke-width="1"/>
     <line x1="888" y1="210" x2="992" y2="210" stroke="#f59e0b" stroke-width="1"/>
     <!-- Return arc (the closed loop) -->
-    <path d="M 1010 228 Q 1010 290 590 290 Q 170 290 170 228" stroke="#f59e0b" stroke-width="1" fill="none" stroke-dasharray="6 4"/>
+    <path d="M 1010 228 Q 1010 290 800 290 Q 590 290 590 228" stroke="#f59e0b" stroke-width="1" fill="none" stroke-dasharray="6 4"/>
   </g>
 
   <!-- Spec icon (small geometric mark) -->
