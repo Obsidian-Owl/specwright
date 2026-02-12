@@ -39,6 +39,13 @@ and be able to discuss or override before proceeding to ship.
 
 ## Constraints
 
+**Stage boundary (LOW freedom):**
+- Follow `protocols/stage-boundary.md`.
+- You run quality gates and show findings. You NEVER fix code, create PRs, or ship.
+- After showing the aggregate report, STOP and present the handoff:
+  - All gates PASS/WARN: "Ready to ship. Run `/sw-ship`."
+  - Any gate FAIL: "Issues found. Fix and re-run `/sw-verify`."
+
 **Gate execution order (LOW freedom):**
 - Read enabled gates from `config.json` `gates.enabled`.
 - Execute in dependency order:
@@ -81,6 +88,7 @@ and be able to discuss or override before proceeding to ship.
 
 ## Protocol References
 
+- `protocols/stage-boundary.md` -- scope, termination, and handoff
 - `protocols/state.md` -- workflow state and locking
 - `protocols/evidence.md` -- evidence freshness and storage
 - `protocols/gate-verdict.md` -- verdict rendering
