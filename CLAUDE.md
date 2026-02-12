@@ -5,13 +5,14 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 ## Workflow
 
 ```
-/sw-init → /sw-plan → /sw-build → /sw-verify → /sw-ship
+/sw-init → /sw-design → /sw-plan → /sw-build → /sw-verify → /sw-ship
 ```
 
 | Skill | Purpose |
 |-------|---------|
 | `sw-init` | Project setup. Creates constitution + charter. Configures gates and hooks. |
-| `sw-plan` | Triage, research, design, critic review, decompose. Produces specs. |
+| `sw-design` | Interactive solution architecture. Research, design, adversarial critic. |
+| `sw-plan` | Decompose design into work units with testable specs. |
 | `sw-build` | TDD implementation of one work unit. |
 | `sw-verify` | Interactive quality gates. Shows findings, validates against spec. |
 | `sw-ship` | Strategy-aware merge via PR. |
