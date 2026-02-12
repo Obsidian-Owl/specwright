@@ -34,7 +34,7 @@ All git behavior is driven by `config.json` `git` section. Nothing is hardcoded.
 | `cleanupBranch` | boolean | `true` | Delete branch after merge |
 | `prTool` | string | `gh` | CLI tool for PR creation |
 
-Missing fields fall back to defaults.
+Missing fields fall back to defaults. Old config schemas (e.g., `defaultBranch` instead of `baseBranch`, `conventionalCommits` instead of `commitFormat`) are detected and migrated by sw-init.
 
 ## Branch Lifecycle
 

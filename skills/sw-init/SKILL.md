@@ -82,6 +82,7 @@ When complete, ALL of the following exist:
   - PR required: yes/no
   - Commit format: conventional, freeform, custom
 - Store results in `config.json` `git` section. See `protocols/git.md` for field reference.
+- If existing `config.json` has old git schema (missing new fields like `mergeStrategy`, `prRequired`, `branchPerWorkUnit`): offer to migrate by adding new fields with sensible defaults.
 
 **Configuration (LOW freedom):**
 - Write `.specwright/config.json` with detected and configured values.
@@ -109,4 +110,5 @@ When complete, ALL of the following exist:
 | .specwright/ already exists | Ask user: reconfigure, or abort |
 | No dependency manifest found | Ask user about language and framework directly |
 | User unsure about practices | Suggest sensible defaults based on detected stack, let them adjust |
+| Old config.json git schema detected | Show diff of old vs new fields. Offer migration with AskUserQuestion. Preserve existing values, add new fields with defaults. |
 | Compaction during init | Check which files exist, resume from next missing artifact |
