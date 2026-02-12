@@ -46,6 +46,7 @@ Valid transitions for `currentWork.status`:
 
 | From | To | Triggered by |
 |------|----|-------------|
+| (none) | `designing` | sw-design (new work) |
 | `designing` | `planning` | sw-plan |
 | `planning` | `building` | sw-build |
 | `building` | `verifying` | sw-verify |
