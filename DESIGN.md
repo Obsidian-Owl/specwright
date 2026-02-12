@@ -20,7 +20,7 @@ Specwright is a Claude Code plugin for spec-driven app development. It ensures t
 
 5. **Context at the right time** -- The right information available to the right agent at the right moment. Anchor documents (constitution, charter) provide persistent context. Research phase provides implementation context.
 
-6. **Adversarial quality** -- Every plan gets challenged by a critic. Every implementation gets verified against requirements. Default stance is "prove it works," not "assume it works."
+6. **Adversarial quality** -- Every design gets challenged by a critic. Every implementation gets verified against requirements. Default stance is "prove it works," not "assume it works."
 
 7. **Behavioral discipline** -- Agents follow Karpathy-aligned rules: surface confusion instead of guessing, prefer simplicity over speculation, make surgical changes, state success criteria before starting. Each agent prompt includes a tailored "Behavioral discipline" section.
 
@@ -34,14 +34,15 @@ How the user wants code written. Testing standards, coding conventions, security
 **CHARTER.md** -- Technology Vision
 What is this repo? What are we building? Who are the consumers? Architectural invariants. The things that don't change. Referenced by plan to ensure alignment, validated by verify.
 
-## Skills (13)
+## Skills (14)
 
-### User-Facing (8)
+### User-Facing (9)
 
 | Skill | Purpose | Key Innovation |
 |-------|---------|----------------|
 | `sw-init` | Project setup | Ask, detect, configure. Creates constitution + charter |
-| `sw-plan` | Understand + design + decompose | Triage, deep research, critic review, user questions throughout |
+| `sw-design` | Interactive solution architecture | Research, design, adversarial critic, user approval throughout |
+| `sw-plan` | Decompose + spec | Reads design artifacts, breaks into work units, testable acceptance criteria |
 | `sw-build` | TDD implementation | Tester → executor delegation. Context doc travels with agents |
 | `sw-verify` | Interactive quality gates | Shows findings, not badges. Orchestrates gate skills in dependency order |
 | `sw-ship` | Strategy-aware merge | PR with evidence-mapped body |
@@ -61,16 +62,21 @@ Invoked by verify, not directly by users.
 | `gate-wiring` | Unused exports, orphans, layer violations | WARN |
 | `gate-spec` | Every acceptance criterion has evidence | BLOCK |
 
-### Plan Skill Phases
+### Design / Plan Split
 
-The plan skill handles triage internally:
+Solution architecture and implementation planning are separate skills:
 
-1. **Triage** -- Small request (one session) → single spec. Large request → decompose first.
-2. **Research** -- Deep codebase scan. Dependencies, frameworks, APIs, existing patterns. Produces a context document.
-3. **Design** -- Architecture decisions. How to solve the problem.
-4. **Critic** -- Adversarial review. What's wrong with this plan? What was missed? What assumptions are wrong?
-5. **Decompose** -- If large, break into session-sized work units. Each gets a clear spec.
-6. **User checkpoints** -- Questions flow back at every stage.
+**sw-design** (interactive solution architecture):
+- Research codebase and external systems. Produce `design.md` + `context.md`.
+- Conditional artifacts when warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`.
+- Adversarial critic challenges the design before approval.
+- Adaptive phases: small requests skip critic, large requests get full treatment.
+- Design is per-request (shared across work units). Change requests via `/sw-design <changes>`.
+
+**sw-plan** (decomposition + specs):
+- Reads design artifacts. Decomposes into work units if large.
+- Writes testable acceptance criteria (`spec.md`) and task breakdown (`plan.md`).
+- May append to `context.md` but never overwrites design research.
 
 ### Verify Skill Gates
 
@@ -144,8 +150,9 @@ Target: 600 tokens per SKILL.md (40% of the 1,500 token ceiling).
 
 ```
 specwright/
-├── skills/           # SKILL.md files (13 skills)
+├── skills/           # SKILL.md files (14 skills)
 │   ├── sw-init/      # User-facing
+│   ├── sw-design/
 │   ├── sw-plan/
 │   ├── sw-build/
 │   ├── sw-verify/

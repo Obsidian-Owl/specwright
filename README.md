@@ -54,12 +54,13 @@ Specwright focuses on the **verification and evidence** side — the part where 
 
 ```mermaid
 graph LR
-    A["/sw-init"] --> B["/sw-plan"]
-    B --> C["/sw-build"]
-    C --> D["/sw-verify"]
-    D --> E["/sw-ship"]
-    E --> F["/sw-learn"]
-    F -.->|patterns feed back| B
+    A["/sw-init"] --> B["/sw-design"]
+    B --> C["/sw-plan"]
+    C --> D["/sw-build"]
+    D --> E["/sw-verify"]
+    E --> F["/sw-ship"]
+    F --> G["/sw-learn"]
+    G -.->|patterns feed back| B
 
     style A fill:#1e293b,stroke:#f59e0b,color:#f8fafc
     style B fill:#1e293b,stroke:#f59e0b,color:#f8fafc
@@ -67,12 +68,14 @@ graph LR
     style D fill:#1e293b,stroke:#f59e0b,color:#f8fafc
     style E fill:#1e293b,stroke:#f59e0b,color:#f8fafc
     style F fill:#1e293b,stroke:#f59e0b,color:#f8fafc
+    style G fill:#1e293b,stroke:#f59e0b,color:#f8fafc
 ```
 
 | Phase | What Happens | Key Innovation |
 |-------|-------------|----------------|
 | **Init** | Detect stack, configure gates, create anchor documents | Auto-detection — don't ask what you can infer |
-| **Plan** | Triage, deep research, design, adversarial critic review | Every plan challenged before you commit |
+| **Design** | Research codebase, design solution, adversarial critic review | Every design challenged before you commit |
+| **Plan** | Decompose into work units, write testable acceptance criteria | Specs grounded in approved design artifacts |
 | **Build** | TDD — tester writes hard-to-pass tests, executor makes them pass | Adversarial test-first, not test-after |
 | **Verify** | 5 quality gates with evidence capture | Findings shown inline, not just pass/fail badges |
 | **Ship** | PR with acceptance criteria mapped to evidence | Every requirement traceable to code + test |
@@ -96,9 +99,10 @@ Optionally, set up automated guardrails (linters, hooks, CI checks):
 /sw-guard
 ```
 
-Then plan, build, verify, ship:
+Then design, plan, build, verify, ship:
 ```
-/sw-plan add-user-authentication
+/sw-design add-user-authentication
+/sw-plan
 /sw-build
 /sw-verify
 /sw-ship
@@ -146,7 +150,8 @@ Two persistent documents drive all decisions and survive context compaction:
 | Skill | Purpose |
 |-------|---------|
 | `/sw-init` | Project setup, constitution, charter |
-| `/sw-plan` | Research, design, critic, spec |
+| `/sw-design` | Research, design, adversarial critic |
+| `/sw-plan` | Decompose, spec, acceptance criteria |
 | `/sw-build` | TDD implementation |
 | `/sw-verify` | Quality gates |
 | `/sw-ship` | PR with evidence |
@@ -187,8 +192,8 @@ See `DESIGN.md` for the complete architecture document.
 
 ```
 specwright/
-├── skills/       # 13 SKILL.md files (8 user + 5 gates)
-├── protocols/    # 9 shared protocols (loaded on demand)
+├── skills/       # 14 SKILL.md files (9 user + 5 gates)
+├── protocols/    # 10 shared protocols (loaded on demand)
 ├── agents/       # 6 custom subagent definitions
 ├── hooks/        # Session lifecycle hooks
 ├── DESIGN.md     # Full architecture
@@ -209,5 +214,5 @@ Specwright is open source under the MIT license.
 ---
 
 <p align="center">
-  <sub>Built by <a href="https://github.com/Obsidian-Owl">ObsidianOwl</a> · MIT License · v0.2.0</sub>
+  <sub>Built by <a href="https://github.com/Obsidian-Owl">ObsidianOwl</a> · MIT License · v0.5.0</sub>
 </p>

@@ -7,6 +7,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+## [0.5.0] - 2026-02-13
+
+### Added
+
+- **sw-design skill** — Interactive solution architecture with research, adversarial critic, and user approval. Produces `design.md`, `context.md`, and conditional artifacts (`decisions.md`, `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`)
+- **`designing` workflow status** — New state in `currentWork.status` with transitions: `(none) → designing` (sw-design) and `designing → planning` (sw-plan)
+- **Change request support** — Re-run `/sw-design <changes>` to modify an existing design through the change request flow
+
+### Changed
+
+- **sw-plan rewritten** — Removed research, design, triage, and critic phases (now in sw-design). Focused on decomposition and testable specs. Reads design artifacts as input. 108 lines (down from 154)
+- **sw-build** — Includes `design.md` in inputs and context envelope for agent delegation
+- **sw-verify** — Failure mode references updated to include `/sw-design`
+- **sw-status** — Suggests `/sw-design` when no active work
+- **Stage boundary protocol** — Added sw-design handoff and anti-advancement rules
+- **Context protocol** — Entry point references `/sw-design` instead of `/sw-plan`
+- Workflow: `/sw-init → /sw-design → /sw-plan → /sw-build → /sw-verify → /sw-ship`
+- Skill count: 13 → 14 (9 user-facing + 5 gates)
+
 ## [0.4.0] - 2026-02-12
 
 ### Added
