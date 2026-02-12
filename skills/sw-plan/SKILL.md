@@ -1,9 +1,9 @@
 ---
 name: sw-plan
 description: >-
-  Understands the user's request, researches the codebase deeply, designs
-  a solution, challenges it adversarially, and produces actionable specs.
-argument-hint: "<what you want to build or change>"
+  Breaks a design into work units with testable specs. Reads design
+  artifacts from sw-design and produces implementation-ready plans.
+argument-hint: ""
 allowed-tools:
   - Read
   - Write
@@ -19,135 +19,89 @@ allowed-tools:
 
 ## Goal
 
-Turn the user's request into a verified, challenged plan with specs that
-will lead to the right outcome. The user should feel confident that you
-deeply understand their codebase, have considered alternatives, and have
-anticipated what will go wrong.
+Turn the approved design into implementation-ready specs with testable
+acceptance criteria. If the work is large, decompose into ordered work
+units. The user should feel confident every criterion is testable and
+every unit is independently buildable.
 
 ## Inputs
 
-- The user's request (argument or conversation)
+- `.specwright/state/workflow.json` -- current state (must be `designing`)
+- `.specwright/work/{id}/design.md` -- approved solution design
+- `.specwright/work/{id}/context.md` -- research findings from sw-design
+- Conditional design artifacts: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`
 - `.specwright/CONSTITUTION.md` -- practices to follow
-- `.specwright/CHARTER.md` -- vision and invariants
 - `.specwright/config.json` -- project configuration
-- `.specwright/state/workflow.json` -- current state
-- The codebase itself
 
 ## Outputs
 
-When complete, ALL of the following exist:
+When complete, ALL of the following exist in `.specwright/work/{id}/`:
 
-- `.specwright/work/{id}/spec.md` -- acceptance criteria (each testable)
-- `.specwright/work/{id}/plan.md` -- architecture decisions and approach
-- `.specwright/work/{id}/context.md` -- research findings (travels with executor and tester)
-- `.specwright/state/workflow.json` -- updated with `currentWork`
-- If large: multiple work units, each with own spec
+- `spec.md` -- acceptance criteria (each testable)
+- `plan.md` -- task breakdown, file change map, architecture decisions
 
-## Phases
+When the work is large, also:
 
-### Triage (MEDIUM freedom)
+- `workUnits` array populated in `workflow.json` per `protocols/state.md`
+- Each unit with its own acceptance criteria section in spec.md
 
-Assess request size and complexity:
-- **Small** (one session, single concern) → one spec.
-- **Large** (multi-session, multiple concerns) → decompose into work units.
-- When uncertain, ask the user. Show what you see and let them decide.
+`context.md` may be appended with decomposition-specific context but the
+design research content is never overwritten.
 
-### Research (HIGH freedom)
+## Constraints
 
-Understand the codebase BEFORE designing anything:
-- Scan relevant code, dependencies, APIs, frameworks, existing patterns.
-- Check official documentation for SDKs and libraries involved.
-- Identify constraints, risks, and things that will break.
-- Produce `context.md` summarizing findings for downstream agents.
-- Delegate to `specwright-researcher` for external documentation.
-- Delegate to `specwright-architect` for deep codebase analysis if needed.
+**Stage boundary (LOW freedom):**
+- Follow `protocols/stage-boundary.md`.
+- You produce specs and plans. You NEVER write implementation code, create branches, run tests, or commit changes.
+- After the user approves the spec, STOP and present the handoff to `/sw-build`.
 
-### Design (HIGH freedom)
+**Pre-condition check (LOW freedom):**
+- Check `currentWork.status` is `designing`. If not: "Run /sw-design first."
+- Check `design.md` exists in the work directory. If not: "Run /sw-design first."
 
-Propose a solution grounded in research findings:
-- Prefer the simplest approach that meets the acceptance criteria.
-- If proposing abstractions or indirection, justify why simpler alternatives won't work.
-- Ask: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-- Reference the charter for vision alignment.
-- Reference the constitution for practice compliance.
-- Present alternatives when reasonable. Let the user choose.
-- Don't design in a vacuum -- ground every decision in evidence from research.
-
-### Critic (HIGH freedom)
-
-Challenge the design adversarially before committing:
-- Delegate to `specwright-architect` with explicit instruction to find flaws.
-- The critic asks: What did you miss? What assumptions are wrong? What will break?
-- Show the user what the critic found and how you addressed it.
-- Incorporate valid criticisms. Dismiss invalid ones with reasoning shown.
-
-### Spec (MEDIUM freedom)
-
-Write acceptance criteria the tester can turn into brutal tests:
-- Each criterion answers: "How will we KNOW this works?"
-- Include boundary conditions and error cases, not just happy paths.
-- Bad: "The API handles errors gracefully."
-- Good: "POST /users with missing email returns 400 with body `{error: 'email_required'}`."
-- The user must approve the spec before it's saved.
-
-### Decompose (MEDIUM freedom, only if large)
-
-Break into session-sized work units:
+**Decompose (MEDIUM freedom, only if large):**
+- Assess whether the design requires multiple work units.
 - Each unit is independently buildable and testable.
-- Each has its own spec with its own acceptance criteria.
+- Each has its own acceptance criteria section.
 - Ordered by dependency (what must be built first).
 - The user approves the decomposition.
-- Write `workUnits` array to workflow.json per `protocols/state.md`:
-  - Each entry: `{ id, description, status: "pending", order }`.
-  - Set first unit's status to `"planning"` and make it `currentWork`.
-  - Each unit gets its own work directory: `.specwright/work/{unit-id}/`.
+- Write `workUnits` array to workflow.json per `protocols/state.md`.
 - Present the expected cycle per unit:
   ```
   Unit 1: {name} → /sw-build → /sw-verify → /sw-ship
   Unit 2: {name} → /sw-build → /sw-verify → /sw-ship
   ```
 
-## Constraints
+**Spec (MEDIUM freedom):**
+- Write acceptance criteria the tester can turn into brutal tests.
+- Each criterion answers: "How will we KNOW this works?"
+- Include boundary conditions and error cases, not just happy paths.
+- Ground criteria in the design artifacts — reference specific decisions, contracts, data models.
+- The user must approve the spec before it's saved.
 
-**Stage boundary (LOW freedom):**
-- Follow `protocols/stage-boundary.md`.
-- You produce specs, plans, and context documents.
-- You NEVER write implementation code, create branches, run tests, or commit changes.
-- After the user approves the spec, STOP and present the handoff to `/sw-build`.
-
-**User checkpoints throughout:**
-- After triage: confirm size assessment.
-- After research: share surprising findings, risks, or unknowns.
-- After design: present approach with alternatives.
-- After critic: show what was challenged and how it was resolved.
+**User checkpoints:**
+- After decomposition (if large): approve unit breakdown.
 - After spec: approve acceptance criteria.
-- Use AskUserQuestion with options grounded in codebase evidence.
-
-**Context document (`context.md`):**
-- This is the briefing that travels with the executor and tester.
-- Include: relevant file paths, API signatures, framework patterns, gotchas.
-- Make it useful, not exhaustive. The executor has its own Read/Grep tools.
+- Use AskUserQuestion with options grounded in design artifacts.
 
 **State mutations (LOW freedom):**
 - Follow `protocols/state.md` for all workflow.json updates.
-- Work directory: `.specwright/work/{id}/`
-- Work ID: short, descriptive, kebab-case (e.g., `add-auth-middleware`).
+- Transition `currentWork.status` from `designing` to `planning`.
+- When decomposing: populate `workUnits` array, set first unit to `planning`.
 
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope, termination, and handoff
 - `protocols/state.md` -- workflow state updates and locking
 - `protocols/context.md` -- anchor doc and config loading
-- `protocols/delegation.md` -- agent delegation for research and critic
 - `protocols/recovery.md` -- compaction recovery
 
 ## Failure Modes
 
 | Condition | Action |
 |-----------|--------|
-| Request too vague | Ask user with concrete options based on codebase scan |
-| Codebase too large to fully scan | Focus on files relevant to request. Use Glob/Grep strategically. |
-| Critic rejects entire approach | Present rejection to user with alternatives. Don't silently override. |
-| User disagrees with critic | User wins. Note disagreement in plan.md for the record. |
+| Status not `designing` | STOP: "Run /sw-design first" |
+| `design.md` missing | STOP: "Run /sw-design first" |
+| Design too vague for specs | Ask user for clarification with concrete options |
 | Active work already in progress | Ask user: continue existing, or start new? |
-| Compaction during planning | Read workflow.json, check which artifacts exist, resume next missing phase |
+| Compaction during planning | Read workflow.json, check which artifacts exist, resume |
