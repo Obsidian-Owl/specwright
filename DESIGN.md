@@ -89,7 +89,7 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 |----------|---------|--------|
 | `stage-boundary.md` | Stage scope, termination, handoff enforcement | ~180 |
 | `delegation.md` | Agent delegation (custom subagents + agent teams) | ~200 |
-| `state.md` | Workflow state read-modify-write, lock handling | ~200 |
+| `state.md` | Workflow state, work unit queue, transition validation | ~300 |
 | `git.md` | Strategy-aware branch lifecycle, commit format, PR creation | ~450 |
 | `recovery.md` | Compaction recovery procedure | ~120 |
 | `evidence.md` | Gate evidence format and storage | ~100 |
@@ -98,7 +98,7 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `insights.md` | External CC insights data access | ~150 |
 | `learning-lifecycle.md` | Compaction triggers, tier structure, theme format | ~150 |
 
-Total: ~1750 tokens (loaded on demand, not all at once).
+Total: ~1850 tokens (loaded on demand, not all at once).
 
 ## Skill Anatomy
 

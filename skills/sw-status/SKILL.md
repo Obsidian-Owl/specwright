@@ -38,6 +38,13 @@ next. If they're stuck, give them a way out with `--reset`.
 **Display (HIGH freedom):**
 - Read workflow.json and format it clearly for the user.
 - Show gate results with freshness (e.g., "PASS (12 min ago)").
+- If `workUnits` array exists, show the full queue:
+  ```
+  Work Units:
+    1. [SHIPPED] stage-boundary-enforcement
+    2. [BUILDING] git-operations-overhaul  ← current
+    3. [PENDING] state-enhancements
+  ```
 - If no active work: say so and suggest `/sw-plan`.
 - If work is complete: suggest `/sw-ship`.
 - Be concise. This is a dashboard, not a report.

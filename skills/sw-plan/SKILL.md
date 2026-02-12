@@ -94,6 +94,10 @@ Break into session-sized work units:
 - Each has its own spec with its own acceptance criteria.
 - Ordered by dependency (what must be built first).
 - The user approves the decomposition.
+- Write `workUnits` array to workflow.json per `protocols/state.md`:
+  - Each entry: `{ id, description, status: "pending", order }`.
+  - Set first unit's status to `"planning"` and make it `currentWork`.
+  - Each unit gets its own work directory: `.specwright/work/{unit-id}/`.
 - Present the expected cycle per unit:
   ```
   Unit 1: {name} → /sw-build → /sw-verify → /sw-ship
