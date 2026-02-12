@@ -46,7 +46,7 @@ Specwright focuses on the **verification and evidence** side — the part where 
 
 **Wiring Verification** — Static analysis catches orphaned files, unused exports, layer violations, and circular dependencies. Other tools check if code compiles and tests pass. Specwright checks if the code is actually connected.
 
-**Learning System** — Failures are captured, patterns are promoted, project memory compounds. The system gets smarter with every session. Knowledge survives context windows.
+**Learning System** — Failures are captured, patterns are promoted, and learnings compact into tiered memory (index, themes, raw data). The system gets smarter with every session. Knowledge survives context windows.
 
 **Compaction Recovery** — All stateful skills support resume-from-crash. When Claude's context window compacts, Specwright reloads full state from disk. The only plugin in this space that handles context loss gracefully.
 
@@ -188,7 +188,7 @@ See `DESIGN.md` for the complete architecture document.
 ```
 specwright/
 ├── skills/       # 13 SKILL.md files (8 user + 5 gates)
-├── protocols/    # 7 shared protocols (loaded on demand)
+├── protocols/    # 9 shared protocols (loaded on demand)
 ├── agents/       # 6 custom subagent definitions
 ├── hooks/        # Session lifecycle hooks
 ├── DESIGN.md     # Full architecture
