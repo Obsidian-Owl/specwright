@@ -94,8 +94,19 @@ Break into session-sized work units:
 - Each has its own spec with its own acceptance criteria.
 - Ordered by dependency (what must be built first).
 - The user approves the decomposition.
+- Present the expected cycle per unit:
+  ```
+  Unit 1: {name} → /sw-build → /sw-verify → /sw-ship
+  Unit 2: {name} → /sw-build → /sw-verify → /sw-ship
+  ```
 
 ## Constraints
+
+**Stage boundary (LOW freedom):**
+- Follow `protocols/stage-boundary.md`.
+- You produce specs, plans, and context documents.
+- You NEVER write implementation code, create branches, run tests, or commit changes.
+- After the user approves the spec, STOP and present the handoff to `/sw-build`.
 
 **User checkpoints throughout:**
 - After triage: confirm size assessment.
@@ -117,6 +128,7 @@ Break into session-sized work units:
 
 ## Protocol References
 
+- `protocols/stage-boundary.md` -- scope, termination, and handoff
 - `protocols/state.md` -- workflow state updates and locking
 - `protocols/context.md` -- anchor doc and config loading
 - `protocols/delegation.md` -- agent delegation for research and critic
