@@ -75,7 +75,7 @@ The sequence is strict: RED → GREEN → REFACTOR. Never skip RED.
 2. **GREEN**: Delegate to `specwright-executor` with the failing tests, context.md,
    plan.md, and constitution. The executor writes minimal code to pass. Run
    build + tests to confirm they pass.
-3. **REFACTOR**: Executor may refactor if needed. Tests must still pass.
+3. **REFACTOR**: Executor may refactor code written in THIS task only. Tests must still pass. No adjacent code cleanup.
 
 **Context envelope (LOW freedom):**
 When delegating, include in the prompt:
@@ -84,6 +84,7 @@ When delegating, include in the prompt:
 - File paths the agent needs to read or modify
 - The constitution's relevant practices
 - Build and test commands from config.json
+- Behavioral reminder: surface confusion, prefer simplicity, touch only task files
 
 **Build failures (MEDIUM freedom):**
 - If tests fail after GREEN: delegate to `specwright-build-fixer` (max 2 attempts)
