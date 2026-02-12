@@ -65,6 +65,9 @@ Understand the codebase BEFORE designing anything:
 ### Design (HIGH freedom)
 
 Propose a solution grounded in research findings:
+- Prefer the simplest approach that meets the acceptance criteria.
+- If proposing abstractions or indirection, justify why simpler alternatives won't work.
+- Ask: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 - Reference the charter for vision alignment.
 - Reference the constitution for practice compliance.
 - Present alternatives when reasonable. Let the user choose.
