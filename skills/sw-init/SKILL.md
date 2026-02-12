@@ -10,6 +10,7 @@ allowed-tools:
   - Write
   - Glob
   - Grep
+  - AskUserQuestion
 ---
 
 # Specwright Init
