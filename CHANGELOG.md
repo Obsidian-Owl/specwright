@@ -7,6 +7,33 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+## [0.4.0] - 2026-02-12
+
+### Added
+
+- **Strategy-aware git protocol** (`protocols/git.md`) — supports trunk-based, github-flow, gitflow, and custom strategies with full branch lifecycle (create → work → push → cleanup)
+- **Git config schema** — 10 configurable fields (strategy, baseBranch, branchPrefix, mergeStrategy, prRequired, commitFormat, commitTemplate, branchPerWorkUnit, cleanupBranch, prTool) with documented defaults
+- **Git workflow detection in sw-init** — scans branch names, remotes, and CI files to detect strategy; confirms via AskUserQuestion
+- **Work unit queue** (`workUnits` array in workflow.json) — multi-unit decomposition tracking with per-unit status
+- **State transition validation** — 6 valid transitions documented with enforcement rules; invalid transitions produce clear error messages
+- **Work unit queue display** in sw-status — shows full queue with status indicators and current marker
+
+### Changed
+
+- sw-build creates feature branch as FIRST action before coding (reads config, handles recovery)
+- sw-ship creates strategy-aware PRs (config-driven target, prRequired toggle, commitFormat-styled titles)
+- sw-ship advances to next work unit after shipping when workUnits queue exists
+- sw-plan populates workUnits array during decomposition with per-unit work directories
+- Commit formatting supports conventional, freeform, and custom templates with scope detection
+- Protocol token total updated to ~1850 (from ~1450)
+- CLAUDE.md and DESIGN.md descriptions updated for strategy-aware git and state enhancements
+
+### Fixed
+
+- CLAUDE.md stale descriptions (git.md and sw-ship were still "trunk-based")
+- sw-init missing AskUserQuestion in allowed-tools frontmatter
+- Old config.json schema detection and migration path added to sw-init
+
 ## [0.3.0] - 2026-02-12
 
 ### Added
