@@ -54,8 +54,13 @@ ships when gates have passed.
 - Check for uncommitted changes. If any, ask user: commit them or abort.
 
 **PR creation (MEDIUM freedom):**
-- Follow `protocols/git.md` for branch and push operations.
-- Create PR using `gh pr create` (or tool from `config.json` `git.prTool`).
+- Follow `protocols/git.md` for push and PR operations.
+- Read `config.json` `git` section for strategy-aware behavior:
+  - Push feature branch to remote: `git push -u origin {branch}`
+  - PR target: determined by `git.strategy` (see protocol strategy table)
+  - PR tool: `config.git.prTool` (default: `gh`)
+  - If `config.git.prRequired` is false: ask user whether to create a PR or merge directly
+- PR title follows `config.git.commitFormat` style (e.g., `feat(scope): description` for conventional).
 - PR body structure:
   ```
   ## Summary
