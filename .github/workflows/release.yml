@@ -15,9 +15,10 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  release:
+  release-pr:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -43,7 +44,6 @@ jobs:
           echo "version=${major}.${minor}.${patch}" >> "$GITHUB_OUTPUT"
 
       - name: Generate changelog
-        id: changelog
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -n "$PREV_TAG" ]; then
@@ -53,17 +53,7 @@ jobs:
           fi
 
           # Format commits as markdown bullets
-          BODY=$(echo "$COMMITS" | sed 's/^[a-f0-9]* /- /')
-
-          # Write to file (multi-line safe)
-          echo "$BODY" > /tmp/changelog_body.md
-
-          # Also set as output using delimiter
-          {
-            echo "body<<CHANGELOG_EOF"
-            echo "$BODY"
-            echo "CHANGELOG_EOF"
-          } >> "$GITHUB_OUTPUT"
+          echo "$COMMITS" | sed 's/^[a-f0-9]* /- /' > /tmp/changelog_body.md
 
       - name: Update plugin.json
         run: |
@@ -104,19 +94,30 @@ jobs:
             sed -n '/^## \[/,$p' CHANGELOG.md
           } > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
 
-      - name: Commit and tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .claude-plugin/plugin.json .claude-plugin/marketplace.json README.md CHANGELOG.md .github/banner.svg
-          git commit -m "chore(release): v${{ steps.next.outputs.version }}"
-          git tag -a "v${{ steps.next.outputs.version }}" -m "v${{ steps.next.outputs.version }}"
-          git push origin main --follow-tags
-
-      - name: Create GitHub Release
+      - name: Create release branch and PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${{ steps.next.outputs.version }}" \
-            --title "v${{ steps.next.outputs.version }}" \
-            --notes-file /tmp/changelog_body.md
+          VERSION="${{ steps.next.outputs.version }}"
+          BRANCH="release/v${VERSION}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add .claude-plugin/plugin.json .claude-plugin/marketplace.json README.md CHANGELOG.md .github/banner.svg
+          git commit -m "chore(release): v${VERSION}"
+          git push origin "$BRANCH"
+
+          {
+            echo "## Release v${VERSION}"
+            echo ""
+            echo "**Bump:** ${{ inputs.bump }} (v${{ steps.current.outputs.version }} → v${VERSION})"
+            echo ""
+            echo "### Changes"
+            echo ""
+            cat /tmp/changelog_body.md
+          } > /tmp/pr_body.md
+
+          gh pr create \
+            --title "chore(release): v${VERSION}" \
+            --body-file /tmp/pr_body.md
