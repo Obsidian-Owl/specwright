@@ -100,6 +100,11 @@ When delegating, include in the prompt:
 - One commit per completed task. Follow `protocols/git.md`.
 - Commit message references the work unit ID and task.
 - Stage only files changed for this task. Never `git add -A`.
+- Before committing: if `config.commands.format` is configured, run it. If
+  `config.commands.lint` is configured, run it. If formatting changes files,
+  restage them. If lint fails, fix inline (orchestrator self-heals trivial
+  issues; re-delegate to executor for non-trivial). This is task hygiene,
+  not a build-fixer scenario.
 
 **State updates (LOW freedom):**
 - Follow `protocols/state.md` for all workflow.json mutations.

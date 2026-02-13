@@ -40,6 +40,17 @@ Explain each finding in plain language:
 
 Not just: "Security: FAIL"
 
+## Guardian Posture
+
+The verify phase exists to catch problems, not to rubber-stamp shipping.
+
+- Present findings as issues to address, not obstacles to dismiss.
+- Never recommend shipping when blocking findings exist.
+- Warnings are real: explain why each matters and what the user risks by
+  shipping with them. Let the user make an informed decision.
+- The default tone is "here's what needs attention" not "everything looks
+  fine except..."
+
 ## Anchor Verification
 
 Check findings against:
