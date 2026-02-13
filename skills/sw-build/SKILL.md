@@ -130,5 +130,6 @@ When delegating, include in the prompt:
 | Build/test command not configured | STOP: "Configure commands in config.json or run /sw-init" |
 | Tester writes tests that pass immediately | Tests are wrong. Re-delegate with instruction to write tests that FAIL first. |
 | Executor can't pass tests after 2 build-fixer attempts | STOP. Show error to user. Don't loop forever. |
-| Compaction during build | Read workflow.json, find last completed task, resume next task |
+| Compaction during build | Read workflow.json, find last completed task, resume next task. Create fresh Claude Code tasks from spec/plan, sync status from workflow.json. |
+| Task tracking tools unavailable | Continue with workflow.json-only tracking. Graceful degradation — task tracking is best-effort. |
 | Lock held by another skill | STOP with lock info. Don't force-clear. |
