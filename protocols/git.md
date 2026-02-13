@@ -48,10 +48,9 @@ git checkout -b {config.git.branchPrefix}{work-unit-id}
 If branch already exists (recovery): `git checkout {branch}`.
 
 **Sync check** (at build start, after branch setup):
-Compare local baseBranch with origin/baseBranch. If significantly behind
-(20+ commits), warn the user: "Base branch is N commits behind remote.
-Rebase recommended before starting work." Advisory only — let the user
-decide. If branch already exists (recovery): also check for upstream drift.
+Compare local baseBranch with origin/baseBranch. If behind, warn the user
+with the commit count. Advisory only — let the user decide whether to
+rebase. If branch already exists (recovery): also check for upstream drift.
 
 **Work**: All task commits happen on the feature branch. Never on baseBranch.
 
