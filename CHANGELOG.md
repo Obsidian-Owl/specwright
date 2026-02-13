@@ -8,6 +8,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.5.1] - 2026-02-13
+
+### Changed
+
+- feat(skills): add native task tracking to sw-build (#19)
+- feat(ci): split release into PR + finalize workflows (#18)
+- fix(docs): correct README workflow description and diagram
+- fix(assets): loop feedback arc from learn back to build
+- fix(assets): add design node to banner SVG pipeline
+
 ## [0.5.0] - 2026-02-12
 
 ### Changed
