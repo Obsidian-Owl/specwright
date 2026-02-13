@@ -41,10 +41,17 @@ Missing fields fall back to defaults. Old config schemas (e.g., `defaultBranch` 
 **Create** (at build start):
 ```bash
 git checkout config.git.baseBranch
+git fetch origin
 git pull origin config.git.baseBranch
 git checkout -b {config.git.branchPrefix}{work-unit-id}
 ```
 If branch already exists (recovery): `git checkout {branch}`.
+
+**Sync check** (at build start, after branch setup):
+Compare local baseBranch with origin/baseBranch. If significantly behind
+(20+ commits), warn the user: "Base branch is N commits behind remote.
+Rebase recommended before starting work." Advisory only — let the user
+decide. If branch already exists (recovery): also check for upstream drift.
 
 **Work**: All task commits happen on the feature branch. Never on baseBranch.
 
@@ -54,9 +61,10 @@ git push -u origin {branch}
 ```
 
 **Cleanup** (after merge, if `config.git.cleanupBranch`):
-```bash
-git checkout config.git.baseBranch && git branch -d {branch}
-```
+- Delete local feature branch: `git branch -d {branch}`
+- Delete remote branch if it still exists: `git push origin --delete {branch}`
+- Prune stale remote refs: `git fetch --prune`
+- Sync base branch: `git checkout {baseBranch} && git pull origin {baseBranch}`
 
 ## Strategy: Branch + PR Targets
 
