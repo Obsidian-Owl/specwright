@@ -9,6 +9,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.5.2] - 2026-02-13
+
+### Changed
+
+- feat(skills): insights-driven refinements from usage analysis (#21)
+
 ## [0.5.1] - 2026-02-13
 
 ### Changed
