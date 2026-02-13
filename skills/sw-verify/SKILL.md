@@ -42,9 +42,8 @@ and be able to discuss or override before proceeding to ship.
 **Stage boundary (LOW freedom):**
 - Follow `protocols/stage-boundary.md`.
 - You run quality gates and show findings. You NEVER fix code, create PRs, or ship.
-- After showing the aggregate report, STOP and present the handoff:
-  - All gates PASS/WARN: "Ready to ship. Run `/sw-ship`."
-  - Any gate FAIL: "Issues found. Fix and re-run `/sw-verify`."
+- After showing the aggregate report, STOP and present the handoff using
+  the three-tier posture defined in the aggregate report constraint below.
 
 **Gate execution order (LOW freedom):**
 - Read enabled gates from `config.json` `gates.enabled`.
@@ -72,13 +71,25 @@ and be able to discuss or override before proceeding to ship.
 - If user skips, record SKIP status for that gate.
 
 **Aggregate report (MEDIUM freedom):**
-- After all gates run, show a summary table:
-  ```
+- After all gates run, present findings in two tiers:
+
+  **Tier 1 — Per-finding detail** (shown FIRST):
+  For every BLOCK and WARN finding across all gates:
+  - What was found (specific location, pattern, or gap)
+  - Why it matters (impact on users, security, correctness, or maintainability)
+  - Recommended action (specific, not generic)
+  Group by gate. Show the full picture before any summary.
+
+  **Tier 2 — Summary table** (shown AFTER detail):
   | Gate | Status | Findings (B/W/I) |
   |------|--------|-------------------|
-  ```
-- If all gates PASS or WARN: ready to ship.
-- If any gate FAIL: not ready. Show what needs fixing.
+
+- Handoff posture:
+  - Any BLOCK findings: "These issues must be resolved before shipping. Fix
+    and re-run `/sw-verify`." Do NOT mention `/sw-ship`.
+  - WARN findings only (no BLOCKs): "These warnings deserve attention. Review
+    each one — then decide whether to fix or proceed to `/sw-ship`."
+  - All PASS, no warnings: "All gates passed. Ready to ship with `/sw-ship`."
 
 **State updates (LOW freedom):**
 - Follow `protocols/state.md`.
