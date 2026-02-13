@@ -12,6 +12,10 @@ allowed-tools:
   - Glob
   - Grep
   - Task
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
+  - TaskGet
   - AskUserQuestion
 ---
 
