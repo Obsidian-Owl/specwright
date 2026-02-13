@@ -35,6 +35,19 @@ Agents do NOT inherit the main conversation. Include in every prompt:
 - Relevant constraints from constitution
 - Expected output format
 
+## Context Discipline
+
+Request structured, concise output. Every delegation prompt should end with
+an output format constraint (e.g., "Return: files changed, test results,
+issues found. No narrative.").
+
+Between tasks in multi-task skills: reference committed source code by path
+only (agents can Read it). Spec/plan/design content needed for the current
+task should still be included inline — agents have no conversation history.
+
+For large context documents (context.md, design.md): include only sections
+relevant to the current task, not the full document.
+
 ## Agent Roster
 
 | Agent | Model | Use for | Constraint |
