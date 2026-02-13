@@ -106,6 +106,14 @@ When delegating, include in the prompt:
 - Acquire lock before starting. Release after each task commit.
 - Update `tasksCompleted` array after each successful task.
 
+**Task tracking (LOW freedom):**
+- At build start, create Claude Code tasks from spec/plan for visual progress tracking (subject = task name, description = acceptance criteria summary, activeForm = present-continuous).
+- Write ordering: update workflow.json FIRST (source of truth), then TaskUpdate as best-effort. Task tracking failures never halt the build.
+- Orchestrator-only: delegated agents (tester, executor, build-fixer) do not update task status.
+- Do not use `blockedBy`/`blocks` dependencies. The sequential task loop handles ordering.
+- Disambiguation: `Task` tool = agent delegation (`protocols/delegation.md`). `TaskCreate`/`TaskUpdate`/`TaskList`/`TaskGet` = visual progress tracking. Never conflate.
+- On recovery after compaction: create fresh tasks from spec/plan, sync status from workflow.json.
+
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope, termination, and handoff
