@@ -64,6 +64,9 @@ Only produce conditional artifacts when the project and request need them.
 
 **Research (HIGH freedom):**
 - Understand the codebase BEFORE designing. Scan relevant code, dependencies, APIs, frameworks, existing patterns.
+- If `.specwright/patterns.md` exists, check for patterns relevant to this
+  request. If `.specwright/learnings/INDEX.md` exists, scan for applicable
+  themes. Reference relevant patterns in design.md.
 - Delegate to `specwright-researcher` for external documentation.
 - Delegate to `specwright-architect` for deep codebase analysis if needed.
 - Produce `context.md` summarizing findings for downstream agents.

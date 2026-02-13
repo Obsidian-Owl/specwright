@@ -76,6 +76,8 @@ design research content is never overwritten.
 - Write acceptance criteria the tester can turn into brutal tests.
 - Each criterion answers: "How will we KNOW this works?"
 - Include boundary conditions and error cases, not just happy paths.
+- If `.specwright/patterns.md` exists, check for patterns that should inform
+  acceptance criteria (e.g., known edge cases, testing approaches that worked).
 - Ground criteria in the design artifacts — reference specific decisions, contracts, data models.
 - The user must approve the spec before it's saved.
 
