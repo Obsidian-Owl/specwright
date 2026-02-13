@@ -86,6 +86,10 @@ Only produce conditional artifacts when the project and request need them.
 - If `design.md` exists AND no argument: ask the user — redesign, continue to `/sw-plan`, or describe changes.
 
 **User checkpoints throughout:**
+- Before research: if the request has multiple viable approaches (deployment
+  strategy, auth method, UI framework, etc.), ask for hard constraints FIRST.
+  Record in design.md under "## User Preferences". These constrain all
+  subsequent research and design.
 - After research: share surprising findings, risks, or unknowns.
 - After design: present approach with alternatives.
 - After critic: show what was challenged and how it was resolved.
