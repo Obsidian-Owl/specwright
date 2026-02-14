@@ -10,6 +10,10 @@ Read .specwright/state/workflow.json
 ```
 This is the source of truth for where you are.
 
+### 1.5. Check for Continuation Snapshot
+
+If `.specwright/state/continuation.md` exists, read it. This optional file contains the working state captured before compaction: active task, files in progress, pending decisions, and next steps. If absent, continue with workflow.json only.
+
 ### 2. Load Anchor Context
 ```
 Read .specwright/CHARTER.md      # Technology vision
