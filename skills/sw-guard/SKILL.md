@@ -65,6 +65,8 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
 **Recommendation (HIGH freedom):**
 - Organize recommendations by check level: session (Claude Code settings/hooks), commit (pre-commit hooks), push (pre-push hooks), CI/CD (GitHub Actions).
 - Each check level is independently approvable. User can accept some layers and reject others.
+- For session layer: recommend PostToolUse hooks (format-on-save, lint-on-save) using detected stack tools. Generate inline shell commands from config.json tool commands — never hardcode tool names. User chooses destination: `.claude/settings.local.json` (gitignored) or `.claude/settings.json` (shareable).
+- When writing hooks to settings files: read existing hooks first, show diff, merge into existing arrays (don't overwrite), detect duplicate matchers, ensure idempotent re-runs.
 - For each recommended tool, explain WHY it fits their stack and preferences.
 - Delegate to specwright-researcher for stack-specific tool documentation when the detected stack is unfamiliar.
 - If tools conflict with each other (e.g., ruff vs black+flake8), explain trade-offs and let user decide.
