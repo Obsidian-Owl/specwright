@@ -47,36 +47,23 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
 ## Constraints
 
 **Detection (MEDIUM freedom):**
-- Scan the codebase to detect: language(s), framework(s), package manager, test runner, linter, formatter, type checker.
-- Read actual dependency manifests (package.json, go.mod, requirements.txt, Cargo.toml, etc.).
-- Check for existing git hooks (.git/hooks/, .husky/, .pre-commit-config.yaml, lefthook.yml).
-- Check for existing Claude Code hooks and settings (.claude/settings.json, .claude/settings.local.json).
-- Check for existing CI/CD workflows (.github/workflows/).
-- Don't guess what you can detect. Ground detection in reading actual files.
-- Detect existing guardrails before recommending new ones. Support idempotent re-runs by showing delta.
+- Scan codebase: language(s), framework(s), package manager, test runner, linter, formatter, type checker.
+- Read dependency manifests, git hooks, Claude Code settings, CI/CD workflows. Don't guess — read files.
+- Detect existing guardrails before recommending. Support idempotent re-runs by showing delta.
 
 **User alignment (HIGH freedom):**
-- Use the Guardrail Spectrum (Guardian/Balanced/Agile) as initial orientation for default recommendations.
-- After spectrum selection, gather per-domain preferences: security, consistency, test coverage, AI behavior.
-- Each domain allows fine-tuning beyond the initial spectrum orientation.
-- Show the user what was detected (stack, existing guardrails) before making recommendations.
-- Use AskUserQuestion with concrete options based on detected stack.
+- Use Guardrail Spectrum (Guardian/Balanced/Agile) for default orientation, then gather per-domain preferences.
+- Show detected stack and existing guardrails before recommending. Use AskUserQuestion with concrete options.
 
 **Recommendation (HIGH freedom):**
-- Organize recommendations by check level: session (Claude Code settings/hooks), commit (pre-commit hooks), push (pre-push hooks), CI/CD (GitHub Actions).
-- Each check level is independently approvable. User can accept some layers and reject others.
-- For session layer: recommend PostToolUse hooks (format-on-save, lint-on-save) using detected stack tools. Generate inline shell commands from config.json tool commands — never hardcode tool names. User chooses destination: `.claude/settings.local.json` (gitignored) or `.claude/settings.json` (shareable).
-- When writing hooks to settings files: read existing hooks first, show diff, merge into existing arrays (don't overwrite), detect duplicate matchers, ensure idempotent re-runs.
-- For each recommended tool, explain WHY it fits their stack and preferences.
-- Delegate to specwright-researcher for stack-specific tool documentation when the detected stack is unfamiliar.
-- If tools conflict with each other (e.g., ruff vs black+flake8), explain trade-offs and let user decide.
+- Organize by layer: session (Claude Code hooks), commit (pre-commit), push (pre-push), CI/CD (GitHub Actions). Each independently approvable.
+- Session layer: recommend PostToolUse hooks using detected tools. Generate inline shell commands from config.json — never hardcode tool names. User chooses destination: `.claude/settings.local.json` (gitignored) or `.claude/settings.json` (shareable). Read existing hooks first, show diff, merge (don't overwrite), detect duplicates.
+- Explain why each tool fits. Delegate to `specwright-researcher` for unfamiliar stacks. If tools conflict, present trade-offs.
 
 **Configuration (LOW freedom):**
-- External file writes (anything outside .specwright/) use diff-show-approve: show what will change, get approval, then write.
-- Installation commands are shown to the user before execution and require explicit approval.
-- Update .specwright/config.json with detected and configured tool commands (linter, formatter, test runner, type checker) so other Specwright skills can use them.
-- Follow protocols/context.md for config.json updates.
-- Never modify CONSTITUTION.md. That is sw-learn's responsibility.
+- External file writes: diff-show-approve. Installation commands require explicit approval.
+- Update config.json with detected tool commands. Follow `protocols/context.md` for config updates.
+- Never modify CONSTITUTION.md (sw-learn's responsibility).
 
 ## Protocol References
 
@@ -88,9 +75,9 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
 
 | Condition | Action |
 |-----------|--------|
-| .specwright/ not initialized | Instruct user to run sw-init first |
-| No dependency manifest found | Ask user about language/framework directly |
-| Install command fails | Show error, let user retry with custom command or skip |
-| Detected tools conflict | Present trade-offs, let user choose which to keep |
-| CI platform is not GitHub Actions | Warn that CI/CD layer is unsupported, skip that layer |
-| Compaction during configuration | Read config.json and external files to determine what was already written, resume next missing configuration |
+| .specwright/ not initialized | "Run /sw-init first" |
+| No dependency manifest | Ask user about language/framework directly |
+| Install command fails | Show error, let user retry or skip |
+| Detected tools conflict | Present trade-offs, let user choose |
+| Unsupported CI platform | Warn, skip CI/CD layer |
+| Compaction during config | Read config.json and external files, resume next missing item |

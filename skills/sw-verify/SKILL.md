@@ -32,10 +32,9 @@ and be able to discuss or override before proceeding to ship.
 
 ## Outputs
 
-- Each gate produces its own evidence file in `.specwright/work/{id}/evidence/`
-- `workflow.json` gates section updated with status per gate
-- Aggregate summary shown to user with all findings across all gates
-- `workflow.json` currentWork status set to `verifying` during run
+- Evidence files in `.specwright/work/{id}/evidence/`, one per gate
+- `workflow.json` gates section updated; status set to `verifying` during run
+- Aggregate summary shown to user with all findings
 
 ## Constraints
 
@@ -56,9 +55,7 @@ and be able to discuss or override before proceeding to ship.
 - If `--gate=<name>` argument given, run only that gate.
 
 **Gate invocation (MEDIUM freedom):**
-- Load each gate's SKILL.md and follow its instructions.
-- Gates are internal skills — read their SKILL.md and execute inline, don't try to invoke them as slash commands.
-- Pass the current work unit context to each gate.
+- Gates are internal skills — load their SKILL.md and execute inline (not slash commands). Pass work unit context.
 
 **Freshness (LOW freedom):**
 - Check existing gate results in workflow.json before running.
@@ -72,25 +69,10 @@ and be able to discuss or override before proceeding to ship.
 - If user skips, record SKIP status for that gate.
 
 **Aggregate report (MEDIUM freedom):**
-- After all gates run, present findings in two tiers:
-
-  **Tier 1 — Per-finding detail** (shown FIRST):
-  For every BLOCK and WARN finding across all gates:
-  - What was found (specific location, pattern, or gap)
-  - Why it matters (impact on users, security, correctness, or maintainability)
-  - Recommended action (specific, not generic)
-  Group by gate. Show the full picture before any summary.
-
-  **Tier 2 — Summary table** (shown AFTER detail):
-  | Gate | Status | Findings (B/W/I) |
-  |------|--------|-------------------|
-
-- Handoff posture:
-  - Any BLOCK findings: "These issues must be resolved before shipping. Fix
-    and re-run `/sw-verify`." Do NOT mention `/sw-ship`.
-  - WARN findings only (no BLOCKs): "These warnings deserve attention. Review
-    each one — then decide whether to fix or proceed to `/sw-ship`."
-  - All PASS, no warnings: "All gates passed. Ready to ship with `/sw-ship`."
+- After all gates, present two tiers:
+  1. **Per-finding detail** (first): every BLOCK/WARN grouped by gate — what, why, recommended action.
+  2. **Summary table** (after): `| Gate | Status | Findings (B/W/I) |`
+- Handoff: BLOCKs → "Fix and re-run `/sw-verify`." WARNs only → "Review, then fix or `/sw-ship`." All PASS → "Ready for `/sw-ship`."
 
 **State updates (LOW freedom):**
 - Follow `protocols/state.md`.
@@ -110,8 +92,7 @@ and be able to discuss or override before proceeding to ship.
 
 | Condition | Action |
 |-----------|--------|
-| No active work unit | STOP: "Nothing to verify. Run /sw-design, /sw-plan, and /sw-build first." |
-| No gates enabled in config | WARN and skip to ready-to-ship state |
-| Gate skill file not found | ERROR for that gate, continue with remaining gates |
-| All gates skipped by user | WARN: "All gates skipped. Proceed at own risk." |
-| Compaction during verification | Read workflow.json, check which gates have fresh results, resume from next gate |
+| No active work unit | STOP: "Run /sw-design, /sw-plan, and /sw-build first." |
+| No gates enabled / all skipped | WARN, proceed to ready-to-ship |
+| Gate skill file not found | ERROR for that gate, continue remaining |
+| Compaction during verification | Read workflow.json, resume from next gate without fresh results |
