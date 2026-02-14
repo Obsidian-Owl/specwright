@@ -46,6 +46,7 @@ and be able to discuss or override before proceeding to ship.
   the three-tier posture defined in the aggregate report constraint below.
 
 **Gate execution order (LOW freedom):**
+- Read `currentWork.intensity` from workflow.json (default `"full"` if absent). If `"quick"`, run only `gate-spec` (and `gate-build` if `config.commands.build` exists). Otherwise run all enabled gates.
 - Read enabled gates from `config.json` `gates.enabled`.
 - Execute in dependency order:
   1. `gate-build` first (if code doesn't compile, nothing else matters)
