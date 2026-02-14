@@ -39,16 +39,7 @@ When complete, ALL of the following exist in `.specwright/work/{id}/`:
 - `design.md` -- solution overview, approach, integration points, risk assessment
 - `context.md` -- research findings, file paths, gotchas (travels with downstream agents)
 
-When the request warrants them, also:
-
-- `decisions.md` -- architecture decision records (ADR-style)
-- `data-model.md` -- entity definitions, schema changes, data flows
-- `contracts.md` -- API specifications, interface definitions, event schemas
-- `testing-strategy.md` -- test levels, coverage goals, infrastructure decisions
-- `infra.md` -- topology changes, resource requirements, CI/CD changes
-- `migrations.md` -- schema migrations, data migrations, rollback plans
-
-Only produce conditional artifacts when the project and request need them.
+When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`. Only produce conditional artifacts when needed.
 
 ## Constraints
 
@@ -59,8 +50,11 @@ Only produce conditional artifacts when the project and request need them.
 - After the user approves the design, STOP and present the handoff to `/sw-plan`.
 
 **Triage (MEDIUM freedom):**
-- Assess request size and complexity. This determines which phases to run and which conditional artifacts to produce.
-- When uncertain, ask the user.
+- Assess request size and complexity. Recommend an intensity level via AskUserQuestion:
+  - **Full**: multi-file, architectural, ambiguous → full design cycle, handoff to `/sw-plan`
+  - **Lite**: single concern, 1-3 files, clear scope → minimal `context.md` only (no design.md), status → `planning`, handoff to `/sw-plan`
+  - **Quick**: trivial fix, <20 lines → minimal `context.md` + `spec.md` (1-3 criteria), status → `building`, handoff to `/sw-build`
+- Default to Full when uncertain.
 
 **Research (HIGH freedom):**
 - Understand the codebase BEFORE designing. Scan relevant code, dependencies, APIs, frameworks, existing patterns.
@@ -89,18 +83,13 @@ Only produce conditional artifacts when the project and request need them.
 - If `design.md` exists AND no argument: ask the user — redesign, continue to `/sw-plan`, or describe changes.
 
 **User checkpoints throughout:**
-- Before research: if the request has multiple viable approaches (deployment
-  strategy, auth method, UI framework, etc.), ask for hard constraints FIRST.
-  Record in design.md under "## User Preferences". These constrain all
-  subsequent research and design.
-- After research: share surprising findings, risks, or unknowns.
-- After design: present approach with alternatives.
-- After critic: show what was challenged and how it was resolved.
+- Before research: ask for hard constraints if multiple approaches exist. Record in design.md under "## User Preferences".
+- After research: share surprising findings. After design: present with alternatives. After critic: show resolutions.
 - The user must approve the design before it is saved.
 
 **State mutations (LOW freedom):**
 - Follow `protocols/state.md` for all workflow.json updates.
-- Set `currentWork.status` to `designing`. Create work directory.
+- Set `currentWork.status` to `designing`. Set `currentWork.intensity` to chosen level. Create work directory.
 - Work ID: short, descriptive, kebab-case.
 
 ## Protocol References
