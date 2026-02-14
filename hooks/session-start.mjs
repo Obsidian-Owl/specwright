@@ -2,13 +2,15 @@
  * Specwright session-start hook.
  * Reads workflow.json on session start. If work is in progress,
  * outputs a recovery summary so Claude knows where to resume.
+ * Also reads continuation.md if present (written by PreCompact hook).
  */
 
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 
 const cwd = process.cwd();
 const statePath = join(cwd, '.specwright', 'state', 'workflow.json');
+const continuationPath = join(cwd, '.specwright', 'state', 'continuation.md');
 
 if (!existsSync(statePath)) {
   // Specwright not initialized — nothing to do
@@ -31,6 +33,32 @@ try {
       ? `\n⚠ Lock held by "${state.lock.skill}" since ${state.lock.since}`
       : '';
 
+    // Check for continuation snapshot from PreCompact hook
+    let continuationContent = '';
+    if (existsSync(continuationPath)) {
+      try {
+        const raw = readFileSync(continuationPath, 'utf-8');
+        const firstLine = raw.split('\n')[0] || '';
+        const match = firstLine.match(/^Snapshot:\s*(.+)$/);
+
+        if (match) {
+          const snapshotTime = new Date(match[1].trim());
+          const ageMs = Date.now() - snapshotTime.getTime();
+          const twoHoursMs = 2 * 60 * 60 * 1000;
+
+          if (!isNaN(snapshotTime.getTime()) && ageMs < twoHoursMs) {
+            // Fresh snapshot — include in recovery output
+            continuationContent = `\n--- Continuation Snapshot ---\n${raw}`;
+          }
+        }
+
+        // Always delete after reading (one-time snapshot)
+        unlinkSync(continuationPath);
+      } catch {
+        // Ignore continuation read errors — not critical
+      }
+    }
+
     const summary = [
       `Specwright: Work in progress`,
       `  Unit: ${work.id} (${work.status})`,
@@ -39,6 +67,7 @@ try {
       `  Spec: .specwright/work/${work.id}/spec.md`,
       `  Plan: .specwright/work/${work.id}/plan.md`,
       lockWarning,
+      continuationContent,
     ].filter(Boolean).join('\n');
 
     // Output goes to stderr so Claude sees it as a system message
