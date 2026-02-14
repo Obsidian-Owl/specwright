@@ -16,7 +16,8 @@
     "workDir": ".specwright/work/{id}",
     "tasksTotal": "number | null",
     "tasksCompleted": ["task-id strings"],
-    "currentTask": "string | null"
+    "currentTask": "string | null",
+    "intensity": "full | lite | quick (optional, defaults to full)"
   },
   "gates": {
     "{gate-name}": {
@@ -48,6 +49,7 @@ Valid transitions for `currentWork.status`:
 |------|----|-------------|
 | (none) | `designing` | sw-design (new work) |
 | `designing` | `planning` | sw-plan |
+| `designing` | `building` | sw-design (Quick intensity only) |
 | `planning` | `building` | sw-build |
 | `building` | `verifying` | sw-verify |
 | `verifying` | `building` | fix after failed verify |
@@ -57,6 +59,8 @@ Valid transitions for `currentWork.status`:
 
 **Enforcement:** Skills MUST check `currentWork.status` before mutating. If the current status is not a valid "from" state for the intended transition, STOP with:
 > "Cannot transition from {current} to {target}. Run /sw-{correct-skill} instead."
+
+The `designing → building` transition is only valid when `currentWork.intensity` is `"quick"`.
 
 When `workUnits` exists, also update the matching entry's status in the array.
 
