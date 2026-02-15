@@ -58,8 +58,7 @@ work benefits.
 
 **Presentation (MEDIUM freedom):**
 - Group by category (build, security, testing, architecture). Show: what happened, why it matters, proposed rule.
-- Use AskUserQuestion for curation: promote to constitution, promote to patterns, or dismiss.
-- Maximum 5-7 learnings per session.
+- Use AskUserQuestion for curation: promote to constitution, patterns, or dismiss. Maximum 5-7 learnings.
 
 **Promotion (LOW freedom):**
 - If promoting to constitution: add a new practice with ID (e.g., S6, Q5) and clear wording.
@@ -67,8 +66,7 @@ work benefits.
 - User must approve exact wording before saving.
 
 **Retrospective (MEDIUM freedom):**
-- When `.specwright/learnings/` has 2+ prior files, surface recurring patterns across units citing work IDs.
-- If directory empty, missing, or <2 files: silently skip.
+- When `.specwright/learnings/` has 2+ prior files, surface recurring patterns across units. If <2 files: skip.
 
 **Persistence (LOW freedom):**
 - Write `.specwright/learnings/{work-id}.json` only when at least one finding is promoted.
@@ -77,6 +75,10 @@ work benefits.
 **Landscape update (MEDIUM freedom):**
 - After persistence, if `.specwright/LANDSCAPE.md` exists: identify affected modules from evidence and plan artifacts, re-scan those modules, merge updates. Show diff, user approves. Update `Snapshot:` timestamp.
 - If LANDSCAPE.md doesn't exist: silently skip.
+
+**Audit resolution (MEDIUM freedom):**
+- After landscape update, if `.specwright/AUDIT.md` exists: check if work unit's changed files overlap with open finding locations. If finding is addressed, move to `## Resolved` with work unit ID. User approves.
+- If AUDIT.md doesn't exist: silently skip.
 
 **Enrichment (MEDIUM freedom):**
 - Optional per `protocols/insights.md`. Silently skip if unavailable or stale.
@@ -92,6 +94,7 @@ work benefits.
 - `protocols/insights.md` -- session pattern enrichment
 - `protocols/learning-lifecycle.md` -- compaction triggers and lifecycle
 - `protocols/landscape.md` -- codebase reference document format
+- `protocols/audit.md` -- codebase health findings format
 
 ## Failure Modes
 
