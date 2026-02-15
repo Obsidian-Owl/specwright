@@ -9,6 +9,7 @@ allowed-tools:
   - Read
   - Write
   - Edit
+  - Bash
   - Glob
   - Grep
   - AskUserQuestion
