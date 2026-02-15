@@ -14,6 +14,11 @@ Load when needed for alignment/verification:
 ### State
 - `.specwright/state/workflow.json` — Current progress, gate results, lock status
 
+### Reference Documents
+Load on demand when codebase structure knowledge is needed:
+
+- `.specwright/LANDSCAPE.md` — Codebase architecture and module knowledge (optional)
+
 ## Initialization Checks
 
 **Before any operation:**
