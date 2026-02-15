@@ -34,6 +34,8 @@ Specwright closes the **entire loop** — design, plan, build, verify, ship, lea
 - Evidence-based PRs with gate proof for every acceptance criterion
 - Compaction recovery reloads full context automatically
 - Learning system captures failures and promotes patterns across sessions
+- Codebase knowledge persists across sessions — no re-discovering the same architecture
+- Periodic health checks find systemic debt that per-change gates miss
 - One install, configure once, works with any language or framework
 
 ## What Makes This Different
@@ -47,6 +49,10 @@ Specwright focuses on the **verification and evidence** side — the part where 
 **Wiring Verification** — Static analysis catches orphaned files, unused exports, layer violations, and circular dependencies. Other tools check if code compiles and tests pass. Specwright checks if the code is actually connected.
 
 **Learning System** — Failures are captured, patterns are promoted, and learnings compact into tiered memory (index, themes, raw data). The system gets smarter with every session. Knowledge survives context windows.
+
+**Codebase Knowledge** — During init, Specwright surveys your codebase and builds a persistent knowledge document (`LANDSCAPE.md`) covering architecture, modules, conventions, and gotchas. Design phases load this instantly instead of re-scanning. It stays current — refreshed when stale, incrementally updated after every shipped work unit.
+
+**Codebase Health Checks** — Run `/sw-audit` periodically to find systemic issues that per-change gates miss: architecture debt, complexity growth, convention drift, accumulated workarounds. Findings persist in `AUDIT.md` with stable IDs across re-runs. Design phases surface relevant findings. The learn phase resolves them when addressed.
 
 **Compaction Recovery** — All stateful skills support resume-from-crash. When Claude's context window compacts, Specwright reloads full state from disk. The only plugin in this space that handles context loss gracefully.
 
@@ -62,6 +68,7 @@ graph LR
     F -.->|next work unit| D
     F --> G["/sw-learn"]
     G -.->|patterns feed back| B
+    H["/sw-audit"] -.->|findings feed into| B
 
     style A fill:#1e293b,stroke:#f59e0b,color:#f8fafc
     style B fill:#1e293b,stroke:#f59e0b,color:#f8fafc
@@ -70,6 +77,7 @@ graph LR
     style E fill:#1e293b,stroke:#f59e0b,color:#f8fafc
     style F fill:#1e293b,stroke:#f59e0b,color:#f8fafc
     style G fill:#1e293b,stroke:#f59e0b,color:#f8fafc
+    style H fill:#1e293b,stroke:#f59e0b,color:#f8fafc
 ```
 
 | Phase | What Happens | Key Innovation |
@@ -81,6 +89,7 @@ graph LR
 | **Verify** | 5 quality gates with evidence capture | Findings shown inline, not just pass/fail badges |
 | **Ship** | PR with acceptance criteria mapped to evidence | Every requirement traceable to code + test |
 | **Learn** | Capture patterns, promote to constitution | Knowledge compounds across sessions |
+| **Audit** | Periodic health check — architecture, complexity, consistency, debt | Finds systemic issues gates miss. Run anytime. |
 
 ## Quick Start
 
@@ -111,6 +120,30 @@ Then design, plan, and iterate per work unit:
 /sw-ship
 ```
 
+## Codebase Knowledge and Health
+
+Two optional features keep Specwright informed about your codebase across sessions:
+
+**Landscape** (`LANDSCAPE.md`) — A persistent map of your codebase's architecture, modules, conventions, and integration points. Created automatically during `/sw-init` if you opt in. The design phase loads it for instant context instead of re-scanning every time. Updated incrementally after each shipped work unit.
+
+- Created by: `/sw-init` (survey phase, optional)
+- Consumed by: `/sw-design` (auto-refreshed when stale)
+- Updated by: `/sw-learn` (after shipping)
+
+**Audit** (`AUDIT.md`) — A persistent record of systemic codebase health issues. Run `/sw-audit` when you want a health check — it's not part of the regular workflow, so use it whenever it makes sense: before starting a large feature, after a refactoring sprint, or on a regular cadence.
+
+```
+/sw-audit              # auto-triage: standard or full based on codebase size
+/sw-audit src/api/     # focused: analyze only the specified path
+/sw-audit --full       # full: parallel analysis across all dimensions
+```
+
+Findings persist across runs with stable IDs. When you design new work, relevant findings are surfaced automatically. When you ship work that addresses a finding, the learn phase marks it resolved.
+
+- Created by: `/sw-audit` (run anytime)
+- Consumed by: `/sw-design` (surfaces relevant findings during research)
+- Resolved by: `/sw-learn` (marks addressed findings as resolved)
+
 ## Six Specialized Agents
 
 Specwright delegates to purpose-built agents — each with a distinct role, model, and adversarial stance:
@@ -136,13 +169,19 @@ Every work unit passes through configurable gates before shipping. **Default sta
 | **Wiring** | Orphaned files, unused exports, layer violations, circular deps | WARN |
 | **Spec** | Every acceptance criterion mapped to code + test evidence | BLOCK |
 
-## Anchor Documents
+## Persistent Documents
 
-Two persistent documents drive all decisions and survive context compaction:
+Two **anchor documents** drive all decisions and survive context compaction:
 
 **`CONSTITUTION.md`** — Development practices the AI must follow. Testing standards, coding conventions, security requirements. Not suggestions — rules.
 
 **`CHARTER.md`** — Technology vision and architectural invariants. What this project is, who consumes it, what doesn't change.
+
+Two optional **reference documents** accelerate research and track health:
+
+**`LANDSCAPE.md`** — Codebase knowledge: architecture, modules, conventions, gotchas. Loaded on demand, never blocks workflow.
+
+**`AUDIT.md`** — Codebase health findings: systemic debt, complexity growth, convention drift. Loaded on demand, findings have stable IDs.
 
 ## Skills
 
@@ -218,5 +257,5 @@ Specwright is open source under the MIT license.
 ---
 
 <p align="center">
-  <sub>Built by <a href="https://github.com/Obsidian-Owl">ObsidianOwl</a> · MIT License · v0.5.0</sub>
+  <sub>Built by <a href="https://github.com/Obsidian-Owl">ObsidianOwl</a> · MIT License · v0.6.0</sub>
 </p>

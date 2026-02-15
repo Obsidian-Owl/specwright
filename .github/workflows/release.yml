@@ -67,7 +67,7 @@ jobs:
 
       - name: Update README.md
         run: |
-          sed -i "s/^\*\*Version\*\*: .*/**Version**: ${{ steps.next.outputs.version }}/" README.md
+          sed -i "s/MIT License · v[0-9]*\.[0-9]*\.[0-9]*/MIT License · v${{ steps.next.outputs.version }}/" README.md
 
       - name: Update banner version
         run: |
@@ -79,20 +79,26 @@ jobs:
           NEW_VERSION="${{ steps.next.outputs.version }}"
           BODY=$(cat /tmp/changelog_body.md)
 
-          # Create new section
-          {
-            # Copy header (lines before first ## [)
-            sed -n '1,/^## \[/{ /^## \[/!p }' CHANGELOG.md
-            echo ""
-            echo "## [${NEW_VERSION}] - ${DATE}"
-            echo ""
-            echo "### Changed"
-            echo ""
-            echo "$BODY"
-            echo ""
-            # Copy rest of file starting from first ## [
-            sed -n '/^## \[/,$p' CHANGELOG.md
-          } > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
+          # Skip if a hand-written entry already exists for this version
+          if grep -q "^## \[${NEW_VERSION}\]" CHANGELOG.md; then
+            echo "CHANGELOG already contains entry for ${NEW_VERSION}, updating date only"
+            sed -i "s/^## \[${NEW_VERSION}\].*/## [${NEW_VERSION}] - ${DATE}/" CHANGELOG.md
+          else
+            # Create new section
+            {
+              # Copy header (lines before first ## [)
+              sed -n '1,/^## \[/{ /^## \[/!p }' CHANGELOG.md
+              echo ""
+              echo "## [${NEW_VERSION}] - ${DATE}"
+              echo ""
+              echo "### Changed"
+              echo ""
+              echo "$BODY"
+              echo ""
+              # Copy rest of file starting from first ## [
+              sed -n '/^## \[/,$p' CHANGELOG.md
+            } > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
+          fi
 
       - name: Create release branch and PR
         env:

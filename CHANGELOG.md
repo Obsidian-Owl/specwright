@@ -8,14 +8,31 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+## [0.7.0] - 2026-02-16
 
+### Added
 
-
-## [0.6.0] - 2026-02-15
+- **Codebase Landscape** (`LANDSCAPE.md`) — Persistent codebase knowledge document covering architecture, modules, conventions, and gotchas. Created during `/sw-init` (optional survey phase), loaded by `/sw-design` with automatic staleness refresh, incrementally updated by `/sw-learn` after shipping. New `protocols/landscape.md` defines format, size targets (500-3000 words), and freshness rules (7-day default, configurable). (#26)
+- **Codebase Audit** (`/sw-audit`) — Periodic health check skill that finds systemic issues per-change gates miss. Four dimensions: architecture, complexity, consistency, debt. Delegates to architect and reviewer agents, synthesizes findings into persistent `AUDIT.md` with stable finding IDs across re-runs. Adaptive intensity: focused (path), standard (small projects), full (large projects, parallel agents). New `protocols/audit.md` defines finding format, ID matching, lifecycle, and freshness. (#27)
+- **Audit integration with design** — `/sw-design` now loads `AUDIT.md` during research and surfaces relevant findings for the area being designed
+- **Audit integration with learn** — `/sw-learn` checks if shipped work addresses open audit findings and marks them resolved
 
 ### Changed
 
-- feat(skills): adaptive intensity, session hooks, stop guard, compaction recovery (#23)
+- `protocols/context.md` — Reference Documents section now includes both `LANDSCAPE.md` and `AUDIT.md` (optional, load on demand)
+- Skill count: 14 → 15 (10 user-facing + 5 gates)
+- Protocol count: 11 → 12
+- README updated with Codebase Knowledge and Health section, version footer corrected
+- DESIGN.md Reference Documents section documents both LANDSCAPE.md and AUDIT.md lifecycles
+
+## [0.6.0] - 2026-02-15
+
+### Added
+
+- **Adaptive intensity** — `/sw-design` triages requests as Full, Lite, or Quick based on complexity. Lite skips design.md, Quick skips straight to build
+- **Session hooks** — `hooks/session-start.md` loads recovery protocol on compaction detection
+- **Stop guard** — `/sw-guard` can now configure stop-on-error hooks for CI/CD layers
+- **Compaction recovery** — All stateful skills check for compaction and resume from last completed step
 
 ## [0.5.2] - 2026-02-13
 
@@ -34,25 +51,6 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - fix(assets): add design node to banner SVG pipeline
 
 ## [0.5.0] - 2026-02-12
-
-### Changed
-
-- fix(docs): address stale wording from wiring gate findings
-- docs: update README and CHANGELOG for design/plan split
-- docs: update DESIGN.md and CLAUDE.md for design/plan split
-- feat(skills): update sw-verify and sw-status for design/plan split
-- feat(skills): add design.md to sw-build inputs and context envelope
-- feat(skills): rewrite sw-plan for decomposition and specs only
-- fix(protocols): add null-to-designing transition in state table
-- feat(skills): create sw-design skill for interactive solution architecture
-- feat(protocols): add designing status and sw-design handoff
-- fix(agents): correct executor description, add tester negative constraints
-- docs(design): add behavioral discipline as principle #7
-- feat(sw-build): scope REFACTOR step and add behavioral envelope
-- feat(sw-plan): add simplicity bias to Design phase
-- feat(agents): add Karpathy-aligned behavioral discipline sections
-
-## [0.5.0] - 2026-02-13
 
 ### Added
 
