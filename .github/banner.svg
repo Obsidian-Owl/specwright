@@ -118,7 +118,7 @@
   <!-- Version tag -->
   <g transform="translate(1020, 118)">
     <rect x="0" y="0" width="60" height="22" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-    <text x="30" y="15" font-family="'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace" font-size="11" fill="#94a3b8" text-anchor="middle">v0.5.2</text>
+    <text x="30" y="15" font-family="'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace" font-size="11" fill="#94a3b8" text-anchor="middle">v0.6.0</text>
   </g>
 
   <!-- "Claude Code Plugin" label -->
