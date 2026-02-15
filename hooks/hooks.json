@@ -9,6 +9,29 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check if Specwright has active work. Read .specwright/state/workflow.json. If currentWork exists and currentWork.status is NOT 'shipped', 'abandoned', or null, respond: {\"ok\": false, \"reason\": \"Specwright has active work: [work-id] (status: [status], [completed]/[total] tasks done). Consider running /sw-status before ending this session, or /sw-status --reset to abandon.\"}. If no active work or file does not exist, respond: {\"ok\": true}. IMPORTANT: Check $ARGUMENTS — if stop_hook_active is true, always respond {\"ok\": true} to prevent loops.",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "auto|manual",
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "Specwright context is about to compact. Write a continuation snapshot to .specwright/state/continuation.md with the following sections:\n\n## Current State\nWhat skill/phase is active, what task is in progress (read .specwright/state/workflow.json).\n\n## Work in Progress\nWhat file(s) are being modified, what was the last action taken.\n\n## Pending Decisions\nAny unresolved questions or choices awaiting user input.\n\n## Next Steps\nWhat should happen immediately after recovery.\n\nKeep it concise — under 50 lines. This file will be read by the recovery protocol after compaction.\n\nIMPORTANT: Add a timestamp line at the top: 'Snapshot: {ISO 8601 timestamp}'. This allows staleness detection.",
+            "timeout": 60
+          }
+        ]
+      }
     ]
   }
 }

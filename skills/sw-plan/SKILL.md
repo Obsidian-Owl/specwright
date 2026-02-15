@@ -26,9 +26,9 @@ every unit is independently buildable.
 
 ## Inputs
 
-- `.specwright/state/workflow.json` -- current state (must be `designing`)
-- `.specwright/work/{id}/design.md` -- approved solution design
-- `.specwright/work/{id}/context.md` -- research findings from sw-design
+- `.specwright/state/workflow.json` -- current state (must be `designing` or `planning`)
+- `.specwright/work/{id}/design.md` -- approved solution design (full intensity only)
+- `.specwright/work/{id}/context.md` -- research findings from sw-design (all intensities)
 - Conditional design artifacts: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`
 - `.specwright/CONSTITUTION.md` -- practices to follow
 - `.specwright/config.json` -- project configuration
@@ -56,8 +56,9 @@ design research content is never overwritten.
 - After the user approves the spec, STOP and present the handoff to `/sw-build`.
 
 **Pre-condition check (LOW freedom):**
-- Check `currentWork.status` is `designing`. If not: "Run /sw-design first."
-- Check `design.md` exists in the work directory. If not: "Run /sw-design first."
+- Check `currentWork.status` is `designing` or `planning`. If neither: "Run /sw-design first."
+- If `currentWork.intensity` is `full` or absent: check `design.md` exists. If not: "Run /sw-design first."
+- If `currentWork.intensity` is `lite`: check `context.md` exists. If not: "Run /sw-design first."
 
 **Decompose (MEDIUM freedom, only if large):**
 - Assess whether the design requires multiple work units.
@@ -102,8 +103,8 @@ design research content is never overwritten.
 
 | Condition | Action |
 |-----------|--------|
-| Status not `designing` | STOP: "Run /sw-design first" |
-| `design.md` missing | STOP: "Run /sw-design first" |
+| Status not `designing`/`planning` | STOP: "Run /sw-design first" |
+| Required artifact missing | STOP: "Run /sw-design first" (design.md for full, context.md for lite) |
 | Design too vague for specs | Ask user for clarification with concrete options |
 | Active work already in progress | Ask user: continue existing, or start new? |
 | Compaction during planning | Read workflow.json, check which artifacts exist, resume |
