@@ -59,7 +59,7 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 - If `.specwright/LANDSCAPE.md` exists, load it first. If stale per `protocols/landscape.md`, refresh inline and update `Snapshot:` timestamp. If missing, proceed without. Use as baseline for research.
 - If `.specwright/AUDIT.md` exists and fresh per `protocols/audit.md`, surface relevant findings for the area being designed.
 - Scan code, dependencies, APIs, existing patterns. Check `.specwright/patterns.md` and `.specwright/learnings/INDEX.md` if they exist.
-- Delegate to `specwright-researcher` (external docs) and `specwright-architect` (deep analysis) as needed.
+- Delegate to `specwright-researcher` and `specwright-architect` as needed.
 - Produce `context.md` summarizing findings for downstream agents.
 
 **Design (HIGH freedom):**
