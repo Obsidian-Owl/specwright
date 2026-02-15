@@ -10,6 +10,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.6.0] - 2026-02-15
+
+### Changed
+
+- feat(skills): adaptive intensity, session hooks, stop guard, compaction recovery (#23)
+
 ## [0.5.2] - 2026-02-13
 
 ### Changed
