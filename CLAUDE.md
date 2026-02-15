@@ -51,6 +51,7 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `context.md` -- Anchor doc and config loading
 - `insights.md` -- External Claude Code insights data access
 - `learning-lifecycle.md` -- Compaction triggers and tiered memory
+- `landscape.md` -- Codebase reference document format and freshness rules
 
 ## Key Rules
 

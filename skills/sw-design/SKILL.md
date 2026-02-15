@@ -56,7 +56,7 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 - Default to Full when uncertain.
 
 **Research (HIGH freedom):**
-- If `.specwright/LANDSCAPE.md` exists, load it first. If stale per `protocols/landscape.md`, refresh inline. Use as baseline for research.
+- If `.specwright/LANDSCAPE.md` exists, load it first. If stale per `protocols/landscape.md`, refresh inline and update `Snapshot:` timestamp. If missing, proceed without. Use as baseline for research.
 - Scan code, dependencies, APIs, existing patterns. Check `.specwright/patterns.md` and `.specwright/learnings/INDEX.md` if they exist.
 - Delegate to `specwright-researcher` (external docs) and `specwright-architect` (deep analysis) as needed.
 - Produce `context.md` summarizing findings for downstream agents.
@@ -88,6 +88,7 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 - `protocols/context.md` -- anchor doc and config loading
 - `protocols/delegation.md` -- agent delegation for research and critic
 - `protocols/recovery.md` -- compaction recovery
+- `protocols/landscape.md` -- codebase reference document format
 
 ## Failure Modes
 

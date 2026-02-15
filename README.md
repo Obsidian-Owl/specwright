@@ -196,7 +196,7 @@ See `DESIGN.md` for the complete architecture document.
 ```
 specwright/
 ├── skills/       # 14 SKILL.md files (9 user + 5 gates)
-├── protocols/    # 10 shared protocols (loaded on demand)
+├── protocols/    # 11 shared protocols (loaded on demand)
 ├── agents/       # 6 custom subagent definitions
 ├── hooks/        # Session lifecycle hooks
 ├── DESIGN.md     # Full architecture

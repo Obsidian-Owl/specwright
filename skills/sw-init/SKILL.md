@@ -81,7 +81,7 @@ When complete, ALL of the following exist:
 **Configuration (LOW freedom):**
 - Write `.specwright/config.json` with detected and configured values.
 - Create `.specwright/state/workflow.json` with empty initial state.
-- Create directory structure: `.specwright/state/`, `.specwright/work/`, `.specwright/baselines/`, `.specwright/learnings/`.
+- Create directory structure: `.specwright/state/`, `.specwright/work/`, `.specwright/baselines/`, `.specwright/learnings/`. If survey produced LANDSCAPE.md, include it (optional).
 - Follow `protocols/state.md` for state file format.
 
 **Gate configuration (MEDIUM freedom):**
@@ -93,6 +93,7 @@ When complete, ALL of the following exist:
 - `protocols/state.md` -- workflow.json initialization
 - `protocols/context.md` -- config.json format
 - `protocols/git.md` -- git config field reference and strategy definitions
+- `protocols/landscape.md` -- codebase reference document format
 
 ## Failure Modes
 

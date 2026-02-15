@@ -74,7 +74,7 @@ work benefits.
 - Schema: `{ workId, timestamp, findings: [{ category, source, description, proposedRule, disposition }] }`
 
 **Landscape update (MEDIUM freedom):**
-- After persistence, if `.specwright/LANDSCAPE.md` exists: identify modules affected by this work unit (git diff), re-scan affected modules, merge updates. Show diff, user approves. Update `Snapshot:` timestamp.
+- After persistence, if `.specwright/LANDSCAPE.md` exists: identify affected modules from evidence and plan artifacts, re-scan those modules, merge updates. Show diff, user approves. Update `Snapshot:` timestamp.
 - If LANDSCAPE.md doesn't exist: silently skip.
 
 **Enrichment (MEDIUM freedom):**
