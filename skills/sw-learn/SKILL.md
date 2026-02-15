@@ -54,29 +54,30 @@ work benefits.
 
 **Discovery (HIGH freedom):**
 - Scan evidence files, git log, and plan.md for patterns worth remembering.
-- Look for: things that broke, things surprisingly hard, things that worked well.
+- Look for: what broke, what was hard, what worked well.
 
 **Presentation (MEDIUM freedom):**
 - Group by category (build, security, testing, architecture). Show: what happened, why it matters, proposed rule.
-- Use AskUserQuestion for curation: promote to constitution, promote to patterns, or dismiss.
-- Maximum 5-7 learnings per session.
+- Use AskUserQuestion for curation: promote to constitution, patterns, or dismiss. Maximum 5-7 learnings.
 
 **Promotion (LOW freedom):**
-- If promoting to constitution: add a new practice with ID (e.g., S6, Q5) and clear wording.
-- If promoting to patterns: append to `.specwright/patterns.md` (create if doesn't exist).
-- User must approve exact wording before saving.
+- Constitution: add practice with ID (e.g., S6, Q5). Patterns: append to `.specwright/patterns.md` (create if missing).
+- User approves exact wording before saving.
 
 **Retrospective (MEDIUM freedom):**
-- When `.specwright/learnings/` has 2+ prior files, surface recurring patterns across units citing work IDs.
-- If directory empty, missing, or <2 files: silently skip.
+- When 2+ prior learning files exist, surface recurring patterns across units.
 
 **Persistence (LOW freedom):**
-- Write `.specwright/learnings/{work-id}.json` only when at least one finding is promoted.
+- Write `.specwright/learnings/{work-id}.json` when any finding is promoted.
 - Schema: `{ workId, timestamp, findings: [{ category, source, description, proposedRule, disposition }] }`
 
 **Landscape update (MEDIUM freedom):**
 - After persistence, if `.specwright/LANDSCAPE.md` exists: identify affected modules from evidence and plan artifacts, re-scan those modules, merge updates. Show diff, user approves. Update `Snapshot:` timestamp.
 - If LANDSCAPE.md doesn't exist: silently skip.
+
+**Audit resolution (MEDIUM freedom):**
+- After landscape update, if `.specwright/AUDIT.md` exists: check if work unit's changed files overlap with open finding locations. If finding is addressed, move to `## Resolved` with work unit ID. User approves.
+- If AUDIT.md doesn't exist: silently skip.
 
 **Enrichment (MEDIUM freedom):**
 - Optional per `protocols/insights.md`. Silently skip if unavailable or stale.
@@ -92,6 +93,7 @@ work benefits.
 - `protocols/insights.md` -- session pattern enrichment
 - `protocols/learning-lifecycle.md` -- compaction triggers and lifecycle
 - `protocols/landscape.md` -- codebase reference document format
+- `protocols/audit.md` -- codebase health findings format
 
 ## Failure Modes
 

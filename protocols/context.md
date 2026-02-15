@@ -18,6 +18,7 @@ Load when needed for alignment/verification:
 Load on demand when codebase structure knowledge is needed:
 
 - `.specwright/LANDSCAPE.md` — Codebase architecture and module knowledge (optional)
+- `.specwright/AUDIT.md` — Codebase health findings and tech debt tracking (optional)
 
 ## Initialization Checks
 
