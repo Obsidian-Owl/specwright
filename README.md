@@ -75,7 +75,7 @@ graph LR
 | Phase | What Happens | Key Innovation |
 |-------|-------------|----------------|
 | **Init** | Detect stack, configure gates, create anchor documents | Auto-detection — don't ask what you can infer |
-| **Design** | Research codebase, design solution, adversarial critic review | Every design challenged before you commit |
+| **Design** | Triage as Full / Lite / Quick, research codebase, design solution, adversarial critic | Right-sized ceremony — trivial fixes skip the full cycle |
 | **Plan** | Decompose into work units, write testable acceptance criteria | Specs grounded in approved design artifacts |
 | **Build** | TDD — tester writes hard-to-pass tests, executor makes them pass | Adversarial test-first, not test-after |
 | **Verify** | 5 quality gates with evidence capture | Findings shown inline, not just pass/fail badges |
