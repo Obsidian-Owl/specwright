@@ -39,9 +39,12 @@ What is this repo? What are we building? Who are the consumers? Architectural in
 **LANDSCAPE.md** -- Codebase Knowledge (optional)
 Persistent cache of codebase structure: architecture, modules, conventions, integration points, gotchas. Not an anchor document — it accelerates design research but never blocks workflow. Created by sw-init (survey phase), read by sw-design (with inline refresh when stale), incrementally updated by sw-learn after shipping. Format and freshness rules in `protocols/landscape.md`.
 
-## Skills (14)
+**AUDIT.md** -- Codebase Health Findings (optional)
+Persistent record of systemic issues that per-change gates miss: architecture debt, complexity growth, convention drift, accumulated workarounds. Created by sw-audit, surfaced by sw-design during research, resolved by sw-learn after shipping. Findings have stable IDs across re-runs. Resolved findings purge after 90 days. Format, matching, and freshness rules in `protocols/audit.md`.
 
-### User-Facing (9)
+## Skills (15)
+
+### User-Facing (10)
 
 | Skill | Purpose | Key Innovation |
 |-------|---------|----------------|
@@ -54,6 +57,7 @@ Persistent cache of codebase structure: architecture, modules, conventions, inte
 | `sw-status` | Where am I, what's done, what's next | Supports --reset to abandon work |
 | `sw-guard` | Detect stack, configure guardrails interactively | Layer-by-layer approval (session, commit, push, CI/CD) |
 | `sw-learn` | Post-ship capture. What worked, what to remember | Promotes patterns to constitution |
+| `sw-audit` | Periodic codebase health check | Finds systemic debt gates miss. Feeds findings into design + learn |
 
 ### Internal Gate Skills (5)
 
@@ -111,8 +115,9 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `insights.md` | External CC insights data access | ~150 |
 | `learning-lifecycle.md` | Compaction triggers, tier structure, theme format | ~150 |
 | `landscape.md` | Codebase reference doc format, freshness, updates | ~180 |
+| `audit.md` | Codebase health findings format, IDs, matching, lifecycle | ~180 |
 
-Total: ~2030 tokens (loaded on demand, not all at once).
+Total: ~2210 tokens (loaded on demand, not all at once).
 
 ## Skill Anatomy
 
@@ -156,7 +161,7 @@ Target: 600 tokens per SKILL.md (40% of the 1,500 token ceiling).
 
 ```
 specwright/
-├── skills/           # SKILL.md files (14 skills)
+├── skills/           # SKILL.md files (15 skills)
 │   ├── sw-init/      # User-facing
 │   ├── sw-design/
 │   ├── sw-plan/
@@ -166,6 +171,7 @@ specwright/
 │   ├── sw-guard/
 │   ├── sw-status/
 │   ├── sw-learn/
+│   ├── sw-audit/
 │   ├── gate-build/   # Internal (invoked by verify)
 │   ├── gate-tests/
 │   ├── gate-security/
@@ -187,6 +193,7 @@ Runtime state (created by init):
 ├── CONSTITUTION.md   # Development practices
 ├── CHARTER.md        # Technology vision
 ├── LANDSCAPE.md      # Codebase knowledge (optional)
+├── AUDIT.md          # Codebase health findings (optional)
 ├── state/
 │   └── workflow.json # Current state
 └── work/             # Work unit artifacts (specs, evidence, plans)

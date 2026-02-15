@@ -19,6 +19,7 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | `sw-guard` | Detect stack and interactively configure guardrails (hooks, CI, settings). |
 | `sw-status` | Current state and progress. |
 | `sw-learn` | Post-ship capture of patterns and learnings. |
+| `sw-audit` | Periodic codebase health check. Finds systemic tech debt. |
 
 ## Anchor Documents
 
@@ -52,6 +53,7 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `insights.md` -- External Claude Code insights data access
 - `learning-lifecycle.md` -- Compaction triggers and tiered memory
 - `landscape.md` -- Codebase reference document format and freshness rules
+- `audit.md` -- Codebase health findings format, IDs, and lifecycle
 
 ## Key Rules
 
