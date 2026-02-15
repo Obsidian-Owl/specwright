@@ -34,6 +34,11 @@ How the user wants code written. Testing standards, coding conventions, security
 **CHARTER.md** -- Technology Vision
 What is this repo? What are we building? Who are the consumers? Architectural invariants. The things that don't change. Referenced by plan to ensure alignment, validated by verify.
 
+## Reference Documents
+
+**LANDSCAPE.md** -- Codebase Knowledge (optional)
+Persistent cache of codebase structure: architecture, modules, conventions, integration points, gotchas. Not an anchor document — it accelerates design research but never blocks workflow. Created by sw-init (survey phase), read by sw-design (with inline refresh when stale), incrementally updated by sw-learn after shipping. Format and freshness rules in `protocols/landscape.md`.
+
 ## Skills (14)
 
 ### User-Facing (9)
@@ -105,8 +110,9 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `context.md` | Config/state/anchor doc loading | ~100 |
 | `insights.md` | External CC insights data access | ~150 |
 | `learning-lifecycle.md` | Compaction triggers, tier structure, theme format | ~150 |
+| `landscape.md` | Codebase reference doc format, freshness, updates | ~180 |
 
-Total: ~1850 tokens (loaded on demand, not all at once).
+Total: ~2030 tokens (loaded on demand, not all at once).
 
 ## Skill Anatomy
 
@@ -180,6 +186,7 @@ Runtime state (created by init):
 ├── config.json       # Project configuration
 ├── CONSTITUTION.md   # Development practices
 ├── CHARTER.md        # Technology vision
+├── LANDSCAPE.md      # Codebase knowledge (optional)
 ├── state/
 │   └── workflow.json # Current state
 └── work/             # Work unit artifacts (specs, evidence, plans)
