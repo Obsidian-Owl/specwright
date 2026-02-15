@@ -40,10 +40,12 @@ When complete, ALL of the following exist:
 ## Constraints
 
 **Detection (MEDIUM freedom):**
-- Scan the codebase to detect: language(s), framework(s), package manager,
-  test runner, existing linting/formatting, git workflow, CI/CD presence.
-- Read dependency manifests (package.json, go.mod, requirements.txt, Cargo.toml, etc.).
-- Don't guess what you can detect. Don't ask what you can infer.
+- Scan codebase: language(s), framework(s), package manager, test runner, linting/formatting, git workflow, CI/CD. Read dependency manifests. Don't guess what you can detect.
+
+**Survey (MEDIUM freedom):**
+- After detection, survey the codebase using Glob/Grep/Read: directory structure, entry points, module dependencies, conventions, integration points, gotchas.
+- Produce `.specwright/LANDSCAPE.md` per `protocols/landscape.md` format. User approves before saving.
+- Optional — if user declines, skip. LANDSCAPE.md is never required.
 
 **User conversation (HIGH freedom):**
 - Ask the user about things you CANNOT detect from the codebase:
@@ -71,38 +73,27 @@ When complete, ALL of the following exist:
 - The user must approve the charter before it's saved.
 
 **Git workflow configuration (MEDIUM freedom):**
-- Detect git workflow by scanning:
-  - Branch names (`git branch -a`): look for `develop`, `release/*`, `hotfix/*` (→ gitflow), feature branches (→ github-flow/trunk-based)
-  - Remote configuration (`git remote -v`)
-  - CI files referencing branch names (`.github/workflows/*.yml`, `.gitlab-ci.yml`, `Jenkinsfile`)
-- Present detected workflow with confidence level to the user.
-- Use AskUserQuestion to confirm or override:
-  - Strategy: trunk-based, github-flow, gitflow, custom
-  - Branch prefix (default: `feat/` or detected)
-  - Merge strategy: squash, rebase, merge
-  - PR required: yes/no
-  - Commit format: conventional, freeform, custom
-- Store results in `config.json` `git` section. See `protocols/git.md` for field reference.
-- If existing `config.json` has old git schema (missing new fields like `mergeStrategy`, `prRequired`, `branchPerWorkUnit`): offer to migrate by adding new fields with sensible defaults.
+- Detect workflow by scanning branch names, remotes, CI files. Present detected strategy with confidence.
+- Confirm via AskUserQuestion: strategy (trunk-based/github-flow/gitflow/custom), branch prefix, merge strategy, PR required, commit format.
+- Store in `config.json` `git` section per `protocols/git.md`.
+- If old git schema detected: offer migration with sensible defaults.
 
 **Configuration (LOW freedom):**
 - Write `.specwright/config.json` with detected and configured values.
 - Create `.specwright/state/workflow.json` with empty initial state.
-- Create directory structure: `.specwright/state/`, `.specwright/work/`, `.specwright/baselines/`, `.specwright/learnings/`.
+- Create directory structure: `.specwright/state/`, `.specwright/work/`, `.specwright/baselines/`, `.specwright/learnings/`. If survey produced LANDSCAPE.md, include it (optional).
 - Follow `protocols/state.md` for state file format.
 
 **Gate configuration (MEDIUM freedom):**
-- Ask the user which quality checks matter to them.
-- Default gates: build, security, spec-compliance. Others based on what's available.
-- If the project has a test runner: enable test quality gate.
-- If the project has a linter: enable lint gate.
-- Configure thresholds based on user's stated expectations.
+- Ask user which quality checks matter. Defaults: build, security, spec-compliance.
+- Enable test/lint gates if detected. Configure thresholds per user expectations.
 
 ## Protocol References
 
 - `protocols/state.md` -- workflow.json initialization
 - `protocols/context.md` -- config.json format
 - `protocols/git.md` -- git config field reference and strategy definitions
+- `protocols/landscape.md` -- codebase reference document format
 
 ## Failure Modes
 

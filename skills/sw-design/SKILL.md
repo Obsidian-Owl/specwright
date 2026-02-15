@@ -56,8 +56,8 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 - Default to Full when uncertain.
 
 **Research (HIGH freedom):**
-- Understand the codebase BEFORE designing. Scan code, dependencies, APIs, existing patterns.
-- Check `.specwright/patterns.md` and `.specwright/learnings/INDEX.md` if they exist. Reference relevant patterns in design.md.
+- If `.specwright/LANDSCAPE.md` exists, load it first. If stale per `protocols/landscape.md`, refresh inline and update `Snapshot:` timestamp. If missing, proceed without. Use as baseline for research.
+- Scan code, dependencies, APIs, existing patterns. Check `.specwright/patterns.md` and `.specwright/learnings/INDEX.md` if they exist.
 - Delegate to `specwright-researcher` (external docs) and `specwright-architect` (deep analysis) as needed.
 - Produce `context.md` summarizing findings for downstream agents.
 
@@ -70,7 +70,7 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 - Skip for straightforward requests.
 
 **Change requests (MEDIUM freedom):**
-- If `design.md` exists with argument: treat as change request, re-run critic. Without argument: ask — redesign, continue, or describe changes.
+- `design.md` exists + argument: change request, re-run critic. No argument: ask — redesign, continue, or changes.
 
 **User checkpoints:**
 - Ask for hard constraints before research (record in design.md). Share findings after research, alternatives after design, resolutions after critic.
@@ -88,6 +88,7 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 - `protocols/context.md` -- anchor doc and config loading
 - `protocols/delegation.md` -- agent delegation for research and critic
 - `protocols/recovery.md` -- compaction recovery
+- `protocols/landscape.md` -- codebase reference document format
 
 ## Failure Modes
 

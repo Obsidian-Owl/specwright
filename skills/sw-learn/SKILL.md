@@ -9,6 +9,7 @@ allowed-tools:
   - Read
   - Write
   - Edit
+  - Bash
   - Glob
   - Grep
   - AskUserQuestion
@@ -70,19 +71,18 @@ work benefits.
 - If directory empty, missing, or <2 files: silently skip.
 
 **Persistence (LOW freedom):**
-- Write `.specwright/learnings/{work-id}.json` only when at least one finding is promoted. No file on all-dismissed.
-- Schema: `{ workId, timestamp (ISO 8601), findings: [{ category, source, description, proposedRule, disposition }] }`
-- Categories: `build | security | testing | architecture | friction`. Sources: `gate-evidence | git-log | plan | insights`. Dispositions: `promoted-constitution | promoted-patterns | dismissed`.
+- Write `.specwright/learnings/{work-id}.json` only when at least one finding is promoted.
+- Schema: `{ workId, timestamp, findings: [{ category, source, description, proposedRule, disposition }] }`
+
+**Landscape update (MEDIUM freedom):**
+- After persistence, if `.specwright/LANDSCAPE.md` exists: identify affected modules from evidence and plan artifacts, re-scan those modules, merge updates. Show diff, user approves. Update `Snapshot:` timestamp.
+- If LANDSCAPE.md doesn't exist: silently skip.
 
 **Enrichment (MEDIUM freedom):**
-- Optional phase governed by `protocols/insights.md` for session pattern enrichment.
-- Reference the protocol for facets, privacy, staleness, and fallback behavior.
-- Silently skip if insights unavailable or stale per protocol rules.
+- Optional per `protocols/insights.md`. Silently skip if unavailable or stale.
 
 **Compaction (MEDIUM freedom):**
-- Runs after persistence when triggers met, governed by `protocols/learning-lifecycle.md`.
-- Groups raw learnings into themed summaries with INDEX.md. Reference protocol for thresholds and formats.
-- Silently skip if threshold not met per protocol rules.
+- Per `protocols/learning-lifecycle.md`. Silently skip if threshold not met.
 
 ## Protocol References
 
@@ -91,6 +91,7 @@ work benefits.
 - `protocols/state.md` -- workflow state reading
 - `protocols/insights.md` -- session pattern enrichment
 - `protocols/learning-lifecycle.md` -- compaction triggers and lifecycle
+- `protocols/landscape.md` -- codebase reference document format
 
 ## Failure Modes
 
