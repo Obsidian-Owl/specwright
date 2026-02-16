@@ -53,8 +53,6 @@ Specwright closes the **entire loop** — design, plan, build, verify, ship, lea
 | Compaction recovery | **Yes** | No | Yes | No | No |
 | Learning system (patterns promoted across sessions) | **Yes** | No | Yes | Yes | No |
 | Codebase knowledge persistence | **Yes** | No | Yes | No | No |
-| Configurability / extensibility | Moderate | Moderate | **High** — core strength | **High** — core strength | Full control |
-| Lightweight / low ceremony | No — opinionated by design | **Yes** | **Yes** | **Yes** | Varies |
 
 Every tool in this space pushes AI-assisted development forward. Specwright's focus is the **verification and evidence gap** — the part between "tests pass" and "it actually works."
 
