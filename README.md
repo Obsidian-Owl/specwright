@@ -6,6 +6,7 @@
   <a href="https://github.com/Obsidian-Owl/specwright/releases"><img src="https://img.shields.io/github/v/release/Obsidian-Owl/specwright?style=flat-square&color=f59e0b&label=version" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Obsidian-Owl/specwright?style=flat-square&color=475569" alt="License"></a>
   <a href="https://github.com/Obsidian-Owl/specwright/stargazers"><img src="https://img.shields.io/github/stars/Obsidian-Owl/specwright?style=flat-square&color=475569" alt="Stars"></a>
+  <a href="https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/plugins"><img src="https://img.shields.io/badge/Made_for-Claude_Code-cc785c?style=flat-square" alt="Made for Claude Code"></a>
 </p>
 
 <p align="center">
@@ -14,7 +15,9 @@
 
 ---
 
-Most spec-driven frameworks help you plan. Then they leave you on your own.
+## Why Specwright?
+
+AI agents optimise for "done." That's the problem. Code compiles, tests pass, CI is green — and three days later you find an export nobody imports, a handler that's never called, a validation rule that exists in the spec but not in the code. **The hard part isn't writing code. It's proving it works.**
 
 Specwright closes the **entire loop** — design, plan, build, verify, ship, learn. Every requirement is tracked to implementation evidence. Every PR ships with proof, not promises.
 
@@ -37,6 +40,23 @@ Specwright closes the **entire loop** — design, plan, build, verify, ship, lea
 - Codebase knowledge persists across sessions — no re-discovering the same architecture
 - Periodic health checks find systemic debt that per-change gates miss
 - One install, configure once, works with any language or framework
+
+### How It Compares
+
+| Capability | Specwright | [Spec Kit](https://github.com/spec-kit/spec-kit) | [Oh-My-ClaudeCode](https://github.com/anthropics/oh-my-claudecode) | Manual workflows |
+|---|---|---|---|---|
+| Structured spec writing | Yes | **Yes** — core strength | Partial | DIY |
+| Adversarial TDD (separate tester/executor) | **Yes** | No | No | No |
+| Wiring verification (orphaned code, layer violations) | **Yes** | No | No | No |
+| Evidence-based PRs (criterion → code + test) | **Yes** | No | No | No |
+| Quality gates with findings (not just badges) | **Yes** | No | Partial | DIY |
+| Compaction recovery | **Yes** | No | No | No |
+| Learning system (patterns promoted across sessions) | **Yes** | No | No | No |
+| Codebase knowledge persistence | **Yes** | No | No | No |
+| Configurability / extensibility | Moderate | Moderate | **High** — core strength | Full control |
+| Lightweight / low ceremony | No — opinionated by design | **Yes** | **Yes** | Varies |
+
+Every tool in this space pushes AI-assisted development forward. Specwright's focus is the **verification and evidence gap** — the part between "tests pass" and "it actually works."
 
 ## What Makes This Different
 
@@ -255,6 +275,10 @@ Specwright is open source under the MIT license.
 4. Submit a pull request
 
 ---
+
+<p align="center">
+  If Specwright helps you ship with confidence, <a href="https://github.com/Obsidian-Owl/specwright">a ⭐ helps others find it</a>.
+</p>
 
 <p align="center">
   <sub>Built by <a href="https://github.com/Obsidian-Owl">ObsidianOwl</a> · MIT License · v0.7.0</sub>
