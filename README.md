@@ -43,7 +43,7 @@ Specwright closes the **entire loop** — design, plan, build, verify, ship, lea
 
 ### How It Compares
 
-| Capability | Specwright | [Spec Kit](https://github.com/spec-kit/spec-kit) | [Oh-My-ClaudeCode](https://github.com/anthropics/oh-my-claudecode) | Manual workflows |
+| Capability | Specwright | [Spec Kit](https://github.com/github/spec-kit) | [Oh-My-ClaudeCode](https://github.com/Yeachan-Heo/oh-my-claudecode) | Manual workflows |
 |---|---|---|---|---|
 | Structured spec writing | Yes | **Yes** — core strength | Partial | DIY |
 | Adversarial TDD (separate tester/executor) | **Yes** | No | No | No |
