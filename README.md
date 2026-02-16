@@ -49,7 +49,7 @@ Specwright closes the **entire loop** — design, plan, build, verify, ship, lea
 | Adversarial TDD (separate tester/executor) | **Yes** | No | Yes | Yes | No |
 | Wiring verification (orphaned code, layer violations) | **Yes** | No | No | No | No |
 | Evidence-based PRs (criterion → code + test) | **Yes** | No | No | No | No |
-| Quality gates with findings (not just badges) | **Yes** | Yes | Yes | Yes | DIY |
+| Quality gates with findings (not just badges) | **Yes** | Partial | Yes | Partial | DIY |
 | Compaction recovery | **Yes** | No | Yes | No | No |
 | Learning system (patterns promoted across sessions) | **Yes** | No | Yes | Yes | No |
 | Codebase knowledge persistence | **Yes** | No | Yes | No | No |
