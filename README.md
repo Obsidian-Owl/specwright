@@ -50,9 +50,9 @@ Specwright closes the **entire loop** — design, plan, build, verify, ship, lea
 | Wiring verification (orphaned code, layer violations) | **Yes** | No | No | No |
 | Evidence-based PRs (criterion → code + test) | **Yes** | No | No | No |
 | Quality gates with findings (not just badges) | **Yes** | No | Partial | DIY |
-| Compaction recovery | **Yes** | No | No | No |
-| Learning system (patterns promoted across sessions) | **Yes** | No | No | No |
-| Codebase knowledge persistence | **Yes** | No | No | No |
+| Compaction recovery | **Yes** | No | Partial | No |
+| Learning system (patterns promoted across sessions) | **Yes** | No | Partial | No |
+| Codebase knowledge persistence | **Yes** | No | Partial | No |
 | Configurability / extensibility | Moderate | Moderate | **High** — core strength | Full control |
 | Lightweight / low ceremony | No — opinionated by design | **Yes** | **Yes** | Varies |
 
@@ -60,7 +60,7 @@ Every tool in this space pushes AI-assisted development forward. Specwright's fo
 
 ## What Makes This Different
 
-Other tools in this space focus on the **specification phase** — they help you write a plan, then hand off to the AI. The hard part isn't planning. It's everything after: does the code actually do what was asked? Is it wired up? Is it secure? Can you prove it?
+Other tools in this space tend to focus on the **front half** of the loop — specification authoring, agent orchestration, or planning scaffolds — then hand off to the AI. The hard part isn't planning or delegation. It's everything after: does the code actually do what was asked? Is it wired up? Is it secure? Can you prove it?
 
 Specwright focuses on the **verification and evidence** side — the part where AI agents actually fail.
 
@@ -74,7 +74,7 @@ Specwright focuses on the **verification and evidence** side — the part where 
 
 **Codebase Health Checks** — Run `/sw-audit` periodically to find systemic issues that per-change gates miss: architecture debt, complexity growth, convention drift, accumulated workarounds. Findings persist in `AUDIT.md` with stable IDs across re-runs. Design phases surface relevant findings. The learn phase resolves them when addressed.
 
-**Compaction Recovery** — All stateful skills support resume-from-crash. When Claude's context window compacts, Specwright reloads full state from disk. The only plugin in this space that handles context loss gracefully.
+**Compaction Recovery** — All stateful skills support resume-from-crash. When Claude's context window compacts, Specwright reloads full state from disk — including workflow stage, work unit queue, and gate progress — so no manual re-orientation is needed.
 
 ## How It Works
 
