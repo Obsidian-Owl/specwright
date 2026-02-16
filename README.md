@@ -43,18 +43,18 @@ Specwright closes the **entire loop** — design, plan, build, verify, ship, lea
 
 ### How It Compares
 
-| Capability | Specwright | [Spec Kit](https://github.com/github/spec-kit) | [Oh-My-ClaudeCode](https://github.com/Yeachan-Heo/oh-my-claudecode) | Manual workflows |
-|---|---|---|---|---|
-| Structured spec writing | Yes | **Yes** — core strength | Partial | DIY |
-| Adversarial TDD (separate tester/executor) | **Yes** | No | No | No |
-| Wiring verification (orphaned code, layer violations) | **Yes** | No | No | No |
-| Evidence-based PRs (criterion → code + test) | **Yes** | No | No | No |
-| Quality gates with findings (not just badges) | **Yes** | No | Partial | DIY |
-| Compaction recovery | **Yes** | No | Partial | No |
-| Learning system (patterns promoted across sessions) | **Yes** | No | Partial | No |
-| Codebase knowledge persistence | **Yes** | No | Partial | No |
-| Configurability / extensibility | Moderate | Moderate | **High** — core strength | Full control |
-| Lightweight / low ceremony | No — opinionated by design | **Yes** | **Yes** | Varies |
+| Capability | Specwright | [Spec Kit](https://github.com/github/spec-kit) | [Oh-My-ClaudeCode](https://github.com/Yeachan-Heo/oh-my-claudecode) | [Superpowers](https://github.com/obra/superpowers) | Manual workflows |
+|---|---|---|---|---|---|
+| Structured spec writing | Yes | **Yes** — core strength | Partial | Partial | DIY |
+| Adversarial TDD (separate tester/executor) | **Yes** | No | No | No | No |
+| Wiring verification (orphaned code, layer violations) | **Yes** | No | No | No | No |
+| Evidence-based PRs (criterion → code + test) | **Yes** | No | No | No | No |
+| Quality gates with findings (not just badges) | **Yes** | No | Partial | Partial | DIY |
+| Compaction recovery | **Yes** | No | Yes | No | No |
+| Learning system (patterns promoted across sessions) | **Yes** | No | Yes | Partial | No |
+| Codebase knowledge persistence | **Yes** | No | Yes | No | No |
+| Configurability / extensibility | Moderate | Moderate | **High** — core strength | **High** — core strength | Full control |
+| Lightweight / low ceremony | No — opinionated by design | **Yes** | **Yes** | **Yes** | Varies |
 
 Every tool in this space pushes AI-assisted development forward. Specwright's focus is the **verification and evidence gap** — the part between "tests pass" and "it actually works."
 
