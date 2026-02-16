@@ -8,6 +8,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.7.1] - 2026-02-16
+
+### Changed
+
+- fix(hooks): use plugin root path and deterministic stop script (#34)
+- docs: polish README and add contributor scaffolding (#30)
+
 ## [0.7.0] - 2026-02-15
 
 ### Added
