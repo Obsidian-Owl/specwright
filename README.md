@@ -45,13 +45,13 @@ Specwright closes the **entire loop** — design, plan, build, verify, ship, lea
 
 | Capability | Specwright | [Spec Kit](https://github.com/github/spec-kit) | [Oh-My-ClaudeCode](https://github.com/Yeachan-Heo/oh-my-claudecode) | [Superpowers](https://github.com/obra/superpowers) | Manual workflows |
 |---|---|---|---|---|---|
-| Structured spec writing | Yes | **Yes** — core strength | Partial | Partial | DIY |
-| Adversarial TDD (separate tester/executor) | **Yes** | No | No | No | No |
+| Structured spec writing | Yes | **Yes** — core strength | Yes | Yes | DIY |
+| Adversarial TDD (separate tester/executor) | **Yes** | No | Yes | Yes | No |
 | Wiring verification (orphaned code, layer violations) | **Yes** | No | No | No | No |
 | Evidence-based PRs (criterion → code + test) | **Yes** | No | No | No | No |
-| Quality gates with findings (not just badges) | **Yes** | No | Partial | Partial | DIY |
+| Quality gates with findings (not just badges) | **Yes** | Yes | Yes | Yes | DIY |
 | Compaction recovery | **Yes** | No | Yes | No | No |
-| Learning system (patterns promoted across sessions) | **Yes** | No | Yes | Partial | No |
+| Learning system (patterns promoted across sessions) | **Yes** | No | Yes | Yes | No |
 | Codebase knowledge persistence | **Yes** | No | Yes | No | No |
 | Configurability / extensibility | Moderate | Moderate | **High** — core strength | **High** — core strength | Full control |
 | Lightweight / low ceremony | No — opinionated by design | **Yes** | **Yes** | **Yes** | Varies |
