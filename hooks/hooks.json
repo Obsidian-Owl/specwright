@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ./hooks/session-start.mjs"
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs"
           }
         ]
       }
@@ -14,9 +14,8 @@
       {
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "Check if Specwright has active work. Read .specwright/state/workflow.json. If currentWork exists and currentWork.status is NOT 'shipped', 'abandoned', or null, respond: {\"ok\": false, \"reason\": \"Specwright has active work: [work-id] (status: [status], [completed]/[total] tasks done). Consider running /sw-status before ending this session, or /sw-status --reset to abandon.\"}. If no active work or file does not exist, respond: {\"ok\": true}. IMPORTANT: Check $ARGUMENTS — if stop_hook_active is true, always respond {\"ok\": true} to prevent loops.",
-            "timeout": 10
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/session-stop.mjs"
           }
         ]
       }
