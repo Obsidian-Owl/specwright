@@ -37,6 +37,7 @@ When complete, ALL of the following exist in `.specwright/work/{id}/`:
 
 - `design.md` -- solution overview, approach, integration points, risk assessment
 - `context.md` -- research findings, file paths, gotchas (travels with downstream agents)
+- `assumptions.md` -- classified assumptions with resolution status (Full intensity only; Lite inlines in context.md; Quick skips)
 
 When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`. Only produce conditional artifacts when needed.
 
@@ -67,14 +68,25 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 - Reference charter (vision) and constitution (practices). Present alternatives when reasonable.
 
 **Critic (HIGH freedom):**
-- For non-trivial requests, delegate to `specwright-architect` to find flaws. Show user findings and resolutions.
+- For non-trivial requests, delegate to `specwright-architect` to find flaws AND identify assumptions. Show user findings and resolutions.
 - Skip for straightforward requests.
+
+**Assumption resolution (MEDIUM freedom):**
+- Follow `protocols/assumptions.md` for format and classification.
+- After critic, present UNVERIFIED assumptions to the user grouped by resolution type:
+  - `clarify` -- ask the user specific questions to resolve ambiguity
+  - `reference` -- ask the user to provide API docs, schemas, interface definitions, or types
+  - `external` -- flag items the user must resolve with other teams or third parties
+- User resolves each: answer the question, provide the doc, accept the risk, or mark as resolved.
+- Design CANNOT be approved while UNVERIFIED assumptions remain. User may ACCEPT any assumption (acknowledging risk) to unblock.
+- For Lite intensity: capture assumptions inline in `context.md` instead of a separate artifact.
+- For Quick intensity: skip assumption tracking entirely.
 
 **Change requests (MEDIUM freedom):**
 - `design.md` exists + argument: change request, re-run critic. No argument: ask — redesign, continue, or changes.
 
 **User checkpoints:**
-- Ask for hard constraints before research. Share findings after research, alternatives after design, resolutions after critic. User approves design before saving.
+- Ask for hard constraints before research. Share findings after research, alternatives after design, resolutions after critic, assumption resolution before approval. User approves design before saving.
 
 **State mutations (LOW freedom):**
 - Follow `protocols/state.md` for all workflow.json updates.
@@ -88,6 +100,7 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 - `protocols/context.md` -- anchor doc and config loading
 - `protocols/delegation.md` -- agent delegation for research and critic
 - `protocols/recovery.md` -- compaction recovery
+- `protocols/assumptions.md` -- assumption format, classification, and lifecycle
 - `protocols/landscape.md` -- codebase reference document format
 - `protocols/audit.md` -- codebase health findings format
 
@@ -100,4 +113,6 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 | `design.md` exists, no argument | Ask: redesign from scratch, continue to `/sw-plan`, or describe changes? |
 | Critic rejects entire approach | Present rejection to user with alternatives. Don't silently override. |
 | User disagrees with critic | User wins. Note disagreement in design.md for the record. |
+| Unresolved assumptions block approval | Present grouped by resolution type. User must clarify, provide references, or accept risk. |
+| User cannot resolve external assumption now | Mark as ACCEPTED with note. Design proceeds; assumption becomes a tracked risk in plan. |
 | Compaction during design | Read workflow.json, check which artifacts exist, resume next missing phase |
