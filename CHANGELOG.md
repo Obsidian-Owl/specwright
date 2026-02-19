@@ -9,6 +9,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.8.0] - 2026-02-19
+
+### Changed
+
+- feat(design): add assumption surfacing and resolution to design workflow (#38)
+- fix(docs): correct inaccurate comparison claims against other plugins (#37)
+- fix: correct broken links in comparison table (#36)
+
 ## [0.7.1] - 2026-02-16
 
 ### Changed
