@@ -49,7 +49,7 @@ Persistent record of systemic issues that per-change gates miss: architecture de
 | Skill | Purpose | Key Innovation |
 |-------|---------|----------------|
 | `sw-init` | Project setup | Ask, detect, configure. Creates constitution + charter |
-| `sw-design` | Interactive solution architecture | Research, design, adversarial critic, user approval throughout |
+| `sw-design` | Interactive solution architecture | Research, design, adversarial critic, assumption surfacing, user approval throughout |
 | `sw-plan` | Decompose + spec | Reads design artifacts, breaks into work units, testable acceptance criteria |
 | `sw-build` | TDD implementation | Tester → executor delegation. Context doc travels with agents |
 | `sw-verify` | Interactive quality gates | Shows findings, not badges. Orchestrates gate skills in dependency order |
@@ -76,9 +76,10 @@ Invoked by verify, not directly by users.
 Solution architecture and implementation planning are separate skills:
 
 **sw-design** (interactive solution architecture):
-- Research codebase and external systems. Produce `design.md` + `context.md`.
+- Research codebase and external systems. Produce `design.md` + `context.md` + `assumptions.md`.
 - Conditional artifacts when warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`.
-- Adversarial critic challenges the design before approval.
+- Adversarial critic challenges the design and surfaces implicit assumptions before approval.
+- Assumptions are classified by category (technical, integration, data, behavioral, environmental) and resolution type (clarify, reference, external). User must resolve or accept each before design approval.
 - Adaptive phases: small requests skip critic, large requests get full treatment.
 - Design is per-request (shared across work units). Change requests via `/sw-design <changes>`.
 
@@ -115,9 +116,10 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `insights.md` | External CC insights data access | ~150 |
 | `learning-lifecycle.md` | Compaction triggers, tier structure, theme format | ~150 |
 | `landscape.md` | Codebase reference doc format, freshness, updates | ~180 |
+| `assumptions.md` | Design assumption format, classification, and lifecycle | ~200 |
 | `audit.md` | Codebase health findings format, IDs, matching, lifecycle | ~180 |
 
-Total: ~2210 tokens (loaded on demand, not all at once).
+Total: ~2410 tokens (loaded on demand, not all at once).
 
 ## Skill Anatomy
 
