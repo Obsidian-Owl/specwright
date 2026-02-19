@@ -10,7 +10,7 @@
       "source": "./",
       "strict": false,
       "description": "Spec-driven development with quality gates. Ensures you get what you asked for.",
-      "version": "0.7.1",
+      "version": "0.8.0",
       "author": {
         "name": "ObsidianOwl",
         "url": "https://github.com/Obsidian-Owl"
