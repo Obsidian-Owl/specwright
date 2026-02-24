@@ -31,10 +31,10 @@ codebase stays green between tasks.
 ## Inputs
 
 - `.specwright/state/workflow.json` -- current work unit and task progress
-- `.specwright/work/{id}/spec.md` -- acceptance criteria to implement
-- `.specwright/work/{id}/plan.md` -- architecture decisions
-- `.specwright/work/{id}/design.md` -- solution design from sw-design
-- `.specwright/work/{id}/context.md` -- research findings, file paths, gotchas
+- `{currentWork.workDir}/spec.md` -- acceptance criteria to implement
+- `{currentWork.workDir}/plan.md` -- architecture decisions
+- `.specwright/work/{currentWork.id}/design.md` -- solution design from sw-design (design-level)
+- `{currentWork.workDir}/context.md` -- research findings, file paths, gotchas
 - `.specwright/CONSTITUTION.md` -- coding standards to follow
 - `.specwright/config.json` -- build/test commands, agent config
 
@@ -58,8 +58,11 @@ After all tasks:
 
 **Branch setup (LOW freedom) — FIRST action before any coding:**
 - Read `config.json` `git` section. Follow `protocols/git.md` branch lifecycle.
+- Determine branch name:
+  - If `currentWork.unitId` is set (multi-unit): `{git.branchPrefix}{currentWork.unitId}`
+  - If `currentWork.unitId` is null (single-unit): `{git.branchPrefix}{currentWork.id}`
 - If `git.branchPerWorkUnit` is true (default):
-  - Check if branch `{git.branchPrefix}{work-unit-id}` already exists (recovery case).
+  - Check if the determined branch already exists (recovery case).
   - If exists: `git checkout {branch}`. Pull latest if remote tracking exists.
   - If not: checkout `git.baseBranch`, pull latest, create branch.
 - If `git.branchPerWorkUnit` is false: stay on current branch.
@@ -67,7 +70,7 @@ After all tasks:
 
 **Task loop (MEDIUM freedom):**
 - Work one task at a time. Complete it before starting the next.
-- If no task ID given, pick the next incomplete task from spec.md.
+- If no task ID given, pick the next incomplete task from `{currentWork.workDir}/spec.md`.
 - If no work unit ID given, use `currentWork` from workflow.json.
 
 **TDD cycle (HIGH freedom for test design, LOW freedom for sequence):**
@@ -90,6 +93,7 @@ When delegating, include in the prompt:
 - The constitution's relevant practices
 - Build and test commands from config.json
 - Behavioral reminder: surface confusion, prefer simplicity, touch only task files
+- Build agents MAY read parent `.specwright/work/{currentWork.id}/context.md` as a fallback if unit context is insufficient
 
 **Build failures (MEDIUM freedom):**
 - If tests fail after GREEN: delegate to `specwright-build-fixer` (max 2 attempts)

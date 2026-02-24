@@ -24,8 +24,8 @@ ships when gates have passed.
 ## Inputs
 
 - `.specwright/state/workflow.json` -- current work unit, gate results
-- `.specwright/work/{id}/spec.md` -- acceptance criteria for PR body
-- `.specwright/work/{id}/evidence/` -- gate evidence files
+- `{currentWork.workDir}/spec.md` -- acceptance criteria for PR body
+- `{currentWork.workDir}/evidence/` -- gate evidence files
 - `.specwright/config.json` -- git config (PR tool, branch prefix, main branch)
 
 ## Outputs
@@ -82,8 +82,14 @@ ships when gates have passed.
 - Set `currentWork.status` to `shipped` after PR creation.
 - If `workUnits` array exists:
   - Update the matching entry's status to `shipped`.
-  - If more pending units exist: set next pending unit as `currentWork` with status `planning`. Handoff: "Next: {unit-name}. Run `/sw-build`."
-  - If no more units: "All work units complete."
+  - Find the next `planned` entry by `order`. If found:
+    - Set that entry's status to `building`
+    - Set `currentWork.unitId` to the next unit's `id`
+    - Set `currentWork.workDir` to the next unit's `workDir`
+    - Set `currentWork.status` to `building`
+    - Reset `gates` to `{}`, `tasksCompleted` to `[]`, `tasksTotal` to `null`, `currentTask` to `null`
+    - Handoff: "Next: {unit-name}. Run `/sw-build`."
+  - If no more `planned` entries: "All work units complete."
 - Release lock.
 
 ## Protocol References
