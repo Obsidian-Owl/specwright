@@ -140,4 +140,5 @@ The parent `context.md` (design research) is never overwritten.
 | Required artifact missing | STOP: "Run /sw-design first" (design.md for full, context.md for lite) |
 | Design too vague for specs | Ask user for clarification with concrete options |
 | Active work already in progress | Ask user: continue existing, or start new? |
-| Compaction during planning | Read workflow.json, check which artifacts exist, resume |
+| Compaction during planning | Read workflow.json. Check `workUnits` entries: skip `planned` units, resume from first `pending` unit. If a `pending` unit has partially written artifacts (spec.md exists), re-present to user for approval. |
+| Decomposition revision after partial approval | Partial teardown not supported. User must `/sw-status --reset` and re-run `/sw-plan`. |
