@@ -115,8 +115,15 @@ The parent `context.md` (design research) is never overwritten.
 
 **State mutations (LOW freedom):**
 - Follow `protocols/state.md` for all workflow.json updates.
-- Transition `currentWork.status` from `designing` to `planning`.
-- When decomposing: populate `workUnits` array, set first unit to `planning`.
+- Transition `currentWork.status` from `designing` to `planning` at the start.
+- Single-unit: transition to `planning`, no `workUnits` array. Handoff to `/sw-build`.
+- Multi-unit: after all units approved:
+  - Set `currentWork.unitId` to the first unit's ID
+  - Set `currentWork.workDir` to the first unit's `workDir`
+  - Set the first unit's `workUnits` entry status to `building`
+  - Transition `currentWork.status` from `planning` to `building`
+  - Reset the `gates` section to `{}`
+  - Handoff to `/sw-build`
 
 ## Protocol References
 
