@@ -47,15 +47,15 @@ judgment for analysis that tools can't do.
 
 **Phase 2 — Analysis (HIGH freedom, WARN severity):**
 - Review changed code for injection patterns (SQL, command, XSS, path traversal).
-- Check that external data is treated as untrusted (per Constitution X3).
-- Check that authentication/authorization patterns aren't weakened (per X2).
+- Check that external data is treated as untrusted (per Constitution security practices).
+- Check that authentication/authorization patterns aren't weakened (per Constitution auth/authz practices).
 - Findings are WARN unless clearly exploitable (then BLOCK).
 
 **Verdict (LOW freedom):**
 - Follow `protocols/gate-verdict.md`.
 - Any BLOCK finding = gate FAIL.
 - WARN-only findings = gate WARN (passes but flagged).
-- Cite Constitution X1-X4 where relevant.
+- Cite relevant Constitution practices where applicable.
 
 ## Protocol References
 

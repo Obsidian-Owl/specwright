@@ -14,13 +14,6 @@ Before finalizing verdict, ask:
 - Would a skeptical auditor agree?
 - If ambiguous → FAIL
 
-## Baseline Checking
-
-If `.specwright/baselines/{gate}.json` exists:
-- Matching findings may be downgraded: FAIL→WARN, WARN→INFO
-- Expired baselines are ignored
-- Log all downgrades with justification
-
 ## Status Precedence
 
 ```
