@@ -55,11 +55,11 @@ Valid transitions for `currentWork.status`:
 | (none) | `designing` | sw-design (new work) |
 | `designing` | `planning` | sw-plan |
 | `designing` | `building` | sw-design (Quick intensity only) |
-| `planning` | `building` | sw-build |
+| `planning` | `building` | sw-plan (all specs approved) or sw-build |
 | `building` | `verifying` | sw-verify |
 | `verifying` | `building` | fix after failed verify |
 | `verifying` | `shipped` | sw-ship |
-| `shipped` | `planning` | next unit advancement |
+| `shipped` | `building` | sw-ship (next unit advancement) |
 | any | `abandoned` | sw-status --reset |
 
 **Enforcement:** Skills MUST check `currentWork.status` before mutating. If the current status is not a valid "from" state for the intended transition, STOP with:
