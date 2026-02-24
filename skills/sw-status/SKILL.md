@@ -38,12 +38,14 @@ next. If they're stuck, give them a way out with `--reset`.
 **Display (HIGH freedom):**
 - Read workflow.json and format it clearly for the user.
 - Show gate results with freshness (e.g., "PASS (12 min ago)").
-- If `workUnits` array exists, show the full queue:
+- If `currentWork.unitId` is present, show the active unit ID in the current work display.
+- If `workUnits` array exists, show the full queue with `workDir` paths:
   ```
   Work Units:
-    1. [SHIPPED] stage-boundary-enforcement
-    2. [BUILDING] git-operations-overhaul  ← current
-    3. [PENDING] state-enhancements
+    1. [SHIPPED] stage-boundary-enforcement (.specwright/work/{id}/units/stage-boundary-enforcement/)
+    2. [BUILDING] git-operations-overhaul (.specwright/work/{id}/units/git-operations-overhaul/)  ← current
+    3. [PLANNED] state-enhancements (.specwright/work/{id}/units/state-enhancements/)
+    4. [PENDING] final-cleanup (.specwright/work/{id}/units/final-cleanup/)
   ```
 - If no active work: say so and suggest `/sw-design`.
 - If work is complete: suggest `/sw-ship`.
