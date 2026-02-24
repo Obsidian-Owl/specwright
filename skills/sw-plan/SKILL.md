@@ -81,7 +81,7 @@ The parent `context.md` (design research) is never overwritten.
   Unit 2: {name} → /sw-build → /sw-verify → /sw-ship
   ```
 
-**Spec (MEDIUM freedom):**
+**Spec — single-unit (MEDIUM freedom):**
 - Write acceptance criteria the tester can turn into brutal tests.
 - Each criterion answers: "How will we KNOW this works?"
 - Include boundary conditions and error cases, not just happy paths.
@@ -90,9 +90,27 @@ The parent `context.md` (design research) is never overwritten.
 - Ground criteria in the design artifacts — reference specific decisions, contracts, data models.
 - The user must approve the spec before it's saved.
 
+**Spec — per-unit loop (MEDIUM freedom, multi-unit only):**
+- For each unit (sequentially, in dependency order):
+  1. Create directory: `.specwright/work/{id}/units/{unit-id}/`
+  2. Write `context.md` — curated subset of parent context.md containing:
+     - File paths and module boundaries relevant to this unit
+     - Integration points this unit touches
+     - Gotchas and patterns from the parent context that apply
+     - Dependency notes (what other units this one builds on)
+     - Relevant design excerpts summarized inline
+     - The unit's context.md must be self-contained — an agent reading only the unit directory has sufficient context to build
+  3. Write `plan.md` — task breakdown and file change map scoped to this unit
+  4. Write `spec.md` — acceptance criteria scoped to this unit
+  5. Present the spec to the user via AskUserQuestion for individual approval
+  6. If the user requests changes, revise and re-present (loop until approved)
+  7. After approval, update this unit's `workUnits` entry: status → `planned`, `workDir` set
+- Criteria quality: same standards as single-unit (testable, boundary conditions, grounded in design).
+
 **User checkpoints:**
-- After decomposition (if large): approve unit breakdown.
-- After spec: approve acceptance criteria.
+- After decomposition (if large): approve unit breakdown before creating directories.
+- After each unit's spec (multi-unit): approve acceptance criteria individually.
+- After spec (single-unit): approve acceptance criteria.
 - Use AskUserQuestion with options grounded in design artifacts.
 
 **State mutations (LOW freedom):**
