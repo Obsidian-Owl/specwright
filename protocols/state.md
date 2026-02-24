@@ -69,6 +69,8 @@ The `designing → building` transition is only valid when `currentWork.intensit
 
 When `workUnits` exists, also update the matching entry's status in the array.
 
+**Gates reset:** When a new unit is activated (via sw-plan or sw-ship unit advancement), the `gates` section is reset to `{}`. Historical gate results for shipped units persist in their `{unitWorkDir}/evidence/` directories.
+
 ## Path Resolution Convention
 
 Two scopes exist for resolving work artifact paths:
