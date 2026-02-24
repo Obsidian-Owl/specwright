@@ -59,13 +59,17 @@ try {
       }
     }
 
+    const workDir = work.workDir || `.specwright/work/${work.id}`;
+    const unitLine = work.unitId ? `  Active Unit: ${work.unitId}\n` : '';
+
     const summary = [
       `Specwright: Work in progress`,
       `  Unit: ${work.id} (${work.status})`,
+      unitLine ? unitLine.trimEnd() : null,
       `  Progress: ${completed}/${total} tasks`,
       `  Gates: ${gatesSummary}`,
-      `  Spec: .specwright/work/${work.id}/spec.md`,
-      `  Plan: .specwright/work/${work.id}/plan.md`,
+      `  Spec: ${workDir}/spec.md`,
+      `  Plan: ${workDir}/plan.md`,
       lockWarning,
       continuationContent,
     ].filter(Boolean).join('\n');

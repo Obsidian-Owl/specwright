@@ -28,7 +28,7 @@ judgment for analysis that tools can't do.
 
 ## Outputs
 
-- Evidence file at `.specwright/work/{id}/evidence/security-report.md`
+- Evidence file at `{currentWork.workDir}/evidence/security-report.md`
 - Gate status in workflow.json
 - Findings shown inline with severity, location, and remediation
 

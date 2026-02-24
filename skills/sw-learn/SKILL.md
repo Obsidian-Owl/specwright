@@ -27,8 +27,8 @@ work benefits.
 ## Inputs
 
 - `.specwright/state/workflow.json` -- current work unit (should be shipped)
-- `.specwright/work/{id}/evidence/` -- gate evidence files
-- `.specwright/work/{id}/plan.md` -- architecture decisions
+- `{currentWork.workDir}/evidence/` -- gate evidence files
+- `{currentWork.workDir}/plan.md` -- architecture decisions
 - `.specwright/CONSTITUTION.md` -- existing practices
 - `.specwright/learnings/` -- prior work unit learnings (for retrospective)
 - Git log for the work unit's commits

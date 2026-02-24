@@ -50,7 +50,7 @@ Persistent record of systemic issues that per-change gates miss: architecture de
 |-------|---------|----------------|
 | `sw-init` | Project setup | Ask, detect, configure. Creates constitution + charter |
 | `sw-design` | Interactive solution architecture | Research, design, adversarial critic, assumption surfacing, user approval throughout |
-| `sw-plan` | Decompose + spec | Reads design artifacts, breaks into work units, testable acceptance criteria |
+| `sw-plan` | Decompose + spec | Per-unit specs with individual user approval. Self-contained unit directories |
 | `sw-build` | TDD implementation | Tester → executor delegation. Context doc travels with agents |
 | `sw-verify` | Interactive quality gates | Shows findings, not badges. Orchestrates gate skills in dependency order |
 | `sw-ship` | Strategy-aware merge | PR with evidence-mapped body |
@@ -83,10 +83,11 @@ Solution architecture and implementation planning are separate skills:
 - Adaptive phases: small requests skip critic, large requests get full treatment.
 - Design is per-request (shared across work units). Change requests via `/sw-design <changes>`.
 
-**sw-plan** (decomposition + specs):
+**sw-plan** (decomposition + per-unit specs):
 - Reads design artifacts. Decomposes into work units if large.
-- Writes testable acceptance criteria (`spec.md`) and task breakdown (`plan.md`).
-- May append to `context.md` but never overwrites design research.
+- For multi-unit work: creates per-unit directories (`units/{unit-id}/`) each containing self-contained `spec.md`, `plan.md`, and curated `context.md`. Each unit's spec is individually reviewed and approved via `AskUserQuestion`.
+- For single-unit work: writes `spec.md` and `plan.md` at the work root (flat layout, unchanged).
+- Parent `context.md` (design research) is never overwritten.
 
 ### Verify Skill Gates
 
@@ -198,7 +199,19 @@ Runtime state (created by init):
 ├── AUDIT.md          # Codebase health findings (optional)
 ├── state/
 │   └── workflow.json # Current state
-└── work/             # Work unit artifacts (specs, evidence, plans)
+└── work/             # Work unit artifacts
+    └── {work-id}/
+        ├── design.md       # Solution design (design-level)
+        ├── context.md      # Research findings (design-level)
+        ├── assumptions.md  # Design assumptions (design-level)
+        ├── spec.md         # Single-unit: acceptance criteria here
+        ├── plan.md         # Single-unit: task breakdown here
+        └── units/          # Multi-unit: per-unit directories
+            └── {unit-id}/
+                ├── spec.md     # Unit-scoped acceptance criteria
+                ├── plan.md     # Unit-scoped task breakdown
+                ├── context.md  # Curated subset of parent context
+                └── evidence/   # Gate evidence for this unit
 ```
 
 ## History

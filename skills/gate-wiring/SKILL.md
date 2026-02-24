@@ -29,7 +29,7 @@ can still be wired incorrectly.
 
 ## Outputs
 
-- Evidence file at `.specwright/work/{id}/evidence/wiring-report.md`
+- Evidence file at `{currentWork.workDir}/evidence/wiring-report.md`
 - Gate status in workflow.json
 - Findings with specific file:line references and remediation
 
