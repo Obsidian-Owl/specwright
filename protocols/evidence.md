@@ -4,7 +4,7 @@
 
 **Directory structure:**
 ```
-.specwright/work/{unit-id}/evidence/
+{currentWork.workDir}/evidence/
 ```
 
 **File naming:**
@@ -27,13 +27,15 @@ After each gate, update `workflow.json`:
     "security": {
       "status": "PASS",
       "lastRun": "2026-02-10T12:34:56Z",
-      "evidence": ".specwright/work/EX-001/evidence/security-report.md"
+      "evidence": "{currentWork.workDir}/evidence/security-report.md"
     }
   }
 }
 ```
 
-**Status values:** `PASS`, `WARN`, `FAIL`, `ERROR`
+**Status values:** `PASS`, `WARN`, `FAIL`, `ERROR`, `SKIP`
+
+`SKIP` — gate was skipped; no evidence file produced.
 
 ## Freshness
 
