@@ -71,10 +71,10 @@ The parent `context.md` (design research) is never overwritten.
 **Decompose (MEDIUM freedom, only if large):**
 - Assess whether the design requires multiple work units.
 - Each unit is independently buildable and testable.
-- Each has its own acceptance criteria section.
 - Ordered by dependency (what must be built first).
-- The user approves the decomposition.
-- Write `workUnits` array to workflow.json per `protocols/state.md`.
+- If decomposition results in exactly 1 unit, use the single-unit flat layout (no `units/` directory, no `workUnits` array). Proceed to Spec constraint.
+- Present the decomposition to the user. The user approves before any unit directories are created.
+- After approval, populate `workUnits` array in workflow.json with all units at status `pending`, per `protocols/state.md`.
 - Present the expected cycle per unit:
   ```
   Unit 1: {name} → /sw-build → /sw-verify → /sw-ship
