@@ -14,6 +14,7 @@
     "description": "string",
     "status": "designing | planning | building | verifying | shipped | abandoned",
     "workDir": ".specwright/work/{id}",
+    "unitId": "string | null",
     "tasksTotal": "number | null",
     "tasksCompleted": ["task-id strings"],
     "currentTask": "string | null",
@@ -40,6 +41,8 @@
 
 `currentWork` is null when no work is active. `lock` is null when unlocked.
 `workUnits` is null for single-unit work (backward compatible). When present, `currentWork` still points to the active unit.
+
+`unitId` is the active unit within the work. Null for single-unit work. In multi-unit mode, `workDir` points to the active unit's directory (e.g., `.specwright/work/{id}/units/{unitId}/`). For single-unit work, `workDir` points to the work root (unchanged).
 
 ## State Transitions
 
