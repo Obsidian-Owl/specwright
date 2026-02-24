@@ -27,26 +27,34 @@ every unit is independently buildable.
 ## Inputs
 
 - `.specwright/state/workflow.json` -- current state (must be `designing` or `planning`)
-- `.specwright/work/{id}/design.md` -- approved solution design (full intensity only)
-- `.specwright/work/{id}/context.md` -- research findings from sw-design (all intensities)
-- Conditional design artifacts: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`
+- `.specwright/work/{currentWork.id}/design.md` -- approved solution design (full intensity only)
+- `.specwright/work/{currentWork.id}/context.md` -- research findings from sw-design (all intensities)
+- Conditional design artifacts at `.specwright/work/{currentWork.id}/`: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`
 - `.specwright/CONSTITUTION.md` -- practices to follow
 - `.specwright/config.json` -- project configuration
 
 ## Outputs
 
-When complete, ALL of the following exist in `.specwright/work/{id}/`:
+**Single-unit work** (not decomposed):
+
+All of the following exist in `.specwright/work/{id}/` (flat layout, unchanged):
 
 - `spec.md` -- acceptance criteria (each testable)
 - `plan.md` -- task breakdown, file change map, architecture decisions
 
-When the work is large, also:
+**Multi-unit work** (decomposed into 2+ units):
 
-- `workUnits` array populated in `workflow.json` per `protocols/state.md`
-- Each unit with its own acceptance criteria section in spec.md
+For each unit, the following exist in `.specwright/work/{id}/units/{unit-id}/`:
 
-`context.md` may be appended with decomposition-specific context but the
-design research content is never overwritten.
+- `spec.md` -- unit-scoped acceptance criteria
+- `plan.md` -- unit-scoped task breakdown, file change map
+- `context.md` -- curated subset of parent context relevant to this unit
+
+Also:
+- `workUnits` array populated in `workflow.json` per `protocols/state.md`, each entry with `workDir` set
+- No `spec.md` or `plan.md` at the work root — the `units/` directory is the multi-unit indicator
+
+The parent `context.md` (design research) is never overwritten.
 
 ## Constraints
 
