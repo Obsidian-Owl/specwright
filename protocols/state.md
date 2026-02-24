@@ -29,7 +29,7 @@
     }
   },
   "workUnits": [
-    { "id": "string", "description": "string", "status": "pending | planning | building | verifying | shipped | abandoned", "order": "number" }
+    { "id": "string", "description": "string", "status": "pending | planned | building | verifying | shipped | abandoned", "order": "number", "workDir": "string" }
   ],
   "lock": {
     "skill": "string",
@@ -43,6 +43,8 @@
 `workUnits` is null for single-unit work (backward compatible). When present, `currentWork` still points to the active unit.
 
 `unitId` is the active unit within the work. Null for single-unit work. In multi-unit mode, `workDir` points to the active unit's directory (e.g., `.specwright/work/{id}/units/{unitId}/`). For single-unit work, `workDir` points to the work root (unchanged).
+
+`workUnits` entry statuses: `pending` (not yet planned), `planned` (spec written and approved, waiting to be activated), `building`/`verifying`/`shipped`/`abandoned` (same as currentWork). The `planned` status is set by sw-plan after a unit's spec is individually approved. Each entry's `workDir` is the artifact directory path for that unit (source of truth — skills read this field, never construct paths from id).
 
 ## State Transitions
 
