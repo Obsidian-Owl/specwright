@@ -27,12 +27,12 @@ and be able to discuss or override before proceeding to ship.
 
 - `.specwright/state/workflow.json` -- current work unit, previous gate results
 - `.specwright/config.json` -- `gates.enabled` list
-- `.specwright/work/{id}/spec.md` -- for spec compliance gate
+- `{currentWork.workDir}/spec.md` -- for spec compliance gate
 - Gate skill files in `skills/gate-*/SKILL.md`
 
 ## Outputs
 
-- Evidence files in `.specwright/work/{id}/evidence/`, one per gate
+- Evidence files in `{currentWork.workDir}/evidence/`, one per gate
 - `workflow.json` gates section updated; status set to `verifying` during run
 - Aggregate summary shown to user with all findings
 

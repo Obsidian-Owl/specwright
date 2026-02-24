@@ -29,7 +29,7 @@ test quality, not just pass/fail.
 
 ## Outputs
 
-- Evidence file at `.specwright/work/{id}/evidence/test-quality.md`
+- Evidence file at `{currentWork.workDir}/evidence/test-quality.md`
 - Gate status in workflow.json
 - Findings organized by category with specific file:line references
 

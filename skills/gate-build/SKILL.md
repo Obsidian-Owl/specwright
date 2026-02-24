@@ -25,7 +25,7 @@ if the code doesn't build or tests don't pass, nothing else matters.
 
 ## Outputs
 
-- Evidence file at `.specwright/work/{id}/evidence/build-report.md`
+- Evidence file at `{currentWork.workDir}/evidence/build-report.md`
 - Gate status update in workflow.json: PASS, FAIL, or ERROR
 - Console output showing results inline (users see findings, not just badges)
 
