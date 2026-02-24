@@ -58,8 +58,11 @@ After all tasks:
 
 **Branch setup (LOW freedom) — FIRST action before any coding:**
 - Read `config.json` `git` section. Follow `protocols/git.md` branch lifecycle.
+- Determine branch name:
+  - If `currentWork.unitId` is set (multi-unit): `{git.branchPrefix}{currentWork.unitId}`
+  - If `currentWork.unitId` is null (single-unit): `{git.branchPrefix}{currentWork.id}`
 - If `git.branchPerWorkUnit` is true (default):
-  - Check if branch `{git.branchPrefix}{work-unit-id}` already exists (recovery case).
+  - Check if the determined branch already exists (recovery case).
   - If exists: `git checkout {branch}`. Pull latest if remote tracking exists.
   - If not: checkout `git.baseBranch`, pull latest, create branch.
 - If `git.branchPerWorkUnit` is false: stay on current branch.
