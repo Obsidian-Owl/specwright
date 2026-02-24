@@ -69,6 +69,19 @@ The `designing → building` transition is only valid when `currentWork.intensit
 
 When `workUnits` exists, also update the matching entry's status in the array.
 
+## Path Resolution Convention
+
+Two scopes exist for resolving work artifact paths:
+
+| Scope | How to resolve | Contains |
+|-------|---------------|----------|
+| **Unit-local** | `{currentWork.workDir}/` | `spec.md`, `plan.md`, `context.md`, `evidence/` |
+| **Design-level** | `.specwright/work/{currentWork.id}/` | `design.md`, `assumptions.md`, `decisions.md`, conditional artifacts |
+
+For single-unit work, both scopes resolve to the same directory. For multi-unit work, unit-local points to `units/{unitId}/` while design-level points to the work root.
+
+**Rule:** Skills MUST resolve unit-local artifacts through `currentWork.workDir`. Never construct paths from `currentWork.id` for unit-local artifacts.
+
 ## Read-Modify-Write Sequence
 
 **This is the most fragile operation. Follow exactly.**
