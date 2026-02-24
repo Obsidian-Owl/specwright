@@ -10,6 +10,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.9.0] - 2026-02-24
+
+### Changed
+
+- feat: update downstream skills, hook, and docs for per-unit specs (#43)
+- feat(sw-build,sw-ship): workDir paths, branch naming, unit advancement (#42)
+- feat(sw-plan): rewrite for per-unit specs with individual review (#41)
+- feat(protocols): add per-unit spec support to state protocol (#40)
+
 ## [0.8.0] - 2026-02-19
 
 ### Changed
