@@ -14,6 +14,7 @@
     "description": "string",
     "status": "designing | planning | building | verifying | shipped | abandoned",
     "workDir": ".specwright/work/{id}",
+    "unitId": "string | null",
     "tasksTotal": "number | null",
     "tasksCompleted": ["task-id strings"],
     "currentTask": "string | null",
@@ -28,7 +29,7 @@
     }
   },
   "workUnits": [
-    { "id": "string", "description": "string", "status": "pending | planning | building | verifying | shipped | abandoned", "order": "number" }
+    { "id": "string", "description": "string", "status": "pending | planned | building | verifying | shipped | abandoned", "order": "number", "workDir": "string" }
   ],
   "lock": {
     "skill": "string",
@@ -41,6 +42,10 @@
 `currentWork` is null when no work is active. `lock` is null when unlocked.
 `workUnits` is null for single-unit work (backward compatible). When present, `currentWork` still points to the active unit.
 
+`unitId` is the active unit within the work. Null for single-unit work. In multi-unit mode, `workDir` points to the active unit's directory (e.g., `.specwright/work/{id}/units/{unitId}/`). For single-unit work, `workDir` points to the work root (unchanged).
+
+`workUnits` entry statuses: `pending` (not yet planned), `planned` (spec written and approved, waiting to be activated), `building`/`verifying`/`shipped`/`abandoned` (same as currentWork). The `planned` status is set by sw-plan after a unit's spec is individually approved. Each entry's `workDir` is the artifact directory path for that unit (source of truth — skills read this field, never construct paths from id).
+
 ## State Transitions
 
 Valid transitions for `currentWork.status`:
@@ -50,11 +55,11 @@ Valid transitions for `currentWork.status`:
 | (none) | `designing` | sw-design (new work) |
 | `designing` | `planning` | sw-plan |
 | `designing` | `building` | sw-design (Quick intensity only) |
-| `planning` | `building` | sw-build |
+| `planning` | `building` | sw-plan (all specs approved) or sw-build |
 | `building` | `verifying` | sw-verify |
 | `verifying` | `building` | fix after failed verify |
 | `verifying` | `shipped` | sw-ship |
-| `shipped` | `planning` | next unit advancement |
+| `shipped` | `building` | sw-ship (next unit advancement) |
 | any | `abandoned` | sw-status --reset |
 
 **Enforcement:** Skills MUST check `currentWork.status` before mutating. If the current status is not a valid "from" state for the intended transition, STOP with:
@@ -63,6 +68,21 @@ Valid transitions for `currentWork.status`:
 The `designing → building` transition is only valid when `currentWork.intensity` is `"quick"`.
 
 When `workUnits` exists, also update the matching entry's status in the array.
+
+**Gates reset:** When a new unit is activated (via sw-plan or sw-ship unit advancement), the `gates` section is reset to `{}`. Historical gate results for shipped units persist in their `{unitWorkDir}/evidence/` directories.
+
+## Path Resolution Convention
+
+Two scopes exist for resolving work artifact paths:
+
+| Scope | How to resolve | Contains |
+|-------|---------------|----------|
+| **Unit-local** | `{currentWork.workDir}/` | `spec.md`, `plan.md`, `context.md`, `evidence/` |
+| **Design-level** | `.specwright/work/{currentWork.id}/` | `design.md`, `assumptions.md`, `decisions.md`, conditional artifacts |
+
+For single-unit work, both scopes resolve to the same directory. For multi-unit work, unit-local points to `units/{unitId}/` while design-level points to the work root.
+
+**Rule:** Skills MUST resolve unit-local artifacts through `currentWork.workDir`. Never construct paths from `currentWork.id` for unit-local artifacts.
 
 ## Read-Modify-Write Sequence
 
