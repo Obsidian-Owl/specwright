@@ -24,8 +24,8 @@ ships when gates have passed.
 ## Inputs
 
 - `.specwright/state/workflow.json` -- current work unit, gate results
-- `.specwright/work/{id}/spec.md` -- acceptance criteria for PR body
-- `.specwright/work/{id}/evidence/` -- gate evidence files
+- `{currentWork.workDir}/spec.md` -- acceptance criteria for PR body
+- `{currentWork.workDir}/evidence/` -- gate evidence files
 - `.specwright/config.json` -- git config (PR tool, branch prefix, main branch)
 
 ## Outputs
