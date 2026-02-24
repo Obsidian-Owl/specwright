@@ -11,6 +11,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.9.1] - 2026-02-24
+
+### Changed
+
+- fix(audit): resolve WARN findings AUD-001 through AUD-005 (#45)
+
 ## [0.9.0] - 2026-02-24
 
 ### Changed

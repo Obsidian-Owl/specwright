@@ -1,6 +1,6 @@
 {
   "name": "specwright",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Spec-driven development with quality gates. Ensures you get what you asked for.",
   "author": {
     "name": "ObsidianOwl",
