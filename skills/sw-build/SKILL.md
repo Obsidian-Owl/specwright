@@ -115,6 +115,10 @@ When delegating, include in the prompt:
 - Acquire lock before starting. Release after each task commit.
 - Update `tasksCompleted` array after each successful task.
 
+**Context management (MEDIUM freedom):**
+- After each task commit, write `.specwright/state/continuation.md`: current unit, task just completed, key files modified, remaining tasks. Overwrites each time.
+- After every 3rd completed task, note to the user: "Completed {n}/{total} tasks. If context feels large, consider /clear — I'll recover from workflow.json."
+
 **Task tracking (LOW freedom):**
 - At build start, create Claude Code tasks from spec/plan for visual progress tracking (subject = task name, description = acceptance criteria summary, activeForm = present-continuous).
 - Write ordering: update workflow.json FIRST (source of truth), then TaskUpdate as best-effort. Task tracking failures never halt the build.
