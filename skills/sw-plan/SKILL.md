@@ -80,6 +80,7 @@ The parent `context.md` (design research) is never overwritten.
   Unit 1: {name} → /sw-build → /sw-verify → /sw-ship
   Unit 2: {name} → /sw-build → /sw-verify → /sw-ship
   ```
+- Decomposition is complete when: each unit has a clear single purpose (describable in one sentence), dependencies are identified and ordered, each unit's spec has 3+ testable acceptance criteria, and an implementer could start any unit from its artifacts alone.
 
 **Spec — single-unit (MEDIUM freedom):**
 - Write acceptance criteria the tester can turn into brutal tests.

@@ -62,6 +62,7 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 - Scan code, dependencies, APIs, existing patterns. Check `.specwright/patterns.md` and `.specwright/learnings/INDEX.md` if they exist.
 - Delegate to `specwright-researcher` and `specwright-architect` as needed.
 - Produce `context.md` summarizing findings for downstream agents.
+- Research is complete when: can describe how the solution integrates with existing code (specific files/modules), can identify the main risk and at least one mitigation, can list what the solution does NOT change (blast radius is bounded), and no major "I'm guessing" gaps remain.
 
 **Design (HIGH freedom):**
 - Propose the simplest solution grounded in research. Justify any abstractions.
