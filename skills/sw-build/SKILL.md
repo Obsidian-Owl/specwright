@@ -110,6 +110,16 @@ When delegating, include in the prompt:
   issues; re-delegate to executor for non-trivial). This is task hygiene,
   not a build-fixer scenario.
 
+**Post-build review (MEDIUM freedom):**
+- After all tasks committed, if unit qualifies (4+ tasks OR 5+ files OR security-tagged criteria): delegate review to `specwright-reviewer`. Triage findings: BLOCK → user, WARN → awareness, INFO → skip.
+- Units that don't qualify skip directly to handoff.
+- Follow `protocols/build-quality.md` for delegation details and findings triage.
+
+**As-built notes (LOW freedom):**
+- After all tasks committed (and after optional post-build review), append `## As-Built Notes` to `{currentWork.workDir}/plan.md`: plan deviations, implementation decisions, actual file paths.
+- spec.md stays untouched. gate-spec does NOT consume as-built notes. Primary consumer: sw-learn.
+- Follow `protocols/build-quality.md` for content scope.
+
 **State updates (LOW freedom):**
 - Follow `protocols/state.md` for all workflow.json mutations.
 - Acquire lock before starting. Release after each task commit.
@@ -134,6 +144,7 @@ When delegating, include in the prompt:
 - `protocols/git.md` -- commit discipline
 - `protocols/delegation.md` -- agent delegation with fallback
 - `protocols/recovery.md` -- compaction recovery
+- `protocols/build-quality.md` -- post-build review and as-built notes
 
 ## Failure Modes
 
