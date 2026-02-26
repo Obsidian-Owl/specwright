@@ -14,7 +14,7 @@ Specwright is a Claude Code plugin for spec-driven app development. It ensures t
 
 2. **Freedom calibrated to fragility** -- HIGH freedom for creative work (analysis, design, code review). LOW freedom for fragile operations (state mutations, git commands, file paths). The inverse of v1.
 
-3. **Progressive disclosure** -- SKILL.md files stay under 600 tokens. Detail lives in protocols (loaded on demand), not inlined.
+3. **Progressive disclosure** -- SKILL.md files stay under 800 tokens. Detail lives in protocols (loaded on demand), not inlined.
 
 4. **Visible verification** -- Quality gates show their work. Findings, not badges. Users see problems and discuss them.
 
@@ -104,23 +104,24 @@ The final gate is always **spec compliance**: does the implementation actually d
 
 Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 
-| Protocol | Purpose | Tokens |
-|----------|---------|--------|
-| `stage-boundary.md` | Stage scope, termination, handoff enforcement | ~180 |
-| `delegation.md` | Agent delegation (custom subagents + agent teams) | ~200 |
-| `state.md` | Workflow state, work unit queue, transition validation | ~300 |
-| `git.md` | Strategy-aware branch lifecycle, commit format, PR creation | ~450 |
-| `recovery.md` | Compaction recovery procedure | ~120 |
-| `evidence.md` | Gate evidence format and storage | ~100 |
-| `gate-verdict.md` | Self-critique, baseline check, verdict rendering | ~150 |
-| `context.md` | Config/state/anchor doc loading | ~100 |
-| `insights.md` | External CC insights data access | ~150 |
-| `learning-lifecycle.md` | Compaction triggers, tier structure, theme format | ~150 |
-| `landscape.md` | Codebase reference doc format, freshness, updates | ~180 |
-| `assumptions.md` | Design assumption format, classification, and lifecycle | ~200 |
-| `audit.md` | Codebase health findings format, IDs, matching, lifecycle | ~180 |
+| Protocol | Purpose | Words (measured) |
+|----------|---------|-----------------|
+| `stage-boundary.md` | Stage scope, termination, handoff enforcement | ~250 |
+| `delegation.md` | Agent delegation (custom subagents + agent teams) | ~410 |
+| `state.md` | Workflow state, work unit queue, transition validation | ~670 |
+| `git.md` | Strategy-aware branch lifecycle, commit format, PR creation | ~650 |
+| `recovery.md` | Compaction recovery procedure | ~190 |
+| `evidence.md` | Gate evidence format and storage | ~120 |
+| `gate-verdict.md` | Self-critique, baseline check, verdict rendering | ~230 |
+| `context.md` | Config/state/anchor doc loading | ~175 |
+| `insights.md` | External CC insights data access | ~290 |
+| `learning-lifecycle.md` | Compaction triggers, tier structure, theme format | ~370 |
+| `landscape.md` | Codebase reference doc format, freshness, updates | ~140 |
+| `assumptions.md` | Design assumption format, classification, and lifecycle | ~620 |
+| `audit.md` | Codebase health findings format, IDs, matching, lifecycle | ~125 |
+| `build-quality.md` | Post-build review and as-built notes | ~230 |
 
-Total: ~2410 tokens (loaded on demand, not all at once).
+Total: ~4,470 words (loaded on demand, not all at once).
 
 ## Skill Anatomy
 
@@ -158,7 +159,7 @@ allowed-tools: [<minimal set>]
 <What can go wrong and what to do>
 ```
 
-Target: 600 tokens per SKILL.md (40% of the 1,500 token ceiling).
+Target: 800 tokens per SKILL.md (~53% of the 1,500 token ceiling).
 
 ## Directory Structure
 
