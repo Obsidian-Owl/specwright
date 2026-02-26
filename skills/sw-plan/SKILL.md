@@ -80,6 +80,7 @@ The parent `context.md` (design research) is never overwritten.
   Unit 1: {name} → /sw-build → /sw-verify → /sw-ship
   Unit 2: {name} → /sw-build → /sw-verify → /sw-ship
   ```
+- Decomposition is complete when: each unit has a clear single purpose (describable in one sentence), dependencies are identified and ordered, each unit's spec has 3+ testable acceptance criteria, and an implementer could start any unit from its artifacts alone.
 
 **Spec — single-unit (MEDIUM freedom):**
 - Write acceptance criteria the tester can turn into brutal tests.
@@ -106,6 +107,10 @@ The parent `context.md` (design research) is never overwritten.
   6. If the user requests changes, revise and re-present (loop until approved)
   7. After approval, update this unit's `workUnits` entry: status → `planned`, `workDir` set
 - Criteria quality: same standards as single-unit (testable, boundary conditions, grounded in design).
+
+**Code budget (MEDIUM freedom):**
+- plan.md files contain structure, not implementation. Allowed: function/method signatures (no bodies), type/interface definitions, API endpoint contracts (method, path, request/response shapes), directory/file structure, configuration examples, CLI commands.
+- NOT allowed: function implementations, algorithm logic, business rule code, full test implementations. The tester and executor receive the plan — keeping it focused gives them cleaner signal about *what* to build without biasing *how*.
 
 **User checkpoints:**
 - After decomposition (if large): approve unit breakdown before creating directories.
