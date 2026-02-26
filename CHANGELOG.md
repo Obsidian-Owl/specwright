@@ -12,6 +12,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.10.0] - 2026-02-26
+
+### Changed
+
+- docs: fix stale protocol count in README (12 → 14) (#50)
+- feat(quality-depth): add build depth & documentation guidance (#49)
+- feat(quality-depth): add research & build discipline guidance (#48)
+- feat(skills): add code budget and completion criteria to sw-plan and sw-design (#47)
+
 ## [0.9.1] - 2026-02-24
 
 ### Changed
