@@ -107,6 +107,10 @@ The parent `context.md` (design research) is never overwritten.
   7. After approval, update this unit's `workUnits` entry: status → `planned`, `workDir` set
 - Criteria quality: same standards as single-unit (testable, boundary conditions, grounded in design).
 
+**Code budget (MEDIUM freedom):**
+- plan.md files contain structure, not implementation. Allowed: function/method signatures (no bodies), type/interface definitions, API endpoint contracts (method, path, request/response shapes), directory/file structure, configuration examples, CLI commands.
+- NOT allowed: function implementations, algorithm logic, business rule code, full test implementations. The tester and executor receive the plan — keeping it focused gives them cleaner signal about *what* to build without biasing *how*.
+
 **User checkpoints:**
 - After decomposition (if large): approve unit breakdown before creating directories.
 - After each unit's spec (multi-unit): approve acceptance criteria individually.
