@@ -61,6 +61,7 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 - If `.specwright/AUDIT.md` exists and fresh per `protocols/audit.md`, surface relevant findings for the area being designed.
 - Scan code, dependencies, APIs, existing patterns. Check `.specwright/patterns.md` and `.specwright/learnings/INDEX.md` if they exist.
 - Delegate to `specwright-researcher` and `specwright-architect` as needed.
+- When gathering requirements from the user, listen for: hesitation or qualifiers ("maybe", "probably") → capture as uncertainty; repeated module mentions → likely natural boundaries; "core" or "foundation" language → ordering information; multiple alternatives → decision point to surface. Cover natural boundaries, ordering intuition, uncertainty mapping, and existing constraints.
 - Produce `context.md` summarizing findings for downstream agents.
 - Research is complete when: can describe how the solution integrates with existing code (specific files/modules), can identify the main risk and at least one mitigation, can list what the solution does NOT change (blast radius is bounded), and no major "I'm guessing" gaps remain.
 

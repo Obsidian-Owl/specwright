@@ -119,6 +119,12 @@ EOF
 
 The `Co-Authored-By` trailer is always included.
 
+## Commit Recovery (Pre-commit Hook Failures)
+
+If `git commit` exits non-zero AND output contains formatter-like patterns ("reformatted", "fixed", file modification reports), re-stage the modified files and retry once. If the second attempt fails, stop and show the error to the user.
+
+This extends the build skill's `config.commands.format` handling (which runs formatters *before* commit) to cover formatters invoked *by* pre-commit hooks outside Specwright's config.
+
 ## PR Creation
 
 Read `config.git.prTool` (default: `gh`).

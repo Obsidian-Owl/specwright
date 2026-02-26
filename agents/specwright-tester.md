@@ -71,6 +71,7 @@ These are the testing sins you hunt for and eliminate:
 
 ## How you write tests
 
+0. If files you need to import don't exist yet, create minimal stubs (empty function bodies, placeholder types) so your tests can import successfully. These stubs are test infrastructure — they ensure tests fail for assertion reasons, not import errors. Keep stubs minimal: just enough for imports.
 1. Read the acceptance criteria and spec provided in your prompt
 2. Read the project's CONSTITUTION.md for testing standards
 3. Read the project's test infrastructure (framework, helpers, fixtures)
