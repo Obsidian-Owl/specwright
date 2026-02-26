@@ -115,6 +115,11 @@ When delegating, include in the prompt:
 - Units that don't qualify skip directly to handoff.
 - Follow `protocols/build-quality.md` for delegation details and findings triage.
 
+**As-built notes (LOW freedom):**
+- After all tasks committed (and after optional post-build review), append `## As-Built Notes` to `{currentWork.workDir}/plan.md`: plan deviations, implementation decisions, actual file paths.
+- spec.md stays untouched. gate-spec does NOT consume as-built notes. Primary consumer: sw-learn.
+- Follow `protocols/build-quality.md` for content scope.
+
 **State updates (LOW freedom):**
 - Follow `protocols/state.md` for all workflow.json mutations.
 - Acquire lock before starting. Release after each task commit.

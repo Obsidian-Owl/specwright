@@ -20,3 +20,21 @@ The reviewer reads files directly. Do NOT pass full diffs in the prompt.
 - BLOCK → present to user immediately. User decides: fix now, fix later, or dismiss.
 - WARN → list for awareness. No action required.
 - INFO → skip (don't surface to user).
+
+## As-Built Notes
+
+**Trigger:** After all tasks committed (and after optional post-build review).
+
+**Location:** Append `## As-Built Notes` section to `{currentWork.workDir}/plan.md`.
+
+**Content scope:**
+- Plan deviations: what changed from the original plan and why
+- Implementation decisions: choices made during build not covered by plan
+- Actual file paths: if different from what plan.md predicted
+
+Only document what differed from plan. Don't restate what went as planned.
+
+**Boundaries:**
+- spec.md stays untouched. Spec deviations are gate-spec failures, not as-built notes.
+- gate-spec does NOT consume as-built notes. spec.md remains the sole source of truth for verification.
+- Primary consumer: sw-learn (captures patterns from build experience).
