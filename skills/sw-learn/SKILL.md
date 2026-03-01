@@ -38,10 +38,9 @@ work benefits.
 - Learnings presented to user in categories
 - User-approved patterns promoted to one of:
   - `.specwright/CONSTITUTION.md` (new practice rule)
+  - Auto-memory MEMORY.md (compact pattern entry, loaded every session)
   - `.specwright/patterns.md` (reusable pattern library)
 - `.specwright/learnings/{work-id}.json` -- only written when at least one finding is promoted (not all dismissed)
-- `.specwright/learnings/INDEX.md` -- compacted themes index (when compaction runs)
-- `.specwright/learnings/themes/` -- theme files (when compaction runs)
 
 ## Constraints
 
@@ -58,10 +57,12 @@ work benefits.
 
 **Presentation (MEDIUM freedom):**
 - Group by category (build, security, testing, architecture). Show: what happened, why it matters, proposed rule.
-- Use AskUserQuestion for curation: promote to constitution, patterns, or dismiss. Maximum 5-7 learnings.
+- Use AskUserQuestion for curation: promote to constitution, auto-memory, patterns, or dismiss. Maximum 5-7 learnings.
 
 **Promotion (LOW freedom):**
-- Constitution: add practice with ID (e.g., S6, Q5). Patterns: append to `.specwright/patterns.md` (create if missing).
+- Constitution: add practice with ID (e.g., S6, Q5).
+- Auto-memory: write compact entry to MEMORY.md per `protocols/learning-lifecycle.md`.
+- Patterns: append to `.specwright/patterns.md` (create if missing). Also write a compact one-liner to auto-memory (dual-write rule per protocol).
 - User approves exact wording before saving.
 
 **Retrospective (MEDIUM freedom):**
@@ -82,8 +83,8 @@ work benefits.
 **Enrichment (MEDIUM freedom):**
 - Optional per `protocols/insights.md`. Silently skip if unavailable or stale.
 
-**Compaction (MEDIUM freedom):**
-- Per `protocols/learning-lifecycle.md`. Silently skip if threshold not met.
+**Auto-memory (MEDIUM freedom):**
+- Per `protocols/learning-lifecycle.md`. If auto-memory directory doesn't exist or system prompt doesn't mention auto-memory, silently fall back to patterns.md only.
 
 ## Protocol References
 
@@ -91,7 +92,7 @@ work benefits.
 - `protocols/context.md` -- anchor doc loading
 - `protocols/state.md` -- workflow state reading
 - `protocols/insights.md` -- session pattern enrichment
-- `protocols/learning-lifecycle.md` -- compaction triggers and lifecycle
+- `protocols/learning-lifecycle.md` -- promotion targets and auto-memory format
 - `protocols/landscape.md` -- codebase reference document format
 - `protocols/audit.md` -- codebase health findings format
 
@@ -103,4 +104,4 @@ work benefits.
 | No evidence files | Skip evidence scanning, focus on git log and plan |
 | User dismisses all learnings | No persistence file written. No archive clutter. |
 | Insights unavailable/stale | Silently skip enrichment per `protocols/insights.md` |
-| Compaction threshold not met | Silently skip per protocol |
+| Auto-memory unavailable | Silently fall back to patterns.md only |

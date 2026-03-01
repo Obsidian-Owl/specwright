@@ -1,94 +1,48 @@
 # Learning Lifecycle Protocol
 
-**Memory tiering.** Raw learning files accumulate over time. This protocol governs compaction into a three-tier structure: hot (INDEX.md), warm (theme files), cold (raw files).
+**Promotion targets.** Learnings captured by sw-learn are promoted to surfaces with different durability and visibility. This protocol governs what goes where.
 
-## Tier Definitions
+## Promotion Targets
 
-**Hot:** `.specwright/learnings/INDEX.md` — lookup table, max 20 lines content (excluding frontmatter).
+Three targets, ordered by durability:
 
-**Warm:** `.specwright/learnings/themes/{theme-name}.md` — themed summaries, 300-token soft budget per file.
+| Target | When to use | Loaded |
+|--------|------------|--------|
+| **Constitution** | Hard rules: "always do X", "never do Y" | Every session (via CLAUDE.md reference) |
+| **Auto-memory** | Project-specific patterns, common gotchas | Every session (first 200 lines of MEMORY.md) |
+| **patterns.md** | Detailed patterns with source and rationale | On demand (sw-design, sw-plan read it) |
 
-**Cold:** `.specwright/learnings/{work-id}.json` — raw files, never deleted.
+**Constitution** (`.specwright/CONSTITUTION.md`): Most durable. Add a practice with an ID (e.g., S6, Q5). User approves exact wording. Referenced by CLAUDE.md, loaded by skills, validated by gates.
 
-## Compaction Triggers
+**Auto-memory** (MEMORY.md in Claude Code's auto-memory directory): Loaded automatically every session. Write compact entries under a `## Specwright Patterns` section. Fire-and-forget — patterns.md is the canonical record.
 
-Execute when **either** condition met:
+**patterns.md** (`.specwright/patterns.md`): Full pattern library. Detailed descriptions with source and rationale. Create if missing on first promotion. Grouped by theme, not fixed categories.
 
-1. 5+ raw `.json` files exist in `.specwright/learnings/`
-2. 3+ new raw files since last compaction (current raw file count minus `rawFilesProcessed` in INDEX.md frontmatter)
+## Dual-Write Rule
 
-Skip silently if neither condition met.
+When promoting to patterns.md, also write a compact one-liner to auto-memory. This ensures the pattern is visible in every session without requiring an explicit file read. Auto-memory acts as an index for the full patterns.md library.
 
-## INDEX.md Format
+## Auto-Memory Format
 
-### Frontmatter
-```yaml
----
-lastCompaction: "2026-02-12T14:30:00Z"
-rawFilesProcessed: 12
----
-```
+**Section header:** `## Specwright Patterns`
 
-### Content (20-line budget)
-One entry per theme:
-```
-**{theme-name}** — {one-line summary} → themes/{theme-name}.md
-```
+**Entry format:** `- **P{n}: {title}** — {one-line summary}`
 
-If INDEX.md exists: update in place. If absent: create.
+**Section management:**
+1. Before appending, check if `## Specwright Patterns` section exists in MEMORY.md
+2. If missing (Claude may have reorganized during auto-memory maintenance): recreate the section
+3. Append the new entry to the section
 
-## Theme File Format
+**Line count check:** Before adding, check MEMORY.md total line count. First 200 lines are loaded at session start; entries beyond that are invisible. If approaching the limit, skip the auto-memory write (patterns.md is the canonical record).
 
-Path: `.specwright/learnings/themes/{theme-name}.md`
-Theme names: kebab-case, derived from content (e.g., `build-caching`, `api-error-handling`).
+## Raw File Retention
 
-Structure:
-```markdown
-# {Theme Name}
-
-{Summarized findings grouped by natural affinity, not fixed categories}
-
-## Related Work Units
-- {work-id-1}
-- {work-id-2}
-```
-
-**Budget:** 300 tokens soft limit (approximate — word count / 0.75 as heuristic). If exceeded during compaction: split into subtopics or prune low-signal content.
-
-## Compaction Process
-
-**Goal:** Group raw findings by natural themes, summarize into theme files, update INDEX.md.
-
-**Constraints:**
-1. Read all raw `.json` files from `.specwright/learnings/`
-2. Identify natural themes from findings (NOT predetermined categories)
-3. For each theme:
-   - Create or update theme file
-   - Enforce 300-token budget
-   - Track work-id in "Related Work Units"
-4. Update INDEX.md frontmatter:
-   - Set `lastCompaction` to current ISO 8601 timestamp
-   - Set `rawFilesProcessed` to count of all raw files processed (cumulative)
-5. Raw files remain in place (cold tier)
-
-## Validation
-
-**Per-file validation:**
-- Required JSON fields: `workId`, `timestamp`, `findings`
-- Invalid files: skip silently, continue processing others
-- Non-JSON files: skip
-
-**Theme merging:**
-- If theme file exists: merge new findings, re-enforce budget
-- If theme name collision: suffix with `-2`, `-3`, etc.
+`.specwright/learnings/{work-id}.json` — raw learning files. Archive only, never deleted. Schema: `{ workId, timestamp, findings: [{ category, source, description, proposedRule, disposition }] }`. Only written when at least one finding is promoted (not all dismissed).
 
 ## Graceful Degradation
 
-**Silent skip when:**
-- Fewer than 5 raw files AND compaction not triggered by work-unit count
-- All raw files fail validation
-- `.specwright/learnings/` directory missing
+**Auto-memory unavailable:** If the auto-memory directory doesn't exist or the system prompt doesn't mention auto-memory, silently fall back to patterns.md only. Never error on missing auto-memory. Never prompt the user about it.
 
-**Never:**
-- Error on missing data
-- Prompt user to run compaction manually
+**learnings/ directory missing:** Create on first write.
+
+**Raw file validation:** Required JSON fields: `workId`, `timestamp`, `findings`. Invalid files: skip silently. Non-JSON files: skip.
