@@ -115,13 +115,13 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `gate-verdict.md` | Self-critique, baseline check, verdict rendering | ~230 |
 | `context.md` | Config/state/anchor doc loading | ~175 |
 | `insights.md` | External CC insights data access | ~290 |
-| `learning-lifecycle.md` | Compaction triggers, tier structure, theme format | ~370 |
+| `learning-lifecycle.md` | Promotion targets, auto-memory format, patterns.md maintenance | ~390 |
 | `landscape.md` | Codebase reference doc format, freshness, updates | ~140 |
 | `assumptions.md` | Design assumption format, classification, and lifecycle | ~620 |
 | `audit.md` | Codebase health findings format, IDs, matching, lifecycle | ~125 |
 | `build-quality.md` | Post-build review and as-built notes | ~230 |
 
-Total: ~4,470 words (loaded on demand, not all at once).
+Total: ~4,490 words (loaded on demand, not all at once).
 
 ## Skill Anatomy
 
