@@ -74,8 +74,8 @@ try {
       continuationContent,
     ].filter(Boolean).join('\n');
 
-    // Output goes to stderr so Claude sees it as a system message
-    process.stderr.write(summary + '\n');
+    // SessionStart hook stdout is added as context Claude can see and act on
+    process.stdout.write(summary + '\n');
   }
 } catch (err) {
   // Don't block session on hook failure — degrade gracefully
