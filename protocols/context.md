@@ -10,6 +10,7 @@ Load when needed for alignment/verification:
 
 ### Configuration
 - `.specwright/config.json` — Project settings, commands, gates, git, integration
+  - `backlog.type` / `backlog.label` — backlog target (optional; read before writing backlog items per `protocols/backlog.md`)
 
 ### State
 - `.specwright/state/workflow.json` — Current progress, gate results, lock status
