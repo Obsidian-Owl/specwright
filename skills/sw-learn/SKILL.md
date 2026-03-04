@@ -57,7 +57,12 @@ work benefits.
 
 **Presentation (MEDIUM freedom):**
 - Group by category (build, security, testing, architecture). Show: what happened, why it matters, proposed rule.
-- Use AskUserQuestion for curation: promote to constitution, auto-memory, patterns, or dismiss. Maximum 5-7 learnings.
+- Use AskUserQuestion for curation. Two-step to stay within option limits:
+  1. Ask: "Promote, track for later, or dismiss?"
+  2. If promote: ask where — constitution, auto-memory, or patterns.
+- Track for later: write a BL-{n} item with `pattern` tag per `protocols/backlog.md`.
+  No learning file written for tracked items (only for promoted items).
+- Maximum 5-7 learnings.
 
 **Promotion (LOW freedom):**
 - Constitution: add practice with ID (e.g., S6, Q5).
@@ -95,6 +100,7 @@ work benefits.
 - `protocols/learning-lifecycle.md` -- promotion targets and auto-memory format
 - `protocols/landscape.md` -- codebase reference document format
 - `protocols/audit.md` -- codebase health findings format
+- `protocols/backlog.md` -- backlog item format and write targets
 
 ## Failure Modes
 
