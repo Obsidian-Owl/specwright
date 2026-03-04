@@ -20,6 +20,7 @@ Load on demand when codebase structure knowledge is needed:
 
 - `.specwright/LANDSCAPE.md` — Codebase architecture and module knowledge (optional)
 - `.specwright/AUDIT.md` — Codebase health findings and tech debt tracking (optional)
+- `.specwright/research/*.md` — External research briefs (optional; warn if stale per `protocols/research.md`)
 
 ## Initialization Checks
 

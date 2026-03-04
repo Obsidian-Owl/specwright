@@ -11,6 +11,7 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | Skill | Purpose |
 |-------|---------|
 | `sw-init` | Project setup. Creates constitution + charter. Configures gates and hooks. |
+| `sw-research` | Deep outward-facing research. External docs, APIs, patterns, validation. Produces referenced briefs. |
 | `sw-design` | Interactive solution architecture. Research, design, adversarial critic, assumption surfacing. |
 | `sw-plan` | Decompose design into work units with testable specs. |
 | `sw-build` | TDD implementation of one work unit. |
@@ -58,6 +59,7 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `landscape.md` -- Codebase reference document format and freshness rules
 - `assumptions.md` -- Design assumption format, classification, and resolution lifecycle
 - `audit.md` -- Codebase health findings format, IDs, and lifecycle
+- `research.md` -- External research brief format, confidence scoring, and lifecycle
 - `backlog.md` -- Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets
 - `spec-review.md` -- Spec quality review dimensions, finding levels, resolution flow
 
