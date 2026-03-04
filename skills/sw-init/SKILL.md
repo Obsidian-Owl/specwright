@@ -88,6 +88,15 @@ When complete, ALL of the following exist:
 - Ask user which quality checks matter. Defaults: build, security, spec-compliance.
 - Enable test/lint gates if detected. Configure thresholds per user expectations.
 
+**Backlog configuration (MEDIUM freedom):**
+- Batch with gate configuration question (both are quality infrastructure).
+- Ask: "Where should Specwright track tech debt, deferred work, debug findings, and audit items?"
+  - `markdown` — writes to `.specwright/BACKLOG.md` (default, always available)
+  - `github-issues` — creates GitHub Issues via `gh` CLI (requires `gh auth login`)
+- If `github-issues` selected: ask for label name (default: `specwright-backlog`).
+- Store as `backlog.type` and `backlog.label` in `config.json`.
+- If user skips or is unsure: default to `markdown`. Backlog config is always optional.
+
 ## Protocol References
 
 - `protocols/state.md` -- workflow.json initialization
