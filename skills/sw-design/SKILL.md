@@ -79,8 +79,14 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
   - `clarify` -- ask the user specific questions to resolve ambiguity
   - `reference` -- ask the user to provide API docs, schemas, interface definitions, or types
   - `external` -- flag items the user must resolve with other teams or third parties
-- User resolves each: answer the question, provide the doc, accept the risk, or mark as resolved.
-- Design CANNOT be approved while UNVERIFIED assumptions remain. User may ACCEPT any assumption (acknowledging risk) to unblock.
+- User resolves each: answer the question, provide the doc, accept the risk, defer to
+  backlog, or mark as resolved.
+- DEFER: write assumption as BL-{n} with `defer` tag per `protocols/backlog.md`. Design
+  may proceed. The assumption becomes a tracked backlog item for later resolution.
+  (Distinct from ACCEPT: ACCEPT acknowledges risk and proceeds without tracking;
+  DEFER tracks the assumption for explicit future resolution.)
+- Design CANNOT be approved while UNVERIFIED assumptions remain. User may ACCEPT or
+  DEFER any assumption to unblock.
 - For Lite intensity: capture assumptions inline in `context.md` instead of a separate artifact.
 - For Quick intensity: skip assumption tracking entirely.
 
@@ -105,6 +111,7 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 - `protocols/assumptions.md` -- assumption format, classification, and lifecycle
 - `protocols/landscape.md` -- codebase reference document format
 - `protocols/audit.md` -- codebase health findings format
+- `protocols/backlog.md` -- backlog item format and write targets
 
 ## Failure Modes
 
