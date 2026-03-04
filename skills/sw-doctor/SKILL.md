@@ -43,7 +43,7 @@ Makes NO state mutations.
 1. **Anchor docs** — `.specwright/CONSTITUTION.md` and `.specwright/CHARTER.md` exist and are non-empty
 2. **Config** — `.specwright/config.json` is valid JSON with `gates` and `git` fields present
 3. **State** — `.specwright/state/workflow.json` is valid JSON; `lock` is null or held < 1 hour
-4. **Gates** — for each gate name in `config.gates` with `enabled: true`, verify `skills/gate-{name}/SKILL.md` exists
+4. **Gates** — for each key `{gate}` in `config.gates` where `config.gates[{gate}].enabled` is `true`, verify `skills/gate-{gate}/SKILL.md` exists
 5. **Build command** — if `config.commands.build` is set, `which {cmd}` exits 0; WARN if not found
 6. **Test command** — if `config.commands.test` is set, `which {cmd}` exits 0; WARN if not found
 7. **Format/lint** — if `config.commands.format` or `config.commands.lint` is set, `which {cmd}` for each; WARN if not found
@@ -59,11 +59,11 @@ Specwright Health Check
 ✓ Anchor docs       PASS
 ✓ Config            PASS
 ✓ State             PASS
+✓ Gates             PASS
 ⚠ Build command     WARN — 'pnpm build' not found on PATH
 ✓ Test command      PASS
 ✓ Format/lint       PASS
 ✗ Hooks             FAIL — hooks/session-start.mjs missing
-✓ Gates             PASS
 ✓ Backlog config    PASS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 7 passed · 1 warning · 1 failure
