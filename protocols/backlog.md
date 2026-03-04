@@ -46,8 +46,8 @@ IDs are `BL-{n}` where `n` is a zero-padded three-digit integer (BL-001, BL-002,
 `BL-{n}` ID, increment by 1. If BACKLOG.md is missing or has no IDs, start at BL-001.
 
 **For github-issues target:** List open issues with the backlog label (`gh issue list
---label "{backlog.label}" --json number --jq '.[].number'`), find highest BL-{n}
-in issue titles, increment. If none, start at BL-001.
+--label "{backlog.label}" --json title --jq '.[].title'`), parse each title for
+the BL-{n} prefix, find the highest n, increment. If none found, start at BL-001.
 
 ## BACKLOG.md Format
 
