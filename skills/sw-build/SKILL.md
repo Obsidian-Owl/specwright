@@ -72,6 +72,7 @@ After all tasks:
 - Work one task at a time. Complete it before starting the next.
 - If no task ID given, pick the next incomplete task from `{currentWork.workDir}/spec.md`.
 - If no work unit ID given, use `currentWork` from workflow.json.
+- After each task commit, emit a status card (see Context management for format).
 
 **TDD cycle (HIGH freedom for test design, LOW freedom for sequence):**
 
@@ -127,7 +128,19 @@ When delegating, include in the prompt:
 
 **Context management (MEDIUM freedom):**
 - After each task commit, write `.specwright/state/continuation.md`: current unit, task just completed, key files modified, remaining tasks. Overwrites each time.
-- After every 3rd completed task, note to the user: "Completed {n}/{total} tasks. If context feels large, consider /clear — I'll recover from workflow.json."
+- After each task commit, emit a status card:
+  ```
+  ───────────────────────────────────────
+  ✓ {task-id} committed — {task name}
+    Progress: {n} of {total} tasks complete
+    Next:     {next-task-id} — {next task name}
+    Ahead:    {remaining task ids and names}
+  ───────────────────────────────────────
+  ```
+- Context nudge: after the 3rd completed task AND whenever 4+ tasks remain, append
+  to the status card: "Context growing — consider /clear. I'll recover from workflow.json."
+- If user responds "stop" or "pause" to a status card: halt cleanly.
+  Advise: `/sw-pivot` if the plan changed, `/sw-build` to resume.
 
 **Task tracking (LOW freedom):**
 - At build start, create Claude Code tasks from spec/plan for visual progress tracking (subject = task name, description = acceptance criteria summary, activeForm = present-continuous).
