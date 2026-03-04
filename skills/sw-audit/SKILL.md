@@ -67,7 +67,9 @@ and persist findings for future design cycles.
 
 **Presentation (MEDIUM freedom):**
 - Show findings grouped by dimension. For each: severity, location, description, impact, recommendation.
-- Use AskUserQuestion to let user adjust severity or dismiss findings before saving.
+- Use AskUserQuestion to let user adjust severity, dismiss, or export to backlog for each finding.
+  Export to backlog: write a BL-{n} item with `finding` tag per `protocols/backlog.md`.
+  The finding remains in AUDIT.md; the backlog item is for prioritization and action tracking.
 - Maximum 20 findings per run. If more, keep highest-severity.
 
 ## Protocol References
@@ -75,6 +77,7 @@ and persist findings for future design cycles.
 - `protocols/audit.md` -- finding format, IDs, matching, lifecycle
 - `protocols/delegation.md` -- agent delegation
 - `protocols/context.md` -- config and anchor doc loading
+- `protocols/backlog.md` -- backlog item format and write targets
 
 ## Failure Modes
 
