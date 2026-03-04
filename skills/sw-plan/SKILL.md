@@ -108,6 +108,14 @@ The parent `context.md` (design research) is never overwritten.
   7. After approval, update this unit's `workUnits` entry: status → `planned`, `workDir` set
 - Criteria quality: same standards as single-unit (testable, boundary conditions, grounded in design).
 
+**Spec pre-review (MEDIUM freedom):**
+- After each spec is drafted — single-unit: after draft; multi-unit: after each unit's
+  spec draft — before presenting to the user for approval: follow `protocols/spec-review.md`.
+- Delegate spec quality review to `specwright-architect`.
+- Surface BLOCK findings before user approval checkpoint. BLOCKs must be revised or
+  overridden (with user acknowledgement) before the spec is finalized.
+- Surface WARN findings alongside the spec at the user approval checkpoint.
+
 **Code budget (MEDIUM freedom):**
 - plan.md files contain structure, not implementation. Allowed: function/method signatures (no bodies), type/interface definitions, API endpoint contracts (method, path, request/response shapes), directory/file structure, configuration examples, CLI commands.
 - NOT allowed: function implementations, algorithm logic, business rule code, full test implementations. The tester and executor receive the plan — keeping it focused gives them cleaner signal about *what* to build without biasing *how*.
@@ -136,6 +144,7 @@ The parent `context.md` (design research) is never overwritten.
 - `protocols/state.md` -- workflow state updates and locking
 - `protocols/context.md` -- anchor doc and config loading
 - `protocols/recovery.md` -- compaction recovery
+- `protocols/spec-review.md` -- spec quality review before user approval
 
 ## Failure Modes
 
