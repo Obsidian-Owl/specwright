@@ -16,6 +16,9 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | `sw-build` | TDD implementation of one work unit. |
 | `sw-verify` | Interactive quality gates. Shows findings, validates against spec. |
 | `sw-ship` | Strategy-aware merge via PR. |
+| `sw-debug` | Investigation-first debugging. Scope → investigate → diagnose → fix/log/defer. |
+| `sw-pivot` | Mid-build course correction. Revises remaining tasks via architect; append-only. |
+| `sw-doctor` | Read-only installation health check. 9 checks, repair hints. |
 | `sw-guard` | Detect stack and interactively configure guardrails (hooks, CI, settings). |
 | `sw-status` | Current state and progress. |
 | `sw-learn` | Post-ship capture of patterns and learnings. |
@@ -55,6 +58,8 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `landscape.md` -- Codebase reference document format and freshness rules
 - `assumptions.md` -- Design assumption format, classification, and resolution lifecycle
 - `audit.md` -- Codebase health findings format, IDs, and lifecycle
+- `backlog.md` -- Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets
+- `spec-review.md` -- Spec quality review dimensions, finding levels, resolution flow
 
 ## Key Rules
 

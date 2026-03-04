@@ -221,6 +221,9 @@ Two optional **reference documents** accelerate research and track health:
 **Utilities**
 | Skill | Purpose |
 |-------|---------|
+| `/sw-debug` | Investigation-first debugging |
+| `/sw-pivot` | Mid-build course correction |
+| `/sw-doctor` | Installation health check |
 | `/sw-guard` | Configure guardrails (hooks, CI) |
 | `/sw-status` | Progress and state |
 | `/sw-learn` | Pattern capture |
@@ -253,8 +256,8 @@ See `DESIGN.md` for the complete architecture document.
 
 ```
 specwright/
-├── skills/       # 15 SKILL.md files (10 user + 5 gates)
-├── protocols/    # 14 shared protocols (loaded on demand)
+├── skills/       # 18 SKILL.md files (13 user + 5 gates)
+├── protocols/    # 16 shared protocols (loaded on demand)
 ├── agents/       # 6 custom subagent definitions
 ├── hooks/        # Session lifecycle hooks
 ├── DESIGN.md     # Full architecture
