@@ -14,6 +14,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.12.0] - 2026-03-04
+
+### Changed
+
+- feat(experience): add build status cards and backlog routing across skills (#57)
+- feat(quality): add spec pre-review to sw-plan and sw-doctor health check (#56)
+- feat(skills): add sw-debug and sw-pivot investigation skills (#55)
+- feat(protocols): add backlog tracking and spec-review protocols (#54)
+
 ## [0.11.0] - 2026-03-01
 
 ### Changed
