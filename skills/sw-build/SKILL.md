@@ -137,7 +137,7 @@ When delegating, include in the prompt:
     Ahead:    {remaining task ids and names}
   ───────────────────────────────────────
   ```
-- Context nudge: after the 3rd completed task AND whenever 4+ tasks remain, append
+- Context nudge: after the 3rd completed task, if 4+ tasks remain, append
   to the status card: "Context growing — consider /clear. I'll recover from workflow.json."
 - If user responds "stop" or "pause" to a status card: halt cleanly.
   Advise: `/sw-pivot` if the plan changed, `/sw-build` to resume.
