@@ -59,6 +59,7 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 **Research (HIGH freedom):**
 - If `.specwright/LANDSCAPE.md` exists, load it first. If stale per `protocols/landscape.md`, refresh inline and update `Snapshot:` timestamp. If missing, proceed without. Use as baseline for research.
 - If `.specwright/AUDIT.md` exists and fresh per `protocols/audit.md`, surface relevant findings for the area being designed.
+- If `.specwright/research/` exists, scan for briefs relevant to the current request. Incorporate relevant findings into `context.md` with brief references. Warn if briefs are stale per `protocols/research.md`. When deep external unknowns surface, suggest `/sw-research` to the user.
 - Scan code, dependencies, APIs, existing patterns. Check `.specwright/patterns.md` if it exists.
 - Delegate to `specwright-researcher` and `specwright-architect` as needed.
 - When gathering requirements from the user, listen for: hesitation or qualifiers ("maybe", "probably") → capture as uncertainty; repeated module mentions → likely natural boundaries; "core" or "foundation" language → ordering information; multiple alternatives → decision point to surface. Cover natural boundaries, ordering intuition, uncertainty mapping, and existing constraints.
@@ -112,6 +113,7 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 - `protocols/landscape.md` -- codebase reference document format
 - `protocols/audit.md` -- codebase health findings format
 - `protocols/backlog.md` -- backlog item format and write targets
+- `protocols/research.md` -- external research brief format and consumption
 
 ## Failure Modes
 

@@ -42,9 +42,12 @@ Persistent cache of codebase structure: architecture, modules, conventions, inte
 **AUDIT.md** -- Codebase Health Findings (optional)
 Persistent record of systemic issues that per-change gates miss: architecture debt, complexity growth, convention drift, accumulated workarounds. Created by sw-audit, surfaced by sw-design during research, resolved by sw-learn after shipping. Findings have stable IDs across re-runs. Resolved findings purge after 90 days. Format, matching, and freshness rules in `protocols/audit.md`.
 
-## Skills (15)
+**research/** -- External Research Briefs (optional)
+Validated, referenced findings about external systems: API documentation, SDK contracts, industry patterns, best practices. Created by sw-research, consumed by sw-design during its research phase. Each brief is a standalone file with topic ID and date. Briefs older than 90 days are stale. Format, confidence scoring, and lifecycle rules in `protocols/research.md`.
 
-### User-Facing (10)
+## Skills (16)
+
+### User-Facing (11)
 
 | Skill | Purpose | Key Innovation |
 |-------|---------|----------------|
@@ -57,6 +60,7 @@ Persistent record of systemic issues that per-change gates miss: architecture de
 | `sw-status` | Where am I, what's done, what's next | Supports --reset to abandon work |
 | `sw-guard` | Detect stack, configure guardrails interactively | Layer-by-layer approval (session, commit, push, CI/CD) |
 | `sw-learn` | Post-ship capture. What worked, what to remember | Promotes patterns to constitution |
+| `sw-research` | Deep outward-facing research | External docs, APIs, patterns, validation. Produces referenced briefs for design |
 | `sw-audit` | Periodic codebase health check | Finds systemic debt gates miss. Feeds findings into design + learn |
 
 ### Internal Gate Skills (5)
@@ -119,6 +123,7 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `landscape.md` | Codebase reference doc format, freshness, updates | ~140 |
 | `assumptions.md` | Design assumption format, classification, and lifecycle | ~620 |
 | `audit.md` | Codebase health findings format, IDs, matching, lifecycle | ~125 |
+| `research.md` | External research brief format, confidence scoring, lifecycle | ~200 |
 | `build-quality.md` | Post-build review and as-built notes | ~230 |
 
 Total: ~4,490 words (loaded on demand, not all at once).
@@ -165,7 +170,7 @@ Target: 800 tokens per SKILL.md (~53% of the 1,500 token ceiling).
 
 ```
 specwright/
-├── skills/           # SKILL.md files (15 skills)
+├── skills/           # SKILL.md files (16 skills)
 │   ├── sw-init/      # User-facing
 │   ├── sw-design/
 │   ├── sw-plan/
@@ -175,6 +180,7 @@ specwright/
 │   ├── sw-guard/
 │   ├── sw-status/
 │   ├── sw-learn/
+│   ├── sw-research/
 │   ├── sw-audit/
 │   ├── gate-build/   # Internal (invoked by verify)
 │   ├── gate-tests/
@@ -198,6 +204,8 @@ Runtime state (created by init):
 ├── CHARTER.md        # Technology vision
 ├── LANDSCAPE.md      # Codebase knowledge (optional)
 ├── AUDIT.md          # Codebase health findings (optional)
+├── research/         # External research briefs (optional)
+│   └── {topic-id}-{date}.md
 ├── state/
 │   └── workflow.json # Current state
 └── work/             # Work unit artifacts
