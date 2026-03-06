@@ -87,6 +87,7 @@ graph LR
     F --> G["/sw-learn"]
     G -.->|patterns feed back| B
     H["/sw-audit"] -.->|findings feed into| B
+    I["/sw-research"] -.->|briefs feed into| B
 
     style A fill:#1e293b,stroke:#f59e0b,color:#f8fafc
     style B fill:#1e293b,stroke:#f59e0b,color:#f8fafc
@@ -96,11 +97,13 @@ graph LR
     style F fill:#1e293b,stroke:#f59e0b,color:#f8fafc
     style G fill:#1e293b,stroke:#f59e0b,color:#f8fafc
     style H fill:#1e293b,stroke:#f59e0b,color:#f8fafc
+    style I fill:#1e293b,stroke:#f59e0b,color:#f8fafc
 ```
 
 | Phase | What Happens | Key Innovation |
 |-------|-------------|----------------|
 | **Init** | Detect stack, configure gates, create anchor documents | Auto-detection — don't ask what you can infer |
+| **Research** | Investigate external docs, APIs, patterns; produce validated briefs | Evidence-graded findings with confidence scoring |
 | **Design** | Triage as Full / Lite / Quick, research codebase, design solution, adversarial critic | Right-sized ceremony — trivial fixes skip the full cycle |
 | **Plan** | Decompose into work units, write testable acceptance criteria | Specs grounded in approved design artifacts |
 | **Build** | TDD — tester writes hard-to-pass tests, executor makes them pass | Adversarial test-first, not test-after |
@@ -162,6 +165,16 @@ Findings persist across runs with stable IDs. When you design new work, relevant
 - Consumed by: `/sw-design` (surfaces relevant findings during research)
 - Resolved by: `/sw-learn` (marks addressed findings as resolved)
 
+**Research** (`.specwright/research/`) — Validated, referenced briefs about external systems: API documentation, SDK contracts, industry patterns, best practices. Run `/sw-research` before design when you need deep external context. Briefs are confidence-scored and stale after 90 days.
+
+```
+/sw-research stripe webhooks     # research a specific topic
+/sw-research react server components  # deep dive into a technology
+```
+
+- Created by: `/sw-research` (run anytime, no sw-init required)
+- Consumed by: `/sw-design` (loads relevant briefs during research phase)
+
 ## Six Specialized Agents
 
 Specwright delegates to purpose-built agents — each with a distinct role, model, and adversarial stance:
@@ -195,11 +208,13 @@ Two **anchor documents** drive all decisions and survive context compaction:
 
 **`CHARTER.md`** — Technology vision and architectural invariants. What this project is, who consumes it, what doesn't change.
 
-Two optional **reference documents** accelerate research and track health:
+Three optional **reference documents** accelerate research and track health:
 
 **`LANDSCAPE.md`** — Codebase knowledge: architecture, modules, conventions, gotchas. Loaded on demand, never blocks workflow.
 
 **`AUDIT.md`** — Codebase health findings: systemic debt, complexity growth, convention drift. Loaded on demand, findings have stable IDs.
+
+**`research/*.md`** — External research briefs: API contracts, SDK docs, industry patterns. Confidence-scored, stale after 90 days.
 
 ## Skills
 
@@ -221,6 +236,7 @@ Two optional **reference documents** accelerate research and track health:
 **Utilities**
 | Skill | Purpose |
 |-------|---------|
+| `/sw-research` | Deep external research briefs |
 | `/sw-debug` | Investigation-first debugging |
 | `/sw-pivot` | Mid-build course correction |
 | `/sw-doctor` | Installation health check |
@@ -256,8 +272,8 @@ See `DESIGN.md` for the complete architecture document.
 
 ```
 specwright/
-├── skills/       # 18 SKILL.md files (13 user + 5 gates)
-├── protocols/    # 16 shared protocols (loaded on demand)
+├── skills/       # 19 SKILL.md files (14 user + 5 gates)
+├── protocols/    # 17 shared protocols (loaded on demand)
 ├── agents/       # 6 custom subagent definitions
 ├── hooks/        # Session lifecycle hooks
 ├── DESIGN.md     # Full architecture
