@@ -15,6 +15,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.13.0] - 2026-03-06
+
+### Changed
+
+- feat(skills): add sw-research skill for deep outward-facing research (#60)
+- docs: update skills tables and file counts for sw-effectiveness additions (#59)
+
 ## [0.12.0] - 2026-03-04
 
 ### Changed
