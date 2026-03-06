@@ -45,9 +45,9 @@ Persistent record of systemic issues that per-change gates miss: architecture de
 **research/** -- External Research Briefs (optional)
 Validated, referenced findings about external systems: API documentation, SDK contracts, industry patterns, best practices. Created by sw-research, consumed by sw-design during its research phase. Each brief is a standalone file with topic ID and date. Briefs older than 90 days are stale. Format, confidence scoring, and lifecycle rules in `protocols/research.md`.
 
-## Skills (16)
+## Skills (19)
 
-### User-Facing (11)
+### User-Facing (14)
 
 | Skill | Purpose | Key Innovation |
 |-------|---------|----------------|
@@ -61,6 +61,9 @@ Validated, referenced findings about external systems: API documentation, SDK co
 | `sw-guard` | Detect stack, configure guardrails interactively | Layer-by-layer approval (session, commit, push, CI/CD) |
 | `sw-learn` | Post-ship capture. What worked, what to remember | Promotes patterns to constitution |
 | `sw-research` | Deep outward-facing research | External docs, APIs, patterns, validation. Produces referenced briefs for design |
+| `sw-debug` | Investigation-first debugging | Scope → investigate → diagnose → fix/log/defer |
+| `sw-pivot` | Mid-build course correction | Captures progress, revises remaining tasks via architect |
+| `sw-doctor` | Installation health check | Read-only validation of config, gates, hooks |
 | `sw-audit` | Periodic codebase health check | Finds systemic debt gates miss. Feeds findings into design + learn |
 
 ### Internal Gate Skills (5)
@@ -170,7 +173,7 @@ Target: 800 tokens per SKILL.md (~53% of the 1,500 token ceiling).
 
 ```
 specwright/
-├── skills/           # SKILL.md files (16 skills)
+├── skills/           # SKILL.md files (19 skills)
 │   ├── sw-init/      # User-facing
 │   ├── sw-design/
 │   ├── sw-plan/
@@ -181,6 +184,9 @@ specwright/
 │   ├── sw-status/
 │   ├── sw-learn/
 │   ├── sw-research/
+│   ├── sw-debug/
+│   ├── sw-pivot/
+│   ├── sw-doctor/
 │   ├── sw-audit/
 │   ├── gate-build/   # Internal (invoked by verify)
 │   ├── gate-tests/
