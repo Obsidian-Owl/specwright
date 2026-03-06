@@ -50,6 +50,9 @@ Topic ID: kebab-case, descriptive, 2-4 words (e.g., `stripe-api-webhooks`, `reac
 
 Same topic-id + date: overwrite (intentional refresh). Different date: new brief.
 
+**Priority rule:** When multiple briefs share the same topic-id, consumers use
+only the one with the most recent `Updated` date and skip older versions.
+
 ## Staleness
 
 Briefs older than 90 days from their `Updated` date are **STALE**.

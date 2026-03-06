@@ -77,7 +77,8 @@ opinions or recommendations.
 - Show synthesized brief to user. Highlight conflicts, open questions, and
   low-confidence findings.
 - User may: approve, request deepening on specific areas, or dismiss findings.
-- Deepening: add new tracks and re-execute. Append to existing brief.
+- Deepening: read the existing brief, add new tracks, re-execute, and
+  re-synthesize all findings (old + new) into a single updated brief.
 
 **Persistence (LOW freedom):**
 - Write approved brief to `.specwright/research/{topic-id}-{YYYYMMDD}.md`
@@ -94,7 +95,7 @@ opinions or recommendations.
 
 - `protocols/research.md` — brief format, staleness, lifecycle
 - `protocols/delegation.md` — agent delegation
-- `protocols/context.md` — anchor doc loading (optional)
+- `protocols/context.md` — anchor doc loading (skip if `.specwright/config.json` does not exist)
 
 ## Failure Modes
 
