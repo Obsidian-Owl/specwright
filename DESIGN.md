@@ -128,8 +128,10 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `audit.md` | Codebase health findings format, IDs, matching, lifecycle | ~125 |
 | `research.md` | External research brief format, confidence scoring, lifecycle | ~200 |
 | `build-quality.md` | Post-build review and as-built notes | ~230 |
+| `backlog.md` | Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets | ~460 |
+| `spec-review.md` | Spec quality review dimensions, finding levels, resolution flow | ~610 |
 
-Total: ~4,490 words (loaded on demand, not all at once).
+Total: ~5,560 words (loaded on demand, not all at once).
 
 ## Skill Anatomy
 
