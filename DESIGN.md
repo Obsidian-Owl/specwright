@@ -2,7 +2,7 @@
 
 ## Vision
 
-Specwright is a Claude Code plugin for spec-driven app development. It ensures the user gets what they asked for through quality gates that verify implementation against requirements.
+Specwright is a cross-platform plugin for spec-driven app development. It ensures the user gets what they asked for through quality gates that verify implementation against requirements.
 
 **Scope:** Application development (backend, agentic systems, data pipelines). Configurable git workflow (trunk-based, github-flow, gitflow, custom).
 
@@ -188,31 +188,42 @@ Target: 800 tokens per SKILL.md (~53% of the 1,500 token ceiling).
 
 ```
 specwright/
-├── skills/           # SKILL.md files (19 skills)
-│   ├── sw-init/      # User-facing
-│   ├── sw-design/
-│   ├── sw-plan/
-│   ├── sw-build/
-│   ├── sw-verify/
-│   ├── sw-ship/
-│   ├── sw-guard/
-│   ├── sw-status/
-│   ├── sw-learn/
-│   ├── sw-research/
-│   ├── sw-debug/
-│   ├── sw-pivot/
-│   ├── sw-doctor/
-│   ├── sw-audit/
-│   ├── gate-build/   # Internal (invoked by verify)
-│   ├── gate-tests/
-│   ├── gate-security/
-│   ├── gate-spec/
-│   └── gate-wiring/
-├── protocols/        # Shared protocols (loaded on demand)
-├── agents/           # Custom subagent definitions (6 agents)
-├── hooks/            # Session hooks
-├── CLAUDE.md         # Project instructions
-├── DESIGN.md         # This document
+├── core/                  # Platform-agnostic content
+│   ├── skills/            # SKILL.md files (19 skills)
+│   │   ├── sw-init/       # User-facing
+│   │   ├── sw-design/
+│   │   ├── sw-plan/
+│   │   ├── sw-build/
+│   │   ├── sw-verify/
+│   │   ├── sw-ship/
+│   │   ├── sw-guard/
+│   │   ├── sw-status/
+│   │   ├── sw-learn/
+│   │   ├── sw-research/
+│   │   ├── sw-debug/
+│   │   ├── sw-pivot/
+│   │   ├── sw-doctor/
+│   │   ├── sw-audit/
+│   │   ├── gate-build/    # Internal (invoked by verify)
+│   │   ├── gate-tests/
+│   │   ├── gate-security/
+│   │   ├── gate-spec/
+│   │   └── gate-wiring/
+│   ├── protocols/         # Shared protocols (loaded on demand)
+│   └── agents/            # Custom subagent definitions (6 agents)
+├── adapters/              # Platform-specific packaging
+│   └── claude-code/       # Claude Code adapter
+│       ├── .claude-plugin/  # Plugin metadata
+│       ├── hooks/           # Session lifecycle hooks
+│       └── CLAUDE.md        # Claude Code project instructions
+├── skills/ → core/skills/          # Symlinks for backward compatibility
+├── protocols/ → core/protocols/
+├── agents/ → core/agents/
+├── hooks/ → adapters/claude-code/hooks/
+├── .claude-plugin/ → adapters/claude-code/.claude-plugin/
+├── CLAUDE.md → adapters/claude-code/CLAUDE.md
+├── AGENTS.md              # Universal project instructions (Agent Skills standard)
+├── DESIGN.md              # This document
 ├── LICENSE
 └── README.md
 ```
