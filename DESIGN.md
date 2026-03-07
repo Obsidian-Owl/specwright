@@ -130,6 +130,7 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `build-quality.md` | Post-build review and as-built notes | ~230 |
 | `backlog.md` | Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets | ~460 |
 | `spec-review.md` | Spec quality review dimensions, finding levels, resolution flow | ~610 |
+| `parallel-build.md` | Parallel task execution with agent teams (experimental) | ~815 |
 
 Total: ~5,560 words (loaded on demand, not all at once).
 

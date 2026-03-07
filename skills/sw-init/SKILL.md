@@ -97,6 +97,11 @@ When complete, ALL of the following exist:
 - Store as `backlog.type` and `backlog.label` in `config.json`.
 - If user skips or is unsure: default to `markdown`. Backlog config is always optional.
 
+**Experimental features (LOW freedom):**
+- If user indicates interest in experimental features: add `experimental` section to config.json.
+- Schema: `{ "experimental": { "agentTeams": { "enabled": false, "maxTeammates": 3, "requirePlanApproval": true } } }`
+- All experimental features default to disabled. Don't prompt unless the user asks.
+
 ## Protocol References
 
 - `protocols/state.md` -- workflow.json initialization

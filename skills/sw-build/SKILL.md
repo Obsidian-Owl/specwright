@@ -116,6 +116,12 @@ When delegating, include in the prompt:
 - Units that don't qualify skip directly to handoff.
 - Follow `protocols/build-quality.md` for delegation details and findings triage.
 
+**Parallel execution — experimental (MEDIUM freedom):**
+- Follow `protocols/parallel-build.md` when all prerequisites are met:
+  `config.experimental.agentTeams.enabled`, `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env var, 4+ tasks.
+- If any prerequisite fails: execute tasks sequentially (normal behavior). No error.
+- Do NOT start implementing tasks yourself while teammates are working.
+
 **As-built notes (LOW freedom):**
 - After all tasks committed (and after optional post-build review), append `## As-Built Notes` to `{currentWork.workDir}/plan.md`: plan deviations, implementation decisions, actual file paths.
 - spec.md stays untouched. gate-spec does NOT consume as-built notes. Primary consumer: sw-learn.
@@ -158,6 +164,7 @@ When delegating, include in the prompt:
 - `protocols/delegation.md` -- agent delegation with fallback
 - `protocols/recovery.md` -- compaction recovery
 - `protocols/build-quality.md` -- post-build review and as-built notes
+- `protocols/parallel-build.md` -- parallel task execution with agent teams
 
 ## Failure Modes
 
@@ -168,5 +175,6 @@ When delegating, include in the prompt:
 | Tester writes tests that pass immediately | Tests are wrong. Re-delegate with instruction to write tests that FAIL first. |
 | Executor can't pass tests after 2 build-fixer attempts | STOP. Show error to user. Don't loop forever. |
 | Compaction during build | Read workflow.json, find last completed task, resume next task. Create fresh Claude Code tasks from spec/plan, sync status from workflow.json. |
+| Compaction during parallel execution | Read workflow.json, check `.specwright/worktrees/` for orphans, clean up, resume sequential. |
 | Task tracking tools unavailable | Continue with workflow.json-only tracking. Graceful degradation — task tracking is best-effort. |
 | Lock held by another skill | STOP with lock info. Don't force-clear. |

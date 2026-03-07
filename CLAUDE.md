@@ -63,6 +63,7 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `build-quality.md` -- Post-build review and as-built notes
 - `backlog.md` -- Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets
 - `spec-review.md` -- Spec quality review dimensions, finding levels, resolution flow
+- `parallel-build.md` -- Parallel task execution with agent teams (experimental)
 
 ## Key Rules
 
