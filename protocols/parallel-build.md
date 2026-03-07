@@ -95,10 +95,10 @@ After all teammates finish, the lead cherry-picks each completed worktree branch
 
 ```bash
 git checkout {feature-branch}
-git cherry-pick specwright-wt-{task-id}
+git cherry-pick HEAD..specwright-wt-{task-id}
 ```
 
-Cherry-pick in task order (task-1 before task-2, etc.) for deterministic history.
+The range `HEAD..specwright-wt-{task-id}` picks all commits on the worktree branch since it diverged, not just the tip. Cherry-pick in task order (task-1 before task-2, etc.) for deterministic history.
 
 **Conflict handling:**
 - Abort the cherry-pick: `git cherry-pick --abort`

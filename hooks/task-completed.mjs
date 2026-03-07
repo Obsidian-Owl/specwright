@@ -9,9 +9,19 @@
  * - 2: block completion with stderr feedback
  */
 
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { execSync } from 'child_process';
-import { join } from 'path';
+import { join, resolve } from 'path';
+
+function findProjectRoot(startDir) {
+  let dir = startDir;
+  while (true) {
+    if (existsSync(join(dir, '.specwright', 'config.json'))) return dir;
+    const parent = resolve(dir, '..');
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
 
 try {
   const input = JSON.parse(readFileSync('/dev/stdin', 'utf-8'));
@@ -21,7 +31,10 @@ try {
   }
 
   const cwd = process.cwd();
-  const configPath = join(cwd, '.specwright', 'config.json');
+  const projectRoot = findProjectRoot(cwd);
+  if (!projectRoot) process.exit(0);
+
+  const configPath = join(projectRoot, '.specwright', 'config.json');
 
   let config;
   try {
@@ -40,7 +53,7 @@ try {
 
   for (const { name, cmd } of commands) {
     try {
-      execSync(cmd, { cwd, stdio: 'pipe' });
+      execSync(cmd, { cwd, stdio: 'pipe', timeout: 120_000 });
     } catch (err) {
       const output = err.stderr?.toString() || err.stdout?.toString() || err.message;
       process.stderr.write(`${name} command failed: ${cmd}\n${output}\n`);
