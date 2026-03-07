@@ -96,6 +96,18 @@ Solution architecture and implementation planning are separate skills:
 - For single-unit work: writes `spec.md` and `plan.md` at the work root (flat layout, unchanged).
 - Parent `context.md` (design research) is never overwritten.
 
+### Parallel Build (Experimental)
+
+sw-build supports optional parallel task execution using Claude Code Agent Teams. When enabled and tasks are independent (no file overlap), the build orchestrator:
+
+1. Analyzes plan.md file targets to classify tasks as independent or dependent
+2. Creates isolated git worktrees (`.specwright/worktrees/{task-id}`)
+3. Spawns teammates — each runs the full TDD cycle (tester → executor → refactor) in its worktree
+4. Cherry-picks completed worktree commits onto the feature branch
+5. Falls back to sequential execution for dependent or failed tasks
+
+Double opt-in: `config.experimental.agentTeams.enabled` + `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` env var. Procedure in `protocols/parallel-build.md`. Graceful degradation at every level — if any prerequisite fails, sw-build executes tasks sequentially with no error.
+
 ### Verify Skill Gates
 
 Configurable per project (set up in init). Each gate:
@@ -132,7 +144,7 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `spec-review.md` | Spec quality review dimensions, finding levels, resolution flow | ~610 |
 | `parallel-build.md` | Parallel task execution with agent teams (experimental) | ~815 |
 
-Total: ~5,560 words (loaded on demand, not all at once).
+Total: ~6,375 words (loaded on demand, not all at once).
 
 ## Skill Anatomy
 
