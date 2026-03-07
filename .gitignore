@@ -2,6 +2,9 @@
 .specwright/
 .claude/
 
+# Build output
+dist/
+
 # OS
 .DS_Store
 
