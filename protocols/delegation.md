@@ -61,16 +61,33 @@ relevant to the current task, not the full document.
 
 ## Agent Teams (Experimental)
 
-For complex parallel work, skills may use Claude Code agent teams:
+Agent teams coordinate multiple independent Claude Code sessions (teammates) under a lead session. Unlike subagents, teammates are full sessions with their own context windows, tool access, and the ability to spawn subagents.
+
+**When to use agent teams vs subagents:**
+
+| Factor | Subagents | Agent Teams |
+|--------|-----------|-------------|
+| Context | Share caller's context window | Independent context windows |
+| Isolation | Same working directory | Can use separate worktrees |
+| Nesting | Cannot spawn subagents | CAN spawn subagents (full sessions) |
+| Cost | Single context | ~7x tokens in plan mode, linear per teammate |
+| Use for | Focused tasks (test writing, implementation, review) | Parallel independent work (research tracks, parallel builds) |
+
+**Use cases:**
 - Multiple independent research tracks
 - Competing design approaches evaluated in parallel
+- Parallel task execution during builds (see `protocols/parallel-build.md`)
 - Large codebases investigated from different angles simultaneously
 
-Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in Claude Code settings.
+**Requirements:**
+- Environment variable `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` must be set
+- For build parallelism: `config.experimental.agentTeams.enabled` must be `true`
+- See `protocols/parallel-build.md` for the build-specific procedure
 
 ## Anti-Patterns
 
 - Don't delegate simple lookups -- use Glob/Grep directly
 - Don't delegate work that requires the main conversation's history
-- Don't nest delegation -- agents cannot spawn other agents
+- Don't nest subagent delegation -- subagents cannot spawn other subagents
+- Teammates are full sessions and CAN spawn subagents, but cannot spawn teams
 - Don't delegate without all necessary context in the prompt
