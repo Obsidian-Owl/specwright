@@ -40,6 +40,7 @@ Specwright closes the **entire loop** — design, plan, build, verify, ship, lea
 - Codebase knowledge persists across sessions — no re-discovering the same architecture
 - Periodic health checks find systemic debt that per-change gates miss
 - One install, configure once, works with any language or framework
+- Cross-platform: works with Claude Code, Opencode, and any agent supporting the [Agent Skills](https://agentskills.io) standard
 
 ### How It Compares
 
@@ -278,11 +279,14 @@ See `DESIGN.md` for the complete architecture document.
 
 ```
 specwright/
-├── skills/       # 19 SKILL.md files (14 user + 5 gates)
-├── protocols/    # 18 shared protocols (loaded on demand)
-├── agents/       # 6 custom subagent definitions
-├── hooks/        # Session lifecycle hooks
-├── DESIGN.md     # Full architecture
+├── core/              # Platform-agnostic content
+│   ├── skills/        # 19 SKILL.md files (14 user + 5 gates)
+│   ├── protocols/     # 18 shared protocols (loaded on demand)
+│   └── agents/        # 6 custom subagent definitions
+├── adapters/          # Platform-specific packaging
+│   └── claude-code/   # Claude Code adapter (hooks, plugin metadata)
+├── AGENTS.md          # Universal project instructions (Agent Skills standard)
+├── DESIGN.md          # Full architecture
 └── README.md
 ```
 

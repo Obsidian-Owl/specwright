@@ -1,0 +1,75 @@
+# Specwright
+
+Spec-driven app development with quality gates. Ensures the user gets what they asked for.
+
+## Workflow
+
+```
+/sw-init → /sw-design → /sw-plan → /sw-build → /sw-verify → /sw-ship
+```
+
+| Skill | Purpose |
+|-------|---------|
+| `sw-init` | Project setup. Creates constitution + charter. Configures gates and hooks. |
+| `sw-research` | Deep outward-facing research. External docs, APIs, patterns, validation. Produces referenced briefs. |
+| `sw-design` | Interactive solution architecture. Research, design, adversarial critic, assumption surfacing. |
+| `sw-plan` | Decompose design into work units with testable specs. |
+| `sw-build` | TDD implementation of one work unit. |
+| `sw-verify` | Interactive quality gates. Shows findings, validates against spec. |
+| `sw-ship` | Strategy-aware merge via PR. |
+| `sw-debug` | Investigation-first debugging. Scope → investigate → diagnose → fix/log/defer. |
+| `sw-pivot` | Mid-build course correction. Revises remaining tasks via architect; append-only. |
+| `sw-doctor` | Read-only installation health check. 9 checks, repair hints. |
+| `sw-guard` | Detect stack and interactively configure guardrails (hooks, CI, settings). |
+| `sw-status` | Current state and progress. |
+| `sw-learn` | Post-ship capture of patterns and learnings. |
+| `sw-audit` | Periodic codebase health check. Finds systemic tech debt. |
+
+## Anchor Documents
+
+Two persistent documents drive all decisions:
+
+- **`.specwright/CONSTITUTION.md`** -- Development practices. How the user wants code written. The AI MUST follow these.
+- **`.specwright/CHARTER.md`** -- Technology vision. What this repo is, who consumes it, architectural invariants.
+
+Both are created during init, referenced during design and plan, validated during verify.
+
+## Architecture
+
+- `skills/` -- SKILL.md files (goal + constraints, not procedures)
+- `protocols/` -- Shared protocols for fragile operations (loaded on demand)
+- `agents/` -- Agent prompt definitions
+- `.specwright/` -- Runtime state, config, anchor docs, work artifacts
+
+See `DESIGN.md` for the full architecture document.
+
+## Protocols
+
+Skills reference shared protocols in `protocols/` for fragile operations:
+- `stage-boundary.md` -- Stage scope, termination, and handoff enforcement
+- `delegation.md` -- Agent delegation (custom subagents + agent teams)
+- `state.md` -- Workflow state, work unit queue, and transition validation
+- `git.md` -- Strategy-aware git operations (branch lifecycle, commits, PRs)
+- `recovery.md` -- Compaction recovery
+- `evidence.md` -- Gate evidence format
+- `gate-verdict.md` -- Verdict rendering with self-critique
+- `context.md` -- Anchor doc and config loading
+- `insights.md` -- External Claude Code insights data access
+- `learning-lifecycle.md` -- Compaction triggers and tiered memory
+- `landscape.md` -- Codebase reference document format and freshness rules
+- `assumptions.md` -- Design assumption format, classification, and resolution lifecycle
+- `audit.md` -- Codebase health findings format, IDs, and lifecycle
+- `research.md` -- External research brief format, confidence scoring, and lifecycle
+- `build-quality.md` -- Post-build review and as-built notes
+- `backlog.md` -- Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets
+- `spec-review.md` -- Spec quality review dimensions, finding levels, resolution flow
+- `parallel-build.md` -- Parallel task execution with agent teams (experimental)
+
+## Key Rules
+
+- **NEVER** implement without a plan/spec loaded
+- **NEVER** continue after compaction without reading `protocols/recovery.md`
+- **NEVER** use `git add -A` -- stage specific files only
+- **NEVER** hardcode language/framework assumptions -- read config
+- Quality gates default to FAIL. Evidence must prove PASS.
+- Constitution and charter are validated, not just referenced.
