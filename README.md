@@ -106,7 +106,7 @@ graph LR
 | **Research** | Investigate external docs, APIs, patterns; produce validated briefs | Evidence-graded findings with confidence scoring |
 | **Design** | Triage as Full / Lite / Quick, research codebase, design solution, adversarial critic | Right-sized ceremony — trivial fixes skip the full cycle |
 | **Plan** | Decompose into work units, write testable acceptance criteria | Specs grounded in approved design artifacts |
-| **Build** | TDD — tester writes hard-to-pass tests, executor makes them pass | Adversarial test-first, not test-after |
+| **Build** | TDD — tester writes hard-to-pass tests, executor makes them pass. Optional parallel execution via agent teams (experimental). | Adversarial test-first, not test-after |
 | **Verify** | 5 quality gates with evidence capture | Findings shown inline, not just pass/fail badges |
 | **Ship** | PR with acceptance criteria mapped to evidence | Every requirement traceable to code + test |
 | **Learn** | Capture patterns, promote to constitution | Knowledge compounds across sessions |
@@ -216,6 +216,12 @@ Three optional **reference documents** accelerate research and track health:
 
 **`research/*.md`** — External research briefs: API contracts, SDK docs, industry patterns. Confidence-scored, stale after 90 days.
 
+## Experimental: Parallel Builds with Agent Teams
+
+When a work unit has 4+ independent tasks, Specwright can execute them in parallel using [Claude Code Agent Teams](https://docs.anthropic.com/en/docs/claude-code/agent-teams). Each teammate works in an isolated git worktree, runs the full TDD cycle with its own tester/executor agents, and commits independently. The lead cherry-picks results onto the feature branch.
+
+**Requirements:** `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` env var + `config.experimental.agentTeams.enabled: true`. Falls back to sequential execution when prerequisites aren't met — no errors, no configuration needed to ignore it.
+
 ## Skills
 
 <table>
@@ -273,7 +279,7 @@ See `DESIGN.md` for the complete architecture document.
 ```
 specwright/
 ├── skills/       # 19 SKILL.md files (14 user + 5 gates)
-├── protocols/    # 17 shared protocols (loaded on demand)
+├── protocols/    # 18 shared protocols (loaded on demand)
 ├── agents/       # 6 custom subagent definitions
 ├── hooks/        # Session lifecycle hooks
 ├── DESIGN.md     # Full architecture
