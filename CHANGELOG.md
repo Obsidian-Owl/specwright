@@ -16,6 +16,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.14.0] - 2026-03-07
+
+### Changed
+
+- feat(agent-teams): add experimental parallel build with agent teams (#63)
+- docs: update README, DESIGN, and CLAUDE for sw-research and missing skills (#62)
+
 ## [0.13.0] - 2026-03-06
 
 ### Changed
