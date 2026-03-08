@@ -1,0 +1,28 @@
+{
+  "platform": "opencode",
+  "tools": {
+    "Read": "read",
+    "Write": "write",
+    "Edit": "edit",
+    "Bash": "bash",
+    "Glob": "glob",
+    "Grep": "grep",
+    "WebSearch": "websearch",
+    "WebFetch": "webfetch",
+    "AskUserQuestion": "question",
+    "Agent": "task"
+  },
+  "strip": ["TaskCreate", "TaskUpdate", "TaskList", "TaskGet"],
+  "events": {
+    "SessionStart": "session.created",
+    "Stop": "session.idle",
+    "PreCompact": "session.compacted",
+    "TaskCompleted": "tool.execute.after"
+  },
+  "models": {
+    "opus": "claude-opus-4-6",
+    "sonnet": "claude-sonnet-4-6"
+  },
+  "protocolPrefix": ".specwright/",
+  "skillOverrides": ["sw-guard", "sw-build"]
+}

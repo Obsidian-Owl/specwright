@@ -1,0 +1,17 @@
+{
+  "name": "opencode-specwright",
+  "version": "0.14.0",
+  "main": "plugin.ts",
+  "description": "Specwright adapter for Opencode. Spec-driven development with quality gates.",
+  "keywords": [
+    "specwright",
+    "opencode",
+    "spec-driven",
+    "quality-gates",
+    "tdd",
+    "workflow"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/Obsidian-Owl/specwright",
+  "repository": "https://github.com/Obsidian-Owl/specwright"
+}

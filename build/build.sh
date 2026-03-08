@@ -99,7 +99,14 @@ rewrite_protocol_refs() {
 
   # Prepend prefix to "protocols/" references in skill body (after frontmatter)
   # Match references like: protocols/state.md, `protocols/git.md`
-  sed "s|protocols/|${prefix}protocols/|g" "$file" > "$tmpfile"
+  local fm_end
+  fm_end=$(frontmatter_end "$file")
+  [ -z "$fm_end" ] && fm_end=0
+
+  awk -v fm_end="$fm_end" -v prefix="$prefix" '
+    NR > fm_end { gsub(/protocols\//, prefix "protocols/") }
+    { print }
+  ' "$file" > "$tmpfile"
   cp "$tmpfile" "$file"
 
   rm -f "$tmpfile"
@@ -130,6 +137,65 @@ translate_agent() {
 
     rm -f "$tmpfile"
   fi
+}
+
+add_agent_mode() {
+  local file="$1"
+  local mode="$2"
+
+  local fm_end
+  fm_end=$(frontmatter_end "$file")
+  [ -z "$fm_end" ] || [ "$fm_end" -eq 0 ] && return 0
+
+  # Only add if mode: is not already present in frontmatter
+  if ! sed -n "1,${fm_end}p" "$file" | grep -q '^mode:'; then
+    local tmpfile
+    tmpfile=$(mktemp)
+    # Insert "mode: <value>" on line 2 (after opening ---)
+    sed "1a\\mode: ${mode}" "$file" > "$tmpfile"
+    cp "$tmpfile" "$file"
+    rm -f "$tmpfile"
+  fi
+}
+
+transform_agent_tools() {
+  local file="$1"
+  local mapping_file="$2"
+
+  local fm_end
+  fm_end=$(frontmatter_end "$file")
+  [ -z "$fm_end" ] || [ "$fm_end" -eq 0 ] && return 0
+
+  # Pass 1: Transform mapped tools "  - OldName" -> "  newname: true"
+  local tool_keys
+  tool_keys=$(jq -r '.tools | keys[]' "$mapping_file" 2>/dev/null)
+
+  local tmpfile
+  tmpfile=$(mktemp)
+  cp "$file" "$tmpfile"
+
+  if [ -n "$tool_keys" ]; then
+    while IFS= read -r tool_name; do
+      local new_name
+      new_name=$(jq -r --arg k "$tool_name" '.tools[$k]' "$mapping_file")
+      sed "1,${fm_end} s/^  - ${tool_name}$/  ${new_name}: true/" "$tmpfile" > "${tmpfile}.new"
+      mv "${tmpfile}.new" "$tmpfile"
+    done <<< "$tool_keys"
+  fi
+
+  # Pass 2: Convert any remaining "  - ToolName" lines to "  toolname: true"
+  awk -v fm_end="$fm_end" '
+    NR <= fm_end && /^  - [A-Za-z]/ {
+      tool = substr($0, 5)
+      print "  " tolower(tool) ": true"
+      next
+    }
+    { print }
+  ' "$tmpfile" > "${tmpfile}.2"
+  mv "${tmpfile}.2" "$tmpfile"
+
+  cp "$tmpfile" "$file"
+  rm -f "$tmpfile"
 }
 
 apply_skill_overrides() {
@@ -246,6 +312,72 @@ build_claude_code() {
   echo "Build complete: $platform → dist/$platform/"
 }
 
+build_opencode() {
+  local platform="opencode"
+  local mapping_file="$ROOT_DIR/build/mappings/opencode.json"
+  local dist="$DIST_DIR/$platform"
+
+  echo "Building: $platform"
+
+  # Clean
+  rm -rf "$dist"
+  mkdir -p "$dist"
+
+  # Copy core content
+  cp -r "$ROOT_DIR/core/skills" "$dist/skills"
+  cp -r "$ROOT_DIR/core/protocols" "$dist/protocols"
+  cp -r "$ROOT_DIR/core/agents" "$dist/agents"
+
+  # Copy adapter content (opencode-specific, no hooks/.claude-plugin/CLAUDE.md)
+  cp -r "$ROOT_DIR/adapters/opencode/commands" "$dist/commands"
+  cp "$ROOT_DIR/adapters/opencode/package.json" "$dist/package.json"
+  cp "$ROOT_DIR/adapters/opencode/plugin.ts" "$dist/plugin.ts"
+
+  # Copy adapter-specific README
+  cp "$ROOT_DIR/adapters/opencode/README.md" "$dist/README.md"
+
+  # Apply skill transformations
+  for skill_file in "$dist"/skills/*/SKILL.md; do
+    transform_frontmatter_tools "$skill_file" "$mapping_file"
+    strip_tools "$skill_file" "$mapping_file"
+    rewrite_protocol_refs "$skill_file" "$mapping_file"
+  done
+
+  # Apply agent transformations
+  for agent_file in "$dist"/agents/*.md; do
+    translate_agent "$agent_file" "$mapping_file"
+    add_agent_mode "$agent_file" "subagent"
+    transform_agent_tools "$agent_file" "$mapping_file"
+  done
+
+  # Apply skill overrides (adapter versions replace transformed core versions)
+  apply_skill_overrides "$platform" "$dist/skills" "$mapping_file"
+
+  # Re-transform overridden skills (they were copied after the initial pass)
+  local override_list
+  override_list=$(jq -r '.skillOverrides[]' "$mapping_file" 2>/dev/null)
+  if [ -n "$override_list" ]; then
+    while IFS= read -r skill_name; do
+      local override_skill="$dist/skills/$skill_name/SKILL.md"
+      [ -f "$override_skill" ] || continue
+      transform_frontmatter_tools "$override_skill" "$mapping_file"
+      strip_tools "$override_skill" "$mapping_file"
+      rewrite_protocol_refs "$override_skill" "$mapping_file"
+    done <<< "$override_list"
+  fi
+
+  # Validate
+  echo "Validating: $platform"
+  if validate_skills "$platform"; then
+    echo "  All skills valid"
+  else
+    echo "  ERROR: Validation failed"
+    return 1
+  fi
+
+  echo "Build complete: $platform → dist/$platform/"
+}
+
 # ─── Main ───────────────────────────────────────────────────────────
 
 main() {
@@ -255,8 +387,12 @@ main() {
     claude-code)
       build_claude_code
       ;;
+    opencode)
+      build_opencode
+      ;;
     all)
       build_claude_code
+      build_opencode
       ;;
     *)
       echo "ERROR: Unknown platform '$target'"
