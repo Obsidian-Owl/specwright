@@ -6,7 +6,8 @@
   <a href="https://github.com/Obsidian-Owl/specwright/releases"><img src="https://img.shields.io/github/v/release/Obsidian-Owl/specwright?style=flat-square&color=f59e0b&label=version" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Obsidian-Owl/specwright?style=flat-square&color=475569" alt="License"></a>
   <a href="https://github.com/Obsidian-Owl/specwright/stargazers"><img src="https://img.shields.io/github/stars/Obsidian-Owl/specwright?style=flat-square&color=475569" alt="Stars"></a>
-  <a href="https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/plugins"><img src="https://img.shields.io/badge/Made_for-Claude_Code-cc785c?style=flat-square" alt="Made for Claude Code"></a>
+  <a href="https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/plugins"><img src="https://img.shields.io/badge/Claude_Code-cc785c?style=flat-square" alt="Claude Code"></a>
+  <a href="https://opencode.ai"><img src="https://img.shields.io/badge/Opencode-3b82f6?style=flat-square" alt="Opencode"></a>
 </p>
 
 <p align="center">
@@ -40,7 +41,7 @@ Specwright closes the **entire loop** — design, plan, build, verify, ship, lea
 - Codebase knowledge persists across sessions — no re-discovering the same architecture
 - Periodic health checks find systemic debt that per-change gates miss
 - One install, configure once, works with any language or framework
-- Cross-platform: works with Claude Code, Opencode, and any agent supporting the [Agent Skills](https://agentskills.io) standard
+- Cross-platform: works with Claude Code, Opencode, and any agent that reads [`AGENTS.md`](./AGENTS.md)
 
 ### How It Compares
 
@@ -115,11 +116,37 @@ graph LR
 
 ## Quick Start
 
-Install the plugin:
+<details open>
+<summary><b>Claude Code</b></summary>
+
 ```
 /plugin marketplace add Obsidian-Owl/specwright
 /plugin install specwright@specwright
 ```
+
+</details>
+
+<details>
+<summary><b>Opencode</b></summary>
+
+Add the plugin to your `opencode.json`:
+
+```json
+{
+  "plugin": ["opencode-specwright@latest"]
+}
+```
+
+Opencode installs the package automatically on next startup — no manual `npm install` needed.
+
+</details>
+
+<details>
+<summary><b>Other Agents (AGENTS.md compatible)</b></summary>
+
+Any AI coding agent that reads [`AGENTS.md`](./AGENTS.md) can use Specwright's core skills directly. Copy or symlink the `core/` directory into your project and point your agent at `AGENTS.md`.
+
+</details>
 
 Initialize your project:
 ```
@@ -221,7 +248,7 @@ Three optional **reference documents** accelerate research and track health:
 
 When a work unit has 4+ independent tasks, Specwright can execute them in parallel using [Claude Code Agent Teams](https://docs.anthropic.com/en/docs/claude-code/agent-teams). Each teammate works in an isolated git worktree, runs the full TDD cycle with its own tester/executor agents, and commits independently. The lead cherry-picks results onto the feature branch.
 
-**Requirements:** `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` env var + `config.experimental.agentTeams.enabled: true`. Falls back to sequential execution when prerequisites aren't met — no errors, no configuration needed to ignore it.
+**Requirements:** `SPECWRIGHT_AGENT_TEAMS=1` env var + `config.experimental.agentTeams.enabled: true`. Falls back to sequential execution when prerequisites aren't met — no errors, no configuration needed to ignore it.
 
 ## Skills
 
@@ -284,7 +311,11 @@ specwright/
 │   ├── protocols/     # 18 shared protocols (loaded on demand)
 │   └── agents/        # 6 custom subagent definitions
 ├── adapters/          # Platform-specific packaging
-│   └── claude-code/   # Claude Code adapter (hooks, plugin metadata)
+│   ├── claude-code/   # Claude Code adapter (hooks, plugin metadata)
+│   └── opencode/      # Opencode adapter (plugin.ts, commands, skill overrides)
+├── build/             # Build pipeline
+│   ├── build.sh       # Builds platform packages (core + adapters → dist/)
+│   └── mappings/      # Per-platform transformation configs
 ├── AGENTS.md          # Universal project instructions (Agent Skills standard)
 ├── DESIGN.md          # Full architecture
 └── README.md

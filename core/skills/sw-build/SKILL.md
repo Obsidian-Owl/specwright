@@ -118,7 +118,7 @@ When delegating, include in the prompt:
 
 **Parallel execution — experimental (MEDIUM freedom):**
 - Follow `protocols/parallel-build.md` when all prerequisites are met:
-  `config.experimental.agentTeams.enabled`, `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env var, 4+ tasks.
+  `config.experimental.agentTeams.enabled`, `SPECWRIGHT_AGENT_TEAMS` env var, 4+ tasks.
 - If any prerequisite fails: execute tasks sequentially (normal behavior). No error.
 - Do NOT start implementing tasks yourself while teammates are working.
 

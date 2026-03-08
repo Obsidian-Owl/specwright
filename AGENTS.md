@@ -2,7 +2,7 @@
 
 Spec-driven app development with quality gates. Ensures the user gets what they asked for.
 
-Compatible with AI coding agents that support the [Agent Skills](https://agentskills.io) standard and [AGENTS.md](https://agents.md) project instructions.
+Compatible with AI coding agents that read AGENTS.md project instructions.
 
 ## Workflow
 

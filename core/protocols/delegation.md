@@ -80,7 +80,7 @@ Agent teams coordinate multiple independent Claude Code sessions (teammates) und
 - Large codebases investigated from different angles simultaneously
 
 **Requirements:**
-- Environment variable `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` must be set
+- Environment variable `SPECWRIGHT_AGENT_TEAMS=1` must be set
 - For build parallelism: `config.experimental.agentTeams.enabled` must be `true`
 - See `protocols/parallel-build.md` for the build-specific procedure
 
