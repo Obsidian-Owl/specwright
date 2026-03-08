@@ -313,11 +313,11 @@ echo "--- README.md ---"
 
 if [ -f "$OC_DIST/README.md" ]; then
   pass "README.md exists in dist/opencode/"
-  # Should match root README
-  if diff -q "$OC_DIST/README.md" "$ROOT_DIR/README.md" &>/dev/null; then
-    pass "README.md matches root README.md"
+  # Should match adapter-specific README
+  if diff -q "$OC_DIST/README.md" "$ROOT_DIR/adapters/opencode/README.md" &>/dev/null; then
+    pass "README.md matches adapter README.md"
   else
-    fail "README.md does NOT match root README.md"
+    fail "README.md does NOT match adapters/opencode/README.md"
   fi
 fi
 
@@ -428,11 +428,6 @@ for skill_dir in "$OC_DIST"/skills/*/; do
   skill_file="$skill_dir/SKILL.md"
   [ ! -f "$skill_file" ] && continue
 
-  # Skip overridden skills (they have their own content)
-  if [ "$skill_name" = "sw-guard" ] || [ "$skill_name" = "sw-build" ]; then
-    continue
-  fi
-
   FM=$(extract_frontmatter "$skill_file" || true)
   TOOLS=$(extract_allowed_tools "$FM")
 
@@ -445,7 +440,7 @@ for skill_dir in "$OC_DIST"/skills/*/; do
 done
 
 if [ "$STRIPPED_FOUND" -eq 0 ]; then
-  pass "no non-overridden skill has TaskCreate/TaskUpdate/TaskList/TaskGet in allowed-tools"
+  pass "no skill has TaskCreate/TaskUpdate/TaskList/TaskGet in allowed-tools"
 fi
 
 # ─── Skill body prose is NOT transformed ──────────────────────────────
@@ -468,18 +463,13 @@ fi
 
 # ─── Comprehensive: check ALL non-overridden skills have transformed tools ─
 
-echo "--- All non-overridden skills: no uppercase Claude Code tools in frontmatter ---"
+echo "--- All skills: no uppercase Claude Code tools in frontmatter ---"
 
 UNTRANSFORMED_COUNT=0
 for skill_dir in "$OC_DIST"/skills/*/; do
   skill_name=$(basename "$skill_dir")
   skill_file="$skill_dir/SKILL.md"
   [ ! -f "$skill_file" ] && continue
-
-  # Skip overridden skills
-  if [ "$skill_name" = "sw-guard" ] || [ "$skill_name" = "sw-build" ]; then
-    continue
-  fi
 
   FM=$(extract_frontmatter "$skill_file" || true)
   TOOLS=$(extract_allowed_tools "$FM")
@@ -495,7 +485,7 @@ for skill_dir in "$OC_DIST"/skills/*/; do
 done
 
 if [ "$UNTRANSFORMED_COUNT" -eq 0 ]; then
-  pass "all non-overridden skills have fully transformed allowed-tools"
+  pass "all skills have fully transformed allowed-tools"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -581,6 +571,39 @@ if [ -f "$OC_DIST/agents/specwright-build-fixer.md" ]; then
   assert_eq "$FIXER_MODEL" "claude-sonnet-4-6" "specwright-build-fixer model is claude-sonnet-4-6"
 fi
 
+echo "--- Agent tools as object format with lowercased names ---"
+
+if [ -d "$OC_DIST/agents" ]; then
+  for agent_file in "$OC_DIST"/agents/*.md; do
+    agent_name=$(basename "$agent_file" .md)
+    FM=$(extract_frontmatter "$agent_file" || true)
+
+    # Must NOT have array-style "  - ToolName" lines in frontmatter
+    ARRAY_TOOLS=$(echo "$FM" | grep -E '^  - [A-Za-z]' || true)
+    if [ -z "$ARRAY_TOOLS" ]; then
+      pass "$agent_name has no array-style tool entries in frontmatter"
+    else
+      fail "$agent_name still has array-style tool entries: $(echo "$ARRAY_TOOLS" | head -1 | xargs)"
+    fi
+
+    # Must have object-style "  toolname: true" lines
+    OBJECT_TOOLS=$(echo "$FM" | grep -E '^  [a-z]+: true$' || true)
+    if [ -n "$OBJECT_TOOLS" ]; then
+      pass "$agent_name has object-style tool entries (toolname: true)"
+    else
+      fail "$agent_name missing object-style tool entries"
+    fi
+
+    # Tool names must be lowercased (no uppercase in tool object keys)
+    UPPERCASE_TOOL_KEYS=$(echo "$FM" | grep -E '^  [A-Z][a-zA-Z]*: true$' || true)
+    if [ -z "$UPPERCASE_TOOL_KEYS" ]; then
+      pass "$agent_name tool names are lowercased"
+    else
+      fail "$agent_name has uppercase tool names: $(echo "$UPPERCASE_TOOL_KEYS" | head -1 | xargs)"
+    fi
+  done
+fi
+
 echo "--- Agent body content preserved ---"
 
 # Agent body should not be empty or mangled
@@ -638,16 +661,9 @@ for skill_dir in "$OC_DIST"/skills/*/; do
   skill_file="$skill_dir/SKILL.md"
   [ ! -f "$skill_file" ] && continue
 
-  # Skip overridden skills (they have their own content)
-  if [ "$skill_name" = "sw-guard" ] || [ "$skill_name" = "sw-build" ]; then
-    continue
-  fi
-
-  # Check for rewritten references: .specwright/protocols/
   REFS=$(grep -oE '\.specwright/protocols/[a-z-]+\.md' "$skill_file" 2>/dev/null || true)
   if [ -n "$REFS" ]; then
     while IFS= read -r ref; do
-      # Track distinct protocol references
       PROTO_NAME=$(echo "$ref" | sed 's|\.specwright/protocols/||')
       if ! echo "$DISTINCT_PROTOCOLS" | grep -qF "$PROTO_NAME"; then
         DISTINCT_PROTOCOLS="$DISTINCT_PROTOCOLS $PROTO_NAME"
@@ -708,7 +724,7 @@ if [ -f "$OC_DIST/skills/sw-verify/SKILL.md" ]; then
   fi
 fi
 
-# ─── Bare "protocols/" references should NOT remain in non-overridden skills ─
+# ─── Bare "protocols/" references should NOT remain in any skill ──────
 
 echo "--- No bare protocols/ references remain ---"
 
@@ -718,13 +734,7 @@ for skill_dir in "$OC_DIST"/skills/*/; do
   skill_file="$skill_dir/SKILL.md"
   [ ! -f "$skill_file" ] && continue
 
-  # Skip overridden skills
-  if [ "$skill_name" = "sw-guard" ] || [ "$skill_name" = "sw-build" ]; then
-    continue
-  fi
-
   # Look for bare "protocols/" NOT preceded by ".specwright/"
-  # Use grep with negative lookbehind equivalent: find "protocols/" but exclude ".specwright/protocols/"
   BARE=$(grep -nE 'protocols/' "$skill_file" | grep -v '\.specwright/protocols/' || true)
   if [ -n "$BARE" ]; then
     fail "$skill_name still has bare protocols/ references (not rewritten):"
@@ -775,31 +785,51 @@ fi
 echo ""
 echo "=== AC-10: Skill overrides ==="
 
-echo "--- Overridden skills match adapter versions ---"
+echo "--- Overridden skills are transformed adapter versions ---"
 
-# sw-guard override
-if [ -f "$OC_DIST/skills/sw-guard/SKILL.md" ] && [ -f "$ROOT_DIR/adapters/opencode/skills/sw-guard/SKILL.md" ]; then
-  if diff -q "$OC_DIST/skills/sw-guard/SKILL.md" "$ROOT_DIR/adapters/opencode/skills/sw-guard/SKILL.md" &>/dev/null; then
-    pass "dist sw-guard/SKILL.md matches adapters/opencode/skills/sw-guard/SKILL.md"
-  else
-    fail "dist sw-guard/SKILL.md does NOT match adapter version"
-  fi
-else
-  [ ! -f "$OC_DIST/skills/sw-guard/SKILL.md" ] && fail "dist sw-guard/SKILL.md missing"
-  [ ! -f "$ROOT_DIR/adapters/opencode/skills/sw-guard/SKILL.md" ] && fail "adapter sw-guard/SKILL.md missing"
-fi
+# Overridden skills should differ from adapter source (because transforms were applied)
+# and differ from core (because override content is different)
+for override_skill in sw-guard sw-build; do
+  dist_skill="$OC_DIST/skills/$override_skill/SKILL.md"
+  adapter_skill="$ROOT_DIR/adapters/opencode/skills/$override_skill/SKILL.md"
 
-# sw-build override
-if [ -f "$OC_DIST/skills/sw-build/SKILL.md" ] && [ -f "$ROOT_DIR/adapters/opencode/skills/sw-build/SKILL.md" ]; then
-  if diff -q "$OC_DIST/skills/sw-build/SKILL.md" "$ROOT_DIR/adapters/opencode/skills/sw-build/SKILL.md" &>/dev/null; then
-    pass "dist sw-build/SKILL.md matches adapters/opencode/skills/sw-build/SKILL.md"
-  else
-    fail "dist sw-build/SKILL.md does NOT match adapter version"
+  if [ ! -f "$dist_skill" ]; then
+    fail "dist $override_skill/SKILL.md missing"
+    continue
   fi
-else
-  [ ! -f "$OC_DIST/skills/sw-build/SKILL.md" ] && fail "dist sw-build/SKILL.md missing"
-  [ ! -f "$ROOT_DIR/adapters/opencode/skills/sw-build/SKILL.md" ] && fail "adapter sw-build/SKILL.md missing"
-fi
+
+  if [ ! -f "$adapter_skill" ]; then
+    fail "adapter $override_skill/SKILL.md missing"
+    continue
+  fi
+
+  # Should differ from adapter source (transforms applied: lowercased tools, protocol prefixes)
+  if diff -q "$dist_skill" "$adapter_skill" &>/dev/null; then
+    fail "dist $override_skill/SKILL.md is identical to adapter source (transforms were NOT applied)"
+  else
+    pass "dist $override_skill/SKILL.md differs from adapter source (transforms applied)"
+  fi
+
+  # Verify transformed tool names (lowercased, not uppercase)
+  OVERRIDE_FM=$(extract_frontmatter "$dist_skill" || true)
+  OVERRIDE_TOOLS=$(extract_allowed_tools "$OVERRIDE_FM")
+  if [ -n "$OVERRIDE_TOOLS" ]; then
+    HAS_UPPERCASE=$(echo "$OVERRIDE_TOOLS" | grep -E '^[A-Z]' | grep -v '^Task$' || true)
+    if [ -z "$HAS_UPPERCASE" ]; then
+      pass "dist $override_skill has lowercased tool names"
+    else
+      fail "dist $override_skill still has uppercase tools: $HAS_UPPERCASE"
+    fi
+  fi
+
+  # Verify protocol paths are rewritten
+  BARE_PROTOS=$(grep -E 'protocols/' "$dist_skill" | grep -v '\.specwright/protocols/' || true)
+  if [ -z "$BARE_PROTOS" ]; then
+    pass "dist $override_skill has rewritten protocol paths"
+  else
+    fail "dist $override_skill still has bare protocol paths"
+  fi
+done
 
 echo "--- Overridden skills do NOT match core (catch: override not applied) ---"
 

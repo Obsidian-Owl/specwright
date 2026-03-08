@@ -151,6 +151,45 @@ add_agent_mode() {
   fi
 }
 
+transform_agent_tools() {
+  local file="$1"
+  local mapping_file="$2"
+
+  local fm_end
+  fm_end=$(frontmatter_end "$file")
+  [ -z "$fm_end" ] || [ "$fm_end" -eq 0 ] && return 0
+
+  # Pass 1: Transform mapped tools "  - OldName" -> "  newname: true"
+  local tool_keys
+  tool_keys=$(jq -r '.tools | keys[]' "$mapping_file" 2>/dev/null)
+
+  local tmpfile
+  tmpfile=$(mktemp)
+  cp "$file" "$tmpfile"
+
+  if [ -n "$tool_keys" ]; then
+    while IFS= read -r tool_name; do
+      local new_name
+      new_name=$(jq -r --arg k "$tool_name" '.tools[$k]' "$mapping_file")
+      sed -i "1,${fm_end} s/^  - ${tool_name}$/  ${new_name}: true/" "$tmpfile"
+    done <<< "$tool_keys"
+  fi
+
+  # Pass 2: Convert any remaining "  - ToolName" lines to "  toolname: true"
+  awk -v fm_end="$fm_end" '
+    NR <= fm_end && /^  - [A-Za-z]/ {
+      tool = substr($0, 5)
+      print "  " tolower(tool) ": true"
+      next
+    }
+    { print }
+  ' "$tmpfile" > "${tmpfile}.2"
+  mv "${tmpfile}.2" "$tmpfile"
+
+  cp "$tmpfile" "$file"
+  rm -f "$tmpfile"
+}
+
 apply_skill_overrides() {
   local platform="$1"
   local dist_skills_dir="$2"
@@ -286,8 +325,8 @@ build_opencode() {
   cp "$ROOT_DIR/adapters/opencode/package.json" "$dist/package.json"
   cp "$ROOT_DIR/adapters/opencode/plugin.ts" "$dist/plugin.ts"
 
-  # Copy README from root
-  cp "$ROOT_DIR/README.md" "$dist/README.md"
+  # Copy adapter-specific README
+  cp "$ROOT_DIR/adapters/opencode/README.md" "$dist/README.md"
 
   # Apply skill transformations
   for skill_file in "$dist"/skills/*/SKILL.md; do
@@ -300,10 +339,24 @@ build_opencode() {
   for agent_file in "$dist"/agents/*.md; do
     translate_agent "$agent_file" "$mapping_file"
     add_agent_mode "$agent_file" "subagent"
+    transform_agent_tools "$agent_file" "$mapping_file"
   done
 
   # Apply skill overrides (adapter versions replace transformed core versions)
   apply_skill_overrides "$platform" "$dist/skills" "$mapping_file"
+
+  # Re-transform overridden skills (they were copied after the initial pass)
+  local override_list
+  override_list=$(jq -r '.skillOverrides[]' "$mapping_file" 2>/dev/null)
+  if [ -n "$override_list" ]; then
+    while IFS= read -r skill_name; do
+      local override_skill="$dist/skills/$skill_name/SKILL.md"
+      [ -f "$override_skill" ] || continue
+      transform_frontmatter_tools "$override_skill" "$mapping_file"
+      strip_tools "$override_skill" "$mapping_file"
+      rewrite_protocol_refs "$override_skill" "$mapping_file"
+    done <<< "$override_list"
+  fi
 
   # Validate
   echo "Validating: $platform"
