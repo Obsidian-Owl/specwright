@@ -32,7 +32,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Skills, protocols, and agents moved from root to `core/` directory (#66)
 - Claude Code-specific files moved to `adapters/claude-code/` (#66)
 - Root-level `skills/`, `protocols/`, `agents/` are now symlinks to `core/` for backwards compatibility (#66)
-- CONTRIBUTING.md updated with new architecture layout, correct file counts, and token targets
+- CONTRIBUTING.md updated with new architecture layout, correct file counts, and token targets (#70)
+- AGENTS.md protocols list corrected (added missing `insights.md`) (#70)
 - AGENTS.md protocols list corrected (added missing `insights.md`)
 
 ## [0.14.0] - 2026-03-07
