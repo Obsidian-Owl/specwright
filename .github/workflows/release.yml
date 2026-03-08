@@ -29,7 +29,7 @@ jobs:
       - name: Get current version
         id: current
         run: |
-          VERSION=$(jq -r '.version' .claude-plugin/plugin.json)
+          VERSION=$(jq -r '.version' adapters/claude-code/.claude-plugin/plugin.json)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Calculate new version
@@ -58,12 +58,12 @@ jobs:
       - name: Update plugin.json
         run: |
           jq --arg v "${{ steps.next.outputs.version }}" '.version = $v' \
-            .claude-plugin/plugin.json > tmp.json && mv tmp.json .claude-plugin/plugin.json
+            adapters/claude-code/.claude-plugin/plugin.json > tmp.json && mv tmp.json adapters/claude-code/.claude-plugin/plugin.json
 
       - name: Update marketplace.json
         run: |
           jq --arg v "${{ steps.next.outputs.version }}" '.plugins[0].version = $v' \
-            .claude-plugin/marketplace.json > tmp.json && mv tmp.json .claude-plugin/marketplace.json
+            adapters/claude-code/.claude-plugin/marketplace.json > tmp.json && mv tmp.json adapters/claude-code/.claude-plugin/marketplace.json
 
       - name: Update README.md
         run: |
@@ -100,6 +100,9 @@ jobs:
             } > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
           fi
 
+      - name: Build all platforms
+        run: ./build/build.sh all
+
       - name: Create release branch and PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -110,7 +113,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          git add .claude-plugin/plugin.json .claude-plugin/marketplace.json README.md CHANGELOG.md .github/banner.svg
+          git add adapters/claude-code/.claude-plugin/plugin.json adapters/claude-code/.claude-plugin/marketplace.json README.md CHANGELOG.md .github/banner.svg
           git commit -m "chore(release): v${VERSION}"
           git push origin "$BRANCH"
 
