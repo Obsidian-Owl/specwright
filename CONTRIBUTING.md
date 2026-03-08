@@ -51,7 +51,7 @@ specwright/
 ├── build/
 │   ├── build.sh      # Build pipeline (core + adapters → dist/)
 │   └── mappings/     # Per-platform transformation configs
-├── CLAUDE.md         # Project instructions (symlink → adapters/claude-code/)
+├── CLAUDE.md         # Project instructions (symlink → adapters/claude-code/CLAUDE.md)
 ├── DESIGN.md         # Full architecture document
 ├── hooks/            # Claude Code session lifecycle hooks
 ├── tests/            # Integration tests (OpenCode build/adapter verification)
