@@ -17,6 +17,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+## [Unreleased]
+
+### Added
+
+- **Cross-platform distribution** — Restructured into universal `core/` + per-platform `adapters/` architecture with build pipeline producing platform-specific packages (#66, #67, #68)
+- **Opencode adapter** — Full adapter for Opencode: mapping file, package.json, plugin entry point with lifecycle events, 14 command files, skill overrides for sw-guard and sw-build (#68)
+- **Build pipeline** (`build/build.sh`) — Builds platform-specific packages from core + adapters to `dist/`. Supports tool name transforms, tool stripping, protocol path rewrites, agent translation, and skill overrides with post-override re-transformation (#67)
+- **Platform mapping files** (`build/mappings/`) — Per-platform JSON configs defining tool mappings, strip lists, event mappings, model IDs, and skill overrides (#67, #68)
+- **Claude Code GitHub Actions** — Workflows for `@claude` mentions and automated PR code review (#69)
+
+### Changed
+
+- Skills, protocols, and agents moved from root to `core/` directory (#66)
+- Claude Code-specific files moved to `adapters/claude-code/` (#66)
+- Root-level `skills/`, `protocols/`, `agents/` are now symlinks to `core/` for backwards compatibility (#66)
+- CONTRIBUTING.md updated with new architecture layout, correct file counts, and token targets (#70)
+- AGENTS.md protocols list corrected (added missing `insights.md`) (#70)
+- AGENTS.md protocols list corrected (added missing `insights.md`)
+
 ## [0.14.0] - 2026-03-07
 
 ### Changed

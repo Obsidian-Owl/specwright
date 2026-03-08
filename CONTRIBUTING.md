@@ -7,7 +7,7 @@ Thanks for your interest in contributing! Specwright is an open-source Claude Co
 Open a [bug report issue](https://github.com/Obsidian-Owl/specwright/issues/new?template=bug_report.md) with:
 
 - Your Claude Code version (`claude --version`)
-- Specwright version (check `skills/sw-init/SKILL.md` frontmatter or the latest release)
+- Specwright version (check `core/skills/sw-init/SKILL.md` frontmatter or the latest release)
 - Steps to reproduce the problem
 - What you expected vs what happened
 - Any error output or screenshots
@@ -41,16 +41,26 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
 specwright/
-├── skills/       # 15 SKILL.md files (10 user-facing + 5 internal gates)
-├── protocols/    # 12 shared protocols (loaded on demand by skills)
-├── agents/       # 6 custom subagent definitions
-├── hooks/        # Session lifecycle hooks
-├── CLAUDE.md     # Project instructions for Claude Code
-├── DESIGN.md     # Full architecture document
+├── core/
+│   ├── skills/       # 19 SKILL.md files (14 user-facing + 5 internal gates)
+│   ├── protocols/    # 18 shared protocols (loaded on demand by skills)
+│   └── agents/       # 6 custom subagent definitions
+├── adapters/
+│   ├── claude-code/  # Claude Code plugin packaging (hooks, .claude-plugin)
+│   └── opencode/     # Opencode adapter (plugin.ts, commands, skill overrides)
+├── build/
+│   ├── build.sh      # Build pipeline (core + adapters → dist/)
+│   └── mappings/     # Per-platform transformation configs
+├── CLAUDE.md         # Project instructions (symlink → adapters/claude-code/CLAUDE.md)
+├── DESIGN.md         # Full architecture document
+├── hooks/            # Claude Code session lifecycle hooks
+├── tests/            # Integration tests (OpenCode build/adapter verification)
+├── CLAUDE.md         # Project instructions (symlink → adapters/claude-code/CLAUDE.md)
+├── DESIGN.md         # Full architecture document
 └── README.md
 ```
 
-**Skills** define *what* to achieve (goals + constraints), not step-by-step procedures. Each stays under 600 tokens.
+**Skills** define *what* to achieve (goals + constraints), not step-by-step procedures. Each stays under 800 tokens.
 
 **Protocols** extract fragile operations (git, state, recovery) into shared documents loaded on demand. Skills reference them but don't inline their content.
 
@@ -65,7 +75,7 @@ Specwright is a Claude Code plugin — it's a collection of skill, protocol, and
 1. Clone the repo
 2. Install the plugin locally: `/plugin install /path/to/specwright`
 3. Test skills by running them in a real or test project
-4. Check that modified skills stay under the 600-token target
+4. Check that modified skills stay under the 800-token target
 
 ## Code of Conduct
 
