@@ -1,0 +1,9 @@
+{
+  "platform": "claude-code",
+  "tools": {},
+  "strip": [],
+  "events": {},
+  "models": {},
+  "protocolPrefix": "",
+  "skillOverrides": []
+}
