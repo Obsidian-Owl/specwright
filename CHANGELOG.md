@@ -25,7 +25,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Opencode adapter** — Full adapter for Opencode: mapping file, package.json, plugin entry point with lifecycle events, 14 command files, skill overrides for sw-guard and sw-build (#68)
 - **Build pipeline** (`build/build.sh`) — Builds platform-specific packages from core + adapters to `dist/`. Supports tool name transforms, tool stripping, protocol path rewrites, agent translation, and skill overrides with post-override re-transformation (#67)
 - **Platform mapping files** (`build/mappings/`) — Per-platform JSON configs defining tool mappings, strip lists, event mappings, model IDs, and skill overrides (#67, #68)
-- **Claude Code GitHub Actions** — Workflows for @claude mentions and automated PR code review (#69)
+- **Claude Code GitHub Actions** — Workflows for `@claude` mentions and automated PR code review (#69)
 
 ### Changed
 
