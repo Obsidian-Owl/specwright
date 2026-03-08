@@ -132,6 +132,25 @@ translate_agent() {
   fi
 }
 
+add_agent_mode() {
+  local file="$1"
+  local mode="$2"
+
+  local fm_end
+  fm_end=$(frontmatter_end "$file")
+  [ -z "$fm_end" ] || [ "$fm_end" -eq 0 ] && return 0
+
+  # Only add if mode: is not already present in frontmatter
+  if ! sed -n "1,${fm_end}p" "$file" | grep -q '^mode:'; then
+    local tmpfile
+    tmpfile=$(mktemp)
+    # Insert "mode: <value>" on line 2 (after opening ---)
+    sed "1a\\mode: ${mode}" "$file" > "$tmpfile"
+    cp "$tmpfile" "$file"
+    rm -f "$tmpfile"
+  fi
+}
+
 apply_skill_overrides() {
   local platform="$1"
   local dist_skills_dir="$2"
@@ -246,6 +265,58 @@ build_claude_code() {
   echo "Build complete: $platform → dist/$platform/"
 }
 
+build_opencode() {
+  local platform="opencode"
+  local mapping_file="$ROOT_DIR/build/mappings/opencode.json"
+  local dist="$DIST_DIR/$platform"
+
+  echo "Building: $platform"
+
+  # Clean
+  rm -rf "$dist"
+  mkdir -p "$dist"
+
+  # Copy core content
+  cp -r "$ROOT_DIR/core/skills" "$dist/skills"
+  cp -r "$ROOT_DIR/core/protocols" "$dist/protocols"
+  cp -r "$ROOT_DIR/core/agents" "$dist/agents"
+
+  # Copy adapter content (opencode-specific, no hooks/.claude-plugin/CLAUDE.md)
+  cp -r "$ROOT_DIR/adapters/opencode/commands" "$dist/commands"
+  cp "$ROOT_DIR/adapters/opencode/package.json" "$dist/package.json"
+  cp "$ROOT_DIR/adapters/opencode/plugin.ts" "$dist/plugin.ts"
+
+  # Copy README from root
+  cp "$ROOT_DIR/README.md" "$dist/README.md"
+
+  # Apply skill transformations
+  for skill_file in "$dist"/skills/*/SKILL.md; do
+    transform_frontmatter_tools "$skill_file" "$mapping_file"
+    strip_tools "$skill_file" "$mapping_file"
+    rewrite_protocol_refs "$skill_file" "$mapping_file"
+  done
+
+  # Apply agent transformations
+  for agent_file in "$dist"/agents/*.md; do
+    translate_agent "$agent_file" "$mapping_file"
+    add_agent_mode "$agent_file" "subagent"
+  done
+
+  # Apply skill overrides (adapter versions replace transformed core versions)
+  apply_skill_overrides "$platform" "$dist/skills" "$mapping_file"
+
+  # Validate
+  echo "Validating: $platform"
+  if validate_skills "$platform"; then
+    echo "  All skills valid"
+  else
+    echo "  ERROR: Validation failed"
+    return 1
+  fi
+
+  echo "Build complete: $platform → dist/$platform/"
+}
+
 # ─── Main ───────────────────────────────────────────────────────────
 
 main() {
@@ -255,8 +326,12 @@ main() {
     claude-code)
       build_claude_code
       ;;
+    opencode)
+      build_opencode
+      ;;
     all)
       build_claude_code
+      build_opencode
       ;;
     *)
       echo "ERROR: Unknown platform '$target'"
