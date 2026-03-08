@@ -106,7 +106,7 @@ sw-build supports optional parallel task execution using Claude Code Agent Teams
 4. Cherry-picks completed worktree commits onto the feature branch
 5. Falls back to sequential execution for dependent or failed tasks
 
-Double opt-in: `config.experimental.agentTeams.enabled` + `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` env var. Procedure in `protocols/parallel-build.md`. Graceful degradation at every level — if any prerequisite fails, sw-build executes tasks sequentially with no error.
+Double opt-in: `config.experimental.agentTeams.enabled` + `SPECWRIGHT_AGENT_TEAMS=1` env var. Procedure in `protocols/parallel-build.md`. Graceful degradation at every level — if any prerequisite fails, sw-build executes tasks sequentially with no error.
 
 ### Verify Skill Gates
 

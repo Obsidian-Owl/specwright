@@ -7,7 +7,7 @@ Experimental parallel task execution using Claude Code Agent Teams. Only used by
 All three conditions must be true:
 
 1. `config.experimental.agentTeams.enabled` is `true`
-2. Environment variable `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is set
+2. Environment variable `SPECWRIGHT_AGENT_TEAMS=1` is set
 3. The work unit has 4 or more tasks
 
 If any condition fails: skip parallel execution entirely. No error, no warning. Execute tasks sequentially (normal behavior).

@@ -41,7 +41,7 @@ Specwright closes the **entire loop** — design, plan, build, verify, ship, lea
 - Codebase knowledge persists across sessions — no re-discovering the same architecture
 - Periodic health checks find systemic debt that per-change gates miss
 - One install, configure once, works with any language or framework
-- Cross-platform: works with Claude Code, Opencode, and any agent supporting the [Agent Skills](https://agentskills.io) standard
+- Cross-platform: works with Claude Code, Opencode, and any agent that reads [`AGENTS.md`](./AGENTS.md)
 
 ### How It Compares
 
@@ -144,7 +144,7 @@ Opencode installs the package automatically on next startup — no manual `npm i
 <details>
 <summary><b>Other Agents (AGENTS.md compatible)</b></summary>
 
-Any AI coding agent that supports the [Agent Skills](https://agentskills.io) standard or reads `AGENTS.md` can use Specwright's core skills directly. Copy or symlink the `core/` directory into your project and point your agent at `AGENTS.md`.
+Any AI coding agent that reads [`AGENTS.md`](./AGENTS.md) can use Specwright's core skills directly. Copy or symlink the `core/` directory into your project and point your agent at `AGENTS.md`.
 
 </details>
 
