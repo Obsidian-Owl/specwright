@@ -120,7 +120,7 @@ assert_eq "$(jq -r '.tools.Grep' "$MAPPING")" "grep" "Grep -> grep"
 assert_eq "$(jq -r '.tools.WebSearch' "$MAPPING")" "websearch" "WebSearch -> websearch"
 assert_eq "$(jq -r '.tools.WebFetch' "$MAPPING")" "webfetch" "WebFetch -> webfetch"
 assert_eq "$(jq -r '.tools.AskUserQuestion' "$MAPPING")" "question" "AskUserQuestion -> question"
-assert_eq "$(jq -r '.tools.Agent' "$MAPPING")" "Task" "Agent -> Task"
+assert_eq "$(jq -r '.tools.Agent' "$MAPPING")" "task" "Agent -> task"
 
 # Verify no tool maps to null or empty string
 NULL_TOOLS=$(jq '[.tools | to_entries[] | select(.value == null or .value == "")] | length' "$MAPPING")
@@ -253,10 +253,9 @@ assert_eq "$MODELS_EMPTY" "false" "models object is not empty"
 # protocolPrefix is NOT empty string
 assert_eq "$(jq -r '.protocolPrefix | length > 0' "$MAPPING")" "true" "protocolPrefix is not empty string"
 
-# Verify Agent maps to Task (capitalized), not "task" (lowercase)
-# This is a specific requirement from the spec
+# Verify Agent maps to task (lowercase), consistent with all other tool values
 AGENT_VALUE=$(jq -r '.tools.Agent' "$MAPPING")
-assert_eq "$AGENT_VALUE" "Task" "Agent maps to 'Task' (capital T, not lowercase)"
+assert_eq "$AGENT_VALUE" "task" "Agent maps to 'task' (lowercase, consistent with other tools)"
 
 # ─── Summary ────────────────────────────────────────────────────────
 

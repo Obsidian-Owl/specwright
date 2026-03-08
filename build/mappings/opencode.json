@@ -10,7 +10,7 @@
     "WebSearch": "websearch",
     "WebFetch": "webfetch",
     "AskUserQuestion": "question",
-    "Agent": "Task"
+    "Agent": "task"
   },
   "strip": ["TaskCreate", "TaskUpdate", "TaskList", "TaskGet"],
   "events": {

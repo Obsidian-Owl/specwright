@@ -99,7 +99,14 @@ rewrite_protocol_refs() {
 
   # Prepend prefix to "protocols/" references in skill body (after frontmatter)
   # Match references like: protocols/state.md, `protocols/git.md`
-  sed "s|protocols/|${prefix}protocols/|g" "$file" > "$tmpfile"
+  local fm_end
+  fm_end=$(frontmatter_end "$file")
+  [ -z "$fm_end" ] && fm_end=0
+
+  awk -v fm_end="$fm_end" -v prefix="$prefix" '
+    NR > fm_end { gsub(/protocols\//, prefix "protocols/") }
+    { print }
+  ' "$file" > "$tmpfile"
   cp "$tmpfile" "$file"
 
   rm -f "$tmpfile"
@@ -171,7 +178,8 @@ transform_agent_tools() {
     while IFS= read -r tool_name; do
       local new_name
       new_name=$(jq -r --arg k "$tool_name" '.tools[$k]' "$mapping_file")
-      sed -i "1,${fm_end} s/^  - ${tool_name}$/  ${new_name}: true/" "$tmpfile"
+      sed "1,${fm_end} s/^  - ${tool_name}$/  ${new_name}: true/" "$tmpfile" > "${tmpfile}.new"
+      mv "${tmpfile}.new" "$tmpfile"
     done <<< "$tool_keys"
   fi
 
