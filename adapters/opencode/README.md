@@ -4,7 +4,15 @@ Specwright adapter for [Opencode](https://opencode.ai). Brings spec-driven devel
 
 ## Installation
 
-Add this package to your Opencode project and configure it as a plugin.
+Add to your `opencode.json`:
+
+```json
+{
+  "plugin": ["opencode-specwright@latest"]
+}
+```
+
+Opencode installs the package automatically on next startup.
 
 ## Usage
 
@@ -16,6 +24,8 @@ Once installed, the Specwright workflow commands are available:
 - `sw-build` — TDD implementation of one work unit
 - `sw-verify` — Quality gates validation
 - `sw-ship` — Strategy-aware merge via PR
+
+Run `sw-init` first to configure Specwright for your project, then follow the design → plan → build → verify → ship workflow.
 
 ## More Information
 
