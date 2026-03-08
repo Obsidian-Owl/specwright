@@ -24,6 +24,16 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 
+# ─── Helpers ────────────────────────────────────────────────────────
+
+# Get the line number of the closing --- of YAML frontmatter.
+# Returns 0 if no frontmatter found.
+frontmatter_end() {
+  local file="$1"
+  awk 'NR==1 && /^---$/ { found=1; next }
+       found && /^---$/ { print NR; exit }' "$file"
+}
+
 # ─── Transformation Functions ───────────────────────────────────────
 
 transform_frontmatter_tools() {
@@ -34,15 +44,18 @@ transform_frontmatter_tools() {
   tool_keys=$(jq -r '.tools | keys[]' "$mapping_file" 2>/dev/null)
   [ -z "$tool_keys" ] && return 0
 
+  local fm_end
+  fm_end=$(frontmatter_end "$file")
+  [ -z "$fm_end" ] || [ "$fm_end" -eq 0 ] && return 0
+
   local tmpfile
   tmpfile=$(mktemp)
 
   while IFS= read -r tool_name; do
     local new_name
     new_name=$(jq -r --arg k "$tool_name" '.tools[$k]' "$mapping_file")
-    # Only transform within YAML frontmatter allowed-tools arrays
-    # Match lines like "  - ToolName" between --- markers
-    sed "/^---$/,/^---$/ s/^\\(  - \\)${tool_name}$/\\1${new_name}/" "$file" > "$tmpfile"
+    # Only transform within YAML frontmatter (lines 1 to fm_end)
+    sed "1,${fm_end} s/^\\(  - \\)${tool_name}$/\\1${new_name}/" "$file" > "$tmpfile"
     cp "$tmpfile" "$file"
   done <<< "$tool_keys"
 
@@ -57,12 +70,16 @@ strip_tools() {
   strip_list=$(jq -r '.strip[]' "$mapping_file" 2>/dev/null)
   [ -z "$strip_list" ] && return 0
 
+  local fm_end
+  fm_end=$(frontmatter_end "$file")
+  [ -z "$fm_end" ] || [ "$fm_end" -eq 0 ] && return 0
+
   local tmpfile
   tmpfile=$(mktemp)
 
   while IFS= read -r tool_name; do
-    # Remove "  - ToolName" lines within YAML frontmatter
-    sed "/^---$/,/^---$/ { /^  - ${tool_name}$/d; }" "$file" > "$tmpfile"
+    # Remove "  - ToolName" lines within YAML frontmatter only
+    sed "1,${fm_end} { /^  - ${tool_name}$/d; }" "$file" > "$tmpfile"
     cp "$tmpfile" "$file"
   done <<< "$strip_list"
 
@@ -97,13 +114,17 @@ translate_agent() {
   model_keys=$(jq -r '.models | keys[]' "$mapping_file" 2>/dev/null)
 
   if [ -n "$model_keys" ]; then
+    local fm_end
+    fm_end=$(frontmatter_end "$file")
+    [ -z "$fm_end" ] || [ "$fm_end" -eq 0 ] && return 0
+
     local tmpfile
     tmpfile=$(mktemp)
 
     while IFS= read -r model_name; do
       local new_model
       new_model=$(jq -r --arg k "$model_name" '.models[$k]' "$mapping_file")
-      sed "/^---$/,/^---$/ s/model: ${model_name}/model: ${new_model}/" "$file" > "$tmpfile"
+      sed "1,${fm_end} s/model: ${model_name}/model: ${new_model}/" "$file" > "$tmpfile"
       cp "$tmpfile" "$file"
     done <<< "$model_keys"
 
@@ -145,14 +166,27 @@ validate_skills() {
     local skill_name
     skill_name=$(basename "$skill_dir")
 
+    # Extract only the first frontmatter block for validation
+    local fm_end
+    fm_end=$(frontmatter_end "$skill_file")
+
+    if [ -z "$fm_end" ] || [ "$fm_end" -eq 0 ]; then
+      echo "  FAIL: $skill_name/SKILL.md has no YAML frontmatter"
+      errors=$((errors + 1))
+      continue
+    fi
+
+    local frontmatter
+    frontmatter=$(sed -n "1,${fm_end}p" "$skill_file")
+
     # Check for name: in YAML frontmatter
-    if ! sed -n '/^---$/,/^---$/p' "$skill_file" | grep -q '^name:'; then
+    if ! echo "$frontmatter" | grep -q '^name:'; then
       echo "  FAIL: $skill_name/SKILL.md missing 'name:' in frontmatter"
       errors=$((errors + 1))
     fi
 
     # Check for description: in YAML frontmatter
-    if ! sed -n '/^---$/,/^---$/p' "$skill_file" | grep -q '^description:'; then
+    if ! echo "$frontmatter" | grep -q '^description:'; then
       echo "  FAIL: $skill_name/SKILL.md missing 'description:' in frontmatter"
       errors=$((errors + 1))
     fi
