@@ -53,6 +53,10 @@ specwright/
 │   └── mappings/     # Per-platform transformation configs
 ├── CLAUDE.md         # Project instructions (symlink → adapters/claude-code/)
 ├── DESIGN.md         # Full architecture document
+├── hooks/            # Claude Code session lifecycle hooks
+├── tests/            # Integration tests (OpenCode build/adapter verification)
+├── CLAUDE.md         # Project instructions (symlink → adapters/claude-code/CLAUDE.md)
+├── DESIGN.md         # Full architecture document
 └── README.md
 ```
 
