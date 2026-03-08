@@ -11,8 +11,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check version consistency
         run: |
-          PLUGIN_VERSION=$(jq -r '.version' .claude-plugin/plugin.json)
-          MARKETPLACE_VERSION=$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)
+          PLUGIN_VERSION=$(jq -r '.version' adapters/claude-code/.claude-plugin/plugin.json)
+          MARKETPLACE_VERSION=$(jq -r '.plugins[0].version' adapters/claude-code/.claude-plugin/marketplace.json)
 
           if [ "$PLUGIN_VERSION" != "$MARKETPLACE_VERSION" ]; then
             echo "::error::Version mismatch: plugin.json ($PLUGIN_VERSION) != marketplace.json ($MARKETPLACE_VERSION)"
@@ -28,7 +28,7 @@ jobs:
       - name: Validate SKILL.md frontmatter
         run: |
           ERRORS=0
-          for file in skills/*/SKILL.md; do
+          for file in core/skills/*/SKILL.md; do
             [ -f "$file" ] || continue
 
             # Extract frontmatter (between first two --- lines)
@@ -53,3 +53,30 @@ jobs:
           fi
 
           echo "All SKILL.md files have valid frontmatter"
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run build
+        run: ./build/build.sh claude-code
+      - name: Verify output structure
+        run: |
+          EXPECTED="agents CLAUDE.md hooks protocols README.md skills"
+          ACTUAL=$(ls dist/claude-code/ | grep -v '^\.' | sort | tr '\n' ' ' | sed 's/ $//')
+          EXPECTED_SORTED=$(echo "$EXPECTED" | tr ' ' '\n' | sort | tr '\n' ' ' | sed 's/ $//')
+
+          if [ "$ACTUAL" != "$EXPECTED_SORTED" ]; then
+            echo "::error::Unexpected dist/claude-code/ structure"
+            echo "Expected: $EXPECTED_SORTED"
+            echo "Actual:   $ACTUAL"
+            exit 1
+          fi
+
+          # Verify .claude-plugin exists (hidden dir)
+          if [ ! -d "dist/claude-code/.claude-plugin" ]; then
+            echo "::error::Missing dist/claude-code/.claude-plugin/"
+            exit 1
+          fi
+
+          echo "Build output structure verified"
