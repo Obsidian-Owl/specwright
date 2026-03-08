@@ -57,6 +57,7 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `evidence.md` -- Gate evidence format
 - `gate-verdict.md` -- Verdict rendering with self-critique
 - `context.md` -- Anchor doc and config loading
+- `insights.md` -- External Claude Code insights data access
 - `learning-lifecycle.md` -- Compaction triggers and tiered memory
 - `landscape.md` -- Codebase reference document format and freshness rules
 - `assumptions.md` -- Design assumption format, classification, and resolution lifecycle
