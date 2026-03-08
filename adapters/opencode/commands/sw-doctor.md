@@ -1,0 +1,7 @@
+---
+description: Read-only installation health check with repair hints
+---
+
+Read and follow the skill file at `.specwright/skills/sw-doctor/SKILL.md`.
+
+$ARGUMENTS
