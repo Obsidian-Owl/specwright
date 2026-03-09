@@ -1,6 +1,11 @@
 /**
  * Specwright plugin for Opencode.
  *
+ * On load: auto-deploys skills, protocols, agents, and commands from the
+ * installed npm package to the project's filesystem locations where Opencode
+ * discovers them. Deployment is version-gated — only runs when the package
+ * version differs from the deployed version.
+ *
  * Handles three lifecycle events:
  *   session.created   — reads workflow.json; outputs recovery summary if work is in progress;
  *                       includes continuation.md snapshot if fresh, then deletes it.
@@ -11,11 +16,130 @@
  * Uses only standard Node.js / Bun APIs (fs, path). Returns results instead of exiting.
  */
 
-import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync, cpSync, rmSync } from 'fs';
 import { join } from 'path';
+
+// ── Auto-deploy ─────────────────────────────────────────────────────────────
+//
+// Opencode does NOT discover skills, protocols, agents, or commands from npm
+// packages. Assets must be copied to specific filesystem locations.
+//
+// Deployment targets (split across two roots):
+//   commands/  → .opencode/commands/       (Opencode discovers commands here)
+//   skills/    → .specwright/skills/       (commands reference this path)
+//   protocols/ → .specwright/protocols/    (skills reference this path)
+//   agents/    → .specwright/agents/       (delegation protocol references this)
+
+interface DeployMapping {
+  source: string;
+  target: string;
+}
+
+function getDeployMappings(packageRoot: string, projectDir: string): DeployMapping[] {
+  return [
+    { source: join(packageRoot, 'commands'), target: join(projectDir, '.opencode', 'commands') },
+    { source: join(packageRoot, 'skills'), target: join(projectDir, '.specwright', 'skills') },
+    { source: join(packageRoot, 'protocols'), target: join(projectDir, '.specwright', 'protocols') },
+    { source: join(packageRoot, 'agents'), target: join(projectDir, '.specwright', 'agents') },
+  ];
+}
+
+function getPackageVersion(packageRoot: string): string | null {
+  try {
+    const pkgPath = join(packageRoot, 'package.json');
+    if (!existsSync(pkgPath)) return null;
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+    return typeof pkg.version === 'string' ? pkg.version : null;
+  } catch {
+    return null;
+  }
+}
+
+function getDeployedVersion(projectDir: string): string | null {
+  try {
+    const versionPath = join(projectDir, '.specwright', '.plugin-version');
+    if (!existsSync(versionPath)) return null;
+    return readFileSync(versionPath, 'utf-8').trim();
+  } catch {
+    return null;
+  }
+}
+
+function writeDeployedVersion(projectDir: string, version: string): void {
+  try {
+    const versionPath = join(projectDir, '.specwright', '.plugin-version');
+    mkdirSync(join(projectDir, '.specwright'), { recursive: true });
+    writeFileSync(versionPath, version, 'utf-8');
+  } catch {
+    // Version marker write failure is non-fatal — next load will re-deploy
+  }
+}
+
+function deployAssets(packageRoot: string, projectDir: string): void {
+  try {
+    const packageVersion = getPackageVersion(packageRoot);
+    if (!packageVersion) {
+      console.warn('Specwright: Could not read package version, skipping deploy');
+      return;
+    }
+
+    const deployedVersion = getDeployedVersion(projectDir);
+    if (deployedVersion === packageVersion) {
+      return; // Already deployed — skip
+    }
+
+    console.log(`Specwright: Deploying v${packageVersion} (was: ${deployedVersion ?? 'none'})`);
+
+    const mappings = getDeployMappings(packageRoot, projectDir);
+    let deployedCount = 0;
+
+    for (const { source, target } of mappings) {
+      try {
+        if (!existsSync(source)) {
+          console.warn(`Specwright: Source directory not found, skipping: ${source}`);
+          continue;
+        }
+
+        // Clean existing target to remove orphaned files from previous versions
+        try {
+          if (existsSync(target)) {
+            rmSync(target, { recursive: true, force: true });
+          }
+        } catch {
+          // If cleanup fails, proceed with overwrite copy
+        }
+
+        // Create parent directory and copy
+        mkdirSync(target, { recursive: true });
+        cpSync(source, target, { recursive: true, force: true });
+        deployedCount++;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`Specwright: Failed to deploy ${source} → ${target}: ${message}`);
+      }
+    }
+
+    if (deployedCount === mappings.length) {
+      writeDeployedVersion(projectDir, packageVersion);
+      console.log(`Specwright: Deployed ${deployedCount} asset directories`);
+    } else if (deployedCount > 0) {
+      console.warn(`Specwright: Partial deploy — ${deployedCount}/${mappings.length} succeeded. Will retry next load.`);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`Specwright: Deploy failed: ${message}`);
+    // Non-fatal — lifecycle handlers still register below
+  }
+}
+
+// ── Plugin entry point ──────────────────────────────────────────────────────
 
 export default async function (ctx: { directory: string; on: (event: string, handler: () => Promise<string | void>) => void }) {
   const { directory } = ctx;
+
+  // Deploy assets BEFORE registering event handlers
+  deployAssets(import.meta.dir, directory);
+
   const stateDir = join(directory, '.specwright/state');
   const workflowPath = join(stateDir, 'workflow.json');
   const continuationPath = join(stateDir, 'continuation.md');
