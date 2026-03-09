@@ -14,12 +14,19 @@ jobs:
           PLUGIN_VERSION=$(jq -r '.version' adapters/claude-code/.claude-plugin/plugin.json)
           MARKETPLACE_VERSION=$(jq -r '.plugins[0].version' adapters/claude-code/.claude-plugin/marketplace.json)
 
+          OPENCODE_VERSION=$(jq -r '.version' adapters/opencode/package.json)
+
           if [ "$PLUGIN_VERSION" != "$MARKETPLACE_VERSION" ]; then
             echo "::error::Version mismatch: plugin.json ($PLUGIN_VERSION) != marketplace.json ($MARKETPLACE_VERSION)"
             exit 1
           fi
 
-          echo "Versions match: $PLUGIN_VERSION"
+          if [ "$PLUGIN_VERSION" != "$OPENCODE_VERSION" ]; then
+            echo "::error::Version mismatch: plugin.json ($PLUGIN_VERSION) != opencode package.json ($OPENCODE_VERSION)"
+            exit 1
+          fi
+
+          echo "All versions match: $PLUGIN_VERSION"
 
   skill-frontmatter:
     runs-on: ubuntu-latest
