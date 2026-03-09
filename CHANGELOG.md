@@ -17,6 +17,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.15.0] - 2026-03-09
+
+### Changed
+
+- feat(opencode): unified release process with npm publishing (#72)
+- docs: multi-platform README with Opencode installation (#71)
+- docs: update stale docs for cross-platform architecture (#70)
+- feat(opencode): add opencode adapter for cross-platform distribution (#68)
+- Add Claude Code GitHub Workflow (#69)
+- feat(build): add build pipeline for cross-platform distribution (#67)
+- refactor: restructure repo into core/ + adapters/ for cross-platform distribution (#66)
+- docs: document experimental agent teams feature in README and DESIGN (#65)
+
 ## [Unreleased]
 
 ### Added
