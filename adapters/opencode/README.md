@@ -8,7 +8,7 @@ Add to your `opencode.json`:
 
 ```json
 {
-  "plugin": ["opencode-specwright@latest"]
+  "plugin": ["@obsidian-owl/opencode-specwright@latest"]
 }
 ```
 
