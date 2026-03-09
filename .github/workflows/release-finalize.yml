@@ -12,6 +12,8 @@ jobs:
   tag-and-release:
     if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/v')
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,7 +66,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: v${{ needs.tag-and-release.outputs.version }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

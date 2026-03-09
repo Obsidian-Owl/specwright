@@ -88,7 +88,7 @@ function deployAssets(packageRoot: string, projectDir: string): void {
       return; // Already deployed — skip
     }
 
-    console.error(`Specwright: Deploying v${packageVersion} (was: ${deployedVersion ?? 'none'})`);
+    console.log(`Specwright: Deploying v${packageVersion} (was: ${deployedVersion ?? 'none'})`);
 
     const mappings = getDeployMappings(packageRoot, projectDir);
     let deployedCount = 0;
@@ -119,9 +119,11 @@ function deployAssets(packageRoot: string, projectDir: string): void {
       }
     }
 
-    if (deployedCount > 0) {
+    if (deployedCount === mappings.length) {
       writeDeployedVersion(projectDir, packageVersion);
-      console.error(`Specwright: Deployed ${deployedCount} asset directories`);
+      console.log(`Specwright: Deployed ${deployedCount} asset directories`);
+    } else if (deployedCount > 0) {
+      console.warn(`Specwright: Partial deploy — ${deployedCount}/${mappings.length} succeeded. Will retry next load.`);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

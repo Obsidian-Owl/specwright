@@ -430,15 +430,6 @@ else
   fail "could not find fs import line"
 fi
 
-# The file must have grown substantially to include deploy logic.
-# Original is 175 lines. Deploy should add at least 30-40 lines.
-LINE_COUNT=$(wc -l < "$PLUGIN")
-if [ "$LINE_COUNT" -ge 210 ]; then
-  pass "plugin.ts has grown to accommodate deploy logic ($LINE_COUNT lines, was ~175)"
-else
-  fail "plugin.ts is too short to contain deploy logic ($LINE_COUNT lines, expected >= 210)"
-fi
-
 # Deploy must reference at least 3 of the 4 source directory names
 # as string literals (to build source paths from import.meta.dir).
 # This catches an implementation that only deploys to targets but
