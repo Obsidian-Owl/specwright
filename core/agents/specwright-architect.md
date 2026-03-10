@@ -56,3 +56,6 @@ Always structure your response as:
   - Resolution type: `clarify` (user answers questions), `reference` (needs API docs/schemas/types), or `external` (needs input from other teams)
   - Impact (what breaks if the assumption is wrong)
 - **Verdict**: APPROVED or REJECTED with clear rationale
+
+When invoked for convergence scoring, also include:
+- **Convergence scores**: Completeness: N/5, Coherence: N/5, Feasibility: N/5, Risk Coverage: N/5

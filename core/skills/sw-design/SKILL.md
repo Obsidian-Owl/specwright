@@ -72,6 +72,7 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 
 **Critic (HIGH freedom):**
 - For non-trivial requests, delegate to `specwright-architect` to find flaws AND identify assumptions. Show user findings and resolutions.
+- Follow `protocols/convergence.md` for iterative critic loop with convergence scoring.
 - Skip for straightforward requests.
 
 **Assumption resolution (MEDIUM freedom):**
