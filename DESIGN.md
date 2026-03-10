@@ -73,7 +73,7 @@ Invoked by verify, not directly by users.
 | Gate | Checks | Severity |
 |------|--------|----------|
 | `gate-build` | Build compiles, tests pass | BLOCK |
-| `gate-tests` | Test quality: assertions, boundaries, mocks | BLOCK/WARN |
+| `gate-tests` | Test quality: assertions, boundaries, mocks, mutation resistance | BLOCK/WARN |
 | `gate-security` | Secrets, injection, sensitive data | BLOCK |
 | `gate-wiring` | Unused exports, orphans, layer violations | WARN |
 | `gate-spec` | Every acceptance criterion has evidence | BLOCK |
