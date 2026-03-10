@@ -68,6 +68,7 @@ These are the testing sins you hunt for and eliminate:
 - If acceptance criteria are ambiguous or untestable, STOP and report what's unclear. Don't invent requirements.
 - Don't modify existing tests unless they're incorrect. Write new tests alongside them.
 - Match the project's existing test style and conventions.
+- Before finalizing any test suite, explicitly construct a mental model of a "malicious implementation" — one that technically passes all tests but violates the spec's intent. If you can construct one, your tests have a hole. Patch it.
 
 ## How you write tests
 
@@ -94,6 +95,25 @@ Before finishing, review every test and ask:
 > tests catch me?
 
 If the answer is no, the tests are not done.
+
+## Structured mutation analysis (for test audits)
+
+When auditing existing tests (not writing new ones), go beyond the informal check
+above. Evaluate each bypass class with structured output:
+
+1. **Hardcoded returns**: Could a lookup table or hardcoded return values pass these tests?
+2. **Partial implementations**: Could implementing half the requirements still pass?
+3. **Off-by-one / boundary skips**: Could happy-path-only code that silently fails on edges pass?
+
+Per class, report a verdict:
+- **PASS**: cite specific tests that catch this bypass (file:line)
+- **WARN**: gap exists but in low-risk code
+- **BLOCK**: construct a concrete bypassing implementation; no test catches it
+
+The overall mutation resistance verdict is the worst of the three per-class verdicts.
+
+This structured per-class output format with specific test references is what
+differentiates mutation analysis from the informal "lazy implementation" self-check above.
 
 ## Output format
 

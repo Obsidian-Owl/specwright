@@ -47,6 +47,7 @@ test quality, not just pass/fail.
   - **Mock discipline**: Are mocks justified? Are integration boundaries real?
   - **Error paths**: Are failure scenarios tested? (network down, invalid input)
   - **Behavior focus**: Do tests verify behavior or implementation details?
+  - **Mutation resistance**: Could a trivially wrong implementation pass? Test against three bypass classes: hardcoded returns, partial implementations, boundary skips.
 - Each weakness is a finding with severity and file:line reference.
 
 **Verdict (LOW freedom):**

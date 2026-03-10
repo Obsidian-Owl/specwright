@@ -5,21 +5,36 @@ before the handoff to `/sw-verify`.
 
 ## Post-Build Review
 
-**Trigger (heuristic):** Run if the unit has 4+ tasks, OR 5+ files changed,
-OR any acceptance criterion is tagged with security concerns. Units that
-don't qualify skip directly to handoff.
+**Trigger:** All units receive post-build review. No units skip.
+
+**Depth calibration:**
+
+| Unit size | Depth | Reviewer scope |
+|-----------|-------|---------------|
+| 1-3 tasks AND <5 files | Light | Spec compliance check only. Single pass. BLOCK findings only. |
+| 4+ tasks OR 5+ files | Standard | Full review. BLOCK → user, WARN → awareness. |
+| Security-tagged criteria | Standard | Full review + security focus. Regardless of size. |
 
 **Delegation:** `specwright-reviewer` (not architect). Include in prompt:
 - spec.md (acceptance criteria)
 - List of changed files (from git diff)
 - plan.md (architecture decisions)
+- Depth level (Light or Standard) so the reviewer knows its scope
 
 The reviewer reads files directly. Do NOT pass full diffs in the prompt.
 
-**Findings triage:**
+**Findings triage (Standard depth):**
 - BLOCK → present to user immediately. User decides: fix now, fix later, or dismiss.
 - WARN → list for awareness. No action required.
 - INFO → skip (don't surface to user).
+
+**Findings triage (Light depth):**
+- BLOCK → present to user immediately.
+- WARN and INFO → skip (not surfaced at Light depth).
+
+**Iterative loop (max 2 cycles):** If the reviewer finds BLOCK findings, present to
+user. If user fixes, the reviewer gets ONE re-review pass. No further review cycles
+after that — proceed to handoff regardless.
 
 ## As-Built Notes
 
