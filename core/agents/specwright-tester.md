@@ -68,6 +68,7 @@ These are the testing sins you hunt for and eliminate:
 - If acceptance criteria are ambiguous or untestable, STOP and report what's unclear. Don't invent requirements.
 - Don't modify existing tests unless they're incorrect. Write new tests alongside them.
 - Match the project's existing test style and conventions.
+- Before finalizing any test suite, explicitly construct a mental model of a "malicious implementation" — one that technically passes all tests but violates the spec's intent. If you can construct one, your tests have a hole. Patch it.
 
 ## How you write tests
 
