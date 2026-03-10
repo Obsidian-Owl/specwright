@@ -112,9 +112,8 @@ When delegating, include in the prompt:
   not a build-fixer scenario.
 
 **Post-build review (MEDIUM freedom):**
-- After all tasks committed, if unit qualifies (4+ tasks OR 5+ files OR security-tagged criteria): delegate review to `specwright-reviewer`. Triage findings: BLOCK → user, WARN → awareness, INFO → skip.
-- Units that don't qualify skip directly to handoff.
-- Follow `protocols/build-quality.md` for delegation details and findings triage.
+- After all tasks committed, delegate review to `specwright-reviewer`.
+- Follow `protocols/build-quality.md` for trigger, depth calibration, delegation details, and findings triage.
 
 **Parallel execution — experimental (MEDIUM freedom):**
 - Follow `protocols/parallel-build.md` when all prerequisites are met:
