@@ -126,6 +126,7 @@ When delegating, include in the prompt:
 - spec.md stays untouched. gate-spec does NOT consume as-built notes. Primary consumer: sw-learn.
 - Follow `protocols/build-quality.md` for content scope.
 - Follow `protocols/assumptions.md` late discovery lifecycle at build start and after each task commit.
+- Follow `protocols/build-quality.md` for discovered behaviors capture after each task.
 
 **State updates (LOW freedom):**
 - Follow `protocols/state.md` for all workflow.json mutations.
