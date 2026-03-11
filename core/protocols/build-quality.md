@@ -38,7 +38,7 @@ after that — proceed to handoff regardless.
 
 ## As-Built Notes
 
-**Trigger:** After all tasks committed (and after optional post-build review).
+**Trigger:** After all tasks committed (and after post-build review).
 
 **Location:** Append `## As-Built Notes` section to `{currentWork.workDir}/plan.md`.
 
