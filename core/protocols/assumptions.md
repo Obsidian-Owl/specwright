@@ -137,10 +137,10 @@ acceptance criterion**. This is the sole trigger for pausing the build.
 - Critical: pause and present to user with two options:
   (a) accept and continue, (b) invoke `/sw-pivot`
 - Non-critical: capture in as-built notes. No pause.
-
-### Transitions
-
 `LATE-FLAGGED` transitions to:
+- `VERIFIED` — evidence confirms the assumption (provide evidence link)
+- `ACCEPTED` — user acknowledges the risk and proceeds
+- `DEFERRED` — backlog item created, assumption parked for future resolution
 - `VERIFIED` — evidence confirms the assumption (provide evidence link)
 - `ACCEPTED` — user acknowledges the risk and proceeds
 - `DEFERRED` — backlog item created, assumption parked for future resolution
