@@ -51,3 +51,23 @@ Check findings against:
 - `CHARTER.md` — project vision
 
 Where relevant, cite which principle is violated.
+
+## Escalation Heuristics
+
+When BLOCK findings suggest design-level problems rather than implementation bugs,
+sw-verify should recommend upstream action.
+
+**Signals** (evaluated after all gates complete):
+
+1. **gate-spec**: 3+ criteria have FAIL status (systemic, not isolated)
+2. **gate-wiring**: circular dependencies in changed files (structural problem)
+3. **gate-tests**: mutation resistance BLOCK on 50%+ of test files — Requires the mutation resistance gate dimension (R2). If R2 is not implemented, this signal is excluded from the escalation count and the remaining 4 signals still function.
+4. **gate-security**: BLOCK findings in core data flow (not surface-level)
+5. **Multiple gates** (2+) return FAIL simultaneously (compound failure)
+
+**Trigger:** 2 or more signals active. When exactly 1 signal is active, no escalation recommendation is shown.
+
+**Recommendation** (advisory — the user decides):
+> Design-level concerns detected. Consider `/sw-pivot` to revise the remaining plan,
+> or `/sw-design` if the approach needs rethinking. Fixing individual findings may
+> not address the root cause.
