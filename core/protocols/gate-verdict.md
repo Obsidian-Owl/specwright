@@ -71,3 +71,45 @@ sw-verify should recommend upstream action.
 > Design-level concerns detected. Consider `/sw-pivot` to revise the remaining plan,
 > or `/sw-design` if the approach needs rethinking. Fixing individual findings may
 > not address the root cause.
+
+## Calibration Data
+
+Lightweight gate outcome tracking. Designed for projects with 5+ shipped work
+units. Silently absent when data is insufficient.
+
+**Data format** (stored as a sibling field in the learnings JSON):
+```json
+{
+  "gateCalibration": {
+    "{gateName}": {
+      "verdict": "PASS|WARN|FAIL",
+      "findingCount": 0,
+      "falsePositives": ["dimension description"],
+      "falseNegatives": ["bug description"]
+    }
+  }
+}
+```
+
+**Recording (sw-learn):**
+- After shipping, record gate outcomes (verdict + finding count) per gate.
+- If user dismisses a learning as irrelevant → append to `falsePositives` for the
+  gate+dimension.
+- If user reports a shipped bug should have been caught → append to `falseNegatives`
+  for the relevant gate.
+
+**Consumption (sw-verify):**
+- Before running gates, scan `.specwright/learnings/` for calibration data from the
+  last 5 work units.
+- 3+ false positives from distinct work units for a gate+dimension → note:
+  "This dimension has been flagged as potentially over-sensitive in recent work units."
+- Any false negative → note: "This gate missed issues in a recent unit. Consider
+  extra scrutiny."
+- Purely informational. No automatic threshold changes.
+
+**Silent absence:** When fewer than 5 work units have been shipped, no calibration
+section appears in the verify report. No "Calibration: no data" message.
+
+**Resilience:** When a learnings JSON file exists but lacks the `gateCalibration`
+field, it is silently skipped. Corrupt or unparseable learnings files are also
+silently skipped.
