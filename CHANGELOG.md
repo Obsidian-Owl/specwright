@@ -18,6 +18,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.16.0] - 2026-03-13
+
+### Changed
+
+- Claude/review specwright enhancements tgv0v (#76)
+- design: quality enhancements across all Specwright phases (#75)
+- docs: fix opencode package name to scoped @obsidian-owl/opencode-specwright (#74)
+
 ## [0.15.0] - 2026-03-09
 
 ### Changed
