@@ -61,6 +61,9 @@ spec, or the executor handled errors not in acceptance criteria, capture an anno
 
 **Format:** `- DB-{n}: {behavior description} (discovered in task {id})`
 
+**Location:** Append a `## Discovered Behaviors` subsection to `{currentWork.workDir}/plan.md`
+(alongside As-Built Notes).
+
 **Cap:** Maximum 10 discovered behaviors per unit. When the cap is reached, additional
 discoveries are silently dropped. This is a hard limit.
 

@@ -41,6 +41,15 @@ Status: {resolved-count}/{total-count} resolved
 - **Resolution**: ...
 - **Status**: VERIFIED
 - **Evidence**: {what confirmed it — doc link, user confirmation, code reference}
+
+## Late
+
+### A4: {title}
+- **Category**: ...
+- **Resolution**: ...
+- **Status**: LATE-FLAGGED
+- **Discovered**: {phase}
+- **Trigger**: {what surfaced this assumption}
 ```
 
 ## Classification
@@ -71,6 +80,7 @@ Status: {resolved-count}/{total-count} resolved
 | `ACCEPTED` | User acknowledges the risk, proceeds anyway | No |
 | `VERIFIED` | Confirmed with evidence | No |
 | `LATE-FLAGGED` | Discovered after design phase | No |
+| `DEFERRED` | Parked for future resolution; backlog item created | No |
 
 ## Lifecycle
 
@@ -137,10 +147,10 @@ acceptance criterion**. This is the sole trigger for pausing the build.
 - Critical: pause and present to user with two options:
   (a) accept and continue, (b) invoke `/sw-pivot`
 - Non-critical: capture in as-built notes. No pause.
+
+### Transitions
+
 `LATE-FLAGGED` transitions to:
-- `VERIFIED` — evidence confirms the assumption (provide evidence link)
-- `ACCEPTED` — user acknowledges the risk and proceeds
-- `DEFERRED` — backlog item created, assumption parked for future resolution
 - `VERIFIED` — evidence confirms the assumption (provide evidence link)
 - `ACCEPTED` — user acknowledges the risk and proceeds
 - `DEFERRED` — backlog item created, assumption parked for future resolution

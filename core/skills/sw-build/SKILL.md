@@ -111,6 +111,10 @@ When delegating, include in the prompt:
   issues; re-delegate to executor for non-trivial). This is task hygiene,
   not a build-fixer scenario.
 
+**Mid-build checks (MEDIUM freedom):**
+- Follow `protocols/assumptions.md` late discovery lifecycle at build start and after each task commit.
+- Follow `protocols/build-quality.md` for discovered behaviors capture after each task.
+
 **Post-build review (MEDIUM freedom):**
 - After all tasks committed, delegate review to `specwright-reviewer`.
 - Follow `protocols/build-quality.md` for trigger, depth calibration, delegation details, and findings triage.
@@ -122,11 +126,9 @@ When delegating, include in the prompt:
 - Do NOT start implementing tasks yourself while teammates are working.
 
 **As-built notes (LOW freedom):**
-- After all tasks committed (and after optional post-build review), append `## As-Built Notes` to `{currentWork.workDir}/plan.md`: plan deviations, implementation decisions, actual file paths.
+- After all tasks committed (and after post-build review), append `## As-Built Notes` to `{currentWork.workDir}/plan.md`: plan deviations, implementation decisions, actual file paths.
 - spec.md stays untouched. gate-spec does NOT consume as-built notes. Primary consumer: sw-learn.
 - Follow `protocols/build-quality.md` for content scope.
-- Follow `protocols/assumptions.md` late discovery lifecycle at build start and after each task commit.
-- Follow `protocols/build-quality.md` for discovered behaviors capture after each task.
 
 **State updates (LOW freedom):**
 - Follow `protocols/state.md` for all workflow.json mutations.

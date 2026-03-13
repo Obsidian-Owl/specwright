@@ -96,10 +96,10 @@ Before finishing, review every test and ask:
 
 If the answer is no, the tests are not done.
 
-## Structured mutation analysis (for test audits)
+## Structured mutation analysis
 
-When auditing existing tests (not writing new ones), go beyond the informal check
-above. Evaluate each bypass class with structured output:
+When reviewing any test suite (freshly written or auditing existing tests), go
+beyond the informal check above. Evaluate each bypass class with structured output:
 
 1. **Hardcoded returns**: Could a lookup table or hardcoded return values pass these tests?
 2. **Partial implementations**: Could implementing half the requirements still pass?
