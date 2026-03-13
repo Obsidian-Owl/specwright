@@ -39,6 +39,8 @@ Each critic pass is scored on four dimensions (1-5):
 4. **Follow-up iteration**: if any dimension scores below 4, a targeted follow-up
    critic pass runs. The follow-up receives the original design, all accumulated
    findings, and the scores. It focuses ONLY on dimensions scoring below 4.
+   After each follow-up, scoring is repeated using the same separate-invocation
+   rule (step 2), then the convergence check (step 3) is applied again.
 
 5. **Cap**: maximum 3 total iterations (1 initial + up to 2 follow-ups). The cap
    prevents infinite loops.

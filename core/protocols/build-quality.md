@@ -38,7 +38,7 @@ after that — proceed to handoff regardless.
 
 ## As-Built Notes
 
-**Trigger:** After all tasks committed (and after optional post-build review).
+**Trigger:** After all tasks committed (and after post-build review).
 
 **Location:** Append `## As-Built Notes` section to `{currentWork.workDir}/plan.md`.
 
@@ -53,3 +53,24 @@ Only document what differed from plan. Don't restate what went as planned.
 - spec.md stays untouched. Spec deviations are gate-spec failures, not as-built notes.
 - gate-spec does NOT consume as-built notes. spec.md remains the sole source of truth for verification.
 - Primary consumer: sw-learn (captures patterns from build experience).
+
+## Discovered Behaviors
+
+**Trigger:** After each task, if the tester wrote tests for edge cases not in the
+spec, or the executor handled errors not in acceptance criteria, capture an annotation.
+
+**Format:** `- DB-{n}: {behavior description} (discovered in task {id})`
+
+**Location:** Append a `## Discovered Behaviors` subsection to `{currentWork.workDir}/plan.md`
+(alongside As-Built Notes).
+
+**Cap:** Maximum 10 discovered behaviors per unit. When the cap is reached, additional
+discoveries are silently dropped. This is a hard limit.
+
+**Nature:** Informational only. No spec modification. No pivots.
+
+**Downstream consumers:**
+- **sw-learn**: Scan discovered behaviors when extracting patterns. If a behavior
+  appears across 2+ work units, propose it as a spec template pattern.
+- **gate-spec**: Reference discovered behaviors as "additional coverage beyond spec"
+  at INFO level. Does not change the PASS/FAIL verdict.

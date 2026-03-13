@@ -88,6 +88,7 @@ The parent `context.md` (design research) is never overwritten.
 - Include boundary conditions and error cases, not just happy paths.
 - If `.specwright/patterns.md` exists, check for patterns that should inform
   acceptance criteria (e.g., known edge cases, testing approaches that worked).
+- Follow `protocols/assumptions.md` late discovery lifecycle for assumptions encountered during spec writing.
 - Ground criteria in the design artifacts — reference specific decisions, contracts, data models.
 - The user must approve the spec before it's saved.
 
@@ -144,6 +145,7 @@ The parent `context.md` (design research) is never overwritten.
 - `protocols/state.md` -- workflow state updates and locking
 - `protocols/context.md` -- anchor doc and config loading
 - `protocols/recovery.md` -- compaction recovery
+- `protocols/assumptions.md` -- late assumption capture during spec writing
 - `protocols/spec-review.md` -- spec quality review before user approval
 
 ## Failure Modes

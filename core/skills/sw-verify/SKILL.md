@@ -52,6 +52,7 @@ and be able to discuss or override before proceeding to ship.
   2. `gate-tests` second (requires build to pass)
   3. `gate-security`, `gate-wiring` (independent, can be either order)
   4. `gate-spec` last (the ultimate check)
+- Before running gates, load calibration notes per `protocols/gate-verdict.md`.
 - If `--gate=<name>` argument given, run only that gate.
 
 **Gate invocation (MEDIUM freedom):**
@@ -72,6 +73,7 @@ and be able to discuss or override before proceeding to ship.
 - After all gates, present two tiers:
   1. **Per-finding detail** (first): every BLOCK/WARN grouped by gate — what, why, recommended action.
   2. **Summary table** (after): `| Gate | Status | Findings (B/W/I) |`
+- After all gates, check escalation heuristics per `protocols/gate-verdict.md`.
 - Handoff: BLOCKs → "Fix and re-run `/sw-verify`." WARNs only → "Review, then fix or `/sw-ship`." All PASS → "Ready for `/sw-ship`."
 
 **State updates (LOW freedom):**

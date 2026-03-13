@@ -53,6 +53,7 @@ that closes the loop.
 - Criterion with neither = FAIL.
 - Overall: if ANY criterion is FAIL, gate is FAIL.
 - Self-critique: would a skeptical auditor agree with each mapping?
+- Reference discovered behaviors at INFO level per `protocols/build-quality.md`. Does not alter PASS/WARN/FAIL verdict.
 
 **Compliance matrix format:**
 ```

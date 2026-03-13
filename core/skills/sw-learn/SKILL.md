@@ -54,6 +54,8 @@ work benefits.
 **Discovery (HIGH freedom):**
 - Scan evidence files, git log, and plan.md for patterns worth remembering.
 - Look for: what broke, what was hard, what worked well.
+- Check as-built notes for discovered behaviors per `protocols/build-quality.md`.
+- Record gate calibration data per `protocols/gate-verdict.md`.
 
 **Presentation (MEDIUM freedom):**
 - Group by category (build, security, testing, architecture). Show: what happened, why it matters, proposed rule.
