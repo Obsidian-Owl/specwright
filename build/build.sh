@@ -134,9 +134,11 @@ strip_platform_sections() {
       next
     }
     /^[[:space:]]*<!-- \/platform -->[[:space:]]*$/ {
-      in_block = 0
-      skip = 0
-      next
+      if (in_block) {
+        in_block = 0
+        skip = 0
+        next
+      }
     }
     {
       if (!skip) print
@@ -448,4 +450,7 @@ main() {
   esac
 }
 
-main "$@"
+# Only run main when executed directly, not when sourced (e.g., by tests)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi

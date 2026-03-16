@@ -181,7 +181,7 @@ When delegating, include in the prompt:
 | Executor can't pass tests after 2 build-fixer attempts | STOP. Show error to user. Don't loop forever. |
 | Compaction during build | Read workflow.json, find last completed task, resume next task. |
 <!-- platform:claude-code -->
-| | Create fresh Claude Code tasks from spec/plan, sync status from workflow.json. |
+| Compaction during build (tasks) | Create fresh Claude Code tasks from spec/plan, sync status from workflow.json. |
 <!-- /platform -->
 | Compaction during parallel execution | Read workflow.json, check `.specwright/worktrees/` for orphans, clean up, resume sequential. |
 <!-- platform:claude-code -->

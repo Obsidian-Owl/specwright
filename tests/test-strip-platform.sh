@@ -55,21 +55,9 @@ if [ ! -f "$BUILD_SCRIPT" ]; then
   exit 1
 fi
 
-# Source build.sh in a way that loads functions but does not run main logic.
-# build.sh uses set -euo pipefail and runs commands at top level,
-# so we source it carefully.
-source_build_functions() {
-  # Temporarily override set -e so sourcing doesn't abort on error
-  set +e
-  # Source the file; if it has top-level execution guarded by arguments
-  # we may need to handle that. For now, just source it.
-  source "$BUILD_SCRIPT"
-  set -e
-}
-
-# Try sourcing -- if strip_platform_sections is not defined, tests will
-# fail at the assertion level (not import level), which is correct RED behavior.
-source_build_functions 2>/dev/null || true
+# Source build.sh to load functions. The BASH_SOURCE guard in build.sh
+# prevents main() from executing when sourced.
+source "$BUILD_SCRIPT" 2>/dev/null || true
 
 # Verify the function exists (this is our first gate)
 if ! type strip_platform_sections &>/dev/null; then
@@ -407,17 +395,6 @@ assert_eq "$ACTUAL" "" \
 
 echo "--- Marker-like text that is not a valid marker ---"
 
-INPUT_FAKE_MARKER="line one
-<!-- platform:claude-code -->content on same line
-real content
-<!-- /platform -->
-line two"
-
-# The spec says markers are full lines: <!-- platform:X -->
-# If content is on the same line as the marker comment, that line IS the marker
-# and should be treated as such (removed for non-matching, removed for matching)
-# This test verifies the function processes lines containing marker patterns
-
 INPUT_NOT_MARKER="line one
 this is not <!-- platform:claude-code --> a marker
 line two"
@@ -427,6 +404,18 @@ ACTUAL=$(run_strip "$INPUT_NOT_MARKER" "opencode") || true
 # the marker should be on its own line to be recognized
 assert_eq "$ACTUAL" "$INPUT_NOT_MARKER" \
   "inline marker-like text not on its own line: not treated as block delimiter"
+
+# ─── Edge: stray closing marker outside any block ─────────────────────────
+
+echo "--- Stray closing marker outside any block is passed through ---"
+
+INPUT_STRAY_CLOSE="line one
+<!-- /platform -->
+line two"
+
+ACTUAL=$(run_strip "$INPUT_STRAY_CLOSE" "opencode") || true
+assert_eq "$ACTUAL" "$INPUT_STRAY_CLOSE" \
+  "stray closing marker outside a block is emitted as-is"
 
 # ─── Edge: three different platform blocks ────────────────────────────────
 
