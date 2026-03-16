@@ -865,6 +865,52 @@ else
 
 fi
 
+# ═══════════════════════════════════════════════════════════════════════
+# AC-7: Opencode adapter sw-build override is deleted
+# ═══════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "=== AC-7: Opencode adapter sw-build override is deleted ==="
+echo ""
+
+ADAPTER_BUILD_OVERRIDE="$ROOT_DIR/adapters/opencode/skills/sw-build/SKILL.md"
+OPENCODE_MAPPINGS="$ROOT_DIR/build/mappings/opencode.json"
+
+# --- AC-7a: Adapter override file does NOT exist ---
+
+echo "--- Adapter override file for sw-build does not exist ---"
+
+if [ -f "$ADAPTER_BUILD_OVERRIDE" ]; then
+  fail "AC-7a: adapters/opencode/skills/sw-build/SKILL.md should not exist"
+  echo "    file still present at $ADAPTER_BUILD_OVERRIDE"
+else
+  pass "AC-7a: adapters/opencode/skills/sw-build/SKILL.md does not exist"
+fi
+
+# --- AC-7b: skillOverrides array has exactly 1 element ---
+
+echo "--- skillOverrides array has exactly 1 element ---"
+
+OVERRIDES_COUNT=$(jq '.skillOverrides | length' "$OPENCODE_MAPPINGS" 2>/dev/null)
+assert_eq "$OVERRIDES_COUNT" "1" \
+  "AC-7b: skillOverrides array length is exactly 1"
+
+# --- AC-7c: The single element is sw-guard ---
+
+echo "--- The single skillOverride is sw-guard ---"
+
+FIRST_OVERRIDE=$(jq -r '.skillOverrides[0]' "$OPENCODE_MAPPINGS" 2>/dev/null)
+assert_eq "$FIRST_OVERRIDE" "sw-guard" \
+  "AC-7c: skillOverrides[0] is 'sw-guard'"
+
+# --- AC-7d: sw-build is NOT in skillOverrides ---
+
+echo "--- sw-build is not in skillOverrides ---"
+
+BUILD_INDEX=$(jq '.skillOverrides | index("sw-build")' "$OPENCODE_MAPPINGS" 2>/dev/null)
+assert_eq "$BUILD_INDEX" "null" \
+  "AC-7d: sw-build is not present in skillOverrides array"
+
 # ─── Summary ──────────────────────────────────────────────────────────
 
 echo ""
