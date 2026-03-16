@@ -911,6 +911,149 @@ BUILD_INDEX=$(jq '.skillOverrides | index("sw-build")' "$OPENCODE_MAPPINGS" 2>/d
 assert_eq "$BUILD_INDEX" "null" \
   "AC-7d: sw-build is not present in skillOverrides array"
 
+# ═══════════════════════════════════════════════════════════════════════
+# AC-8: Existing opencode build tests pass with updated assertions
+# ═══════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "=== AC-8: Opencode build tests pass with updated assertions ==="
+echo ""
+
+# Disable errexit inherited from sourcing build.sh, so subshell failures
+# do not silently abort this test script.
+set +e
+
+# The opencode build test file must exit 0 (all its assertions pass).
+# This catches stale references to the deleted sw-build adapter override.
+# Run once and capture both exit code and output (the build test runs actual builds).
+
+BUILD_TEST_FULL_OUTPUT=$(bash "$ROOT_DIR/tests/test-opencode-build.sh" < /dev/null 2>&1)
+BUILD_TEST_EXIT=$?
+BUILD_TEST_LAST_LINE=$(echo "$BUILD_TEST_FULL_OUTPUT" | tail -1)
+
+if [ "$BUILD_TEST_EXIT" -eq 0 ]; then
+  pass "AC-8: test-opencode-build.sh exits 0"
+else
+  fail "AC-8: test-opencode-build.sh exits 0"
+fi
+
+if echo "$BUILD_TEST_LAST_LINE" | grep -q "0 failed"; then
+  pass "AC-8: test-opencode-build.sh reports 0 failures"
+else
+  fail "AC-8: test-opencode-build.sh reports 0 failures (got: $BUILD_TEST_LAST_LINE)"
+fi
+
+# AC-8 specifics: verify the test file itself was updated correctly.
+# The AC-10 override loop must iterate only sw-guard (not sw-build).
+
+AC10_LOOP_LINE=$(grep -n 'for override_skill in' "$ROOT_DIR/tests/test-opencode-build.sh" || true)
+if echo "$AC10_LOOP_LINE" | grep -q 'sw-build'; then
+  fail "AC-8: test-opencode-build.sh AC-10 loop still includes sw-build"
+else
+  pass "AC-8: test-opencode-build.sh AC-10 loop does not include sw-build"
+fi
+
+if echo "$AC10_LOOP_LINE" | grep -q 'sw-guard'; then
+  pass "AC-8: test-opencode-build.sh AC-10 loop includes sw-guard"
+else
+  fail "AC-8: test-opencode-build.sh AC-10 loop missing sw-guard"
+fi
+
+# The test file must have a NEW section that verifies the dist opencode sw-build
+# has no markers, no Task CRUD tool references in body, and preserved TDD content.
+# These checks must be about the dist sw-build file specifically (not just
+# the general frontmatter tool stripping that already exists).
+
+BUILD_TEST_CONTENT=$(cat "$ROOT_DIR/tests/test-opencode-build.sh")
+
+# Must check the dist sw-build body for platform markers (not just frontmatter tools).
+# The check must reference sw-build in the context of platform marker checking.
+if echo "$BUILD_TEST_CONTENT" | grep -q 'sw-build.*platform:\|platform:.*sw-build'; then
+  pass "AC-8: test-opencode-build.sh checks dist sw-build for platform markers"
+else
+  fail "AC-8: test-opencode-build.sh missing platform marker check for dist sw-build body"
+fi
+
+# Must check the dist sw-build body for Task CRUD tool references.
+# This is distinct from the frontmatter stripped-tools check (AC-7 section).
+# We look for a body-level check that greps for TaskCreate in the sw-build body content.
+if echo "$BUILD_TEST_CONTENT" | grep -q 'OC_BUILD_BODY\|oc_build_body\|extract_body.*sw-build\|sw-build.*body.*Task'; then
+  pass "AC-8: test-opencode-build.sh checks dist sw-build body for Task CRUD references"
+else
+  fail "AC-8: test-opencode-build.sh missing body-level Task CRUD check for dist sw-build"
+fi
+
+# Must verify TDD content (RED/GREEN/REFACTOR) is preserved in the dist sw-build output.
+# This is a new section, not something that existed before. Check for TDD terms
+# in the context of sw-build dist verification.
+if echo "$BUILD_TEST_CONTENT" | grep -q 'OC_BUILD_BODY.*RED\|OC_BUILD_BODY.*GREEN\|OC_BUILD_BODY.*REFACTOR\|sw-build.*RED\|sw-build.*GREEN\|sw-build.*REFACTOR\|TDD.*sw-build\|sw-build.*TDD'; then
+  pass "AC-8: test-opencode-build.sh has TDD content preservation checks for dist sw-build"
+else
+  fail "AC-8: test-opencode-build.sh missing TDD content preservation checks for dist sw-build"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# AC-9: Opencode overrides test updated for new pattern
+# ═══════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "=== AC-9: Opencode overrides test updated for new pattern ==="
+echo ""
+
+# The overrides test file must exit 0 (all its assertions pass).
+# Run once and capture both exit code and output.
+
+OVERRIDE_TEST_FULL_OUTPUT=$(bash "$ROOT_DIR/tests/test-opencode-overrides.sh" < /dev/null 2>&1)
+OVERRIDE_TEST_EXIT=$?
+OVERRIDE_TEST_LAST_LINE=$(echo "$OVERRIDE_TEST_FULL_OUTPUT" | tail -1)
+
+if [ "$OVERRIDE_TEST_EXIT" -eq 0 ]; then
+  pass "AC-9: test-opencode-overrides.sh exits 0"
+else
+  fail "AC-9: test-opencode-overrides.sh exits 0"
+fi
+
+if echo "$OVERRIDE_TEST_LAST_LINE" | grep -q "0 failed"; then
+  pass "AC-9: test-opencode-overrides.sh reports 0 failures"
+else
+  fail "AC-9: test-opencode-overrides.sh reports 0 failures (got: $OVERRIDE_TEST_LAST_LINE)"
+fi
+
+# AC-9 specifics: verify the overrides test checks the new pattern.
+
+OVERRIDE_TEST_CONTENT=$(cat "$ROOT_DIR/tests/test-opencode-overrides.sh")
+
+# (a) Must verify adapters/opencode/skills/sw-build/SKILL.md does NOT exist.
+# The test must treat non-existence as a PASS (not a failure).
+# We check for a "! -f" test pattern with a corresponding pass() call,
+# which distinguishes the new pattern from the old one that treated non-existence as fail.
+if echo "$OVERRIDE_TEST_CONTENT" | grep -q '! -f.*sw-build'; then
+  pass "AC-9a: test-opencode-overrides.sh has ! -f check for sw-build override"
+else
+  fail "AC-9a: test-opencode-overrides.sh missing ! -f check that sw-build override does not exist"
+fi
+
+# (b) Must verify core/skills/sw-build/SKILL.md contains platform:claude-code marker
+if echo "$OVERRIDE_TEST_CONTENT" | grep -q 'platform:claude-code'; then
+  pass "AC-9b: test-opencode-overrides.sh checks for platform:claude-code in core sw-build"
+else
+  fail "AC-9b: test-opencode-overrides.sh missing check for platform:claude-code in core sw-build"
+fi
+
+# (c) Must verify skillOverrides does not contain sw-build
+if echo "$OVERRIDE_TEST_CONTENT" | grep -q 'skillOverrides.*sw-build\|sw-build.*skillOverrides'; then
+  pass "AC-9c: test-opencode-overrides.sh checks skillOverrides excludes sw-build"
+else
+  fail "AC-9c: test-opencode-overrides.sh missing check that skillOverrides excludes sw-build"
+fi
+
+# The sw-guard tests must be unchanged -- verify they still exist
+if echo "$OVERRIDE_TEST_CONTENT" | grep -q 'sw-guard.*SKILL.md'; then
+  pass "AC-9: test-opencode-overrides.sh still has sw-guard tests"
+else
+  fail "AC-9: test-opencode-overrides.sh lost sw-guard tests (should be unchanged)"
+fi
+
 # ─── Summary ──────────────────────────────────────────────────────────
 
 echo ""

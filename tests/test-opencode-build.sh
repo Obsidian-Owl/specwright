@@ -78,7 +78,7 @@ extract_body() {
 # Extract allowed-tools list items from YAML frontmatter
 extract_allowed_tools() {
   local fm="$1"
-  echo "$fm" | sed -n '/^allowed-tools:/,/^[a-z]/{ /^  - /p }' | sed 's/^  - //'
+  echo "$fm" | sed -n '/^allowed-tools:/,/^[a-z]/{/^  - /p;}' | sed 's/^  - //'
 }
 
 # ─── Pre-flight ──────────────────────────────────────────────────────
@@ -198,7 +198,7 @@ fi
 
 # Exactly 14 command files
 if [ -d "$OC_DIST/commands" ]; then
-  CMD_COUNT=$(find "$OC_DIST/commands" -maxdepth 1 -name '*.md' -type f | wc -l)
+  CMD_COUNT=$(find "$OC_DIST/commands" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
   assert_eq "$CMD_COUNT" "14" "commands/ has exactly 14 .md files"
 
   # Spot-check specific command files exist
@@ -230,7 +230,7 @@ fi
 
 if [ -d "$OC_DIST/skills" ]; then
   # 19 skill directories
-  SKILL_DIR_COUNT=$(find "$OC_DIST/skills" -mindepth 1 -maxdepth 1 -type d | wc -l)
+  SKILL_DIR_COUNT=$(find "$OC_DIST/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
   assert_eq "$SKILL_DIR_COUNT" "19" "skills/ has exactly 19 subdirectories"
 
   # Each has SKILL.md
@@ -270,7 +270,7 @@ else
 fi
 
 if [ -d "$OC_DIST/agents" ]; then
-  AGENT_COUNT=$(find "$OC_DIST/agents" -maxdepth 1 -name '*.md' -type f | wc -l)
+  AGENT_COUNT=$(find "$OC_DIST/agents" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
   assert_eq "$AGENT_COUNT" "6" "agents/ has exactly 6 .md files"
 
   # Verify specific agent files
@@ -294,8 +294,8 @@ else
 fi
 
 if [ -d "$OC_DIST/protocols" ]; then
-  PROTO_COUNT=$(find "$OC_DIST/protocols" -maxdepth 1 -name '*.md' -type f | wc -l)
-  assert_eq "$PROTO_COUNT" "18" "protocols/ has exactly 18 .md files"
+  PROTO_COUNT=$(find "$OC_DIST/protocols" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
+  assert_eq "$PROTO_COUNT" "19" "protocols/ has exactly 19 .md files"
 
   # Spot-check specific protocol files
   for proto in state.md git.md delegation.md recovery.md evidence.md; do
@@ -789,7 +789,7 @@ echo "--- Overridden skills are transformed adapter versions ---"
 
 # Overridden skills should differ from adapter source (because transforms were applied)
 # and differ from core (because override content is different)
-for override_skill in sw-guard sw-build; do
+for override_skill in sw-guard; do
   dist_skill="$OC_DIST/skills/$override_skill/SKILL.md"
   adapter_skill="$ROOT_DIR/adapters/opencode/skills/$override_skill/SKILL.md"
 
@@ -842,13 +842,56 @@ if [ -f "$OC_DIST/skills/sw-guard/SKILL.md" ] && [ -f "$ROOT_DIR/core/skills/sw-
   fi
 fi
 
-# sw-build must differ from core
+# sw-build: dist should differ from core (platform markers stripped, tools transformed)
 if [ -f "$OC_DIST/skills/sw-build/SKILL.md" ] && [ -f "$ROOT_DIR/core/skills/sw-build/SKILL.md" ]; then
   if diff -q "$OC_DIST/skills/sw-build/SKILL.md" "$ROOT_DIR/core/skills/sw-build/SKILL.md" &>/dev/null; then
-    fail "dist sw-build matches core (override was NOT applied)"
+    fail "dist sw-build matches core (transforms were NOT applied)"
   else
-    pass "dist sw-build differs from core (override was applied)"
+    pass "dist sw-build differs from core (platform markers stripped, tools transformed)"
   fi
+fi
+
+echo ""
+echo "=== Platform markers: dist sw-build verification ==="
+
+echo "--- dist sw-build has no platform markers ---"
+OC_BUILD_SKILL="$OC_DIST/skills/sw-build/SKILL.md"
+if [ -f "$OC_BUILD_SKILL" ]; then
+  OC_BUILD_BODY=$(extract_body "$OC_BUILD_SKILL" || true)
+
+  # sw-build dist: check platform: markers were stripped
+  if echo "$OC_BUILD_BODY" | grep -q '<!-- platform:'; then
+    fail "dist opencode sw-build still contains platform: markers"
+  else
+    pass "dist opencode sw-build has no platform: markers"
+  fi
+
+  echo "--- dist sw-build body excludes Task CRUD tool references ---"
+  for task_tool in TaskCreate TaskUpdate TaskList TaskGet; do
+    if echo "$OC_BUILD_BODY" | grep -q "$task_tool"; then
+      fail "dist opencode sw-build body contains $task_tool"
+    else
+      pass "dist opencode sw-build body does not contain $task_tool"
+    fi
+  done
+
+  echo "--- dist sw-build body excludes Claude Code tasks phrase ---"
+  if echo "$OC_BUILD_BODY" | grep -q "Claude Code tasks"; then
+    fail "dist opencode sw-build body contains 'Claude Code tasks'"
+  else
+    pass "dist opencode sw-build body does not contain 'Claude Code tasks'"
+  fi
+
+  echo "--- dist sw-build preserves TDD content ---"
+  for tdd_term in "RED" "GREEN" "REFACTOR" "specwright-tester" "specwright-executor" "Mid-build checks"; do
+    if echo "$OC_BUILD_BODY" | grep -q "$tdd_term"; then
+      pass "dist opencode sw-build body contains '$tdd_term'"
+    else
+      fail "dist opencode sw-build body does not contain '$tdd_term'"
+    fi
+  done
+else
+  fail "dist opencode sw-build/SKILL.md not found"
 fi
 
 echo "--- Non-overridden skills match core with transforms ---"
@@ -914,16 +957,16 @@ echo "--- Claude Code output validation ---"
 
 if [ -d "$CC_DIST" ]; then
   # skills/ with 19 dirs
-  CC_SKILL_COUNT=$(find "$CC_DIST/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+  CC_SKILL_COUNT=$(find "$CC_DIST/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
   assert_eq "$CC_SKILL_COUNT" "19" "claude-code skills/ has 19 subdirectories"
 
   # agents/ with 6 files
-  CC_AGENT_COUNT=$(find "$CC_DIST/agents" -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l)
+  CC_AGENT_COUNT=$(find "$CC_DIST/agents" -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
   assert_eq "$CC_AGENT_COUNT" "6" "claude-code agents/ has 6 files"
 
-  # protocols/ with 18 files
-  CC_PROTO_COUNT=$(find "$CC_DIST/protocols" -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l)
-  assert_eq "$CC_PROTO_COUNT" "18" "claude-code protocols/ has 18 files"
+  # protocols/ with 19 files
+  CC_PROTO_COUNT=$(find "$CC_DIST/protocols" -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
+  assert_eq "$CC_PROTO_COUNT" "19" "claude-code protocols/ has 19 files"
 
   # Claude Code-specific: hooks/ and .claude-plugin/ exist
   if [ -d "$CC_DIST/hooks" ]; then
