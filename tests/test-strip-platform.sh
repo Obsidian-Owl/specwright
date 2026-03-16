@@ -518,6 +518,353 @@ assert_eq "$INPLACE_RESULT" "keep
 also keep" \
   "function modifies the file in-place (not just stdout)"
 
+# ─── Helpers for frontmatter/body extraction ──────────────────────────
+
+extract_frontmatter() {
+  local file="$1"
+  local fm_end
+  fm_end=$(awk 'NR==1 && /^---$/ { found=1; next }
+       found && /^---$/ { print NR; exit }' "$file")
+  [ -z "$fm_end" ] || [ "$fm_end" -eq 0 ] && return 0
+  sed -n "1,${fm_end}p" "$file"
+}
+
+extract_body() {
+  local file="$1"
+  local fm_end
+  fm_end=$(awk 'NR==1 && /^---$/ { found=1; next }
+       found && /^---$/ { print NR; exit }' "$file")
+  [ -z "$fm_end" ] || [ "$fm_end" -eq 0 ] && cat "$file" && return 0
+  tail -n +"$((fm_end + 1))" "$file"
+}
+
+# ═══════════════════════════════════════════════════════════════════════
+# AC-4: Core sw-build has platform markers around Claude Code-specific sections
+# ═══════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "=== AC-4: Core sw-build has platform markers around Claude Code sections ==="
+echo ""
+
+CORE_BUILD="$ROOT_DIR/core/skills/sw-build/SKILL.md"
+
+if [ ! -f "$CORE_BUILD" ]; then
+  fail "AC-4: core sw-build SKILL.md not found at $CORE_BUILD"
+else
+
+  # --- AC-4a: Task tracking section is wrapped with platform:claude-code markers ---
+
+  echo "--- Task tracking section wrapped with platform:claude-code markers ---"
+
+  # The opening marker must appear on a line before "Task tracking (LOW freedom)"
+  # and the closing marker must appear after the last line of that section.
+  # We check that the marker immediately precedes the Task tracking heading.
+  if grep -q '<!-- platform:claude-code -->' "$CORE_BUILD" && \
+     grep -A1 '<!-- platform:claude-code -->' "$CORE_BUILD" | grep -q 'Task tracking (LOW freedom)'; then
+    pass "AC-4a: opening platform:claude-code marker precedes Task tracking section"
+  else
+    fail "AC-4a: opening platform:claude-code marker precedes Task tracking section"
+  fi
+
+  # The closing marker must appear after the last line of the Task tracking section
+  # (the "On recovery after compaction" line) and before "## Protocol References"
+  TASK_TRACKING_BLOCK=$(sed -n '/<!-- platform:claude-code -->/,/<!-- \/platform -->/p' "$CORE_BUILD" | head -20)
+  if echo "$TASK_TRACKING_BLOCK" | grep -q 'Task tracking (LOW freedom)' && \
+     echo "$TASK_TRACKING_BLOCK" | grep -q 'On recovery after compaction'; then
+    pass "AC-4a: platform:claude-code block contains full Task tracking section"
+  else
+    fail "AC-4a: platform:claude-code block contains full Task tracking section"
+    echo "    got block: $(echo "$TASK_TRACKING_BLOCK" | head -10)"
+  fi
+
+  # --- AC-4b: "Task tracking tools unavailable" failure mode row is wrapped ---
+
+  echo "--- Task tracking tools unavailable row wrapped with marker ---"
+
+  # Find the line with "Task tracking tools unavailable" and check it's inside a platform block
+  UNAVAIL_CONTEXT=$(grep -B2 'Task tracking tools unavailable' "$CORE_BUILD")
+  if echo "$UNAVAIL_CONTEXT" | grep -q '<!-- platform:claude-code -->'; then
+    pass "AC-4b: Task tracking tools unavailable row preceded by platform:claude-code marker"
+  else
+    fail "AC-4b: Task tracking tools unavailable row preceded by platform:claude-code marker"
+    echo "    context: $UNAVAIL_CONTEXT"
+  fi
+
+  # Also verify closing marker follows
+  UNAVAIL_AFTER=$(grep -A2 'Task tracking tools unavailable' "$CORE_BUILD")
+  if echo "$UNAVAIL_AFTER" | grep -q '<!-- /platform -->'; then
+    pass "AC-4b: Task tracking tools unavailable row followed by closing platform marker"
+  else
+    fail "AC-4b: Task tracking tools unavailable row followed by closing platform marker"
+    echo "    context: $UNAVAIL_AFTER"
+  fi
+
+  # --- AC-4c: "Create fresh Claude Code tasks" content in compaction row is wrapped ---
+
+  echo "--- Compaction row Claude Code tasks content wrapped with marker ---"
+
+  # The compaction row should have the "Create fresh Claude Code tasks" text
+  # inside a platform:claude-code block
+  # We look for the marker either inline or wrapping that specific phrase
+  COMPACTION_LINE=$(grep 'Compaction during build' "$CORE_BUILD")
+
+  # After markers are added, "Claude Code tasks" in the compaction row must be inside a platform block
+  # Check that a platform:claude-code block contains "Claude Code tasks"
+  ALL_CC_BLOCKS=$(awk '/<!-- platform:claude-code -->/{capture=1; block=""} capture{block=block "\n" $0} /<!-- \/platform -->/{if(capture) print block; capture=0}' "$CORE_BUILD")
+  if echo "$ALL_CC_BLOCKS" | grep -q 'Claude Code tasks'; then
+    pass "AC-4c: 'Claude Code tasks' text is inside a platform:claude-code block"
+  else
+    fail "AC-4c: 'Claude Code tasks' text is inside a platform:claude-code block"
+  fi
+
+  # --- AC-4d: No platform markers in YAML frontmatter ---
+
+  echo "--- No platform markers in YAML frontmatter ---"
+
+  FRONTMATTER=$(extract_frontmatter "$CORE_BUILD")
+  if echo "$FRONTMATTER" | grep -q '<!-- platform:'; then
+    fail "AC-4d: no platform markers in YAML frontmatter"
+    echo "    found marker in frontmatter"
+  else
+    pass "AC-4d: no platform markers in YAML frontmatter"
+  fi
+
+  # --- AC-4e: TaskCreate/TaskUpdate/TaskList/TaskGet still in YAML frontmatter ---
+
+  echo "--- Task tools still present in YAML frontmatter ---"
+
+  MISSING_TOOLS=""
+  for tool in TaskCreate TaskUpdate TaskList TaskGet; do
+    if ! echo "$FRONTMATTER" | grep -q "  - ${tool}"; then
+      MISSING_TOOLS="$MISSING_TOOLS $tool"
+    fi
+  done
+  if [ -z "$MISSING_TOOLS" ]; then
+    pass "AC-4e: TaskCreate, TaskUpdate, TaskList, TaskGet all present in frontmatter"
+  else
+    fail "AC-4e: TaskCreate, TaskUpdate, TaskList, TaskGet all present in frontmatter"
+    echo "    missing:$MISSING_TOOLS"
+  fi
+
+  # --- AC-4 extra: Verify the marker wraps ALL lines of the Task tracking section ---
+  # A sloppy impl might only wrap the first line. Check that the disambiguation line is included.
+
+  echo "--- Platform block includes all Task tracking content (not just first line) ---"
+
+  if echo "$TASK_TRACKING_BLOCK" | grep -q 'Disambiguation:.*TaskCreate.*TaskUpdate'; then
+    pass "AC-4 extra: platform block includes disambiguation line with tool names"
+  else
+    fail "AC-4 extra: platform block includes disambiguation line with tool names"
+  fi
+
+  if echo "$TASK_TRACKING_BLOCK" | grep -q 'Orchestrator-only'; then
+    pass "AC-4 extra: platform block includes orchestrator-only constraint"
+  else
+    fail "AC-4 extra: platform block includes orchestrator-only constraint"
+  fi
+
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# AC-5: Opencode dist sw-build excludes Claude Code content
+# ═══════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "=== AC-5: Opencode dist sw-build excludes Claude Code content ==="
+echo ""
+
+echo "--- Running build.sh opencode ---"
+BUILD_OC_OUTPUT=$(bash "$ROOT_DIR/build/build.sh" opencode 2>&1) || true
+OC_BUILD_FILE="$DIST_DIR/opencode/skills/sw-build/SKILL.md"
+
+if [ ! -f "$OC_BUILD_FILE" ]; then
+  fail "AC-5: opencode build did not produce sw-build/SKILL.md (build may have failed)"
+  echo "    build output: $(echo "$BUILD_OC_OUTPUT" | tail -5)"
+else
+
+  OC_BODY=$(extract_body "$OC_BUILD_FILE")
+  OC_FULL=$(cat "$OC_BUILD_FILE")
+
+  # --- AC-5a: No platform markers anywhere ---
+
+  echo "--- No platform markers in opencode dist ---"
+
+  if grep -q '<!-- platform:' "$OC_BUILD_FILE"; then
+    fail "AC-5a: opencode dist sw-build contains no platform markers"
+    echo "    found: $(grep '<!-- platform:' "$OC_BUILD_FILE")"
+  else
+    pass "AC-5a: opencode dist sw-build contains no platform markers"
+  fi
+
+  # --- AC-5b: Body does NOT contain TaskCreate, TaskUpdate, TaskList, TaskGet ---
+
+  echo "--- Opencode body excludes Claude Code task tool references ---"
+
+  FOUND_TOOLS=""
+  for tool in TaskCreate TaskUpdate TaskList TaskGet; do
+    if echo "$OC_BODY" | grep -q "$tool"; then
+      FOUND_TOOLS="$FOUND_TOOLS $tool"
+    fi
+  done
+  if [ -z "$FOUND_TOOLS" ]; then
+    pass "AC-5b: opencode body does not mention TaskCreate/TaskUpdate/TaskList/TaskGet"
+  else
+    fail "AC-5b: opencode body does not mention TaskCreate/TaskUpdate/TaskList/TaskGet"
+    echo "    found:$FOUND_TOOLS"
+  fi
+
+  # --- AC-5c: Body does NOT contain "Claude Code tasks" ---
+
+  echo "--- Opencode body excludes 'Claude Code tasks' ---"
+
+  if echo "$OC_BODY" | grep -q 'Claude Code tasks'; then
+    fail "AC-5c: opencode body does not contain 'Claude Code tasks'"
+    echo "    found: $(echo "$OC_BODY" | grep 'Claude Code tasks')"
+  else
+    pass "AC-5c: opencode body does not contain 'Claude Code tasks'"
+  fi
+
+  # --- AC-5d: Body DOES contain expected shared content ---
+
+  echo "--- Opencode body retains shared content ---"
+
+  for term in "RED" "GREEN" "REFACTOR"; do
+    if echo "$OC_BODY" | grep -q "$term"; then
+      pass "AC-5d: opencode body contains '$term'"
+    else
+      fail "AC-5d: opencode body contains '$term'"
+    fi
+  done
+
+  for term in "specwright-tester" "specwright-executor"; do
+    if echo "$OC_BODY" | grep -q "$term"; then
+      pass "AC-5d: opencode body contains '$term'"
+    else
+      fail "AC-5d: opencode body contains '$term'"
+    fi
+  done
+
+  if echo "$OC_BODY" | grep -q 'Mid-build checks'; then
+    pass "AC-5d: opencode body contains 'Mid-build checks'"
+  else
+    fail "AC-5d: opencode body contains 'Mid-build checks'"
+  fi
+
+  # --- AC-5 extra: Task tracking section heading should NOT be in opencode body ---
+
+  echo "--- Opencode body excludes Task tracking section ---"
+
+  if echo "$OC_BODY" | grep -q 'Task tracking (LOW freedom)'; then
+    fail "AC-5 extra: opencode body does not contain 'Task tracking (LOW freedom)'"
+    echo "    found the section that should have been stripped"
+  else
+    pass "AC-5 extra: opencode body does not contain 'Task tracking (LOW freedom)'"
+  fi
+
+  # --- AC-5 extra: "Task tracking tools unavailable" row should NOT be present ---
+
+  if echo "$OC_BODY" | grep -q 'Task tracking tools unavailable'; then
+    fail "AC-5 extra: opencode body does not contain 'Task tracking tools unavailable'"
+  else
+    pass "AC-5 extra: opencode body does not contain 'Task tracking tools unavailable'"
+  fi
+
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# AC-6: Claude-code dist sw-build preserves Claude Code content
+# ═══════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "=== AC-6: Claude-code dist sw-build preserves Claude Code content ==="
+echo ""
+
+echo "--- Running build.sh claude-code ---"
+BUILD_CC_OUTPUT=$(bash "$ROOT_DIR/build/build.sh" claude-code 2>&1) || true
+CC_BUILD_FILE="$DIST_DIR/claude-code/skills/sw-build/SKILL.md"
+
+if [ ! -f "$CC_BUILD_FILE" ]; then
+  fail "AC-6: claude-code build did not produce sw-build/SKILL.md (build may have failed)"
+  echo "    build output: $(echo "$BUILD_CC_OUTPUT" | tail -5)"
+else
+
+  CC_FRONTMATTER=$(extract_frontmatter "$CC_BUILD_FILE")
+  CC_BODY=$(extract_body "$CC_BUILD_FILE")
+
+  # --- AC-6a: No platform markers in output ---
+
+  echo "--- No platform markers in claude-code dist ---"
+
+  if grep -q '<!-- platform:' "$CC_BUILD_FILE"; then
+    fail "AC-6a: claude-code dist sw-build contains no platform markers"
+    echo "    found: $(grep '<!-- platform:' "$CC_BUILD_FILE")"
+  else
+    pass "AC-6a: claude-code dist sw-build contains no platform markers"
+  fi
+
+  # --- AC-6b: Frontmatter DOES contain TaskCreate and TaskUpdate ---
+
+  echo "--- Claude-code frontmatter retains task tools ---"
+
+  for tool in TaskCreate TaskUpdate; do
+    if echo "$CC_FRONTMATTER" | grep -q "$tool"; then
+      pass "AC-6b: claude-code frontmatter contains '$tool'"
+    else
+      fail "AC-6b: claude-code frontmatter contains '$tool'"
+    fi
+  done
+
+  # --- AC-6c: Body DOES contain Task tracking section ---
+
+  echo "--- Claude-code body retains Task tracking section ---"
+
+  if echo "$CC_BODY" | grep -q 'Task tracking'; then
+    pass "AC-6c: claude-code body contains 'Task tracking'"
+  else
+    fail "AC-6c: claude-code body contains 'Task tracking'"
+  fi
+
+  # Verify specific content from the Task tracking section survived
+  if echo "$CC_BODY" | grep -q 'create.*tasks from spec/plan'; then
+    pass "AC-6c: claude-code body contains task creation from spec/plan detail"
+  else
+    fail "AC-6c: claude-code body contains task creation from spec/plan detail"
+  fi
+
+  if echo "$CC_BODY" | grep -q 'Orchestrator-only'; then
+    pass "AC-6c: claude-code body contains orchestrator-only constraint"
+  else
+    fail "AC-6c: claude-code body contains orchestrator-only constraint"
+  fi
+
+  # --- AC-6d: Body DOES contain Mid-build checks ---
+
+  echo "--- Claude-code body retains Mid-build checks ---"
+
+  if echo "$CC_BODY" | grep -q 'Mid-build checks'; then
+    pass "AC-6d: claude-code body contains 'Mid-build checks'"
+  else
+    fail "AC-6d: claude-code body contains 'Mid-build checks'"
+  fi
+
+  # --- AC-6 extra: Task tracking tools unavailable row preserved ---
+
+  if echo "$CC_BODY" | grep -q 'Task tracking tools unavailable'; then
+    pass "AC-6 extra: claude-code body contains 'Task tracking tools unavailable' row"
+  else
+    fail "AC-6 extra: claude-code body contains 'Task tracking tools unavailable' row"
+  fi
+
+  # --- AC-6 extra: Claude Code tasks phrase preserved ---
+
+  if echo "$CC_BODY" | grep -q 'Claude Code tasks'; then
+    pass "AC-6 extra: claude-code body contains 'Claude Code tasks' phrase"
+  else
+    fail "AC-6 extra: claude-code body contains 'Claude Code tasks' phrase"
+  fi
+
+fi
+
 # ─── Summary ──────────────────────────────────────────────────────────
 
 echo ""

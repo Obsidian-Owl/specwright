@@ -187,7 +187,8 @@ add_agent_mode() {
     local tmpfile
     tmpfile=$(mktemp)
     # Insert "mode: <value>" on line 2 (after opening ---)
-    sed "1a\\mode: ${mode}" "$file" > "$tmpfile"
+    # Use awk for portability across BSD and GNU sed
+    awk -v mode="mode: ${mode}" 'NR==1{print; print mode; next} {print}' "$file" > "$tmpfile"
     cp "$tmpfile" "$file"
     rm -f "$tmpfile"
   fi

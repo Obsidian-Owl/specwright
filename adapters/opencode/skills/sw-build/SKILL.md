@@ -107,6 +107,10 @@ When delegating, include in the prompt:
   issues; re-delegate to executor for non-trivial). This is task hygiene,
   not a build-fixer scenario.
 
+**Mid-build checks (MEDIUM freedom):**
+- Follow `protocols/assumptions.md` late discovery lifecycle at build start and after each task commit.
+- Follow `protocols/build-quality.md` for discovered behaviors capture after each task.
+
 **Post-build review (MEDIUM freedom):**
 - After all tasks committed, if unit qualifies (4+ tasks OR 5+ files OR security-tagged criteria): delegate review to `specwright-reviewer`. Triage findings: BLOCK → user, WARN → awareness, INFO → skip.
 - Units that don't qualify skip directly to handoff.
