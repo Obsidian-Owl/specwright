@@ -205,7 +205,7 @@ assert_eq "$PREFIX_TYPE" "string" "protocolPrefix is a string"
 echo "--- Skill overrides ---"
 
 OVERRIDE_COUNT=$(jq '.skillOverrides | length' "$MAPPING")
-assert_eq "$OVERRIDE_COUNT" "2" "skillOverrides has exactly 2 entries"
+assert_eq "$OVERRIDE_COUNT" "1" "skillOverrides has exactly 1 entry"
 
 OVERRIDE_TYPE=$(jq -r '.skillOverrides | type' "$MAPPING")
 assert_eq "$OVERRIDE_TYPE" "array" "skillOverrides is an array (not object)"
@@ -214,11 +214,11 @@ FOUND_GUARD=$(jq '[.skillOverrides[] | select(. == "sw-guard")] | length' "$MAPP
 assert_eq "$FOUND_GUARD" "1" "skillOverrides contains 'sw-guard'"
 
 FOUND_BUILD=$(jq '[.skillOverrides[] | select(. == "sw-build")] | length' "$MAPPING")
-assert_eq "$FOUND_BUILD" "1" "skillOverrides contains 'sw-build'"
+assert_eq "$FOUND_BUILD" "0" "skillOverrides does not contain 'sw-build'"
 
 # Verify override entries are strings
 OVERRIDE_STRING_COUNT=$(jq '[.skillOverrides[] | select(type == "string")] | length' "$MAPPING")
-assert_eq "$OVERRIDE_STRING_COUNT" "2" "all skillOverrides entries are strings"
+assert_eq "$OVERRIDE_STRING_COUNT" "1" "all skillOverrides entries are strings"
 
 # ─── 11. Cross-checks (catch lazy implementations) ─────────────────
 

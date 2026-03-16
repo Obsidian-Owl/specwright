@@ -112,6 +112,43 @@ rewrite_protocol_refs() {
   rm -f "$tmpfile"
 }
 
+strip_platform_sections() {
+  local file="$1"
+  local platform="$2"
+
+  local tmpfile
+  tmpfile=$(mktemp)
+
+  awk -v target="$platform" '
+    /^[[:space:]]*<!-- platform:[a-zA-Z0-9_-]+ -->[[:space:]]*$/ {
+      line = $0
+      sub(/^[[:space:]]*<!-- platform:/, "", line)
+      sub(/ -->[[:space:]]*$/, "", line)
+      if (line == target) {
+        in_block = 1
+        skip = 0
+      } else {
+        in_block = 1
+        skip = 1
+      }
+      next
+    }
+    /^[[:space:]]*<!-- \/platform -->[[:space:]]*$/ {
+      if (in_block) {
+        in_block = 0
+        skip = 0
+        next
+      }
+    }
+    {
+      if (!skip) print
+    }
+  ' "$file" > "$tmpfile"
+  cp "$tmpfile" "$file"
+
+  rm -f "$tmpfile"
+}
+
 translate_agent() {
   local file="$1"
   local mapping_file="$2"
@@ -152,7 +189,8 @@ add_agent_mode() {
     local tmpfile
     tmpfile=$(mktemp)
     # Insert "mode: <value>" on line 2 (after opening ---)
-    sed "1a\\mode: ${mode}" "$file" > "$tmpfile"
+    # Use awk for portability across BSD and GNU sed
+    awk -v mode="mode: ${mode}" 'NR==1{print; print mode; next} {print}' "$file" > "$tmpfile"
     cp "$tmpfile" "$file"
     rm -f "$tmpfile"
   fi
@@ -300,6 +338,11 @@ build_claude_code() {
 
   apply_skill_overrides "$platform" "$dist/skills" "$mapping_file"
 
+  # Strip platform-conditional sections
+  for skill_file in "$dist"/skills/*/SKILL.md; do
+    strip_platform_sections "$skill_file" "$platform"
+  done
+
   # Validate
   echo "Validating: $platform"
   if validate_skills "$platform"; then
@@ -366,6 +409,11 @@ build_opencode() {
     done <<< "$override_list"
   fi
 
+  # Strip platform-conditional sections
+  for skill_file in "$dist"/skills/*/SKILL.md; do
+    strip_platform_sections "$skill_file" "$platform"
+  done
+
   # Validate
   echo "Validating: $platform"
   if validate_skills "$platform"; then
@@ -402,4 +450,7 @@ main() {
   esac
 }
 
-main "$@"
+# Only run main when executed directly, not when sourced (e.g., by tests)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi

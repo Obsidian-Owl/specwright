@@ -151,6 +151,7 @@ When delegating, include in the prompt:
 - If user responds "stop" or "pause" to a status card: halt cleanly.
   Advise: `/sw-pivot` if the plan changed, `/sw-build` to resume.
 
+<!-- platform:claude-code -->
 **Task tracking (LOW freedom):**
 - At build start, create Claude Code tasks from spec/plan for visual progress tracking (subject = task name, description = acceptance criteria summary, activeForm = present-continuous).
 - Write ordering: update workflow.json FIRST (source of truth), then TaskUpdate as best-effort. Task tracking failures never halt the build.
@@ -158,6 +159,7 @@ When delegating, include in the prompt:
 - Do not use `blockedBy`/`blocks` dependencies. The sequential task loop handles ordering.
 - Disambiguation: `Task` tool = agent delegation (`protocols/delegation.md`). `TaskCreate`/`TaskUpdate`/`TaskList`/`TaskGet` = visual progress tracking. Never conflate.
 - On recovery after compaction: create fresh tasks from spec/plan, sync status from workflow.json.
+<!-- /platform -->
 
 ## Protocol References
 
@@ -177,7 +179,12 @@ When delegating, include in the prompt:
 | Build/test command not configured | STOP: "Configure commands in config.json or run /sw-init" |
 | Tester writes tests that pass immediately | Tests are wrong. Re-delegate with instruction to write tests that FAIL first. |
 | Executor can't pass tests after 2 build-fixer attempts | STOP. Show error to user. Don't loop forever. |
-| Compaction during build | Read workflow.json, find last completed task, resume next task. Create fresh Claude Code tasks from spec/plan, sync status from workflow.json. |
+| Compaction during build | Read workflow.json, find last completed task, resume next task. |
+<!-- platform:claude-code -->
+| Compaction during build (tasks) | Create fresh Claude Code tasks from spec/plan, sync status from workflow.json. |
+<!-- /platform -->
 | Compaction during parallel execution | Read workflow.json, check `.specwright/worktrees/` for orphans, clean up, resume sequential. |
+<!-- platform:claude-code -->
 | Task tracking tools unavailable | Continue with workflow.json-only tracking. Graceful degradation — task tracking is best-effort. |
+<!-- /platform -->
 | Lock held by another skill | STOP with lock info. Don't force-clear. |

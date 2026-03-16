@@ -290,285 +290,37 @@ if [ -f "$GUARD_OVERRIDE" ]; then
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
-# sw-build override
+# sw-build: no longer an override — uses core with platform markers
 # ═══════════════════════════════════════════════════════════════════════
 
-echo "--- sw-build: file existence ---"
+echo "--- sw-build: adapter override does NOT exist ---"
 
-if [ -f "$BUILD_OVERRIDE" ]; then
-  pass "sw-build override SKILL.md exists"
+if [ ! -f "$ROOT_DIR/adapters/opencode/skills/sw-build/SKILL.md" ]; then
+  pass "sw-build adapter override does not exist (deleted — uses core with markers)"
 else
-  fail "sw-build override SKILL.md does not exist at $BUILD_OVERRIDE"
+  fail "sw-build adapter override still exists at $BUILD_OVERRIDE (should be deleted)"
 fi
 
-# ─── sw-build: YAML frontmatter ──────────────────────────────────────
+echo "--- sw-build: core has platform markers ---"
 
-echo "--- sw-build: YAML frontmatter ---"
-
-if [ -f "$BUILD_OVERRIDE" ]; then
-  # Must start with ---
-  BUILD_FIRST=$(head -n 1 "$BUILD_OVERRIDE")
-  if [ "$BUILD_FIRST" = "---" ]; then
-    pass "sw-build starts with --- (frontmatter opening)"
+CORE_BUILD="$ROOT_DIR/core/skills/sw-build/SKILL.md"
+if [ -f "$CORE_BUILD" ]; then
+  if grep -q '<!-- platform:claude-code -->' "$CORE_BUILD"; then
+    pass "core sw-build contains <!-- platform:claude-code --> markers"
   else
-    fail "sw-build does not start with --- (got: '$BUILD_FIRST')"
+    fail "core sw-build missing <!-- platform:claude-code --> markers"
   fi
-
-  # Must have a closing ---
-  BUILD_CLOSING=$(tail -n +2 "$BUILD_OVERRIDE" | grep -n '^---$' | head -n 1 | cut -d: -f1)
-  if [ -n "$BUILD_CLOSING" ] && [ "$BUILD_CLOSING" -gt 0 ]; then
-    pass "sw-build has closing --- (frontmatter end)"
-  else
-    fail "sw-build has no closing --- (frontmatter never closed)"
-  fi
-
-  BUILD_FM=$(extract_frontmatter "$BUILD_OVERRIDE" || true)
-
-  # name: sw-build
-  if echo "$BUILD_FM" | grep -qE '^name:\s*sw-build\s*$'; then
-    pass "sw-build frontmatter has name: sw-build"
-  else
-    fail "sw-build frontmatter missing or wrong name field (expected 'name: sw-build')"
-  fi
-
-  # description: (must exist and be non-empty)
-  if echo "$BUILD_FM" | grep -qE '^description:'; then
-    pass "sw-build frontmatter has description field"
-  else
-    fail "sw-build frontmatter missing description field"
-  fi
-
-  # description value must be non-trivial
-  BUILD_DESC=$(echo "$BUILD_FM" | grep -E '^description:' | sed 's/^description:\s*//' | sed "s/^['\">]*//" | xargs)
-  BUILD_DESC_LEN=${#BUILD_DESC}
-  if [ "$BUILD_DESC_LEN" -ge 10 ]; then
-    pass "sw-build description is meaningful ($BUILD_DESC_LEN chars)"
-  else
-    if echo "$BUILD_FM" | grep -qE '^description:\s*[>|]-?\s*$'; then
-      BUILD_DESC_NEXT=$(echo "$BUILD_FM" | grep -A1 '^description:' | tail -1 | xargs)
-      if [ ${#BUILD_DESC_NEXT} -ge 10 ]; then
-        pass "sw-build description is meaningful (multi-line YAML, next line: ${#BUILD_DESC_NEXT} chars)"
-      else
-        fail "sw-build description is too short even in multi-line form"
-      fi
-    else
-      fail "sw-build description is suspiciously short ($BUILD_DESC_LEN chars: '$BUILD_DESC')"
-    fi
-  fi
+else
+  fail "core sw-build SKILL.md not found"
 fi
 
-# ─── sw-build: standard SKILL.md sections ────────────────────────────
+echo "--- sw-build: not in skillOverrides ---"
 
-echo "--- sw-build: standard sections ---"
-
-if [ -f "$BUILD_OVERRIDE" ]; then
-  BUILD_BODY=$(extract_body "$BUILD_OVERRIDE" || true)
-
-  for section in "Goal" "Inputs" "Outputs" "Constraints" "Protocol References" "Failure Modes"; do
-    if echo "$BUILD_BODY" | grep -qE "^##\s+${section}"; then
-      pass "sw-build has ## $section section"
-    else
-      fail "sw-build missing ## $section section"
-    fi
-  done
-fi
-
-# ─── sw-build: must NOT reference Claude Code task tools ──────────────
-
-echo "--- sw-build: no Claude Code task tool references ---"
-
-if [ -f "$BUILD_OVERRIDE" ]; then
-  # TaskCreate must NOT appear anywhere (frontmatter or body)
-  if grep -qF 'TaskCreate' "$BUILD_OVERRIDE"; then
-    fail "sw-build references TaskCreate (must be removed)"
-  else
-    pass "sw-build does NOT reference TaskCreate"
-  fi
-
-  # TaskUpdate must NOT appear anywhere
-  if grep -qF 'TaskUpdate' "$BUILD_OVERRIDE"; then
-    fail "sw-build references TaskUpdate (must be removed)"
-  else
-    pass "sw-build does NOT reference TaskUpdate"
-  fi
-
-  # TaskList must NOT appear anywhere
-  if grep -qF 'TaskList' "$BUILD_OVERRIDE"; then
-    fail "sw-build references TaskList (must be removed)"
-  else
-    pass "sw-build does NOT reference TaskList"
-  fi
-
-  # TaskGet must NOT appear anywhere
-  if grep -qF 'TaskGet' "$BUILD_OVERRIDE"; then
-    fail "sw-build references TaskGet (must be removed)"
-  else
-    pass "sw-build does NOT reference TaskGet"
-  fi
-
-  # "Claude Code tasks" case-insensitive must NOT appear
-  if grep -qi 'Claude Code tasks' "$BUILD_OVERRIDE"; then
-    fail "sw-build references 'Claude Code tasks' (must be removed)"
-  else
-    pass "sw-build does NOT reference 'Claude Code tasks'"
-  fi
-fi
-
-# ─── sw-build: frontmatter allowed-tools must not include Task CRUD ───
-
-echo "--- sw-build: frontmatter allowed-tools ---"
-
-if [ -f "$BUILD_OVERRIDE" ]; then
-  BUILD_FM=$(extract_frontmatter "$BUILD_OVERRIDE" || true)
-
-  # Check that allowed-tools section exists
-  if echo "$BUILD_FM" | grep -qE '^allowed-tools:'; then
-    pass "sw-build frontmatter has allowed-tools field"
-  else
-    fail "sw-build frontmatter missing allowed-tools field"
-  fi
-
-  # Extract the allowed-tools list items (lines starting with "  - ")
-  # These are YAML list items under allowed-tools:
-  BUILD_TOOLS=$(echo "$BUILD_FM" | sed -n '/^allowed-tools:/,/^[a-z]/{ /^  - /p }')
-
-  for banned_tool in TaskCreate TaskUpdate TaskList TaskGet; do
-    if echo "$BUILD_TOOLS" | grep -qF "$banned_tool"; then
-      fail "sw-build frontmatter allowed-tools includes $banned_tool (must be stripped)"
-    else
-      pass "sw-build frontmatter allowed-tools does NOT include $banned_tool"
-    fi
-  done
-
-  # Verify allowed-tools still has useful tools (not accidentally emptied)
-  BUILD_TOOL_COUNT=$(echo "$BUILD_TOOLS" | grep -c '^\s*-' || true)
-  if [ "$BUILD_TOOL_COUNT" -ge 3 ]; then
-    pass "sw-build allowed-tools has $BUILD_TOOL_COUNT tools (not accidentally emptied)"
-  else
-    fail "sw-build allowed-tools has only $BUILD_TOOL_COUNT tools (may have been over-stripped)"
-  fi
-fi
-
-# ─── sw-build: must preserve TDD content ─────────────────────────────
-
-echo "--- sw-build: TDD content preserved ---"
-
-if [ -f "$BUILD_OVERRIDE" ]; then
-  BUILD_BODY=$(extract_body "$BUILD_OVERRIDE" || true)
-
-  # Must reference RED phase
-  if echo "$BUILD_BODY" | grep -qF 'RED'; then
-    pass "sw-build body references RED phase"
-  else
-    fail "sw-build body does NOT reference RED phase (TDD content missing)"
-  fi
-
-  # Must reference GREEN phase
-  if echo "$BUILD_BODY" | grep -qF 'GREEN'; then
-    pass "sw-build body references GREEN phase"
-  else
-    fail "sw-build body does NOT reference GREEN phase (TDD content missing)"
-  fi
-
-  # Must reference REFACTOR phase
-  if echo "$BUILD_BODY" | grep -qF 'REFACTOR'; then
-    pass "sw-build body references REFACTOR phase"
-  else
-    fail "sw-build body does NOT reference REFACTOR phase (TDD content missing)"
-  fi
-
-  # Must reference the tester role
-  if echo "$BUILD_BODY" | grep -qi 'tester'; then
-    pass "sw-build body references tester"
-  else
-    fail "sw-build body does NOT reference tester (TDD delegation content missing)"
-  fi
-
-  # Must reference the executor role
-  if echo "$BUILD_BODY" | grep -qi 'executor'; then
-    pass "sw-build body references executor"
-  else
-    fail "sw-build body does NOT reference executor (TDD delegation content missing)"
-  fi
-
-  # TDD cycle section header should exist
-  if echo "$BUILD_BODY" | grep -qE 'TDD\s+(cycle|Cycle)'; then
-    pass "sw-build body has TDD cycle section"
-  else
-    fail "sw-build body missing TDD cycle section"
-  fi
-fi
-
-# ─── sw-build: must preserve agent delegation ────────────────────────
-
-echo "--- sw-build: agent delegation preserved ---"
-
-if [ -f "$BUILD_OVERRIDE" ]; then
-  BUILD_BODY=$(extract_body "$BUILD_OVERRIDE" || true)
-
-  # Must reference specwright-tester agent
-  if echo "$BUILD_BODY" | grep -qF 'specwright-tester'; then
-    pass "sw-build body references specwright-tester agent"
-  else
-    fail "sw-build body does NOT reference specwright-tester agent"
-  fi
-
-  # Must reference specwright-executor agent
-  if echo "$BUILD_BODY" | grep -qF 'specwright-executor'; then
-    pass "sw-build body references specwright-executor agent"
-  else
-    fail "sw-build body does NOT reference specwright-executor agent"
-  fi
-
-  # Must reference delegation protocol
-  if echo "$BUILD_BODY" | grep -qF 'protocols/delegation.md'; then
-    pass "sw-build body references protocols/delegation.md"
-  else
-    fail "sw-build body does NOT reference protocols/delegation.md"
-  fi
-fi
-
-# ─── sw-build: must NOT have Claude Code task tracking section ────────
-
-echo "--- sw-build: no Claude Code task tracking ---"
-
-if [ -f "$BUILD_OVERRIDE" ]; then
-  BUILD_BODY=$(extract_body "$BUILD_OVERRIDE" || true)
-
-  # The core version has a "Task tracking" section with Claude Code-specific task API
-  # The override should NOT have the disambiguation note about TaskCreate vs Task
-  if echo "$BUILD_BODY" | grep -qi 'TaskCreate.*TaskUpdate.*visual.*progress'; then
-    fail "sw-build body still has Claude Code task tracking disambiguation (should be removed)"
-  else
-    pass "sw-build body does NOT have Claude Code task tracking disambiguation"
-  fi
-
-  # The core mentions "Claude Code tasks from spec/plan" -- this should be gone
-  if echo "$BUILD_BODY" | grep -qi 'create.*Claude Code tasks'; then
-    fail "sw-build body still mentions creating Claude Code tasks"
-  else
-    pass "sw-build body does NOT mention creating Claude Code tasks"
-  fi
-fi
-
-# ─── sw-build: not identical to core ──────────────────────────────────
-
-echo "--- sw-build: divergence from core ---"
-
-if [ -f "$BUILD_OVERRIDE" ]; then
-  if diff -q "$BUILD_OVERRIDE" "$BUILD_CORE" &>/dev/null; then
-    fail "sw-build override is identical to core version (must have platform-specific changes)"
-  else
-    pass "sw-build override differs from core version"
-  fi
-
-  # Verify it's not just a trivial one-line diff
-  BUILD_DIFF_LINES=$(diff "$BUILD_OVERRIDE" "$BUILD_CORE" 2>/dev/null | grep -c '^[<>]' || true)
-  if [ "$BUILD_DIFF_LINES" -ge 4 ]; then
-    pass "sw-build has substantial differences from core ($BUILD_DIFF_LINES differing lines)"
-  else
-    fail "sw-build has only $BUILD_DIFF_LINES differing lines from core (too similar -- likely not enough platform changes)"
-  fi
+MAPPING="$ROOT_DIR/build/mappings/opencode.json"
+if jq -e '.skillOverrides | index("sw-build")' "$MAPPING" > /dev/null 2>&1; then
+  fail "sw-build still in opencode.json skillOverrides"
+else
+  pass "sw-build not in opencode.json skillOverrides"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -590,17 +342,6 @@ else
   fail "sw-guard override missing (cannot check size)"
 fi
 
-if [ -f "$BUILD_OVERRIDE" ]; then
-  BUILD_SIZE=$(wc -c < "$BUILD_OVERRIDE")
-  if [ "$BUILD_SIZE" -ge 500 ]; then
-    pass "sw-build override is 500+ bytes ($BUILD_SIZE bytes)"
-  else
-    fail "sw-build override is only $BUILD_SIZE bytes (expected 500+ for a real skill file)"
-  fi
-else
-  fail "sw-build override missing (cannot check size)"
-fi
-
 # ─── Body content substantiality ─────────────────────────────────────
 
 if [ -f "$GUARD_OVERRIDE" ]; then
@@ -610,26 +351,6 @@ if [ -f "$GUARD_OVERRIDE" ]; then
     pass "sw-guard body ($GUARD_BODY_SIZE bytes) is larger than frontmatter ($GUARD_FM_SIZE bytes)"
   else
     fail "sw-guard body ($GUARD_BODY_SIZE bytes) is NOT larger than frontmatter ($GUARD_FM_SIZE bytes) -- content may be missing"
-  fi
-fi
-
-if [ -f "$BUILD_OVERRIDE" ]; then
-  BUILD_BODY_SIZE=$(extract_body "$BUILD_OVERRIDE" | wc -c || echo "0")
-  BUILD_FM_SIZE=$(extract_frontmatter "$BUILD_OVERRIDE" | wc -c || echo "0")
-  if [ "$BUILD_BODY_SIZE" -gt "$BUILD_FM_SIZE" ]; then
-    pass "sw-build body ($BUILD_BODY_SIZE bytes) is larger than frontmatter ($BUILD_FM_SIZE bytes)"
-  else
-    fail "sw-build body ($BUILD_BODY_SIZE bytes) is NOT larger than frontmatter ($BUILD_FM_SIZE bytes) -- content may be missing"
-  fi
-fi
-
-# ─── The two overrides must not be copies of each other ──────────────
-
-if [ -f "$GUARD_OVERRIDE" ] && [ -f "$BUILD_OVERRIDE" ]; then
-  if diff -q "$GUARD_OVERRIDE" "$BUILD_OVERRIDE" &>/dev/null; then
-    fail "sw-guard and sw-build overrides are identical (each should be distinct)"
-  else
-    pass "sw-guard and sw-build overrides are distinct files"
   fi
 fi
 
@@ -643,14 +364,6 @@ if [ -f "$GUARD_OVERRIDE" ]; then
   fi
 fi
 
-if [ -f "$BUILD_OVERRIDE" ]; then
-  if diff -q "$BUILD_OVERRIDE" "$GUARD_CORE" &>/dev/null; then
-    fail "sw-build override is identical to core sw-guard (wrong file copied)"
-  else
-    pass "sw-build override is NOT a copy of core sw-guard"
-  fi
-fi
-
 # ─── Line count sanity (real skill files have many lines) ─────────────
 
 if [ -f "$GUARD_OVERRIDE" ]; then
@@ -659,15 +372,6 @@ if [ -f "$GUARD_OVERRIDE" ]; then
     pass "sw-guard override has $GUARD_LINES lines (non-trivial)"
   else
     fail "sw-guard override has only $GUARD_LINES lines (suspiciously short for a skill file)"
-  fi
-fi
-
-if [ -f "$BUILD_OVERRIDE" ]; then
-  BUILD_LINES=$(wc -l < "$BUILD_OVERRIDE")
-  if [ "$BUILD_LINES" -ge 40 ]; then
-    pass "sw-build override has $BUILD_LINES lines (non-trivial)"
-  else
-    fail "sw-build override has only $BUILD_LINES lines (suspiciously short -- core has 181 lines)"
   fi
 fi
 
