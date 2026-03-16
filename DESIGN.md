@@ -228,6 +228,19 @@ specwright/
 └── README.md
 ```
 
+## Build System
+
+`build/build.sh` transforms core content into platform-specific packages under `dist/`. The transformation pipeline per platform:
+
+1. **Tool mapping** — renames frontmatter tool names per `build/mappings/{platform}.json`
+2. **Tool stripping** — removes platform-irrelevant tools from frontmatter (e.g., `TaskCreate` for opencode)
+3. **Protocol path rewriting** — prepends platform-specific prefix to `protocols/` references
+4. **Agent translation** — model names, tool formats, mode injection (platform-specific)
+5. **Skill overrides** — replaces core skills with adapter versions (currently: `sw-guard` for opencode)
+6. **Platform marker stripping** — processes `<!-- platform:X -->...<!-- /platform -->` conditional blocks in skill bodies. Matching platform content is preserved (markers removed); non-matching content is stripped entirely.
+
+Platform markers allow a single core SKILL.md to contain platform-specific body sections without requiring full adapter overrides. Frontmatter differences use the tool mapping/stripping mechanism; body differences use markers.
+
 Runtime state (created by init):
 ```
 .specwright/

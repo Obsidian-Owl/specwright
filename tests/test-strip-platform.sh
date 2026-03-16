@@ -1054,6 +1054,196 @@ else
   fail "AC-9: test-opencode-overrides.sh lost sw-guard tests (should be unchanged)"
 fi
 
+# ═══════════════════════════════════════════════════════════════════════
+# AC-10: Build regression — both platforms still build successfully
+# ═══════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "=== AC-10: Build regression — both platforms still build successfully ==="
+echo ""
+
+# Run a fresh build of both platforms
+echo "--- Running build.sh all ---"
+BUILD_ALL_OUTPUT=$(bash "$ROOT_DIR/build/build.sh" all 2>&1)
+BUILD_ALL_EXIT=$?
+
+assert_eq "$BUILD_ALL_EXIT" "0" \
+  "AC-10a: build.sh all exits 0"
+
+if [ "$BUILD_ALL_EXIT" -ne 0 ]; then
+  echo "    build output (last 10 lines):"
+  echo "$BUILD_ALL_OUTPUT" | tail -10 | sed 's/^/    /'
+fi
+
+# --- AC-10b: claude-code dist has exactly 19 skill directories ---
+
+echo "--- claude-code dist skill directory count ---"
+
+CC_SKILL_COUNT=0
+if [ -d "$ROOT_DIR/dist/claude-code/skills" ]; then
+  CC_SKILL_COUNT=$(find "$ROOT_DIR/dist/claude-code/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+fi
+assert_eq "$CC_SKILL_COUNT" "19" \
+  "AC-10b: claude-code dist contains 19 skill directories"
+
+# --- AC-10c: claude-code dist has exactly 6 agent files ---
+
+echo "--- claude-code dist agent file count ---"
+
+CC_AGENT_COUNT=0
+if [ -d "$ROOT_DIR/dist/claude-code/agents" ]; then
+  CC_AGENT_COUNT=$(find "$ROOT_DIR/dist/claude-code/agents" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')
+fi
+assert_eq "$CC_AGENT_COUNT" "6" \
+  "AC-10c: claude-code dist contains 6 agent files"
+
+# --- AC-10d: claude-code dist has exactly 19 protocol files ---
+
+echo "--- claude-code dist protocol file count ---"
+
+CC_PROTOCOL_COUNT=0
+if [ -d "$ROOT_DIR/dist/claude-code/protocols" ]; then
+  CC_PROTOCOL_COUNT=$(find "$ROOT_DIR/dist/claude-code/protocols" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')
+fi
+assert_eq "$CC_PROTOCOL_COUNT" "19" \
+  "AC-10d: claude-code dist contains 19 protocol files"
+
+# --- AC-10e: opencode dist has exactly 19 skill directories ---
+
+echo "--- opencode dist skill directory count ---"
+
+OC_SKILL_COUNT=0
+if [ -d "$ROOT_DIR/dist/opencode/skills" ]; then
+  OC_SKILL_COUNT=$(find "$ROOT_DIR/dist/opencode/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+fi
+assert_eq "$OC_SKILL_COUNT" "19" \
+  "AC-10e: opencode dist contains 19 skill directories"
+
+# --- AC-10f: opencode dist has exactly 6 agent files ---
+
+echo "--- opencode dist agent file count ---"
+
+OC_AGENT_COUNT=0
+if [ -d "$ROOT_DIR/dist/opencode/agents" ]; then
+  OC_AGENT_COUNT=$(find "$ROOT_DIR/dist/opencode/agents" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')
+fi
+assert_eq "$OC_AGENT_COUNT" "6" \
+  "AC-10f: opencode dist contains 6 agent files"
+
+# --- AC-10g: opencode dist has exactly 19 protocol files ---
+
+echo "--- opencode dist protocol file count ---"
+
+OC_PROTOCOL_COUNT=0
+if [ -d "$ROOT_DIR/dist/opencode/protocols" ]; then
+  OC_PROTOCOL_COUNT=$(find "$ROOT_DIR/dist/opencode/protocols" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')
+fi
+assert_eq "$OC_PROTOCOL_COUNT" "19" \
+  "AC-10g: opencode dist contains 19 protocol files"
+
+# ═══════════════════════════════════════════════════════════════════════
+# AC-11: Documentation reflects platform markers and override changes
+# ═══════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "=== AC-11: Documentation reflects platform markers and override changes ==="
+echo ""
+
+DESIGN_DOC="$ROOT_DIR/DESIGN.md"
+
+# --- AC-11a: DESIGN.md mentions platform markers as a build transformation step ---
+
+echo "--- DESIGN.md mentions platform markers concept ---"
+
+if grep -qi 'platform' "$DESIGN_DOC" 2>/dev/null; then
+  # "platform" alone is too weak -- it could match "cross-platform" etc.
+  # We need it to reference platform markers as part of the build/transformation pipeline.
+  # Check for the concept of platform markers in a build context.
+  if grep -qi 'platform.*marker\|marker.*platform\|platform.*strip\|strip.*platform\|platform.*section\|platform.*transform\|platform.*block' "$DESIGN_DOC" 2>/dev/null; then
+    pass "AC-11a: DESIGN.md references platform markers concept"
+  else
+    fail "AC-11a: DESIGN.md references platform markers concept (found 'platform' but not in marker/transform context)"
+  fi
+else
+  fail "AC-11a: DESIGN.md references platform markers concept (word 'platform' not found at all)"
+fi
+
+# --- AC-11a extra: The platform markers mention is in a build system context ---
+# A sloppy implementation might mention "platform markers" in a random place
+# without connecting it to the build/transformation pipeline.
+
+echo "--- DESIGN.md describes platform markers as a build transformation step ---"
+
+# Check that "platform" and a build-related term appear in the same section
+# (within 10 lines of each other, or in a section with "build" in the heading)
+if grep -qi 'build.*platform\|platform.*build\|transform.*platform\|platform.*transform' "$DESIGN_DOC" 2>/dev/null; then
+  pass "AC-11a extra: DESIGN.md connects platform markers to build/transform pipeline"
+else
+  fail "AC-11a extra: DESIGN.md connects platform markers to build/transform pipeline"
+fi
+
+# --- AC-11b: DESIGN.md does NOT list sw-build as a skill override ---
+# grep for sw-build appearing near "override" -- should not match
+
+echo "--- DESIGN.md does not list sw-build as a skill override ---"
+
+if grep -qi 'sw-build.*override\|override.*sw-build' "$DESIGN_DOC" 2>/dev/null; then
+  fail "AC-11b: DESIGN.md should not reference sw-build as an override"
+  echo "    found: $(grep -i 'sw-build.*override\|override.*sw-build' "$DESIGN_DOC")"
+else
+  pass "AC-11b: DESIGN.md does not reference sw-build as an override"
+fi
+
+# --- AC-11c: If DESIGN.md mentions skillOverrides, it only references sw-guard ---
+
+echo "--- If DESIGN.md mentions skillOverrides, only sw-guard is listed ---"
+
+SKILL_OVERRIDE_LINES=$(grep -i 'skillOverrides\|skill.override' "$DESIGN_DOC" 2>/dev/null || true)
+if [ -n "$SKILL_OVERRIDE_LINES" ]; then
+  # skillOverrides is mentioned -- verify sw-build is NOT referenced alongside it
+  if echo "$SKILL_OVERRIDE_LINES" | grep -qi 'sw-build'; then
+    fail "AC-11c: DESIGN.md skillOverrides mention includes sw-build (should only be sw-guard)"
+    echo "    found: $SKILL_OVERRIDE_LINES"
+  else
+    pass "AC-11c: DESIGN.md skillOverrides does not include sw-build"
+  fi
+else
+  # No mention of skillOverrides at all -- acceptable
+  pass "AC-11c: DESIGN.md does not mention skillOverrides (acceptable)"
+fi
+
+# --- AC-11d: If DESIGN.md or CLAUDE.md reference the adapter skill override pattern,
+#     they note that sw-build is derived from core via conditional markers, not overrides ---
+
+echo "--- Docs note sw-build is derived via markers, not overrides ---"
+
+CLAUDE_DOC="$ROOT_DIR/CLAUDE.md"
+
+# Check DESIGN.md
+DESIGN_ADAPTER_REFS=$(grep -i 'adapter.*override\|override.*adapter\|skill.*override' "$DESIGN_DOC" 2>/dev/null || true)
+if [ -n "$DESIGN_ADAPTER_REFS" ]; then
+  # If adapter override pattern is mentioned, sw-build must NOT be listed as an override
+  if echo "$DESIGN_ADAPTER_REFS" | grep -qi 'sw-build'; then
+    fail "AC-11d: DESIGN.md adapter override reference incorrectly includes sw-build"
+  else
+    pass "AC-11d: DESIGN.md adapter override references do not include sw-build"
+  fi
+else
+  pass "AC-11d: DESIGN.md does not reference adapter override pattern (acceptable)"
+fi
+
+# Check CLAUDE.md
+CLAUDE_ADAPTER_REFS=$(grep -i 'adapter.*override\|override.*adapter\|skill.*override' "$CLAUDE_DOC" 2>/dev/null || true)
+if [ -n "$CLAUDE_ADAPTER_REFS" ]; then
+  if echo "$CLAUDE_ADAPTER_REFS" | grep -qi 'sw-build'; then
+    fail "AC-11d: CLAUDE.md adapter override reference incorrectly includes sw-build"
+  else
+    pass "AC-11d: CLAUDE.md adapter override references do not include sw-build"
+  fi
+else
+  pass "AC-11d: CLAUDE.md does not reference adapter override pattern (acceptable)"
+fi
+
 # ─── Summary ──────────────────────────────────────────────────────────
 
 echo ""
