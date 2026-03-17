@@ -140,11 +140,12 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `audit.md` | Codebase health findings format, IDs, matching, lifecycle | ~125 |
 | `research.md` | External research brief format, confidence scoring, lifecycle | ~200 |
 | `build-quality.md` | Post-build review and as-built notes | ~230 |
+| `convergence.md` | Iterative critic loop with convergence scoring for sw-design | ~430 |
 | `backlog.md` | Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets | ~460 |
 | `spec-review.md` | Spec quality review dimensions, finding levels, resolution flow | ~610 |
 | `parallel-build.md` | Parallel task execution with agent teams (experimental) | ~815 |
 
-Total: ~6,375 words (loaded on demand, not all at once).
+Total: ~6,805 words across 18 protocols (loaded on demand, not all at once).
 
 ## Skill Anatomy
 
