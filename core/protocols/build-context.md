@@ -1,6 +1,6 @@
 # Build Context Protocol
 
-Continuation snapshots, status cards, and context management for sw-build.
+Continuation snapshots, status cards, and context nudge for sw-build.
 
 ## Continuation Snapshot
 
