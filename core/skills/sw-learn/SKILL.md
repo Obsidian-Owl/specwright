@@ -93,11 +93,21 @@ work benefits.
 **Auto-memory (MEDIUM freedom):**
 - Per `protocols/learning-lifecycle.md`. If auto-memory directory doesn't exist or system prompt doesn't mention auto-memory, silently fall back to patterns.md only.
 
+**State cleanup (LOW freedom):**
+- After ALL persistence steps complete successfully (learnings JSON write, LANDSCAPE.md update, AUDIT.md resolution, enrichment, auto-memory), clear the workflow state:
+  - Follow `protocols/state.md` read-modify-write sequence.
+  - Set `currentWork` to `null`.
+  - Set `gates` to `{}`.
+  - Preserve the `workUnits` array (historical reference for future retrospectives).
+  - Release lock.
+- If ANY persistence step fails (learnings write, landscape update, audit resolution): STOP with error. Do NOT clear `currentWork`. The user must fix the failure and re-run `/sw-learn`.
+- This is the `shipped → (none)` transition defined in `protocols/state.md`.
+
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope, termination, and handoff
 - `protocols/context.md` -- anchor doc loading
-- `protocols/state.md` -- workflow state reading
+- `protocols/state.md` -- workflow state reading and cleanup transition
 - `protocols/insights.md` -- session pattern enrichment
 - `protocols/learning-lifecycle.md` -- promotion targets and auto-memory format
 - `protocols/landscape.md` -- codebase reference document format
