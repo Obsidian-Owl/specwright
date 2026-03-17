@@ -2,11 +2,13 @@
 name: sw-status
 description: >-
   Shows current Specwright state — active work unit, task progress, gate
-  results, and lock status. Supports --reset to abandon work in progress.
-argument-hint: "[--reset]"
+  results, and lock status. Supports --reset to abandon work and --cleanup
+  to remove orphaned work directories.
+argument-hint: "[--reset | --cleanup]"
 allowed-tools:
   - Read
   - Write
+  - Bash
   - Glob
   - AskUserQuestion
 ---
@@ -57,6 +59,19 @@ next. If they're stuck, give them a way out with `--reset`.
   - If confirmed: set `currentWork.status` to `abandoned`, release lock, clear gates.
   - Follow `protocols/state.md` for mutations.
   - Do NOT delete work directory — keep artifacts for reference.
+
+**Cleanup mode (MEDIUM freedom):**
+- If `--cleanup` argument is given:
+  - Scan `.specwright/work/` for subdirectories.
+  - If `.specwright/work/` does not exist or contains no subdirectories: report "No work directories found" and exit without prompting.
+  - Determine which directories are **active** (not deletable):
+    - If `currentWork` is non-null: the work root (`.specwright/work/{currentWork.id}/`) and any directory that is a prefix of `currentWork.workDir` are active.
+    - If `currentWork` is null: no directories are active — all are eligible for cleanup.
+  - Present the directory list to the user via AskUserQuestion with multiSelect:
+    - Active directories are displayed as "(active — not deletable)" and excluded from selection options.
+    - Non-active directories are selectable for deletion.
+  - Delete only the user-selected directories (`rm -rf` each selected path).
+  - Report which directories were deleted and the count.
 
 ## Protocol References
 
