@@ -60,6 +60,7 @@ Valid transitions for `currentWork.status`:
 | `verifying` | `building` | fix after failed verify |
 | `verifying` | `shipped` | sw-ship |
 | `shipped` | `building` | sw-ship (next unit advancement) |
+| `shipped` | (none) | sw-learn (clears `currentWork` to null) |
 | any | `abandoned` | sw-status --reset |
 
 **Enforcement:** Skills MUST check `currentWork.status` before mutating. If the current status is not a valid "from" state for the intended transition, STOP with:

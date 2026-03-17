@@ -21,8 +21,8 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | `sw-pivot` | Mid-build course correction. Revises remaining tasks via architect; append-only. |
 | `sw-doctor` | Read-only installation health check. 9 checks, repair hints. |
 | `sw-guard` | Detect stack and interactively configure guardrails (hooks, CI, settings). |
-| `sw-status` | Current state and progress. |
-| `sw-learn` | Post-ship capture of patterns and learnings. |
+| `sw-status` | Current state and progress. Supports `--cleanup` to remove orphaned work directories. |
+| `sw-learn` | Post-ship capture of patterns and learnings. Clears workflow state after persistence. |
 | `sw-audit` | Periodic codebase health check. Finds systemic tech debt. |
 
 ## Anchor Documents

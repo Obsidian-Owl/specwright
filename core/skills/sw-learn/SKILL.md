@@ -93,16 +93,30 @@ work benefits.
 **Auto-memory (MEDIUM freedom):**
 - Per `protocols/learning-lifecycle.md`. If auto-memory directory doesn't exist or system prompt doesn't mention auto-memory, silently fall back to patterns.md only.
 
+**State cleanup (LOW freedom):**
+- Before clearing, verify `currentWork.status` is `shipped`. If it is anything else (e.g. `building`, `verifying`), STOP with: "State cleanup requires status 'shipped'. Current status: {status}. Complete the current build cycle before running /sw-learn."
+- After ALL persistence steps complete successfully (learnings JSON write, LANDSCAPE.md update, AUDIT.md resolution), clear the workflow state:
+  - Acquire lock per `protocols/state.md` (set `lock: {skill: "sw-learn", since: "<ISO>"}`) before other mutations.
+  - Follow `protocols/state.md` read-modify-write sequence.
+  - Set `currentWork` to `null`.
+  - Set `gates` to `{}`.
+  - Preserve the `workUnits` array (historical reference for future retrospectives).
+  - Release lock.
+- If ANY persistence step fails (learnings write, landscape update, audit resolution): STOP with error. Do NOT clear `currentWork`. The user must fix the failure and re-run `/sw-learn`.
+- This is the `shipped → (none)` transition defined in `protocols/state.md`.
+
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope, termination, and handoff
 - `protocols/context.md` -- anchor doc loading
-- `protocols/state.md` -- workflow state reading
+- `protocols/state.md` -- workflow state reading and cleanup transition
 - `protocols/insights.md` -- session pattern enrichment
 - `protocols/learning-lifecycle.md` -- promotion targets and auto-memory format
 - `protocols/landscape.md` -- codebase reference document format
 - `protocols/audit.md` -- codebase health findings format
 - `protocols/backlog.md` -- backlog item format and write targets
+- `protocols/build-quality.md` -- as-built notes and discovered behaviors
+- `protocols/gate-verdict.md` -- gate calibration data recording
 
 ## Failure Modes
 
