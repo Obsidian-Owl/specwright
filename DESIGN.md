@@ -57,9 +57,9 @@ Validated, referenced findings about external systems: API documentation, SDK co
 | `sw-build` | TDD implementation | Tester → executor delegation. Context doc travels with agents |
 | `sw-verify` | Interactive quality gates | Shows findings, not badges. Orchestrates gate skills in dependency order |
 | `sw-ship` | Strategy-aware merge | PR with evidence-mapped body |
-| `sw-status` | Where am I, what's done, what's next | Supports --reset to abandon work |
+| `sw-status` | Where am I, what's done, what's next | Supports --reset to abandon work, --cleanup for orphaned work dirs |
 | `sw-guard` | Detect stack, configure guardrails interactively | Layer-by-layer approval (session, commit, push, CI/CD) |
-| `sw-learn` | Post-ship capture. What worked, what to remember | Promotes patterns to constitution |
+| `sw-learn` | Post-ship capture. What worked, what to remember | Promotes patterns to constitution. Clears workflow state (shipped → none) |
 | `sw-research` | Deep outward-facing research | External docs, APIs, patterns, validation. Produces referenced briefs for design |
 | `sw-debug` | Investigation-first debugging | Scope → investigate → diagnose → fix/log/defer |
 | `sw-pivot` | Mid-build course correction | Captures progress, revises remaining tasks via architect |
@@ -127,7 +127,7 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 |----------|---------|-----------------|
 | `stage-boundary.md` | Stage scope, termination, handoff enforcement | ~250 |
 | `delegation.md` | Agent delegation (custom subagents + agent teams) | ~410 |
-| `state.md` | Workflow state, work unit queue, transition validation | ~670 |
+| `state.md` | Workflow state, work unit queue, transition validation (includes shipped → none via sw-learn) | ~670 |
 | `git.md` | Strategy-aware branch lifecycle, commit format, PR creation | ~650 |
 | `recovery.md` | Compaction recovery procedure | ~190 |
 | `evidence.md` | Gate evidence format and storage | ~120 |
