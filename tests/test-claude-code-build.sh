@@ -21,6 +21,7 @@
 #   Exit 0 = all pass, exit 1 = any failure
 
 set -uo pipefail
+trap 'rm -rf "$DIST_DIR"' EXIT
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -82,7 +83,7 @@ extract_body() {
 # Extract allowed-tools list items from YAML frontmatter
 extract_allowed_tools() {
   local fm="$1"
-  echo "$fm" | sed -n '/^allowed-tools:/,/^[a-z]/{/^  - /p;}' | sed 's/^  - //'
+  echo "$fm" | sed -n '/^allowed-tools:/,/^[^ ]/{/^  - /p;}' | sed 's/^  - //'
 }
 
 # ─── Pre-flight ──────────────────────────────────────────────────────
@@ -177,8 +178,9 @@ if [ -d "$CC_DIST/skills" ]; then
       MISSING_SKILLS="$MISSING_SKILLS $skill_name"
     fi
   done
-  assert_eq "$SKILL_FILE_COUNT" "$EXPECTED_SKILL_COUNT" "all $EXPECTED_SKILL_COUNT skill directories contain SKILL.md"
-  if [ -n "$MISSING_SKILLS" ]; then
+  if [ -z "$MISSING_SKILLS" ]; then
+    pass "all $EXPECTED_SKILL_COUNT skill directories contain SKILL.md"
+  else
     fail "skills missing SKILL.md:$MISSING_SKILLS"
   fi
 
@@ -330,11 +332,11 @@ if [ "$LOWERCASE_TOOL_FOUND" -eq 0 ]; then
   pass "no skill has lowercase tool names in allowed-tools (identity mapping correct)"
 fi
 
-# Parser sanity: at least 15 skills should have non-empty allowed-tools
-if [ "$SKILLS_WITH_TOOLS" -ge 15 ]; then
+# Parser sanity: all skills should have non-empty allowed-tools
+if [ "$SKILLS_WITH_TOOLS" -ge "$EXPECTED_SKILL_COUNT" ]; then
   pass "tool parser found allowed-tools in $SKILLS_WITH_TOOLS skills (sanity check)"
 else
-  fail "tool parser only found allowed-tools in $SKILLS_WITH_TOOLS skills (expected 15+, parser may be broken)"
+  fail "tool parser only found allowed-tools in $SKILLS_WITH_TOOLS skills (expected $EXPECTED_SKILL_COUNT, parser may be broken)"
 fi
 
 echo "--- Spot-check: sw-init has Read, Write, Bash ---"
@@ -876,24 +878,20 @@ if [ -f "$ROOT_DIR/core/agents/specwright-tester.md" ]; then
   fi
 fi
 
-echo "--- Core skill content integrity ---"
+echo "--- Core and adapter source integrity (git diff) ---"
 
-# Verify a few core files have not been altered by checking git status
-for skill in sw-init sw-build sw-verify; do
-  core_skill="$ROOT_DIR/core/skills/$skill/SKILL.md"
-  if [ -f "$core_skill" ]; then
-    # Check the file still starts with frontmatter
-    FIRST_LINE=$(head -n 1 "$core_skill")
-    assert_eq "$FIRST_LINE" "---" "core/$skill/SKILL.md still starts with ---"
-  fi
-done
+if git -C "$ROOT_DIR" diff --exit-code -- core/ adapters/ &>/dev/null; then
+  pass "no core/ or adapters/ source files were modified by the build (git diff clean)"
+else
+  fail "build modified source files in core/ or adapters/ (run 'git diff -- core/ adapters/' for details)"
+fi
 
 # ─── Cleanup ─────────────────────────────────────────────────────────
 
 echo ""
 echo "--- Cleanup ---"
 rm -rf "$DIST_DIR"
-pass "dist/ cleaned up"
+echo "  INFO: dist/ cleaned up"
 
 # ─── Summary ─────────────────────────────────────────────────────────
 
