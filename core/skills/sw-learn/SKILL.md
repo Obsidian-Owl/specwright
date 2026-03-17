@@ -94,7 +94,9 @@ work benefits.
 - Per `protocols/learning-lifecycle.md`. If auto-memory directory doesn't exist or system prompt doesn't mention auto-memory, silently fall back to patterns.md only.
 
 **State cleanup (LOW freedom):**
-- After ALL persistence steps complete successfully (learnings JSON write, LANDSCAPE.md update, AUDIT.md resolution, enrichment, auto-memory), clear the workflow state:
+- Before clearing, verify `currentWork.status` is `shipped`. If it is anything else (e.g. `building`, `verifying`), STOP with: "State cleanup requires status 'shipped'. Current status: {status}. Complete the current build cycle before running /sw-learn."
+- After ALL persistence steps complete successfully (learnings JSON write, LANDSCAPE.md update, AUDIT.md resolution), clear the workflow state:
+  - Acquire lock per `protocols/state.md` (set `lock: {skill: "sw-learn", since: "<ISO>"}`) before other mutations.
   - Follow `protocols/state.md` read-modify-write sequence.
   - Set `currentWork` to `null`.
   - Set `gates` to `{}`.

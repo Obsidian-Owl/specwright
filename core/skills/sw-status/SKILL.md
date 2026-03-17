@@ -65,12 +65,12 @@ next. If they're stuck, give them a way out with `--reset`.
   - Scan `.specwright/work/` for subdirectories.
   - If `.specwright/work/` does not exist or contains no subdirectories: report "No work directories found" and exit without prompting.
   - Determine which directories are **active** (not deletable):
-    - If `currentWork` is non-null: the work root (`.specwright/work/{currentWork.id}/`) and any directory that is a prefix of `currentWork.workDir` are active.
+    - If `currentWork` is non-null: the directory `.specwright/work/{currentWork.id}/` is active (not deletable).
     - If `currentWork` is null: no directories are active — all are eligible for cleanup.
   - Present the directory list to the user via AskUserQuestion with multiSelect:
     - Active directories are displayed as "(active — not deletable)" and excluded from selection options.
     - Non-active directories are selectable for deletion.
-  - Before deleting, verify each selected path resolves to a direct child of `.specwright/work/`. If resolution fails or the path escapes `.specwright/work/`, skip it with a warning.
+  - Before deleting, use `realpath` to canonicalize each selected path, then verify the canonical path is a direct child of the canonical `.specwright/work/` path. If canonicalization fails or the resolved path escapes `.specwright/work/`, skip it with a warning.
   - Delete only the verified, user-selected directories (`rm -rf` each selected path).
   - Report which directories were deleted and the count.
 
