@@ -214,10 +214,16 @@ specwright/
 │   ├── protocols/         # Shared protocols (loaded on demand)
 │   └── agents/            # Custom subagent definitions (6 agents)
 ├── adapters/              # Platform-specific packaging
-│   └── claude-code/       # Claude Code adapter
-│       ├── .claude-plugin/  # Plugin metadata
-│       ├── hooks/           # Session lifecycle hooks
-│       └── CLAUDE.md        # Claude Code project instructions
+│   ├── claude-code/       # Claude Code adapter
+│   │   ├── .claude-plugin/  # Plugin metadata
+│   │   ├── hooks/           # Session lifecycle hooks
+│   │   └── CLAUDE.md        # Claude Code project instructions
+│   └── opencode/          # Opencode adapter (npm package)
+│       ├── commands/        # Skill command definitions (14 .md files)
+│       ├── skills/          # Skill overrides (sw-guard only)
+│       ├── plugin.ts        # Plugin entry point
+│       ├── package.json     # npm package manifest
+│       └── README.md
 ├── skills/ → core/skills/          # Symlinks for backward compatibility
 ├── protocols/ → core/protocols/
 ├── agents/ → core/agents/
