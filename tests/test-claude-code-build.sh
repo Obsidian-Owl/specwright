@@ -270,12 +270,11 @@ echo "--- CLAUDE.md ---"
 
 if [ -f "$CC_DIST/CLAUDE.md" ]; then
   pass "CLAUDE.md exists in dist/claude-code/"
-  # Must have substantial content (not empty or trivially small)
-  CLAUDE_MD_SIZE=$(wc -c < "$CC_DIST/CLAUDE.md" | tr -d ' ')
-  if [ "$CLAUDE_MD_SIZE" -gt 100 ]; then
-    pass "CLAUDE.md has substantial content ($CLAUDE_MD_SIZE bytes)"
+  # Must match adapter source
+  if diff -q "$CC_DIST/CLAUDE.md" "$ROOT_DIR/adapters/claude-code/CLAUDE.md" &>/dev/null; then
+    pass "CLAUDE.md matches adapter source"
   else
-    fail "CLAUDE.md is too small ($CLAUDE_MD_SIZE bytes)"
+    fail "CLAUDE.md does NOT match adapters/claude-code/CLAUDE.md"
   fi
 else
   fail "CLAUDE.md missing from dist/claude-code/"
@@ -287,11 +286,11 @@ echo "--- README.md ---"
 
 if [ -f "$CC_DIST/README.md" ]; then
   pass "README.md exists in dist/claude-code/"
-  README_SIZE=$(wc -c < "$CC_DIST/README.md" | tr -d ' ')
-  if [ "$README_SIZE" -gt 100 ]; then
-    pass "README.md has substantial content ($README_SIZE bytes)"
+  # Must match root README.md (build copies it)
+  if diff -q "$CC_DIST/README.md" "$ROOT_DIR/README.md" &>/dev/null; then
+    pass "README.md matches root README.md"
   else
-    fail "README.md is too small ($README_SIZE bytes)"
+    fail "README.md does NOT match root README.md"
   fi
 else
   fail "README.md missing from dist/claude-code/"
@@ -307,6 +306,7 @@ echo "=== AC-3: Identity mapping ==="
 echo "--- ALL skill files: no tool name matching ^[a-z] in allowed-tools ---"
 
 LOWERCASE_TOOL_FOUND=0
+SKILLS_WITH_TOOLS=0
 for skill_dir in "$CC_DIST"/skills/*/; do
   skill_name=$(basename "$skill_dir")
   skill_file="$skill_dir/SKILL.md"
@@ -315,6 +315,8 @@ for skill_dir in "$CC_DIST"/skills/*/; do
   FM=$(extract_frontmatter "$skill_file" || true)
   TOOLS=$(extract_allowed_tools "$FM")
   [ -z "$TOOLS" ] && continue
+
+  SKILLS_WITH_TOOLS=$((SKILLS_WITH_TOOLS + 1))
 
   # Every tool must start with uppercase (identity mapping means no transformation)
   LOWERCASE_TOOLS=$(echo "$TOOLS" | grep -E '^[a-z]' || true)
@@ -326,6 +328,13 @@ done
 
 if [ "$LOWERCASE_TOOL_FOUND" -eq 0 ]; then
   pass "no skill has lowercase tool names in allowed-tools (identity mapping correct)"
+fi
+
+# Parser sanity: at least 15 skills should have non-empty allowed-tools
+if [ "$SKILLS_WITH_TOOLS" -ge 15 ]; then
+  pass "tool parser found allowed-tools in $SKILLS_WITH_TOOLS skills (sanity check)"
+else
+  fail "tool parser only found allowed-tools in $SKILLS_WITH_TOOLS skills (expected 15+, parser may be broken)"
 fi
 
 echo "--- Spot-check: sw-init has Read, Write, Bash ---"
@@ -620,6 +629,20 @@ for hook in $EXPECTED_HOOKS; do
       pass "hooks/$hook passes node --check"
     else
       fail "hooks/$hook fails node --check (syntax error)"
+    fi
+  fi
+done
+
+echo "--- Hook files match adapter source ---"
+
+for hook in $EXPECTED_HOOKS; do
+  hook_file="$CC_DIST/hooks/$hook"
+  adapter_hook="$ROOT_DIR/adapters/claude-code/hooks/$hook"
+  if [ -f "$hook_file" ] && [ -f "$adapter_hook" ]; then
+    if diff -q "$hook_file" "$adapter_hook" &>/dev/null; then
+      pass "hooks/$hook matches adapter source"
+    else
+      fail "hooks/$hook does NOT match adapters/claude-code/hooks/$hook"
     fi
   fi
 done
