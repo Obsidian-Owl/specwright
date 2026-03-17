@@ -87,3 +87,10 @@ jobs:
           fi
 
           echo "Build output structure verified"
+
+  test-claude-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Claude Code build tests
+        run: tests/test-claude-code-build.sh
