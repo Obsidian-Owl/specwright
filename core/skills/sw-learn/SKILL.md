@@ -113,6 +113,8 @@ work benefits.
 - `protocols/landscape.md` -- codebase reference document format
 - `protocols/audit.md` -- codebase health findings format
 - `protocols/backlog.md` -- backlog item format and write targets
+- `protocols/build-quality.md` -- as-built notes and discovered behaviors
+- `protocols/gate-verdict.md` -- gate calibration data recording
 
 ## Failure Modes
 

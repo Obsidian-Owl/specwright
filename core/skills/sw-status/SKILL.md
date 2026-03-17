@@ -70,7 +70,8 @@ next. If they're stuck, give them a way out with `--reset`.
   - Present the directory list to the user via AskUserQuestion with multiSelect:
     - Active directories are displayed as "(active — not deletable)" and excluded from selection options.
     - Non-active directories are selectable for deletion.
-  - Delete only the user-selected directories (`rm -rf` each selected path).
+  - Before deleting, verify each selected path resolves to a direct child of `.specwright/work/`. If resolution fails or the path escapes `.specwright/work/`, skip it with a warning.
+  - Delete only the verified, user-selected directories (`rm -rf` each selected path).
   - Report which directories were deleted and the count.
 
 ## Protocol References
