@@ -136,20 +136,7 @@ When delegating, include in the prompt:
 - Update `tasksCompleted` array after each successful task.
 
 **Context management (MEDIUM freedom):**
-- After each task commit, write `.specwright/state/continuation.md`: current unit, task just completed, key files modified, remaining tasks. Overwrites each time.
-- After each task commit, emit a status card:
-  ```
-  ───────────────────────────────────────
-  ✓ {task-id} committed — {task name}
-    Progress: {n} of {total} tasks complete
-    Next:     {next-task-id} — {next task name}
-    Ahead:    {remaining task ids and names}
-  ───────────────────────────────────────
-  ```
-- Context nudge: after the 3rd completed task, if 4+ tasks remain, append
-  to the status card: "Context growing — consider /clear. I'll recover from workflow.json."
-- If user responds "stop" or "pause" to a status card: halt cleanly.
-  Advise: `/sw-pivot` if the plan changed, `/sw-build` to resume.
+- Follow `protocols/build-context.md` for continuation snapshots, status cards, and context nudge.
 
 <!-- platform:claude-code -->
 **Task tracking (LOW freedom):**
@@ -169,6 +156,7 @@ When delegating, include in the prompt:
 - `protocols/delegation.md` -- agent delegation with fallback
 - `protocols/recovery.md` -- compaction recovery
 - `protocols/build-quality.md` -- post-build review and as-built notes
+- `protocols/build-context.md` -- continuation snapshots, status cards, context nudge
 - `protocols/parallel-build.md` -- parallel task execution with agent teams
 
 ## Failure Modes

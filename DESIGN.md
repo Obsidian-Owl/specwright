@@ -140,11 +140,13 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `audit.md` | Codebase health findings format, IDs, matching, lifecycle | ~125 |
 | `research.md` | External research brief format, confidence scoring, lifecycle | ~200 |
 | `build-quality.md` | Post-build review and as-built notes | ~230 |
+| `convergence.md` | Iterative critic loop with convergence scoring for sw-design | ~430 |
+| `build-context.md` | Continuation snapshots, status cards, context nudge for sw-build | ~125 |
 | `backlog.md` | Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets | ~460 |
 | `spec-review.md` | Spec quality review dimensions, finding levels, resolution flow | ~610 |
 | `parallel-build.md` | Parallel task execution with agent teams (experimental) | ~815 |
 
-Total: ~6,375 words (loaded on demand, not all at once).
+Total: ~7,130 words across 20 protocols (loaded on demand, not all at once).
 
 ## Skill Anatomy
 
@@ -212,10 +214,16 @@ specwright/
 │   ├── protocols/         # Shared protocols (loaded on demand)
 │   └── agents/            # Custom subagent definitions (6 agents)
 ├── adapters/              # Platform-specific packaging
-│   └── claude-code/       # Claude Code adapter
-│       ├── .claude-plugin/  # Plugin metadata
-│       ├── hooks/           # Session lifecycle hooks
-│       └── CLAUDE.md        # Claude Code project instructions
+│   ├── claude-code/       # Claude Code adapter
+│   │   ├── .claude-plugin/  # Plugin metadata
+│   │   ├── hooks/           # Session lifecycle hooks
+│   │   └── CLAUDE.md        # Claude Code project instructions
+│   └── opencode/          # Opencode adapter (npm package)
+│       ├── commands/        # Skill command definitions (14 .md files)
+│       ├── skills/          # Skill overrides (sw-guard only)
+│       ├── plugin.ts        # Plugin entry point
+│       ├── package.json     # npm package manifest
+│       └── README.md
 ├── skills/ → core/skills/          # Symlinks for backward compatibility
 ├── protocols/ → core/protocols/
 ├── agents/ → core/agents/

@@ -295,7 +295,7 @@ fi
 
 if [ -d "$OC_DIST/protocols" ]; then
   PROTO_COUNT=$(find "$OC_DIST/protocols" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
-  assert_eq "$PROTO_COUNT" "19" "protocols/ has exactly 19 .md files"
+  assert_eq "$PROTO_COUNT" "20" "protocols/ has exactly 20 .md files"
 
   # Spot-check specific protocol files
   for proto in state.md git.md delegation.md recovery.md evidence.md; do
@@ -964,9 +964,9 @@ if [ -d "$CC_DIST" ]; then
   CC_AGENT_COUNT=$(find "$CC_DIST/agents" -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
   assert_eq "$CC_AGENT_COUNT" "6" "claude-code agents/ has 6 files"
 
-  # protocols/ with 19 files
+  # protocols/ with 20 files
   CC_PROTO_COUNT=$(find "$CC_DIST/protocols" -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
-  assert_eq "$CC_PROTO_COUNT" "19" "claude-code protocols/ has 19 files"
+  assert_eq "$CC_PROTO_COUNT" "20" "claude-code protocols/ has 20 files"
 
   # Claude Code-specific: hooks/ and .claude-plugin/ exist
   if [ -d "$CC_DIST/hooks" ]; then
