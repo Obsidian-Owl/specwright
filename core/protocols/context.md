@@ -30,6 +30,9 @@ Load on demand when codebase structure knowledge is needed:
 if (!exists('.specwright/config.json')) {
   error("Run /sw-init first.");
 }
+if (config.version !== "2.0") {
+  warn("Config version mismatch: expected 2.0, found " + config.version);
+}
 ```
 
 **Before work-unit operations:**
