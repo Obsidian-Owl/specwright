@@ -62,6 +62,9 @@ class ToolRunner(ABC):
 # Helpers
 # ---------------------------------------------------------------------------
 
+_VERBOSE_FLAG = "--verbose"
+
+
 def _build_command(prompt: str) -> List[str]:
     """Build the claude subprocess command list."""
     return [
@@ -70,6 +73,7 @@ def _build_command(prompt: str) -> List[str]:
         prompt,
         _OUTPUT_FORMAT_FLAG,
         _OUTPUT_FORMAT_VALUE,
+        _VERBOSE_FLAG,
     ]
 
 

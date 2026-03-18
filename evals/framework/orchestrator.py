@@ -18,6 +18,8 @@ from evals.framework.setup import setup_fixture, setup_repo
 from evals.framework.aggregator import aggregate_results
 from evals.framework import prompts
 
+# Base directory for resolving fixture/suite paths
+_EVALS_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ---------------------------------------------------------------------------
 # Named constants
@@ -160,7 +162,8 @@ def run_single_eval(
     # Setup: copy fixture to a fresh temp workdir.
     # The destination path must not exist because setup_fixture uses shutil.copytree.
     seed = eval_case.get("seed", {})
-    fixture_path = seed.get("path", "")
+    raw_path = seed.get("path", "")
+    fixture_path = os.path.join(_EVALS_BASE_DIR, raw_path) if raw_path else ""
     workdir = os.path.join(tempfile.gettempdir(), f"eval-workdir-{uuid.uuid4().hex}")
 
     try:

@@ -2,9 +2,33 @@
 
 import argparse
 import json
+import os
 import sys
 
 import evals.framework.orchestrator as orchestrator
+
+# Base directory for resolving suite paths
+_EVALS_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _resolve_suite_path(suite_arg: str) -> str:
+    """Resolve suite name or path to the evals.json file path.
+
+    Accepts either:
+    - A suite name like "skill" → resolves to evals/suites/skill/evals.json
+    - A direct path to an evals.json file
+    """
+    # If it's already a file path, use it
+    if os.path.isfile(suite_arg):
+        return suite_arg
+
+    # Try resolving as suite name
+    resolved = os.path.join(_EVALS_DIR, "suites", suite_arg, "evals.json")
+    if os.path.isfile(resolved):
+        return resolved
+
+    # Not found — return the resolved path (will fail with clear error)
+    return resolved
 
 
 def main(args=None):
@@ -64,9 +88,15 @@ def main(args=None):
     if not parsed.suite:
         parser.error("--suite is required")
 
+    suite_path = _resolve_suite_path(parsed.suite)
+
+    if not os.path.isfile(suite_path):
+        print(f"Error: suite not found at {suite_path}", file=sys.stderr)
+        sys.exit(1)
+
     # Validate case filter before running
     if parsed.case:
-        with open(parsed.suite) as f:
+        with open(suite_path) as f:
             suite_data = json.load(f)
         all_ids = [c["id"] for c in suite_data.get("evals", [])]
         if parsed.case not in all_ids:
@@ -78,7 +108,7 @@ def main(args=None):
             sys.exit(1)
 
     orchestrator.run_eval_suite(
-        parsed.suite,
+        suite_path,
         trials=parsed.trials,
         timeout=parsed.timeout,
         case_filter=parsed.case,
