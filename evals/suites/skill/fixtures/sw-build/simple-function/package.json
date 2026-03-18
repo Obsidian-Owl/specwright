@@ -1,0 +1,12 @@
+{
+  "name": "simple-function-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "npx vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "typescript": "^5.0.0"
+  }
+}
