@@ -1,0 +1,9 @@
+{
+  "generated_from": {
+    "skill": "sw-plan",
+    "source_fixture": "synthetic",
+    "date": "2026-03-18"
+  },
+  "specwright_version": "0.16.0",
+  "language": "typescript"
+}

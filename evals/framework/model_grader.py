@@ -1,0 +1,94 @@
+"""Eval framework model grader — grade eval outputs using claude as a judge."""
+
+import json
+import subprocess
+
+from evals.framework.grader import CheckResult
+
+_PASS_THRESHOLD = 0.7
+
+
+def _build_prompt(rubric: str, target_content: str, transcript) -> str:
+    parts = []
+    parts.append("You are an evaluator. Grade the following content against the rubric below.")
+    parts.append("")
+    parts.append("## Rubric")
+    parts.append(rubric)
+    parts.append("")
+    parts.append("## Content to Evaluate")
+    parts.append(target_content)
+    if transcript:
+        parts.append("")
+        parts.append("## Transcript")
+        parts.append(json.dumps(transcript, indent=2))
+    parts.append("")
+    parts.append(
+        'Respond with ONLY a JSON object. No preamble. No explanation. '
+        'Format: {"score": <float 0.0-1.0>, "evidence": "<brief explanation>"}'
+    )
+    return "\n".join(parts)
+
+
+def grade_with_model(rubric: str, target_content: str, transcript=None) -> CheckResult:
+    """Invoke claude -p with rubric prompt, return CheckResult."""
+    prompt = _build_prompt(rubric, target_content, transcript)
+    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--max-turns", "1"]
+
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+    except subprocess.TimeoutExpired as exc:
+        return CheckResult(
+            type="model_grade",
+            description="Model grade",
+            passed=False,
+            evidence=f"claude timed out after {exc.timeout}s",
+            score=0.0,
+        )
+    except FileNotFoundError as exc:
+        return CheckResult(
+            type="model_grade",
+            description="Model grade",
+            passed=False,
+            evidence=f"claude binary not found: {exc}",
+            score=0.0,
+        )
+
+    if proc.returncode != 0:
+        stderr = proc.stderr or ""
+        return CheckResult(
+            type="model_grade",
+            description="Model grade",
+            passed=False,
+            evidence=f"claude exited with code {proc.returncode}: {stderr}".strip(": "),
+            score=0.0,
+        )
+
+    raw = proc.stdout or ""
+    try:
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            raise ValueError("not a dict")
+        if "score" not in data or "evidence" not in data:
+            raise ValueError("missing required fields")
+        score = data["score"]
+        if not isinstance(score, (int, float)) or isinstance(score, bool):
+            raise ValueError("score is not a number")
+        score = float(score)
+        evidence = data["evidence"]
+    except (json.JSONDecodeError, ValueError, KeyError):
+        return CheckResult(
+            type="model_grade",
+            description="Model grade",
+            passed=False,
+            evidence=f"Model grader returned unparseable response: {raw}",
+            score=0.0,
+        )
+
+    passed = score >= _PASS_THRESHOLD
+    return CheckResult(
+        type="model_grade",
+        description="Model grade",
+        passed=passed,
+        evidence=evidence,
+        score=score,
+    )

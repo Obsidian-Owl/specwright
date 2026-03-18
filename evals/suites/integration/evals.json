@@ -1,0 +1,100 @@
+{
+  "suite": "integration",
+  "version": "1.0",
+  "evals": [
+    {
+      "id": "design-to-plan-handoff",
+      "layer": "integration",
+      "sequence": ["sw-design", "sw-plan"],
+      "prompt_args": {"problem_statement": "Add rate limiting to the API gateway"},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/integration/fixtures/design-to-plan"
+      },
+      "expectations": [
+        {
+          "type": "state_transition",
+          "expected_sequence": ["designing", "planning"],
+          "description": "State transitions from designing to planning"
+        },
+        {
+          "type": "artifact_reference",
+          "source": ".specwright/work/test-work/design.md",
+          "target": ".specwright/work/test-work/spec.md",
+          "check": "headings_referenced",
+          "description": "Spec references design section headings"
+        },
+        {
+          "type": "file_exists",
+          "path": ".specwright/work/test-work/spec.md",
+          "description": "Spec artifact produced by plan"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "Spec acceptance criteria are concrete and testable. Each criterion maps to a design decision. No vague language like 'should work correctly'.",
+          "target": ".specwright/work/test-work/spec.md",
+          "description": "Spec quality at handoff"
+        }
+      ],
+      "tags": ["integration", "design-plan", "handoff"]
+    },
+    {
+      "id": "plan-to-build-handoff",
+      "layer": "integration",
+      "sequence": ["sw-plan", "sw-build"],
+      "prompt_args": {},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/integration/fixtures/plan-to-build"
+      },
+      "expectations": [
+        {
+          "type": "state_transition",
+          "expected_sequence": ["planning", "building"],
+          "description": "State transitions from planning to building"
+        },
+        {
+          "type": "artifact_reference",
+          "source": ".specwright/work/test-work/spec.md",
+          "target": "tests/rate-limiter.test.ts",
+          "check": "ids_referenced",
+          "description": "Test file references spec criteria IDs"
+        },
+        {
+          "type": "file_exists",
+          "path": "src/middleware/rate-limiter.ts",
+          "description": "Implementation file created by build"
+        }
+      ],
+      "tags": ["integration", "plan-build", "handoff"]
+    },
+    {
+      "id": "build-to-verify-handoff",
+      "layer": "integration",
+      "sequence": ["sw-build", "sw-verify"],
+      "prompt_args": {},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/integration/fixtures/build-to-verify"
+      },
+      "expectations": [
+        {
+          "type": "file_exists",
+          "path": ".specwright/work/test-work/evidence/build-report.md",
+          "description": "Build gate evidence file exists"
+        },
+        {
+          "type": "file_exists",
+          "path": ".specwright/work/test-work/evidence/spec-compliance.md",
+          "description": "Spec compliance evidence file exists"
+        },
+        {
+          "type": "gate_results",
+          "expected": {"spec": "PASS"},
+          "description": "Spec gate passes after verify"
+        }
+      ],
+      "tags": ["integration", "build-verify", "handoff"]
+    }
+  ]
+}

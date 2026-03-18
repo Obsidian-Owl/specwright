@@ -609,13 +609,27 @@ def _dispatch_expectation(
         return check_gate_results(expectation["expected"], workdir)
 
     if check_type == "model_grade":
-        return CheckResult(
-            type="model_grade",
-            description="Model grade (skipped)",
-            passed=None,
-            evidence="Skipped: model grading not available",
-            score=0.0,
-        )
+        try:
+            from evals.framework.model_grader import grade_with_model
+            rubric = expectation.get("rubric", "")
+            target_path = expectation.get("target", "")
+            target_content = ""
+            if target_path and target_path != "$TRANSCRIPT":
+                full_path = os.path.join(workdir, target_path)
+                try:
+                    with open(full_path) as f:
+                        target_content = f.read()
+                except (FileNotFoundError, OSError):
+                    target_content = f"[File not found: {target_path}]"
+            return grade_with_model(rubric, target_content)
+        except ImportError:
+            return CheckResult(
+                type="model_grade",
+                description="Model grade (skipped)",
+                passed=None,
+                evidence="Skipped: model grading not available",
+                score=0.0,
+            )
 
     return CheckResult(
         type=check_type or "unknown",
