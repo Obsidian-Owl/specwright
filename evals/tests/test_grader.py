@@ -1181,7 +1181,7 @@ class TestGradeEvalWithSnapshots(unittest.TestCase):
 # ===========================================================================
 
 class TestModelGradeSkip(unittest.TestCase):
-    """AC-23: model_grade returns passed=None with 'Skipped...' evidence."""
+    """AC-23: model_grade falls back to skip when model_grader import fails."""
 
     def setUp(self):
         self.workdir = tempfile.mkdtemp()
@@ -1189,61 +1189,72 @@ class TestModelGradeSkip(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.workdir, ignore_errors=True)
 
-    def test_model_grade_returns_passed_none(self):
-        eval_case = {
-            "expectations": [
-                {"type": "model_grade", "prompt": "Is the code well-structured?"},
-            ],
-        }
-        result = grade_eval(eval_case, self.workdir)
-        exp = result["expectations"][0]
-        self.assertIsNone(exp["passed"])
-
-    def test_model_grade_evidence_starts_with_skipped(self):
-        eval_case = {
-            "expectations": [
-                {"type": "model_grade", "prompt": "Check quality"},
-            ],
-        }
-        result = grade_eval(eval_case, self.workdir)
-        exp = result["expectations"][0]
-        self.assertTrue(
-            exp["evidence"].startswith("Skipped"),
-            f"Evidence must start with 'Skipped', got: {exp['evidence']}",
+    @patch("evals.framework.model_grader.subprocess.run")
+    def test_model_grade_delegates_to_model_grader(self, mock_run):
+        """When model_grader is available, grade_eval delegates to it."""
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout='{"score": 0.9, "passed": true, "evidence": "Looks good"}',
+            stderr="",
         )
-
-    def test_model_grade_not_counted_as_pass_or_fail(self):
-        """model_grade should not inflate pass or fail counts."""
         eval_case = {
             "expectations": [
-                {"type": "model_grade", "prompt": "Check quality"},
+                {"type": "model_grade", "rubric": "Is code good?", "target": "missing.py"},
             ],
         }
         result = grade_eval(eval_case, self.workdir)
-        summary = result["summary"]
-        self.assertEqual(summary["passed"], 0)
-        self.assertEqual(summary["failed"], 0)
+        exp = result["expectations"][0]
+        self.assertEqual(exp["type"], "model_grade")
+        # Model grader was invoked (not skipped)
+        mock_run.assert_called_once()
+
+    @patch("evals.framework.model_grader.subprocess.run")
+    def test_model_grade_counts_as_pass_when_score_high(self, mock_run):
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout='{"score": 0.9, "passed": true, "evidence": "Good"}',
+            stderr="",
+        )
+        eval_case = {
+            "expectations": [
+                {"type": "model_grade", "rubric": "Quality?", "target": "x.py"},
+            ],
+        }
+        result = grade_eval(eval_case, self.workdir)
+        self.assertEqual(result["summary"]["passed"], 1)
+        self.assertEqual(result["summary"]["failed"], 0)
+
+    @patch("evals.framework.model_grader.subprocess.run")
+    def test_model_grade_counts_as_fail_when_score_low(self, mock_run):
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout='{"score": 0.3, "passed": false, "evidence": "Poor"}',
+            stderr="",
+        )
+        eval_case = {
+            "expectations": [
+                {"type": "model_grade", "rubric": "Quality?", "target": "x.py"},
+            ],
+        }
+        result = grade_eval(eval_case, self.workdir)
+        self.assertEqual(result["summary"]["passed"], 0)
+        self.assertEqual(result["summary"]["failed"], 1)
 
     def test_model_grade_counted_in_total(self):
+        """model_grade expectations are always counted in total."""
         eval_case = {
             "expectations": [
-                {"type": "model_grade", "prompt": "Check quality"},
+                {"type": "model_grade", "rubric": "Check quality", "target": "x.py"},
             ],
         }
-        result = grade_eval(eval_case, self.workdir)
+        with patch("evals.framework.model_grader.subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout='{"score": 0.9, "passed": true, "evidence": "OK"}',
+                stderr="",
+            )
+            result = grade_eval(eval_case, self.workdir)
         self.assertEqual(result["summary"]["total"], 1)
-
-    def test_model_grade_has_skipped_count_in_summary(self):
-        """Summary should track skipped expectations separately."""
-        eval_case = {
-            "expectations": [
-                {"type": "model_grade", "prompt": "Check quality"},
-            ],
-        }
-        result = grade_eval(eval_case, self.workdir)
-        summary = result["summary"]
-        self.assertIn("skipped", summary)
-        self.assertEqual(summary["skipped"], 1)
 
 
 # ===========================================================================
