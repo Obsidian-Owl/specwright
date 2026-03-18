@@ -1,0 +1,76 @@
+{
+  "description": "Seed repos for Layer 3 workflow evals. Sourced from SWE-PolyBench (AmazonScience/SWE-PolyBench).",
+  "curation_notes": "Run evals/framework/verify_seeds.py to populate base_commit, F2P, P2P from the HuggingFace dataset. Seeds with verified=false have not been validated.",
+  "seeds": [
+    {
+      "id": "sveltejs__svelte-PENDING",
+      "source": "swe-polybench",
+      "repo": "sveltejs/svelte",
+      "base_commit": "PENDING_VERIFICATION",
+      "language": "javascript",
+      "problem_statement": "Pending: run verify_seeds.py to populate from SWE-PolyBench dataset",
+      "fail_to_pass": [],
+      "pass_to_pass": [],
+      "files_changed": 0,
+      "lines_changed": 0,
+      "verified": false,
+      "verified_date": null
+    },
+    {
+      "id": "prettier__prettier-PENDING",
+      "source": "swe-polybench",
+      "repo": "prettier/prettier",
+      "base_commit": "PENDING_VERIFICATION",
+      "language": "javascript",
+      "problem_statement": "Pending: run verify_seeds.py to populate from SWE-PolyBench dataset",
+      "fail_to_pass": [],
+      "pass_to_pass": [],
+      "files_changed": 0,
+      "lines_changed": 0,
+      "verified": false,
+      "verified_date": null
+    },
+    {
+      "id": "mrdoob__three.js-PENDING",
+      "source": "swe-polybench",
+      "repo": "mrdoob/three.js",
+      "base_commit": "PENDING_VERIFICATION",
+      "language": "javascript",
+      "problem_statement": "Pending: run verify_seeds.py to populate from SWE-PolyBench dataset",
+      "fail_to_pass": [],
+      "pass_to_pass": [],
+      "files_changed": 0,
+      "lines_changed": 0,
+      "verified": false,
+      "verified_date": null
+    },
+    {
+      "id": "microsoft__vscode-PENDING",
+      "source": "swe-polybench",
+      "repo": "microsoft/vscode",
+      "base_commit": "PENDING_VERIFICATION",
+      "language": "typescript",
+      "problem_statement": "Pending: run verify_seeds.py to populate from SWE-PolyBench dataset",
+      "fail_to_pass": [],
+      "pass_to_pass": [],
+      "files_changed": 0,
+      "lines_changed": 0,
+      "verified": false,
+      "verified_date": null
+    },
+    {
+      "id": "mui__material-ui-PENDING",
+      "source": "swe-polybench",
+      "repo": "mui/material-ui",
+      "base_commit": "PENDING_VERIFICATION",
+      "language": "typescript",
+      "problem_statement": "Pending: run verify_seeds.py to populate from SWE-PolyBench dataset",
+      "fail_to_pass": [],
+      "pass_to_pass": [],
+      "files_changed": 0,
+      "lines_changed": 0,
+      "verified": false,
+      "verified_date": null
+    }
+  ]
+}

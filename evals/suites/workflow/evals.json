@@ -1,0 +1,82 @@
+{
+  "suite": "workflow",
+  "version": "1.0",
+  "description": "Layer 3 end-to-end workflow evals. One eval per seed repo. Seeds must be verified before running.",
+  "evals": [
+    {
+      "id": "workflow-svelte",
+      "layer": "workflow",
+      "workflow": ["sw-init", "sw-design", "sw-plan", "sw-build", "sw-verify"],
+      "seed": {
+        "type": "repo",
+        "seed_id": "sveltejs__svelte-PENDING"
+      },
+      "expectations": [
+        {"type": "tests_pass", "test_ids": "$PASS_TO_PASS", "description": "No regressions (PASS_TO_PASS)"},
+        {"type": "tests_pass", "test_ids": "$FAIL_TO_PASS", "description": "Issue resolved (FAIL_TO_PASS)"},
+        {"type": "gate_results", "expected": {"build": "PASS"}, "description": "Build gate passes"}
+      ],
+      "tags": ["workflow", "javascript", "svelte", "swe-polybench"]
+    },
+    {
+      "id": "workflow-prettier",
+      "layer": "workflow",
+      "workflow": ["sw-init", "sw-design", "sw-plan", "sw-build", "sw-verify"],
+      "seed": {
+        "type": "repo",
+        "seed_id": "prettier__prettier-PENDING"
+      },
+      "expectations": [
+        {"type": "tests_pass", "test_ids": "$PASS_TO_PASS", "description": "No regressions"},
+        {"type": "tests_pass", "test_ids": "$FAIL_TO_PASS", "description": "Issue resolved"},
+        {"type": "gate_results", "expected": {"build": "PASS"}, "description": "Build gate passes"}
+      ],
+      "tags": ["workflow", "javascript", "prettier", "swe-polybench"]
+    },
+    {
+      "id": "workflow-threejs",
+      "layer": "workflow",
+      "workflow": ["sw-init", "sw-design", "sw-plan", "sw-build", "sw-verify"],
+      "seed": {
+        "type": "repo",
+        "seed_id": "mrdoob__three.js-PENDING"
+      },
+      "expectations": [
+        {"type": "tests_pass", "test_ids": "$PASS_TO_PASS", "description": "No regressions"},
+        {"type": "tests_pass", "test_ids": "$FAIL_TO_PASS", "description": "Issue resolved"},
+        {"type": "gate_results", "expected": {"build": "PASS"}, "description": "Build gate passes"}
+      ],
+      "tags": ["workflow", "javascript", "three.js", "swe-polybench"]
+    },
+    {
+      "id": "workflow-vscode",
+      "layer": "workflow",
+      "workflow": ["sw-init", "sw-design", "sw-plan", "sw-build", "sw-verify"],
+      "seed": {
+        "type": "repo",
+        "seed_id": "microsoft__vscode-PENDING"
+      },
+      "expectations": [
+        {"type": "tests_pass", "test_ids": "$PASS_TO_PASS", "description": "No regressions"},
+        {"type": "tests_pass", "test_ids": "$FAIL_TO_PASS", "description": "Issue resolved"},
+        {"type": "gate_results", "expected": {"build": "PASS"}, "description": "Build gate passes"}
+      ],
+      "tags": ["workflow", "typescript", "vscode", "swe-polybench"]
+    },
+    {
+      "id": "workflow-material-ui",
+      "layer": "workflow",
+      "workflow": ["sw-init", "sw-design", "sw-plan", "sw-build", "sw-verify"],
+      "seed": {
+        "type": "repo",
+        "seed_id": "mui__material-ui-PENDING"
+      },
+      "expectations": [
+        {"type": "tests_pass", "test_ids": "$PASS_TO_PASS", "description": "No regressions"},
+        {"type": "tests_pass", "test_ids": "$FAIL_TO_PASS", "description": "Issue resolved"},
+        {"type": "gate_results", "expected": {"build": "PASS"}, "description": "Build gate passes"}
+      ],
+      "tags": ["workflow", "typescript", "material-ui", "swe-polybench"]
+    }
+  ]
+}
