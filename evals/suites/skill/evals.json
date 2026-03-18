@@ -1,0 +1,109 @@
+{
+  "suite": "skill",
+  "version": "1.0",
+  "evals": [
+    {
+      "id": "sw-build-simple-function",
+      "layer": "skill",
+      "skill": "sw-build",
+      "prompt_template": "build",
+      "prompt_args": {},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/skill/fixtures/sw-build/simple-function"
+      },
+      "expectations": [
+        {
+          "type": "file_exists",
+          "path": "src/math.ts",
+          "description": "Implementation file exists"
+        },
+        {
+          "type": "file_contains",
+          "path": "src/math.ts",
+          "pattern": "return\\s+a\\s*\\+\\s*b|return.*\\+",
+          "description": "Implementation contains addition logic"
+        },
+        {
+          "type": "tests_pass",
+          "command": "npx vitest run",
+          "description": "All tests pass after implementation"
+        },
+        {
+          "type": "state",
+          "field": "currentWork.status",
+          "expected": "building",
+          "description": "Workflow state is building"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "Tests assert behavior (input/output), not implementation details. At least one edge case (negative numbers or zero) is tested.",
+          "target": "src/math.test.ts",
+          "description": "Test quality meets constitution standards"
+        }
+      ],
+      "tags": ["skill", "sw-build", "typescript", "simple"]
+    },
+    {
+      "id": "sw-init-fresh-ts",
+      "layer": "skill",
+      "skill": "sw-init",
+      "prompt_template": "init",
+      "prompt_args": {"project_type": "typescript"},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/skill/fixtures/sw-init/fresh-ts-project"
+      },
+      "expectations": [
+        {
+          "type": "file_exists",
+          "path": ".specwright/config.json",
+          "description": "Specwright config created"
+        },
+        {
+          "type": "file_exists",
+          "path": ".specwright/CONSTITUTION.md",
+          "description": "Constitution created"
+        },
+        {
+          "type": "file_exists",
+          "path": ".specwright/CHARTER.md",
+          "description": "Charter created"
+        },
+        {
+          "type": "file_contains",
+          "path": ".specwright/config.json",
+          "pattern": "\"languages\".*typescript",
+          "description": "Config detects TypeScript"
+        }
+      ],
+      "tags": ["skill", "sw-init", "typescript"]
+    },
+    {
+      "id": "sw-design-vague-request",
+      "layer": "skill",
+      "skill": "sw-design",
+      "prompt_template": "design",
+      "prompt_args": {"problem_statement": "Make it better"},
+      "expected_behavior": "refuse_or_clarify",
+      "seed": {
+        "type": "fixture",
+        "path": "suites/skill/fixtures/sw-init/fresh-ts-project"
+      },
+      "expectations": [
+        {
+          "type": "file_not_exists",
+          "path": ".specwright/work/*/design.md",
+          "description": "No design produced for vague request"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The skill asked clarifying questions or refused to proceed with the vague request 'Make it better'. It did NOT hallucinate a design or produce artifacts without understanding the requirement.",
+          "target": "$TRANSCRIPT",
+          "description": "Skill appropriately handles vague input"
+        }
+      ],
+      "tags": ["skill", "sw-design", "adversarial", "failure-mode"]
+    }
+  ]
+}

@@ -17,3 +17,6 @@ dist/
 
 # Plugin working directories
 .omc/
+
+# Eval framework results
+evals/results/

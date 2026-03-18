@@ -1,0 +1,6 @@
+{
+  "specwright_version": "0.16.0",
+  "created_date": "2026-03-18",
+  "language": "typescript",
+  "description": "Bare TypeScript project with no .specwright/ directory for testing sw-init"
+}

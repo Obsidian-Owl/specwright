@@ -1,0 +1,3 @@
+# Specwright Eval Framework
+# No external dependencies required — stdlib only.
+# Python 3.10+ required.
