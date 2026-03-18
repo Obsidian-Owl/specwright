@@ -125,9 +125,11 @@ class TestFullSingleCaseRun(unittest.TestCase):
             shutil.rmtree(results_dir, ignore_errors=True)
 
 
-@pytest.mark.integration
 class TestValidateExistingSuites(unittest.TestCase):
-    """AC-13/AC-14: Existing eval suites pass schema validation."""
+    """AC-13/AC-14: Existing eval suites pass schema validation.
+
+    NOT marked as integration — these only read JSON files, no network/CLI needed.
+    """
 
     def test_skill_suite_validates(self):
         result = subprocess.run(

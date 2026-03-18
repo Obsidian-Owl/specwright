@@ -264,11 +264,15 @@ def run_eval_suite(
     results_dir: Optional[str] = None,
 ) -> str:
     """Load evals.json, iterate cases x trials, aggregate, return results_dir."""
-    validation_errors = validate_suite(suite_path)
+    try:
+        validation_errors = validate_suite(suite_path)
+    except (json.JSONDecodeError, OSError) as exc:
+        print(f"Error loading suite: {exc}", file=sys.stderr)
+        return ""
     if validation_errors:
         for error in validation_errors:
             print(error, file=sys.stderr)
-        return results_dir or ""
+        return ""
 
     with open(suite_path) as f:
         suite_data = json.load(f)
@@ -397,7 +401,9 @@ def _validate_prompt_template(case_id: str, eval_case: dict) -> list[str]:
     if "skill" not in eval_case:
         return []
 
-    template = eval_case.get("prompt_template", "")
+    if "prompt_template" not in eval_case:
+        return [f"[{case_id}] Missing required field 'prompt_template' for skill-layer eval"]
+    template = eval_case["prompt_template"]
     if template not in REGISTERED_PROMPT_TEMPLATES:
         return [
             f"[{case_id}] Unknown prompt_template '{template}'; "
@@ -430,8 +436,12 @@ def validate_suite(suite_path: str) -> list[str]:
         suite_data = json.load(f)
 
     errors = []
+    seen_ids: set[str] = set()
     for eval_case in suite_data.get("evals", []):
         case_id = eval_case.get("id", "<unknown>")
+        if case_id in seen_ids:
+            errors.append(f"[{case_id}] Duplicate case ID")
+        seen_ids.add(case_id)
 
         errors.extend(_validate_layer_fields(case_id, eval_case))
         errors.extend(_validate_prompt_template(case_id, eval_case))
