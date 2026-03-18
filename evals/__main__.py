@@ -87,6 +87,12 @@ def main(args=None):
         default=False,
         help="Print cases without executing",
     )
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        default=False,
+        help="Validate suite schema only; print OK or errors, exit 0/1",
+    )
 
     parsed = parser.parse_args(args)
 
@@ -103,6 +109,16 @@ def main(args=None):
     if not os.path.isfile(suite_path):
         print(f"Error: suite not found at {suite_path}", file=sys.stderr)
         sys.exit(1)
+
+    if parsed.validate:
+        errors = orchestrator.validate_suite(suite_path)
+        if errors:
+            for error in errors:
+                print(error, file=sys.stderr)
+            sys.exit(1)
+        else:
+            print("OK")
+            sys.exit(0)
 
     # Validate case filter before running
     if parsed.case:

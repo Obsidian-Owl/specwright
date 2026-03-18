@@ -264,6 +264,12 @@ def run_eval_suite(
     results_dir: Optional[str] = None,
 ) -> str:
     """Load evals.json, iterate cases x trials, aggregate, return results_dir."""
+    validation_errors = validate_suite(suite_path)
+    if validation_errors:
+        for error in validation_errors:
+            print(error, file=sys.stderr)
+        return results_dir or ""
+
     with open(suite_path) as f:
         suite_data = json.load(f)
 
@@ -320,3 +326,118 @@ def run_eval_suite(
         json.dump(benchmark, f, indent=2)
 
     return results_dir
+
+
+REGISTERED_TYPES = frozenset({
+    "file_exists",
+    "file_not_exists",
+    "file_contains",
+    "tests_pass",
+    "state",
+    "state_transition",
+    "artifact_reference",
+    "git",
+    "gate_results",
+    "model_grade",
+})
+
+REQUIRED_FIELDS = {
+    "file_exists": ["path"],
+    "file_not_exists": ["path"],
+    "file_contains": ["path", "pattern"],
+    "tests_pass": ["command"],
+    "state": ["field", "expected"],
+    "state_transition": ["expected_sequence"],
+    "artifact_reference": ["source", "target", "check"],
+    "git": [],
+    "gate_results": ["expected"],
+    "model_grade": ["rubric"],
+}
+
+REGISTERED_PROMPT_TEMPLATES = frozenset({
+    "init", "design", "plan", "build", "verify", "ship",
+})
+
+_LAYER_FIELDS = ("skill", "sequence", "workflow")
+
+
+def _validate_expectation(case_id: str, expectation: dict) -> list[str]:
+    """Validate a single expectation dict. Returns list of error strings."""
+    errors = []
+    exp_type = expectation.get("type", "")
+
+    if exp_type not in REGISTERED_TYPES:
+        errors.append(
+            f"[{case_id}] Unknown expectation type '{exp_type}'"
+        )
+        return errors
+
+    for field in REQUIRED_FIELDS.get(exp_type, []):
+        if field not in expectation:
+            errors.append(
+                f"[{case_id}] Expectation type '{exp_type}' is missing required field '{field}'"
+            )
+
+    return errors
+
+
+def _validate_layer_fields(case_id: str, eval_case: dict) -> list[str]:
+    """Validate exactly one layer field is present. Returns list of error strings."""
+    present = [f for f in _LAYER_FIELDS if f in eval_case]
+    if len(present) != 1:
+        return [
+            f"[{case_id}] Eval case must have exactly one of {_LAYER_FIELDS}, "
+            f"found {len(present)}: {present}"
+        ]
+    return []
+
+
+def _validate_prompt_template(case_id: str, eval_case: dict) -> list[str]:
+    """Validate prompt_template for Layer 1 (skill) cases. Returns list of error strings."""
+    if "skill" not in eval_case:
+        return []
+
+    template = eval_case.get("prompt_template", "")
+    if template not in REGISTERED_PROMPT_TEMPLATES:
+        return [
+            f"[{case_id}] Unknown prompt_template '{template}'; "
+            f"registered templates: {sorted(REGISTERED_PROMPT_TEMPLATES)}"
+        ]
+    return []
+
+
+def _validate_seed_path(case_id: str, eval_case: dict) -> list[str]:
+    """Validate fixture seed path exists on disk. Returns list of error strings."""
+    seed = eval_case.get("seed", {})
+    if seed.get("type") != "fixture":
+        return []
+
+    raw_path = seed.get("path", "")
+    if not raw_path:
+        return []
+
+    resolved = os.path.join(_EVALS_BASE_DIR, raw_path)
+    if not os.path.exists(resolved):
+        return [
+            f"[{case_id}] Fixture seed path does not exist: '{raw_path}'"
+        ]
+    return []
+
+
+def validate_suite(suite_path: str) -> list[str]:
+    """Validate an eval suite JSON file. Returns list of error strings (empty = valid)."""
+    with open(suite_path) as f:
+        suite_data = json.load(f)
+
+    errors = []
+    for eval_case in suite_data.get("evals", []):
+        case_id = eval_case.get("id", "<unknown>")
+
+        errors.extend(_validate_layer_fields(case_id, eval_case))
+        errors.extend(_validate_prompt_template(case_id, eval_case))
+        errors.extend(_validate_seed_path(case_id, eval_case))
+
+        for expectation in eval_case.get("expectations", []):
+            errors.extend(_validate_expectation(case_id, expectation))
+
+    return errors
