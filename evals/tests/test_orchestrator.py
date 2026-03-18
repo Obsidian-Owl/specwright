@@ -1,7 +1,5 @@
 """Tests for evals.framework.orchestrator and evals.__main__ CLI entry point.
 
-RED phase: all tests must fail because the implementation is stubbed.
-
 Acceptance criteria covered:
   AC-8:  run_single_eval() Layer 1 — calls runner.run_skill() with prompt from prompts.py
   AC-9:  run_single_eval() Layer 2 — calls chainer.run_sequence() with prompts dict

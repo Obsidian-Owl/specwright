@@ -3,7 +3,6 @@
 import json
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 import time
@@ -71,7 +70,9 @@ def _resolve_prompt_layer1(eval_case: Dict) -> str:
     """Resolve prompt string for a Layer 1 (skill) eval case."""
     template_name = eval_case.get("prompt_template", "")
     prompt_args = eval_case.get("prompt_args", {})
-    template_fn = getattr(prompts, template_name)
+    template_fn = getattr(prompts, template_name, None)
+    if template_fn is None:
+        raise ValueError(f"Unknown prompt template: '{template_name}'")
     return template_fn(**prompt_args)
 
 
@@ -84,7 +85,9 @@ def _resolve_prompts_layer2(eval_case: Dict) -> Dict[str, str]:
     prompts_dict = {}
     for i, skill_name in enumerate(skills):
         template_name = _skill_to_template_name(skill_name)
-        template_fn = getattr(prompts, template_name)
+        template_fn = getattr(prompts, template_name, None)
+        if template_fn is None:
+            raise ValueError(f"Unknown prompt template: '{template_name}' for skill '{skill_name}'")
 
         # Pass problem_statement to the first skill if it is the design skill
         if i == 0 and problem_statement is not None and template_name == "design":
@@ -161,6 +164,7 @@ def run_single_eval(
     runner,
     timeout: int = 300,
     plugin_dir: Optional[str] = None,
+    suite_dir: Optional[str] = None,
 ) -> None:
     """Run a single eval case trial: setup, execute, grade, write results."""
     eval_id = eval_case["id"]
@@ -178,12 +182,12 @@ def run_single_eval(
     try:
         if seed_type == "repo":
             seed_id = seed.get("seed_id", "")
-            seed_entry = _resolve_seed(suite_path=os.path.join(
-                _EVALS_BASE_DIR, "suites", "workflow", "seeds.json"
-            ), seed_id=seed_id)
+            seeds_path = os.path.join(suite_dir or _EVALS_BASE_DIR, "seeds.json")
+            seed_entry = _resolve_seed(suite_path=seeds_path, seed_id=seed_id)
             repo_url = f"https://github.com/{seed_entry['repo']}.git"
+            install_cmd = seed_entry.get("test_command", "npm install")
             setup_repo(repo_url, seed_entry["base_commit"], workdir,
-                       install_command="npm install")
+                       install_command=install_cmd)
         else:
             raw_path = seed.get("path", "")
             fixture_path = os.path.join(_EVALS_BASE_DIR, raw_path) if raw_path else ""
@@ -202,59 +206,52 @@ def run_single_eval(
         return
 
     layer = _determine_layer(eval_case)
+    snapshots: List[Dict] = []
+    exec_error: Optional[str] = None
 
     try:
-        snapshots: List[Dict] = []
+        try:
+            if layer == _LAYER_SKILL:
+                resolved_prompt = _resolve_prompt_layer1(eval_case)
+                runner.run_skill(
+                    skill=eval_case["skill"],
+                    prompt=resolved_prompt,
+                    workdir=workdir,
+                    timeout=timeout,
+                    plugin_dir=plugin_dir,
+                )
+            else:
+                skills = eval_case.get("sequence") or eval_case.get("workflow") or []
+                prompts_dict = _resolve_prompts_layer2(eval_case)
+                chain_result = run_sequence(
+                    runner=runner,
+                    skills=skills,
+                    prompts=prompts_dict,
+                    workdir=workdir,
+                    timeout_per_skill=timeout,
+                    plugin_dir=plugin_dir,
+                )
+                snapshots = chain_result.snapshots
 
-        if layer == _LAYER_SKILL:
-            resolved_prompt = _resolve_prompt_layer1(eval_case)
-            runner.run_skill(
-                skill=eval_case["skill"],
-                prompt=resolved_prompt,
-                workdir=workdir,
-                timeout=timeout,
-                plugin_dir=plugin_dir,
-            )
-        else:
-            skills = eval_case.get("sequence") or eval_case.get("workflow") or []
-            prompts_dict = _resolve_prompts_layer2(eval_case)
-            chain_result = run_sequence(
-                runner=runner,
-                skills=skills,
-                prompts=prompts_dict,
-                workdir=workdir,
-                timeout_per_skill=timeout,
-                plugin_dir=plugin_dir,
-            )
-            snapshots = chain_result.snapshots
+        except Exception as exc:
+            exec_error = f"{type(exc).__name__}: {exc}"
 
-    except (subprocess.TimeoutExpired, RuntimeError):
-    except (subprocess.TimeoutExpired, RuntimeError) as exc:
-        elapsed_ms = round((time.time() - start_time) * 1000, 2)
-        print(f"  ERROR during execution: {exc}", file=sys.stderr)
-        _write_error_grading_json(
+        grade_result = grade_eval(eval_case, workdir, snapshots)
+        if exec_error:
+            grade_result["error"] = exec_error
+
+        _write_grading_json(
             trial_dir=trial_dir,
             eval_id=eval_id,
             trial_num=trial_num,
-            error=str(exc),
-            duration_ms=elapsed_ms,
+            grade_result=grade_result,
         )
+
+        pass_rate = grade_result.get("summary", {}).get("pass_rate", 0.0)
+        print(f"  DONE (pass_rate: {pass_rate:.2f})", file=sys.stderr)
+
+    finally:
         shutil.rmtree(workdir, ignore_errors=True)
-        return
-
-    grade_result = grade_eval(eval_case, workdir, snapshots)
-
-    _write_grading_json(
-        trial_dir=trial_dir,
-        eval_id=eval_id,
-        trial_num=trial_num,
-        grade_result=grade_result,
-    )
-
-    pass_rate = grade_result.get("summary", {}).get("pass_rate", 0.0)
-    print(f"  DONE (pass_rate: {pass_rate:.2f})", file=sys.stderr)
-
-    shutil.rmtree(workdir, ignore_errors=True)
 
 
 def run_eval_suite(
@@ -281,16 +278,7 @@ def run_eval_suite(
         for case in cases:
             seed_path = case.get("seed", {}).get("path", "")
             print(f"{case['id']}  {seed_path}", file=sys.stderr)
-        # Return a placeholder path — dry run creates no results dir
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
-        results_dir = os.path.join(
-            os.path.dirname(suite_path),
-            "..",
-            "..",
-            "results",
-            f"{_RESULTS_RUN_PREFIX}{timestamp}",
-        )
-        return os.path.abspath(results_dir)
+        return ""  # dry run produces no results directory
 
     timestamp = datetime.now(timezone.utc).isoformat()
     if results_dir is None:
@@ -324,6 +312,7 @@ def run_eval_suite(
                 runner=runner,
                 timeout=timeout,
                 plugin_dir=plugin_dir,
+                suite_dir=os.path.dirname(os.path.abspath(suite_path)),
             )
 
     benchmark = aggregate_results(results_dir)

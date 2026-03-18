@@ -72,7 +72,7 @@ def main(args=None):
         "--plugin-dir",
         metavar="PATH",
         default=_default_plugin_dir if os.path.isdir(_default_plugin_dir) else None,
-        help=f"Path to Specwright plugin directory (default: {_default_plugin_dir})",
+        help="Path to Specwright plugin directory (default: auto-detected from repo)",
     )
     parser.add_argument(
         "--timeout",
