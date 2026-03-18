@@ -11,17 +11,16 @@ from typing import Dict, List, Optional
 # Constants
 # ---------------------------------------------------------------------------
 
-CLAUDE_BINARY = "claude"
-CLAUDECODE_ENV_KEY = "CLAUDECODE"
-CLAUDECODE_ENV_VALUE = ""
-OUTPUT_FORMAT_FLAG = "--output-format"
-OUTPUT_FORMAT_VALUE = "stream-json"
-PROMPT_FLAG = "-p"
+_CLAUDE_BINARY = "claude"
+_CLAUDECODE_ENV_KEY = "CLAUDECODE"
+_CLAUDECODE_ENV_VALUE = ""
+_OUTPUT_FORMAT_FLAG = "--output-format"
+_OUTPUT_FORMAT_VALUE = "stream-json"
+_PROMPT_FLAG = "-p"
 DEFAULT_TIMEOUT_SECONDS = 300
-TIMEOUT_EXIT_CODE = -1
-RESULT_EVENT_TYPE = "result"
-RESULT_DURATION_FIELD = "duration_ms"
-RESULT_USAGE_FIELD = "usage"
+_RESULT_EVENT_TYPE = "result"
+_RESULT_DURATION_FIELD = "duration_ms"
+_RESULT_USAGE_FIELD = "usage"
 
 
 # ---------------------------------------------------------------------------
@@ -66,18 +65,18 @@ class ToolRunner(ABC):
 def _build_command(prompt: str) -> List[str]:
     """Build the claude subprocess command list."""
     return [
-        CLAUDE_BINARY,
-        PROMPT_FLAG,
+        _CLAUDE_BINARY,
+        _PROMPT_FLAG,
         prompt,
-        OUTPUT_FORMAT_FLAG,
-        OUTPUT_FORMAT_VALUE,
+        _OUTPUT_FORMAT_FLAG,
+        _OUTPUT_FORMAT_VALUE,
     ]
 
 
 def _build_env() -> Dict[str, str]:
     """Build subprocess environment: parent env plus CLAUDECODE override."""
     env = os.environ.copy()
-    env[CLAUDECODE_ENV_KEY] = CLAUDECODE_ENV_VALUE
+    env[_CLAUDECODE_ENV_KEY] = _CLAUDECODE_ENV_VALUE
     return env
 
 
@@ -98,7 +97,7 @@ def _parse_transcript(stdout: str) -> List[Dict]:
 def _extract_result_event(transcript: List[Dict]) -> Optional[Dict]:
     """Return the first 'result' type event from the transcript, or None."""
     for event in transcript:
-        if event.get("type") == RESULT_EVENT_TYPE:
+        if event.get("type") == _RESULT_EVENT_TYPE:
             return event
     return None
 
@@ -107,14 +106,14 @@ def _extract_tokens(result_event: Optional[Dict]) -> Optional[Dict]:
     """Extract usage dict from a result event, or None if absent."""
     if result_event is None:
         return None
-    return result_event.get(RESULT_USAGE_FIELD) or None
+    return result_event.get(_RESULT_USAGE_FIELD) or None
 
 
 def _extract_duration_ms(result_event: Optional[Dict]) -> Optional[int]:
     """Extract duration_ms from a result event, or None if absent."""
     if result_event is None:
         return None
-    value = result_event.get(RESULT_DURATION_FIELD)
+    value = result_event.get(_RESULT_DURATION_FIELD)
     if value is None:
         return None
     return int(value)
@@ -165,7 +164,13 @@ class ClaudeCodeRunner(ToolRunner):
         cmd = _build_command(prompt)
         env = _build_env()
 
-        stdout, stderr, exit_code = _run_subprocess(cmd, env, timeout, cwd=workdir)
+        try:
+            stdout, stderr, exit_code = _run_subprocess(cmd, env, timeout, cwd=workdir)
+        except FileNotFoundError:
+            raise FileNotFoundError(
+                f"Claude CLI is required but '{_CLAUDE_BINARY}' was not found on PATH. "
+                "Install it from https://docs.anthropic.com/en/docs/claude-code"
+            )
 
         transcript = _parse_transcript(stdout)
         result_event = _extract_result_event(transcript)

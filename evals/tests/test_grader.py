@@ -663,82 +663,83 @@ class TestCheckStateTransitionBoundary(unittest.TestCase):
 # ===========================================================================
 
 class TestCheckArtifactReferenceHeadings(unittest.TestCase):
-    """AC-19: headings_referenced extracts ## headings from target, checks source."""
+    """AC-19: headings_referenced extracts ## headings from source, checks target."""
 
     def setUp(self):
         self.workdir = tempfile.mkdtemp()
-        # Target has headings
-        target_content = "## Architecture\n\nSome text.\n\n## Security\n\nMore text.\n"
+        # Source has headings (design.md is the source of headings)
+        source_content = "## Architecture\n\nSome text.\n\n## Security\n\nMore text.\n"
         os.makedirs(os.path.join(self.workdir, "docs"), exist_ok=True)
         with open(os.path.join(self.workdir, "docs", "design.md"), "w") as f:
-            f.write(target_content)
+            f.write(source_content)
 
     def tearDown(self):
         shutil.rmtree(self.workdir, ignore_errors=True)
 
-    def test_pass_when_source_references_all_headings(self):
-        source_content = "Refs Architecture and Security sections.\n"
-        with open(os.path.join(self.workdir, "review.md"), "w") as f:
-            f.write(source_content)
+    def test_pass_when_target_references_all_headings(self):
+        target_content = "Refs Architecture and Security sections.\n"
+        with open(os.path.join(self.workdir, "spec.md"), "w") as f:
+            f.write(target_content)
         result = check_artifact_reference(
-            "review.md", "docs/design.md", "headings_referenced", self.workdir
+            "docs/design.md", "spec.md", "headings_referenced", self.workdir
         )
         _assert_check_result(self, result, expected_passed=True)
 
-    def test_fail_when_source_references_no_headings(self):
-        source_content = "Nothing relevant here.\n"
-        with open(os.path.join(self.workdir, "review.md"), "w") as f:
-            f.write(source_content)
+    def test_fail_when_target_references_no_headings(self):
+        target_content = "Nothing relevant here.\n"
+        with open(os.path.join(self.workdir, "spec.md"), "w") as f:
+            f.write(target_content)
         result = check_artifact_reference(
-            "review.md", "docs/design.md", "headings_referenced", self.workdir
+            "docs/design.md", "spec.md", "headings_referenced", self.workdir
         )
         self.assertFalse(result.passed)
 
     def test_type_is_artifact_reference(self):
-        with open(os.path.join(self.workdir, "review.md"), "w") as f:
+        with open(os.path.join(self.workdir, "spec.md"), "w") as f:
             f.write("Architecture Security")
         result = check_artifact_reference(
-            "review.md", "docs/design.md", "headings_referenced", self.workdir
+            "docs/design.md", "spec.md", "headings_referenced", self.workdir
         )
         self.assertEqual(result.type, "artifact_reference")
 
 
 class TestCheckArtifactReferenceIds(unittest.TestCase):
-    """AC-19: ids_referenced extracts AC-\\d+ from target, checks source."""
+    """AC-19: ids_referenced extracts AC-\\d+ from source, checks target."""
 
     def setUp(self):
         self.workdir = tempfile.mkdtemp()
-        target_content = "AC-1: Do thing\nAC-2: Do other\nAC-15: Complex\n"
+        # Source has the AC IDs (spec.md is the source of criteria)
+        source_content = "AC-1: Do thing\nAC-2: Do other\nAC-15: Complex\n"
         with open(os.path.join(self.workdir, "spec.md"), "w") as f:
-            f.write(target_content)
+            f.write(source_content)
 
     def tearDown(self):
         shutil.rmtree(self.workdir, ignore_errors=True)
 
-    def test_pass_when_source_references_all_ids(self):
-        source_content = "Covers AC-1, AC-2, and AC-15.\n"
+    def test_pass_when_target_references_all_ids(self):
+        target_content = "Covers AC-1, AC-2, and AC-15.\n"
         with open(os.path.join(self.workdir, "plan.md"), "w") as f:
-            f.write(source_content)
+            f.write(target_content)
         result = check_artifact_reference(
-            "plan.md", "spec.md", "ids_referenced", self.workdir
+            "spec.md", "plan.md", "ids_referenced", self.workdir
         )
         self.assertTrue(result.passed)
 
-    def test_fail_when_source_misses_some_ids(self):
-        source_content = "Only covers AC-1.\n"
+    def test_fail_when_target_misses_some_ids(self):
+        target_content = "Only covers AC-1.\n"
         with open(os.path.join(self.workdir, "plan.md"), "w") as f:
-            f.write(source_content)
+            f.write(target_content)
         result = check_artifact_reference(
-            "plan.md", "spec.md", "ids_referenced", self.workdir
+            "spec.md", "plan.md", "ids_referenced", self.workdir
         )
         self.assertFalse(result.passed)
 
     def test_evidence_shows_missing_ids(self):
-        source_content = "Only covers AC-1.\n"
+        target_content = "Only covers AC-1.\n"
         with open(os.path.join(self.workdir, "plan.md"), "w") as f:
-            f.write(source_content)
+            f.write(target_content)
         result = check_artifact_reference(
-            "plan.md", "spec.md", "ids_referenced", self.workdir
+            "spec.md", "plan.md", "ids_referenced", self.workdir
         )
         # Evidence should mention AC-2 and AC-15 as missing
         self.assertIn("AC-2", result.evidence)
@@ -754,11 +755,11 @@ class TestCheckArtifactReferenceBoundary(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.workdir, ignore_errors=True)
 
-    def test_zero_refs_in_target_is_fail(self):
-        """If target has no headings/ids to extract, result is fail."""
-        with open(os.path.join(self.workdir, "target.md"), "w") as f:
-            f.write("No headings or IDs here.\n")
+    def test_zero_refs_in_source_is_fail(self):
+        """If source has no headings/ids to extract, result is fail."""
         with open(os.path.join(self.workdir, "source.md"), "w") as f:
+            f.write("No headings or IDs here.\n")
+        with open(os.path.join(self.workdir, "target.md"), "w") as f:
             f.write("Some content.\n")
         result = check_artifact_reference(
             "source.md", "target.md", "headings_referenced", self.workdir
@@ -767,7 +768,7 @@ class TestCheckArtifactReferenceBoundary(unittest.TestCase):
 
     def test_missing_source_file_fails(self):
         with open(os.path.join(self.workdir, "target.md"), "w") as f:
-            f.write("## Heading\n")
+            f.write("content")
         result = check_artifact_reference(
             "missing_source.md", "target.md", "headings_referenced", self.workdir
         )
@@ -775,17 +776,17 @@ class TestCheckArtifactReferenceBoundary(unittest.TestCase):
 
     def test_missing_target_file_fails(self):
         with open(os.path.join(self.workdir, "source.md"), "w") as f:
-            f.write("content")
+            f.write("## Heading\n")
         result = check_artifact_reference(
             "source.md", "missing_target.md", "ids_referenced", self.workdir
         )
         self.assertFalse(result.passed)
 
-    def test_zero_ids_in_target_is_fail(self):
-        """Target with no AC-\\d+ patterns means nothing to reference."""
-        with open(os.path.join(self.workdir, "target.md"), "w") as f:
-            f.write("No acceptance criteria IDs.\n")
+    def test_zero_ids_in_source_is_fail(self):
+        """Source with no AC-\\d+ patterns means nothing to reference."""
         with open(os.path.join(self.workdir, "source.md"), "w") as f:
+            f.write("No acceptance criteria IDs.\n")
+        with open(os.path.join(self.workdir, "target.md"), "w") as f:
             f.write("AC-1 mentioned but irrelevant.\n")
         result = check_artifact_reference(
             "source.md", "target.md", "ids_referenced", self.workdir
@@ -827,30 +828,30 @@ class TestCheckGitBranchExists(unittest.TestCase):
 
 
 class TestCheckGitCommitCount(unittest.TestCase):
-    """AC-20: check_git('commit_count', ...) verifies minimum commit count."""
+    """AC-20: check_git('commit_count', ...) verifies exact commit count."""
 
     @patch("evals.framework.grader.subprocess.run")
-    def test_pass_when_count_meets_minimum(self, mock_run):
+    def test_pass_when_count_matches_expected(self, mock_run):
         mock_run.return_value = MagicMock(returncode=0, stdout="5\n", stderr="")
-        result = check_git("commit_count", "/tmp/workdir", min_count=3)
+        result = check_git("commit_count", "/tmp/workdir", expected=5)
         self.assertTrue(result.passed)
 
     @patch("evals.framework.grader.subprocess.run")
-    def test_fail_when_count_below_minimum(self, mock_run):
+    def test_fail_when_count_below_expected(self, mock_run):
         mock_run.return_value = MagicMock(returncode=0, stdout="1\n", stderr="")
-        result = check_git("commit_count", "/tmp/workdir", min_count=5)
+        result = check_git("commit_count", "/tmp/workdir", expected=5)
         self.assertFalse(result.passed)
 
     @patch("evals.framework.grader.subprocess.run")
-    def test_pass_when_count_equals_minimum(self, mock_run):
-        mock_run.return_value = MagicMock(returncode=0, stdout="5\n", stderr="")
-        result = check_git("commit_count", "/tmp/workdir", min_count=5)
-        self.assertTrue(result.passed)
+    def test_fail_when_count_above_expected(self, mock_run):
+        mock_run.return_value = MagicMock(returncode=0, stdout="8\n", stderr="")
+        result = check_git("commit_count", "/tmp/workdir", expected=5)
+        self.assertFalse(result.passed)
 
     @patch("evals.framework.grader.subprocess.run")
     def test_evidence_includes_actual_count(self, mock_run):
         mock_run.return_value = MagicMock(returncode=0, stdout="2\n", stderr="")
-        result = check_git("commit_count", "/tmp/workdir", min_count=5)
+        result = check_git("commit_count", "/tmp/workdir", expected=5)
         self.assertIn("2", result.evidence)
 
 

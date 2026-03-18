@@ -267,12 +267,12 @@ def check_state_transition(
     expected_sequence: List[str], snapshots: List[Dict]
 ) -> CheckResult:
     """Validate that snapshot statuses follow valid transitions and match expected_sequence."""
-    if len(snapshots) < 2 or len(expected_sequence) < 2:
+    if len(snapshots) < 2:
         return CheckResult(
             type="state_transition",
             description="State transition validation",
             passed=False,
-            evidence=f"Need at least 2 snapshots, got {len(snapshots)}",
+            evidence="Insufficient snapshots for transition validation",
             score=0.0,
         )
 
@@ -329,21 +329,13 @@ def check_state_transition(
 def check_artifact_reference(
     source: str, target: str, check: str, workdir: str
 ) -> CheckResult:
-    """Verify source file references headings or IDs extracted from target file."""
+    """Verify target file references headings or IDs extracted from source file.
+
+    Extracts headings (## ) or IDs (AC-\\d+) from the source file and verifies
+    each appears in the target file.
+    """
     source_path = os.path.join(workdir, source)
     target_path = os.path.join(workdir, target)
-
-    try:
-        with open(target_path, "r") as f:
-            target_content = f.read()
-    except (FileNotFoundError, OSError) as exc:
-        return CheckResult(
-            type="artifact_reference",
-            description=f"Artifact reference ({check}): {source} -> {target}",
-            passed=False,
-            evidence=f"Target file not found: {target}: {exc}",
-            score=0.0,
-        )
 
     try:
         with open(source_path, "r") as f:
@@ -357,10 +349,22 @@ def check_artifact_reference(
             score=0.0,
         )
 
+    try:
+        with open(target_path, "r") as f:
+            target_content = f.read()
+    except (FileNotFoundError, OSError) as exc:
+        return CheckResult(
+            type="artifact_reference",
+            description=f"Artifact reference ({check}): {source} -> {target}",
+            passed=False,
+            evidence=f"Target file not found: {target}: {exc}",
+            score=0.0,
+        )
+
     if check == "headings_referenced":
-        items = re.findall(HEADING_PATTERN, target_content, re.MULTILINE)
+        items = re.findall(HEADING_PATTERN, source_content, re.MULTILINE)
     elif check == "ids_referenced":
-        items = re.findall(ID_PATTERN, target_content)
+        items = re.findall(ID_PATTERN, source_content)
     else:
         return CheckResult(
             type="artifact_reference",
@@ -375,17 +379,17 @@ def check_artifact_reference(
             type="artifact_reference",
             description=f"Artifact reference ({check}): {source} -> {target}",
             passed=False,
-            evidence=f"No {check} found in target: {target}",
+            evidence=f"Source file contains no extractable references",
             score=0.0,
         )
 
-    missing = [item for item in items if item not in source_content]
+    missing = [item for item in items if item not in target_content]
     if not missing:
         return CheckResult(
             type="artifact_reference",
             description=f"Artifact reference ({check}): {source} -> {target}",
             passed=True,
-            evidence=f"All {len(items)} {check} found in {source}",
+            evidence=f"All {len(items)} {check} from {source} found in {target}",
             score=1.0,
         )
 
@@ -393,7 +397,7 @@ def check_artifact_reference(
         type="artifact_reference",
         description=f"Artifact reference ({check}): {source} -> {target}",
         passed=False,
-        evidence=f"Missing references in {source}: {', '.join(missing)}",
+        evidence=f"Missing references in {target}: {', '.join(missing)}",
         score=0.0,
     )
 
@@ -419,7 +423,7 @@ def check_git(check_type: str, workdir: str, **kwargs) -> CheckResult:
         )
 
     if check_type == "commit_count":
-        min_count = kwargs.get("min_count", 1)
+        expected_count = kwargs.get("expected", kwargs.get("min_count", 1))
         proc = subprocess.run(
             "git rev-list --count HEAD",
             shell=True,
@@ -432,17 +436,17 @@ def check_git(check_type: str, workdir: str, **kwargs) -> CheckResult:
         except ValueError:
             return CheckResult(
                 type="git",
-                description=f"Git commit count >= {min_count}",
+                description=f"Git commit count == {expected_count}",
                 passed=False,
                 evidence=f"Could not parse commit count: {proc.stdout!r}",
                 score=0.0,
             )
-        passed = actual_count >= min_count
+        passed = actual_count == expected_count
         return CheckResult(
             type="git",
-            description=f"Git commit count >= {min_count}",
+            description=f"Git commit count == {expected_count}",
             passed=passed,
-            evidence=f"Commit count: {actual_count} (required: {min_count})",
+            evidence=f"Commit count: {actual_count} (expected: {expected_count})",
             score=_check_passed(passed),
         )
 
