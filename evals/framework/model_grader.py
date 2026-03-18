@@ -32,7 +32,7 @@ def _build_prompt(rubric: str, target_content: str, transcript) -> str:
 def grade_with_model(rubric: str, target_content: str, transcript=None) -> CheckResult:
     """Invoke claude -p with rubric prompt, return CheckResult."""
     prompt = _build_prompt(rubric, target_content, transcript)
-    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--max-turns", "1"]
+    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose", "--max-turns", "1"]
 
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True)
