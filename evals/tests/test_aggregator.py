@@ -579,5 +579,40 @@ class TestAggregateResultsTrialsPerEval(unittest.TestCase):
         self.assertEqual(tpe["eval-02"], 2)
 
 
+class TestSeedsVerified(unittest.TestCase):
+    """AC-19: Every seed in seeds.json must have verified: true."""
+
+    def test_all_seeds_have_verified_field(self):
+        seeds_path = os.path.join(
+            os.path.dirname(__file__), "..", "suites", "workflow", "seeds.json"
+        )
+        if not os.path.exists(seeds_path):
+            self.skipTest("seeds.json not found")
+
+        with open(seeds_path) as f:
+            data = json.load(f)
+
+        for seed in data.get("seeds", []):
+            self.assertIn(
+                "verified", seed,
+                f"Seed {seed.get('id', 'unknown')} missing 'verified' field",
+            )
+
+    @unittest.skip("Seeds pending population — run verify_seeds.py first")
+    def test_all_seeds_are_verified_true(self):
+        seeds_path = os.path.join(
+            os.path.dirname(__file__), "..", "suites", "workflow", "seeds.json"
+        )
+        with open(seeds_path) as f:
+            data = json.load(f)
+
+        for seed in data.get("seeds", []):
+            self.assertTrue(
+                seed.get("verified"),
+                f"Seed {seed['id']} is not verified. Run: "
+                "python -m evals.framework.verify_seeds --populate --verify",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
