@@ -14,7 +14,7 @@
       "expectations": [
         {
           "type": "state_transition",
-          "sequence": ["designing", "planning"],
+          "expected_sequence": ["designing", "planning"],
           "description": "State transitions from designing to planning"
         },
         {
@@ -50,7 +50,7 @@
       "expectations": [
         {
           "type": "state_transition",
-          "sequence": ["planning", "building"],
+          "expected_sequence": ["planning", "building"],
           "description": "State transitions from planning to building"
         },
         {
