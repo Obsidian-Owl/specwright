@@ -26,7 +26,6 @@ def run_sequence(
     timeout_per_skill: int = 300,
     capture_between: bool = True,
     snapshot_base_dir: Optional[str] = None,
-    plugin_dir: Optional[str] = None,
 ) -> ChainResult:
     """Invoke skills sequentially in the same working directory.
 
@@ -36,7 +35,6 @@ def run_sequence(
     Args:
         snapshot_base_dir: Parent directory for snapshots. If None, uses
             tempfile.mkdtemp(). Callers control cleanup via snapshot_dirs.
-        plugin_dir: Optional path to plugin directory, forwarded to runner.
     """
     result = ChainResult()
 
@@ -47,7 +45,6 @@ def run_sequence(
             prompt=prompt,
             workdir=workdir,
             timeout=timeout_per_skill,
-            plugin_dir=plugin_dir,
         )
         result.steps.append(run_result)
 
