@@ -81,10 +81,22 @@ results/run-{YYYYMMDD-HHMMSS}/
 ├── benchmark.json       # Aggregated statistics
 ```
 
+## Validating Eval Definitions
+
+```bash
+# Validate a suite's evals.json against registered handlers
+python -m evals --suite skill --validate
+python -m evals --suite integration --validate
+```
+
 ## Running Framework Tests
 
 ```bash
+# Unit tests (fast, mocked — runs by default)
 python -m pytest evals/tests/ -v
+
+# Integration tests (slow, invokes real claude CLI)
+python -m pytest evals/tests/ -m integration -v
 ```
 
 ## Eval Layers
