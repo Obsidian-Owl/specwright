@@ -8,6 +8,10 @@ dist/
 # OS
 .DS_Store
 
+# Python
+__pycache__/
+*.pyc
+
 # Secrets and credentials
 .env
 .env.*
