@@ -124,6 +124,7 @@ def main(args=None):
         case_filter=parsed.case,
         dry_run=parsed.dry_run,
         plugin_dir=parsed.plugin_dir,
+        results_dir=parsed.results_dir,
     )
 
 

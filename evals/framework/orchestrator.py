@@ -41,6 +41,16 @@ _SKILL_NAME_PREFIX = "sw-"
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+def _resolve_seed(suite_path: str, seed_id: str) -> Dict:
+    """Load seeds.json and find the entry matching seed_id."""
+    with open(suite_path) as f:
+        seeds_data = json.load(f)
+    for seed in seeds_data.get("seeds", []):
+        if seed.get("id") == seed_id:
+            return seed
+    raise FileNotFoundError(f"Seed '{seed_id}' not found in {suite_path}")
+
+
 def _determine_layer(eval_case: Dict) -> str:
     """Return the layer string based on which field is present in the eval case."""
     if "skill" in eval_case:
@@ -160,17 +170,27 @@ def run_single_eval(
 
     start_time = time.time()
 
-    # Setup: copy fixture to a fresh temp workdir.
-    # The destination path must not exist because setup_fixture uses shutil.copytree.
+    # Setup: copy fixture or clone repo to a fresh temp workdir.
     seed = eval_case.get("seed", {})
-    raw_path = seed.get("path", "")
-    fixture_path = os.path.join(_EVALS_BASE_DIR, raw_path) if raw_path else ""
+    seed_type = seed.get("type", "fixture")
     workdir = os.path.join(tempfile.gettempdir(), f"eval-workdir-{uuid.uuid4().hex}")
 
     try:
-        setup_fixture(fixture_path, workdir)
+        if seed_type == "repo":
+            seed_id = seed.get("seed_id", "")
+            seed_entry = _resolve_seed(suite_path=os.path.join(
+                _EVALS_BASE_DIR, "suites", "workflow", "seeds.json"
+            ), seed_id=seed_id)
+            repo_url = f"https://github.com/{seed_entry['repo']}.git"
+            setup_repo(repo_url, seed_entry["base_commit"], workdir,
+                       install_command="npm install")
+        else:
+            raw_path = seed.get("path", "")
+            fixture_path = os.path.join(_EVALS_BASE_DIR, raw_path) if raw_path else ""
+            setup_fixture(fixture_path, workdir)
     except (FileNotFoundError, RuntimeError) as exc:
         elapsed_ms = round((time.time() - start_time) * 1000, 2)
+        print(f"  ERROR: {exc}", file=sys.stderr)
         _write_error_grading_json(
             trial_dir=trial_dir,
             eval_id=eval_id,
@@ -220,6 +240,9 @@ def run_single_eval(
         grade_result=grade_result,
     )
 
+    pass_rate = grade_result.get("summary", {}).get("pass_rate", 0.0)
+    print(f"  DONE (pass_rate: {pass_rate:.2f})", file=sys.stderr)
+
     shutil.rmtree(workdir, ignore_errors=True)
 
 
@@ -230,6 +253,7 @@ def run_eval_suite(
     case_filter: Optional[str] = None,
     dry_run: bool = False,
     plugin_dir: Optional[str] = None,
+    results_dir: Optional[str] = None,
 ) -> str:
     """Load evals.json, iterate cases x trials, aggregate, return results_dir."""
     with open(suite_path) as f:
@@ -257,25 +281,23 @@ def run_eval_suite(
         )
         return os.path.abspath(results_dir)
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
-    # Place results alongside the suite file
-    results_dir = os.path.join(
-        os.path.dirname(os.path.abspath(suite_path)),
-        "..",
-        "..",
-        "results",
-        f"{_RESULTS_RUN_PREFIX}{timestamp}",
-    )
+    timestamp = datetime.now(timezone.utc).isoformat()
+    if results_dir is None:
+        results_dir = os.path.join(
+            _EVALS_BASE_DIR,
+            "results",
+            f"{_RESULTS_RUN_PREFIX}{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}",
+        )
     results_dir = os.path.abspath(results_dir)
     os.makedirs(results_dir, exist_ok=True)
 
     # Write config.json
     config = {
-        "suite_path": suite_path,
+        "timestamp": timestamp,
+        "suite": os.path.basename(os.path.dirname(suite_path)),
         "trials": trials,
         "timeout": timeout,
-        "case_filter": case_filter,
-        "timestamp": timestamp,
+        "python_version": sys.version,
     }
     with open(os.path.join(results_dir, _CONFIG_FILENAME), "w") as f:
         json.dump(config, f, indent=2)
