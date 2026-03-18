@@ -64,6 +64,16 @@ def main(args=None):
         metavar="PATH",
         help="Serve a results directory in the browser",
     )
+    # Auto-detect plugin dir: evals/ -> repo root -> adapters/claude-code
+    _default_plugin_dir = os.path.abspath(
+        os.path.join(_EVALS_DIR, "..", "adapters", "claude-code")
+    )
+    parser.add_argument(
+        "--plugin-dir",
+        metavar="PATH",
+        default=_default_plugin_dir if os.path.isdir(_default_plugin_dir) else None,
+        help=f"Path to Specwright plugin directory (default: {_default_plugin_dir})",
+    )
     parser.add_argument(
         "--timeout",
         type=int,
@@ -113,6 +123,7 @@ def main(args=None):
         timeout=parsed.timeout,
         case_filter=parsed.case,
         dry_run=parsed.dry_run,
+        plugin_dir=parsed.plugin_dir,
     )
 
 

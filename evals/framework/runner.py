@@ -54,6 +54,7 @@ class ToolRunner(ABC):
         prompt: str,
         workdir: Optional[str] = None,
         timeout: int = DEFAULT_TIMEOUT_SECONDS,
+        plugin_dir: Optional[str] = None,
     ) -> RunResult:
         """Run a skill with the given prompt and return a RunResult."""
 
@@ -63,11 +64,12 @@ class ToolRunner(ABC):
 # ---------------------------------------------------------------------------
 
 _VERBOSE_FLAG = "--verbose"
+_PLUGIN_DIR_FLAG = "--plugin-dir"
 
 
-def _build_command(prompt: str) -> List[str]:
+def _build_command(prompt: str, plugin_dir: Optional[str] = None) -> List[str]:
     """Build the claude subprocess command list."""
-    return [
+    cmd = [
         _CLAUDE_BINARY,
         _PROMPT_FLAG,
         prompt,
@@ -75,6 +77,9 @@ def _build_command(prompt: str) -> List[str]:
         _OUTPUT_FORMAT_VALUE,
         _VERBOSE_FLAG,
     ]
+    if plugin_dir is not None:
+        cmd.extend([_PLUGIN_DIR_FLAG, plugin_dir])
+    return cmd
 
 
 def _build_env() -> Dict[str, str]:
@@ -160,12 +165,13 @@ class ClaudeCodeRunner(ToolRunner):
         prompt: str,
         workdir: Optional[str] = None,
         timeout: int = DEFAULT_TIMEOUT_SECONDS,
+        plugin_dir: Optional[str] = None,
     ) -> RunResult:
         """Invoke the claude binary for the given skill and return a RunResult.
 
         Raises FileNotFoundError if the claude binary is not on PATH.
         """
-        cmd = _build_command(prompt)
+        cmd = _build_command(prompt, plugin_dir=plugin_dir)
         env = _build_env()
 
         try:

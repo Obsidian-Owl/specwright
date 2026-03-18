@@ -127,12 +127,13 @@ class MockRunner(ToolRunner):
         self._result = result or _make_run_result()
         self._side_effect = side_effect
 
-    def run_skill(self, skill, prompt, workdir=None, timeout=300):
+    def run_skill(self, skill, prompt, workdir=None, timeout=300, plugin_dir=None):
         self.calls.append({
             "skill": skill,
             "prompt": prompt,
             "workdir": workdir,
             "timeout": timeout,
+            "plugin_dir": plugin_dir,
         })
         if self._side_effect:
             effect = self._side_effect.pop(0)

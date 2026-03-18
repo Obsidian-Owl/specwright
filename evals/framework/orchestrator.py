@@ -150,6 +150,7 @@ def run_single_eval(
     results_dir: str,
     runner,
     timeout: int = 300,
+    plugin_dir: Optional[str] = None,
 ) -> None:
     """Run a single eval case trial: setup, execute, grade, write results."""
     eval_id = eval_case["id"]
@@ -192,6 +193,7 @@ def run_single_eval(
                 prompt=resolved_prompt,
                 workdir=workdir,
                 timeout=timeout,
+                plugin_dir=plugin_dir,
             )
         else:
             skills = eval_case.get("sequence") or eval_case.get("workflow") or []
@@ -202,6 +204,7 @@ def run_single_eval(
                 prompts=prompts_dict,
                 workdir=workdir,
                 timeout_per_skill=timeout,
+                plugin_dir=plugin_dir,
             )
             snapshots = chain_result.snapshots
 
@@ -226,6 +229,7 @@ def run_eval_suite(
     timeout: int = 300,
     case_filter: Optional[str] = None,
     dry_run: bool = False,
+    plugin_dir: Optional[str] = None,
 ) -> str:
     """Load evals.json, iterate cases x trials, aggregate, return results_dir."""
     with open(suite_path) as f:
@@ -286,6 +290,7 @@ def run_eval_suite(
                 results_dir=results_dir,
                 runner=runner,
                 timeout=timeout,
+                plugin_dir=plugin_dir,
             )
 
     benchmark = aggregate_results(results_dir)
