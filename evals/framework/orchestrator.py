@@ -229,7 +229,18 @@ def run_single_eval(
             snapshots = chain_result.snapshots
 
     except (subprocess.TimeoutExpired, RuntimeError):
-        pass
+    except (subprocess.TimeoutExpired, RuntimeError) as exc:
+        elapsed_ms = round((time.time() - start_time) * 1000, 2)
+        print(f"  ERROR during execution: {exc}", file=sys.stderr)
+        _write_error_grading_json(
+            trial_dir=trial_dir,
+            eval_id=eval_id,
+            trial_num=trial_num,
+            error=str(exc),
+            duration_ms=elapsed_ms,
+        )
+        shutil.rmtree(workdir, ignore_errors=True)
+        return
 
     grade_result = grade_eval(eval_case, workdir, snapshots)
 
