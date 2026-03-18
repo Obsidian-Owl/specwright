@@ -30,12 +30,27 @@ def _mock_run(stdout="", stderr="", returncode=0):
     return result
 
 
+def _wrap_as_stream_json(text: str) -> str:
+    """Wrap a text response in NDJSON stream-json format matching claude -p output."""
+    assistant_event = {
+        "type": "assistant",
+        "message": {
+            "content": [
+                {"type": "text", "text": text}
+            ]
+        }
+    }
+    result_event = {"type": "result", "duration_ms": 1000}
+    return json.dumps(assistant_event) + "\n" + json.dumps(result_event) + "\n"
+
+
 def _valid_model_response(score=0.85, evidence="Criteria met"):
-    """Return JSON string matching expected model grader output format."""
-    return json.dumps({
+    """Return NDJSON stream matching expected model grader output format."""
+    response_json = json.dumps({
         "score": score,
         "evidence": evidence,
     })
+    return _wrap_as_stream_json(response_json)
 
 
 # ===========================================================================
@@ -178,70 +193,77 @@ class TestUnparseableResponse(unittest.TestCase):
 
     @patch("evals.framework.model_grader.subprocess.run")
     def test_non_json_response_fails(self, mock_run):
+        """Non-NDJSON stdout has no assistant events — fails with no-text error."""
         mock_run.return_value = _mock_run(
             stdout="I think the score should be about 0.8"
         )
         result = grade_with_model("rubric", "content")
         self.assertFalse(result.passed)
-        self.assertIn("Model grader returned unparseable response", result.evidence)
+        self.assertIn("no assistant text", result.evidence)
 
     @patch("evals.framework.model_grader.subprocess.run")
     def test_non_json_response_includes_raw_output(self, mock_run):
-        raw = "Here is my evaluation: good work"
-        mock_run.return_value = _mock_run(stdout=raw)
+        raw_text = "Here is my evaluation: good work"
+        mock_run.return_value = _mock_run(stdout=_wrap_as_stream_json(raw_text))
         result = grade_with_model("rubric", "content")
-        self.assertIn(raw, result.evidence)
+        self.assertIn(raw_text, result.evidence)
 
     @patch("evals.framework.model_grader.subprocess.run")
     def test_partial_json_response_fails(self, mock_run):
-        mock_run.return_value = _mock_run(stdout='{"score": 0.8, "evidence":')
+        mock_run.return_value = _mock_run(
+            stdout=_wrap_as_stream_json('{"score": 0.8, "evidence":')
+        )
         result = grade_with_model("rubric", "content")
         self.assertFalse(result.passed)
-        self.assertIn("Model grader returned unparseable response", result.evidence)
+        self.assertIn("unparseable response", result.evidence)
 
     @patch("evals.framework.model_grader.subprocess.run")
     def test_json_missing_score_field_fails(self, mock_run):
         mock_run.return_value = _mock_run(
-            stdout=json.dumps({"evidence": "looks fine"})
+            stdout=_wrap_as_stream_json(json.dumps({"evidence": "looks fine"}))
         )
         result = grade_with_model("rubric", "content")
         self.assertFalse(result.passed)
-        self.assertIn("Model grader returned unparseable response", result.evidence)
+        self.assertIn("unparseable response", result.evidence)
 
     @patch("evals.framework.model_grader.subprocess.run")
     def test_json_missing_evidence_field_fails(self, mock_run):
         mock_run.return_value = _mock_run(
-            stdout=json.dumps({"score": 0.9})
+            stdout=_wrap_as_stream_json(json.dumps({"score": 0.9}))
         )
         result = grade_with_model("rubric", "content")
         self.assertFalse(result.passed)
-        self.assertIn("Model grader returned unparseable response", result.evidence)
+        self.assertIn("unparseable response", result.evidence)
 
     @patch("evals.framework.model_grader.subprocess.run")
     def test_empty_stdout_fails(self, mock_run):
         mock_run.return_value = _mock_run(stdout="")
         result = grade_with_model("rubric", "content")
         self.assertFalse(result.passed)
-        self.assertIn("Model grader returned unparseable response", result.evidence)
+        self.assertIn("no assistant text", result.evidence)
 
     @patch("evals.framework.model_grader.subprocess.run")
     def test_json_with_preamble_text_fails(self, mock_run):
         """Model adds text before JSON -- must be unparseable."""
         mock_run.return_value = _mock_run(
-            stdout='Here is my assessment:\n{"score": 0.8, "evidence": "ok"}'
+            stdout=_wrap_as_stream_json(
+                'Here is my assessment:\n{"score": 0.8, "evidence": "ok"}'
+            )
         )
         result = grade_with_model("rubric", "content")
         self.assertFalse(result.passed)
-        self.assertIn("Model grader returned unparseable response", result.evidence)
+        self.assertIn("unparseable response", result.evidence)
 
     @patch("evals.framework.model_grader.subprocess.run")
     def test_score_not_a_number_fails(self, mock_run):
         mock_run.return_value = _mock_run(
-            stdout=json.dumps({"score": "high", "evidence": "great"})
+            stdout=_wrap_as_stream_json(
+                json.dumps({"score": "high", "evidence": "great"})
+            )
         )
         result = grade_with_model("rubric", "content")
         self.assertFalse(result.passed)
-        self.assertIn("Model grader returned unparseable response", result.evidence)
+        self.assertIn("unparseable response", result.evidence)
 
 
 # ===========================================================================
@@ -495,7 +517,7 @@ class TestCheckResultType(unittest.TestCase):
     @patch("evals.framework.model_grader.subprocess.run")
     def test_type_is_model_grade_on_failure(self, mock_run):
         mock_run.return_value = _mock_run(
-            stdout="not json", returncode=0
+            stdout=_wrap_as_stream_json("not json"), returncode=0
         )
         result = grade_with_model("rubric", "content")
         self.assertEqual(result.type, "model_grade")
@@ -566,7 +588,7 @@ class TestScoreBoundaryValues(unittest.TestCase):
     def test_score_clamped_to_range(self, mock_run):
         """Score outside 0.0-1.0 should still parse, but passed follows threshold."""
         mock_run.return_value = _mock_run(
-            stdout=json.dumps({"score": 1.5, "evidence": "over max"})
+            stdout=_wrap_as_stream_json(json.dumps({"score": 1.5, "evidence": "over max"}))
         )
         result = grade_with_model("rubric", "content")
         # Even if score > 1.0, it should still be > 0.7 so passed=True
@@ -575,7 +597,7 @@ class TestScoreBoundaryValues(unittest.TestCase):
     @patch("evals.framework.model_grader.subprocess.run")
     def test_negative_score_fails(self, mock_run):
         mock_run.return_value = _mock_run(
-            stdout=json.dumps({"score": -0.5, "evidence": "negative"})
+            stdout=_wrap_as_stream_json(json.dumps({"score": -0.5, "evidence": "negative"}))
         )
         result = grade_with_model("rubric", "content")
         self.assertFalse(result.passed)
