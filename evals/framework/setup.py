@@ -1,6 +1,7 @@
 """Eval framework setup — fixture copying, repo cloning, and baseline verification."""
 
 import os
+import shlex
 import shutil
 import subprocess
 from typing import List, Optional
@@ -31,7 +32,7 @@ def setup_repo(
     _run_checked(["git", "clone", repo, workdir])
     _run_checked(["git", "checkout", base_commit], cwd=workdir)
     if install_command is not None:
-        _run_checked(install_command.split(), cwd=workdir)
+        _run_checked(shlex.split(install_command), cwd=workdir)
 
 
 def _run_checked(cmd: List[str], cwd: Optional[str] = None) -> None:
@@ -60,7 +61,7 @@ def verify_baseline(
     Returns False if tests unexpectedly pass (exit code 0).
     """
     result = subprocess.run(
-        test_command.split(),
+        shlex.split(test_command),
         cwd=workdir,
         capture_output=True,
         text=True,

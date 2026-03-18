@@ -1,8 +1,10 @@
 """Eval framework grader — check functions and grading orchestration."""
 
+import glob as glob_mod
 import json
 import os
 import re
+import shlex
 import subprocess
 import time
 from typing import Any, Dict, List, Optional
@@ -122,10 +124,31 @@ def check_file_exists(path: str, workdir: str) -> CheckResult:
 
 
 def check_file_not_exists(path: str, workdir: str) -> CheckResult:
-    """Return passed=True when a file does NOT exist at workdir/path."""
+    """Return passed=True when no file matches workdir/path.
+
+    Supports glob patterns (e.g., '.specwright/work/*/design.md').
+    """
     full_path = os.path.join(workdir, path)
-    exists = os.path.exists(full_path)
-    if not exists:
+    # Support glob patterns — expand and check for matches
+    if any(c in path for c in ("*", "?", "[")):
+        matches = glob_mod.glob(full_path, recursive=True)
+        if not matches:
+            return CheckResult(
+                type="file_not_exists",
+                description=f"File not exists: {path}",
+                passed=True,
+                evidence=f"Confirmed absent: {path} (glob matched 0 files)",
+                score=1.0,
+            )
+        return CheckResult(
+            type="file_not_exists",
+            description=f"File not exists: {path}",
+            passed=False,
+            evidence=f"Found {len(matches)} match(es): {', '.join(matches)}",
+            score=0.0,
+        )
+    # Literal path
+    if not os.path.exists(full_path):
         return CheckResult(
             type="file_not_exists",
             description=f"File not exists: {path}",
@@ -185,10 +208,14 @@ def check_file_contains(path: str, pattern: str, workdir: str) -> CheckResult:
 
 
 def check_tests_pass(command: str, workdir: str) -> CheckResult:
-    """Return passed=True when subprocess exits with code 0."""
+    """Return passed=True when subprocess exits with code 0.
+
+    Note: command is split via shlex.split(). Eval definitions that need
+    shell features (pipes, globs) should use explicit shell invocation
+    in the command string (e.g., "bash -c 'cmd1 | cmd2'").
+    """
     proc = subprocess.run(
-        command,
-        shell=True,
+        shlex.split(command),
         cwd=workdir,
         capture_output=True,
         text=True,
@@ -407,8 +434,7 @@ def check_git(check_type: str, workdir: str, **kwargs) -> CheckResult:
     if check_type == "branch_exists":
         branch = kwargs.get("branch", "")
         proc = subprocess.run(
-            f"git show-ref --verify refs/heads/{branch}",
-            shell=True,
+            ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
             cwd=workdir,
             capture_output=True,
             text=True,
@@ -423,10 +449,9 @@ def check_git(check_type: str, workdir: str, **kwargs) -> CheckResult:
         )
 
     if check_type == "commit_count":
-        expected_count = kwargs.get("expected", kwargs.get("min_count", 1))
+        expected_count = kwargs.get("expected", 1)
         proc = subprocess.run(
-            "git rev-list --count HEAD",
-            shell=True,
+            ["git", "rev-list", "--count", "HEAD"],
             cwd=workdir,
             capture_output=True,
             text=True,
@@ -452,8 +477,7 @@ def check_git(check_type: str, workdir: str, **kwargs) -> CheckResult:
 
     if check_type == "no_uncommitted_changes":
         proc = subprocess.run(
-            "git status --porcelain",
-            shell=True,
+            ["git", "status", "--porcelain"],
             cwd=workdir,
             capture_output=True,
             text=True,

@@ -30,7 +30,7 @@
           "description": "All tests pass after implementation"
         },
         {
-          "type": "state_check",
+          "type": "state",
           "field": "currentWork.status",
           "expected": "building",
           "description": "Workflow state is building"

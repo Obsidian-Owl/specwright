@@ -7,6 +7,7 @@ AC-10: capture_timing() writes timing.json from RunResult
 import json
 import os
 import shutil
+import subprocess
 import tempfile
 import unittest
 
@@ -32,7 +33,15 @@ class TestCaptureSnapshotBasic(unittest.TestCase):
         with open(os.path.join(work_dir, "spec.md"), "w") as f:
             f.write("# Spec")
         # Init git repo for git status
-        os.system(f"cd {self.workdir} && git init -q && git add -A && git commit -q -m init")
+        subprocess.run(["git", "init", "-q"], cwd=self.workdir, check=True, capture_output=True)
+        # Stage specific files (not git add -A per constitution)
+        subprocess.run(
+            ["git", "add",
+             os.path.join(".specwright", "state", "workflow.json"),
+             os.path.join(".specwright", "work", "test-work", "spec.md")],
+            cwd=self.workdir, check=True, capture_output=True,
+        )
+        subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=self.workdir, check=True, capture_output=True)
 
     def tearDown(self):
         shutil.rmtree(self.workdir, ignore_errors=True)
@@ -71,7 +80,7 @@ class TestCaptureSnapshotMissingSpecwright(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.mkdtemp()
         self.output_dir = tempfile.mkdtemp()
-        os.system(f"cd {self.workdir} && git init -q")
+        subprocess.run(["git", "init", "-q"], cwd=self.workdir, check=True, capture_output=True)
 
     def tearDown(self):
         shutil.rmtree(self.workdir, ignore_errors=True)
