@@ -19,6 +19,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.17.0] - 2026-03-19
+
+### Changed
+
+- feat(evals): subagent-based eval runner + grading CLI + tech debt cleanup (#90)
+- fix(ci): make release workflow idempotent on re-runs (#89)
+- feat(workflow): harden all skills with adversarial challenge and strategic alignment (#88)
+- fix(evals): model grader --verbose + execution telemetry in grading.json (#87)
+- refactor(evals): remove unnecessary plugin_dir threading (#86)
+- feat(evals): schema validator + integration smoke tests (#85)
+- feat(evals): CLI orchestrator with plugin-dir, repo seeds, and first real run (#84)
+- feat(evals): aggregation, model grading, viewer, and Layer 2/3 eval suites (#83)
+- feat(evals): eval framework core — runner, graders, chainer, fixtures (#82)
+- docs: address remaining audit WARNING findings (F2, F4, F7, F8) (#81)
+- feat(lifecycle): state cleanup transition and work directory cleanup (#80)
+- test(claude-code): comprehensive build output test suite (#79)
+- feat(build): conditional platform markers for core/adapter layering (#78)
+
 ## [0.16.0] - 2026-03-13
 
 ### Changed
