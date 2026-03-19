@@ -44,7 +44,7 @@ and persist findings for future design cycles.
 - On compaction: re-run from scratch (no state to recover).
 
 **Triage (MEDIUM freedom):**
-- Determine intensity from argument and codebase size:
+- Determine audit depth from argument and codebase size:
   - Path argument → **Focused**: analyze specified directory/module only
   - `--full` argument → **Full**: parallel agents, all dimensions
   - No argument → auto-triage: Standard (<50 files) or Full (50+ files)
@@ -55,8 +55,8 @@ and persist findings for future design cycles.
 - Delegate per `protocols/delegation.md`:
   - `specwright-architect`: architecture + complexity (structural analysis)
   - `specwright-reviewer`: consistency + debt (convention and quality analysis)
-- Standard intensity: 2 agent calls (sequential or parallel).
-- Full intensity: up to 4 parallel calls (one per dimension).
+- Standard depth: 2 agent calls (sequential or parallel).
+- Full depth: up to 4 parallel calls (one per dimension).
 - Include constitution practices as the baseline for consistency checks.
 
 **Synthesis (LOW freedom):**
