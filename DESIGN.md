@@ -61,7 +61,7 @@ Validated, referenced findings about external systems: API documentation, SDK co
 | `sw-verify` | Interactive quality gates | Shows findings, not badges. Orchestrates gate skills in dependency order |
 | `sw-ship` | Strategy-aware merge | PR with evidence-mapped body |
 | `sw-status` | Where am I, what's done, what's next | Supports --reset to abandon work, --cleanup for orphaned work dirs |
-| `sw-guard` | Detect stack, configure guardrails interactively | Layer-by-layer approval (session, commit, push, CI/CD) |
+| `sw-guard` | Detect stack, gap-analyze, configure guardrails | Structured detection, 9-dimension coverage model, four-layer enforcement, standalone |
 | `sw-learn` | Post-ship capture. What worked, what to remember | Promotes patterns to constitution. Clears workflow state (shipped → none) |
 | `sw-research` | Deep outward-facing research | External docs, APIs, patterns, validation. Produces referenced briefs for design |
 | `sw-debug` | Investigation-first debugging | Scope → investigate → diagnose → fix/log/defer |
@@ -150,8 +150,10 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `testing-strategy.md` | TESTING.md lifecycle: creation, consumption, boundary classifications, precedence | ~600 |
 | `headless.md` | Non-interactive execution: detection (AskUserQuestion availability), default policies, headless-result.json format | ~700 |
 | `parallel-build.md` | Parallel task execution with agent teams (experimental) | ~815 |
+| `guardrails-detection.md` | Three-step stack detection: manifest scan, config file scan, guardrail scan | ~340 |
+| `guardrails-patterns.md` | Nine-dimension coverage model, four-layer enforcement patterns, framework options | ~486 |
 
-Total: ~7,130 words across 20 protocols (loaded on demand, not all at once).
+Total: ~7,956 words across 24 protocols (loaded on demand, not all at once).
 
 ## Skill Anatomy
 
@@ -225,7 +227,7 @@ specwright/
 │   │   └── CLAUDE.md        # Claude Code project instructions
 │   └── opencode/          # Opencode adapter (npm package)
 │       ├── commands/        # Skill command definitions (14 .md files)
-│       ├── skills/          # Skill overrides (sw-guard only)
+│       ├── skills/          # Skill overrides (none currently)
 │       ├── plugin.ts        # Plugin entry point
 │       ├── package.json     # npm package manifest
 │       └── README.md
@@ -249,7 +251,7 @@ specwright/
 2. **Tool stripping** — removes platform-irrelevant tools from frontmatter (e.g., `TaskCreate` for opencode)
 3. **Protocol path rewriting** — prepends platform-specific prefix to `protocols/` references
 4. **Agent translation** — model names, tool formats, mode injection (platform-specific)
-5. **Skill overrides** — replaces core skills with adapter versions (currently: `sw-guard` for opencode)
+5. **Skill overrides** — replaces core skills with adapter versions (currently: none)
 6. **Platform marker stripping** — processes `<!-- platform:X -->...<!-- /platform -->` conditional blocks in skill bodies. Matching platform content is preserved (markers removed); non-matching content is stripped entirely.
 
 Platform markers allow a single core SKILL.md to contain platform-specific body sections without requiring full adapter overrides. Frontmatter differences use the tool mapping/stripping mechanism; body differences use markers.
