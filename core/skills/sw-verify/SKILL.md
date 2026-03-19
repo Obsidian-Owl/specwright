@@ -45,7 +45,7 @@ and be able to discuss or override before proceeding to ship.
   the three-tier posture defined in the aggregate report constraint below.
 
 **Assumption re-validation (LOW freedom) — runs before gate execution:**
-- Scan `assumptions.md` from the work unit's design-level directory (`.specwright/work/{currentWork.id}/assumptions.md`).
+- Scan `assumptions.md` from the work unit's design-level directory (`.specwright/work/{currentWork.id}/assumptions.md`). If the file does not exist, skip this step silently.
 - For each assumption with status ACCEPTED or VERIFIED: check whether it is still valid given the implementation (file contents, interfaces, behaviour).
 - Any assumption that no longer holds becomes a WARN finding in the aggregate report, using the same findings table as gate results.
 - This step runs silently — no new user interaction point. Findings appear in the existing aggregate report.

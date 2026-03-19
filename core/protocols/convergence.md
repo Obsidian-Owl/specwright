@@ -68,18 +68,19 @@ when dimensions conflict for prioritization):
 
 | Iteration | Lead Dimension |
 |-----------|----------------|
-| 1 | Completeness |
-| 2 | Coherence |
-| 3 | Feasibility |
+| 1 | Risk Coverage |
+| 2 | Completeness |
+| 3 | Coherence |
 
-This rotation is fixed — not random. A follow-up starting in iteration 2 leads
-with Coherence regardless of which dimensions scored below 4.
+Risk Coverage leads iteration 1 because it is the dimension most prone to
+optimism bias. This rotation is fixed — not random. If a fourth iteration is
+needed (rare), it leads with Feasibility.
 
 ## Procedure
 
 1. **First iteration**: the existing critic pass. The architect reviews the design,
    produces findings and assumptions per its normal output format, including all
-   perspective lens sections (see Critic Output Requirements below).
+   perspective lens sections (see Critic Output Requirements above).
 
 2. **Scoring**: a **separate architect invocation** (not the same pass) receives the
    original design plus the critic's findings and scores each dimension 1-5.
