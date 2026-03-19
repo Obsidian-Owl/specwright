@@ -112,6 +112,9 @@ def main(args=None):
         return
 
     if parsed.aggregate:
+        if not os.path.isdir(parsed.aggregate):
+            print(f"Error: results directory not found: {parsed.aggregate}", file=sys.stderr)
+            sys.exit(1)
         from evals.framework.aggregator import aggregate_results
         benchmark = aggregate_results(parsed.aggregate)
         benchmark_path = os.path.join(parsed.aggregate, "benchmark.json")
@@ -125,6 +128,10 @@ def main(args=None):
             parser.error("--grade-workdir requires --eval-id, --suite, and --output")
 
         suite_path = _resolve_suite_path(parsed.suite)
+        if not os.path.isfile(suite_path):
+            print(f"Error: suite not found at {suite_path}", file=sys.stderr)
+            sys.exit(1)
+
         with open(suite_path) as f:
             suite_data = json.load(f)
         eval_case = next(
@@ -141,7 +148,9 @@ def main(args=None):
         grade_result["pass_rate"] = grade_result.get("summary", {}).get("pass_rate", 0.0)
         grade_result["duration_ms"] = grade_result.get("timing", {}).get("duration_ms", 0)
 
-        os.makedirs(os.path.dirname(parsed.output), exist_ok=True)
+        output_dir = os.path.dirname(parsed.output)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
         with open(parsed.output, "w") as f:
             json.dump(grade_result, f, indent=2)
         print(f"pass_rate: {grade_result['pass_rate']}")

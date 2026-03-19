@@ -21,14 +21,30 @@ Parse the arguments from the command input. The arguments follow the patterns ab
 
 ### Step 1: Load the eval suite
 
-Run this to load and validate the eval suite:
+Run this to load and validate the eval suite (output goes to stderr):
 ```bash
-python -m evals --suite <SUITE_NAME> --dry-run
+python -m evals --suite <SUITE_NAME> --dry-run 2>&1
 ```
 
 This prints each eval case ID and its fixture path. If `--dry-run` was requested, stop here and show the output.
 
-If `--case` was specified, filter to only that case.
+If `--case` was specified, filter to only that case from the output.
+
+### Step 1b: Create results directory
+
+Create a timestamped results directory:
+```bash
+python -c "
+import os
+from datetime import datetime, timezone
+ts = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')
+results_dir = os.path.join('evals', 'results', f'run-{ts}')
+os.makedirs(results_dir, exist_ok=True)
+print(results_dir)
+"
+```
+
+Save this as RESULTS_DIR for all subsequent steps.
 
 ### Step 2: For each eval case
 
@@ -36,11 +52,11 @@ For each eval case (from the dry-run output), do the following:
 
 #### 2a. Setup fixture
 
-Copy the fixture to a temp working directory:
+Copy the fixture to a temp working directory using Bash:
 ```bash
 python -c "
-import shutil, tempfile, os, json
-fixture_path = os.path.join('evals', '<FIXTURE_PATH>')
+import shutil, tempfile, os
+fixture_path = os.path.join(os.path.dirname(os.path.abspath('evals/__init__.py')), 'evals', '<FIXTURE_PATH_FROM_DRY_RUN>')
 workdir = tempfile.mkdtemp(prefix='eval-')
 shutil.copytree(fixture_path, workdir, dirs_exist_ok=True)
 print(workdir)
