@@ -1,6 +1,7 @@
 # Local development state (dogfooding)
 .specwright/
 .claude/
+!.claude/commands/
 
 # Build output
 dist/

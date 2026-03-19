@@ -10,8 +10,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-from evals.framework.runner import ClaudeCodeRunner, RunResult
-from evals.framework.chainer import run_sequence, ChainResult
+from evals.framework.runner import ClaudeCodeRunner
+from evals.framework.chainer import run_sequence
 from evals.framework.grader import grade_eval
 from evals.framework.setup import setup_fixture, setup_repo
 from evals.framework.aggregator import aggregate_results

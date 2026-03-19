@@ -121,7 +121,7 @@ Assumptions can surface after design approval — during planning or building.
   dependency or behavioral assumption not in assumptions.md, append it with status
   `LATE-FLAGGED` and the discovery phase (`planning`).
 - **In sw-build (pre-build):** Before starting the first task, scan spec.md and
-  context.md for assumptions that may have become stale since planning. Quick pass.
+  context.md for assumptions that may have become stale since planning. Brief scan.
 - **In sw-build (post-task):** After each task commit, check: did the tester or
   executor encounter something that contradicts the spec?
 
