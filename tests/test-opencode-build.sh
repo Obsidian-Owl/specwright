@@ -295,7 +295,7 @@ fi
 
 if [ -d "$OC_DIST/protocols" ]; then
   PROTO_COUNT=$(find "$OC_DIST/protocols" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
-  assert_eq "$PROTO_COUNT" "20" "protocols/ has exactly 20 .md files"
+  assert_eq "$PROTO_COUNT" "24" "protocols/ has exactly 24 .md files"
 
   # Spot-check specific protocol files
   for proto in state.md git.md delegation.md recovery.md evidence.md; do
@@ -783,62 +783,22 @@ fi
 # ═══════════════════════════════════════════════════════════════════════
 
 echo ""
-echo "=== AC-10: Skill overrides ==="
+echo "=== AC-10: Skill transforms (no overrides) ==="
 
-echo "--- Overridden skills are transformed adapter versions ---"
+echo "--- No skill overrides configured ---"
 
-# Overridden skills should differ from adapter source (because transforms were applied)
-# and differ from core (because override content is different)
-for override_skill in sw-guard; do
-  dist_skill="$OC_DIST/skills/$override_skill/SKILL.md"
-  adapter_skill="$ROOT_DIR/adapters/opencode/skills/$override_skill/SKILL.md"
+# skillOverrides is empty — all skills come from core with transforms applied
+OVERRIDES=$(jq -r '.skillOverrides | length' "$ROOT_DIR/build/mappings/opencode.json" 2>/dev/null)
+assert_eq "$OVERRIDES" "0" "skillOverrides array is empty (no adapter overrides)"
 
-  if [ ! -f "$dist_skill" ]; then
-    fail "dist $override_skill/SKILL.md missing"
-    continue
-  fi
+echo "--- Transformed skills differ from core (tools lowercased, markers stripped) ---"
 
-  if [ ! -f "$adapter_skill" ]; then
-    fail "adapter $override_skill/SKILL.md missing"
-    continue
-  fi
-
-  # Should differ from adapter source (transforms applied: lowercased tools, protocol prefixes)
-  if diff -q "$dist_skill" "$adapter_skill" &>/dev/null; then
-    fail "dist $override_skill/SKILL.md is identical to adapter source (transforms were NOT applied)"
-  else
-    pass "dist $override_skill/SKILL.md differs from adapter source (transforms applied)"
-  fi
-
-  # Verify transformed tool names (lowercased, not uppercase)
-  OVERRIDE_FM=$(extract_frontmatter "$dist_skill" || true)
-  OVERRIDE_TOOLS=$(extract_allowed_tools "$OVERRIDE_FM")
-  if [ -n "$OVERRIDE_TOOLS" ]; then
-    HAS_UPPERCASE=$(echo "$OVERRIDE_TOOLS" | grep -E '^[A-Z]' | grep -v '^Task$' || true)
-    if [ -z "$HAS_UPPERCASE" ]; then
-      pass "dist $override_skill has lowercased tool names"
-    else
-      fail "dist $override_skill still has uppercase tools: $HAS_UPPERCASE"
-    fi
-  fi
-
-  # Verify protocol paths are rewritten
-  BARE_PROTOS=$(grep -E 'protocols/' "$dist_skill" | grep -v '\.specwright/protocols/' || true)
-  if [ -z "$BARE_PROTOS" ]; then
-    pass "dist $override_skill has rewritten protocol paths"
-  else
-    fail "dist $override_skill still has bare protocol paths"
-  fi
-done
-
-echo "--- Overridden skills do NOT match core (catch: override not applied) ---"
-
-# sw-guard must differ from core
+# sw-guard must differ from core (platform markers stripped, tools transformed)
 if [ -f "$OC_DIST/skills/sw-guard/SKILL.md" ] && [ -f "$ROOT_DIR/core/skills/sw-guard/SKILL.md" ]; then
   if diff -q "$OC_DIST/skills/sw-guard/SKILL.md" "$ROOT_DIR/core/skills/sw-guard/SKILL.md" &>/dev/null; then
-    fail "dist sw-guard matches core (override was NOT applied)"
+    fail "dist sw-guard matches core (transforms were NOT applied)"
   else
-    pass "dist sw-guard differs from core (override was applied)"
+    pass "dist sw-guard differs from core (transforms applied: tools lowercased, markers stripped)"
   fi
 fi
 
@@ -966,7 +926,7 @@ if [ -d "$CC_DIST" ]; then
 
   # protocols/ with 20 files
   CC_PROTO_COUNT=$(find "$CC_DIST/protocols" -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
-  assert_eq "$CC_PROTO_COUNT" "20" "claude-code protocols/ has 20 files"
+  assert_eq "$CC_PROTO_COUNT" "24" "claude-code protocols/ has 24 files"
 
   # Claude Code-specific: hooks/ and .claude-plugin/ exist
   if [ -d "$CC_DIST/hooks" ]; then
