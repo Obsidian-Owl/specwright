@@ -119,10 +119,11 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # Clean up stale branch/PR from previous failed runs
-          EXISTING_PR=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
+          EXISTING_PR=$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number // empty' 2>/dev/null || echo "")
           if [ -n "$EXISTING_PR" ]; then
-            gh pr close "$EXISTING_PR" --delete-branch || true
-          elif git ls-remote --exit-code origin "refs/heads/$BRANCH" >/dev/null 2>&1; then
+            gh pr close "$EXISTING_PR" --comment "Superseded by release workflow re-run" || true
+          fi
+          if git ls-remote --exit-code origin "refs/heads/$BRANCH" >/dev/null 2>&1; then
             git push origin --delete "$BRANCH" || true
           fi
 
