@@ -230,11 +230,13 @@ Every work unit passes through configurable gates before shipping. **Default sta
 
 ## Persistent Documents
 
-Two **anchor documents** drive all decisions and survive context compaction:
+Three **anchor documents** drive all decisions and survive context compaction:
 
 **`CONSTITUTION.md`** — Development practices the AI must follow. Testing standards, coding conventions, security requirements. Not suggestions — rules.
 
 **`CHARTER.md`** — Technology vision and architectural invariants. What this project is, who consumes it, what doesn't change.
+
+**`TESTING.md`** *(optional)* — Testing strategy for the project. Classifies boundaries as internal (test with real components), external (mock with contracts), or expensive (mock with rationale). Created during `/sw-init` if the user opts in. Consumed by the tester agent and test quality gate.
 
 Three optional **reference documents** accelerate research and track health:
 
@@ -308,7 +310,7 @@ See `DESIGN.md` for the complete architecture document.
 specwright/
 ├── core/              # Platform-agnostic content
 │   ├── skills/        # 19 SKILL.md files (14 user + 5 gates)
-│   ├── protocols/     # 18 shared protocols (loaded on demand)
+│   ├── protocols/     # 21 shared protocols (loaded on demand)
 │   └── agents/        # 6 custom subagent definitions
 ├── adapters/          # Platform-specific packaging
 │   ├── claude-code/   # Claude Code adapter (hooks, plugin metadata)
