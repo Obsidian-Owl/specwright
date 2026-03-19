@@ -61,7 +61,7 @@ work benefits.
 - Group by category (build, security, testing, architecture). Show: what happened, why it matters, proposed rule.
 - Use AskUserQuestion for curation. Two-step to stay within option limits:
   1. Ask: "Promote, track for later, or dismiss?"
-  2. If promote: ask where — constitution, auto-memory, or patterns.
+  2. If promote: ask where — constitution, auto-memory, patterns, or testing strategy (TESTING.md).
 - Track for later: write a BL-{n} item with `pattern` tag per `protocols/backlog.md`.
   No learning file written for tracked items (only for promoted items).
 - Maximum 5-7 learnings.
@@ -70,6 +70,7 @@ work benefits.
 - Constitution: add practice with ID (e.g., S6, Q5).
 - Auto-memory: write compact entry to MEMORY.md per `protocols/learning-lifecycle.md`.
 - Patterns: append to `.specwright/patterns.md` (create if missing). Also write a compact one-liner to auto-memory (dual-write rule per protocol).
+- Testing strategy: update `.specwright/TESTING.md` (if it exists). The `testing` category maps here. Add new boundary classifications, mock allowances, or test infrastructure notes discovered during build. If TESTING.md does not exist, fall back to patterns.md.
 - User approves exact wording before saving.
 
 **Retrospective (MEDIUM freedom):**

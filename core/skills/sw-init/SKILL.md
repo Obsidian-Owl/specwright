@@ -34,6 +34,9 @@ When complete, ALL of the following exist:
 - `.specwright/CONSTITUTION.md` -- development practices the AI must follow
 - `.specwright/CHARTER.md` -- technology vision and project identity
 - `.specwright/state/workflow.json` -- initialized empty state
+
+Optional (created if the user opts in):
+- `.specwright/TESTING.md` -- testing strategy: boundaries, infrastructure, mock allowances
 - Quality gates configured in config based on user preferences
 - Hooks set up if the user wants them
 
@@ -71,6 +74,27 @@ When complete, ALL of the following exist:
 - What technologies are foundational (not up for debate)?
 - Keep it concise -- one page, not a business plan.
 - The user must approve the charter before it's saved.
+
+**Testing strategy creation (HIGH freedom):**
+- After constitution and charter are approved, generate `.specwright/TESTING.md`.
+- Follow `protocols/testing-strategy.md` for document structure and boundary classifications.
+- Ask the user about testing boundaries using AskUserQuestion:
+  - "What external services does this project call?" (payment APIs, email, auth providers, etc.)
+  - "What's your test database strategy?" (in-memory, testcontainers, shared test DB, none)
+  - "Are there any rate-limited or cost-attached APIs?" (metered APIs, slow services)
+  - "Any other expensive or unreliable dependencies?"
+- Batch these into 1-2 questions based on what stack detection reveals.
+  Don't ask about services the codebase doesn't use.
+- Generate TESTING.md with three required sections:
+  - **Boundaries**: Classify each detected dependency as `internal` (test with real
+    components), `external` (mock with contracts), or `expensive` (mock with rationale)
+  - **Test Infrastructure**: What test database, fixtures, containers, or test servers
+    are available based on detected stack and user answers
+  - **Mock Allowances**: Which dependencies may be mocked, with explicit rationale
+    (e.g., "Stripe API: mocked in CI due to per-request cost; live in weekly integration suite")
+- The user must approve TESTING.md before it's saved.
+- If the user declines or skips: do not create TESTING.md. Constitution testing rules
+  remain the sole authority. TESTING.md is recommended but not required.
 
 **Git workflow configuration (MEDIUM freedom):**
 - Detect workflow by scanning branch names, remotes, CI files. Present detected strategy with confidence.

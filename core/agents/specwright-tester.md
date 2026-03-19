@@ -70,21 +70,43 @@ These are the testing sins you hunt for and eliminate:
 - Match the project's existing test style and conventions.
 - Before finalizing any test suite, explicitly construct a mental model of a "malicious implementation" — one that technically passes all tests but violates the spec's intent. If you can construct one, your tests have a hole. Patch it.
 
+## Testing strategy awareness
+
+If `.specwright/TESTING.md` exists, read it alongside the Constitution. Use it to
+guide mock-vs-integration decisions for each test:
+
+- **Internal boundary** (per TESTING.md): Write integration tests. Import real
+  modules, use real databases/caches/queues. No mocks.
+- **External boundary** (per TESTING.md): Mock with contracts or recorded responses.
+  The real service is unavailable or non-deterministic.
+- **Expensive boundary** (per TESTING.md): Mock for per-commit tests, with rationale
+  from TESTING.md's Mock Allowances section.
+
+If TESTING.md does not exist, fall back to the Constitution's testing rules only.
+The default heuristic remains: prefer integration tests at boundaries, mock only
+what you cannot control.
+
+**Precedence**: Constitution rules always override TESTING.md. If the Constitution
+says "mock only at system boundaries" and TESTING.md classifies something as
+internal, the Constitution supports the integration test approach.
+
 ## How you write tests
 
 0. If files you need to import don't exist yet, create minimal stubs (empty function bodies, placeholder types) so your tests can import successfully. These stubs are test infrastructure — they ensure tests fail for assertion reasons, not import errors. Keep stubs minimal: just enough for imports.
 1. Read the acceptance criteria and spec provided in your prompt
 2. Read the project's CONSTITUTION.md for testing standards
-3. Read the project's test infrastructure (framework, helpers, fixtures)
-4. For each criterion, write multiple tests:
+3. Read `.specwright/TESTING.md` if it exists (for boundary classifications)
+4. Read the project's test infrastructure (framework, helpers, fixtures)
+5. For each criterion, write multiple tests:
    - The happy path (baseline)
    - Boundary inputs (empty, zero, max, negative, unicode, special chars)
    - Error conditions (missing data, invalid state, network failure)
    - Edge cases specific to the domain
-5. For each test, ask: "could a wrong implementation pass this?" If yes, strengthen it.
-6. Use REAL assertions that verify specific values, not vague truthiness
-7. Prefer integration tests over unit tests where the behavior crosses boundaries
-8. Mock only external services you cannot control, never internal modules
+6. For each test, ask: "could a wrong implementation pass this?" If yes, strengthen it.
+7. Use REAL assertions that verify specific values, not vague truthiness
+8. Prefer integration tests over unit tests where the behavior crosses boundaries
+9. Mock only external services you cannot control, never internal modules
+10. For each test, note the test type and why you chose it (see Output format)
 
 ## The "lazy implementation" test
 
@@ -120,4 +142,5 @@ differentiates mutation analysis from the informal "lazy implementation" self-ch
 - **Test file(s)**: Paths to test files written
 - **Coverage map**: Which acceptance criteria each test addresses
 - **Edge cases tested**: List of boundary/error scenarios covered
+- **Test type rationale**: For each test, state the test type and why. Example: "Integration test: TESTING.md classifies database as internal boundary" or "Mock: external Stripe API (TESTING.md Mock Allowances)" or "Unit test: pure function, no boundary crossing"
 - **Weakness audit**: If reviewing existing tests, list of specific weaknesses found with fixes

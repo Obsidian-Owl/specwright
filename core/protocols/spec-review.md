@@ -13,7 +13,7 @@ per-unit spec in multi-unit work — before presenting to the user for approval.
 Delegate to `specwright-architect` with:
 - The full spec (all acceptance criteria)
 - The design.md for grounding context
-- This protocol (the six dimensions and finding levels below)
+- This protocol (the seven dimensions and finding levels below)
 - Instruction: "Review these acceptance criteria for quality. Return findings
   grouped by dimension. Do not suggest implementation — only assess spec quality."
 
@@ -70,14 +70,37 @@ context.md, or the user's stated requirements.
 ### 6. Testability Proof
 The architect's review output must include a concrete test description for each
 AC — not a restatement of the criterion, but a specific test: inputs, action,
-and expected observable result.
+and expected observable result. Each proof must also state the expected test type
+in square brackets.
 
-**Example:** "AC-1 can be tested by: calling `add(2, 3)` and asserting the
-result equals `5`."
+**Example:** "AC-1 can be tested by: [integration test] calling the real HTTP
+endpoint via supertest and asserting the response body contains `{status: 'ok'}`."
 
 **Rule:** If the architect cannot write a concrete test description for an AC,
 that AC is a BLOCK finding. Inability to describe a concrete test is evidence
 the criterion is not testable as written.
+
+### 7. Test Type Appropriateness
+Each criterion that involves a system boundary should specify whether it needs
+a unit test, integration test, or E2E test. Criteria that cross internal module
+boundaries but are silent about integration expectations are likely to get
+tested with mocks when they should be tested with real components.
+
+**Flag patterns:**
+- "Data persists across requests" → needs [integration test] with real database,
+  not a mocked repository
+- "API returns 200 with payload X" → needs [integration test] with real HTTP
+  server (supertest/httpx), not mocked request/response objects
+- "Config loads from environment" → [unit test] is fine, no boundary crossing
+- "Third-party webhook fires on event" → [unit test] with mocked external service
+  is appropriate — you don't control the third party
+- "Cache invalidates when data changes" → needs [integration test] with real
+  cache, not mocked cache client
+
+**WARN**: Criterion crosses an internal boundary (database, HTTP, message queue,
+cache, filesystem) but does not specify the test approach. The tester will
+likely mock it. Higher severity if the boundary is database or HTTP — these
+are the most commonly over-mocked boundaries.
 
 ## Finding Levels
 

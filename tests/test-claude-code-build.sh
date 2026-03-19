@@ -220,11 +220,11 @@ if [ -d "$CC_DIST/agents" ]; then
   done
 fi
 
-# ─── protocols/ directory: exactly 20 .md files ──────────────────────
+# ─── protocols/ directory: exactly 21 .md files ──────────────────────
 
 echo "--- protocols/ directory ---"
 
-EXPECTED_PROTO_COUNT=20
+EXPECTED_PROTO_COUNT=21
 
 if [ -d "$CC_DIST/protocols" ]; then
   pass "protocols/ directory exists"

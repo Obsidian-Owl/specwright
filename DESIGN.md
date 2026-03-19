@@ -26,13 +26,16 @@ Specwright is a cross-platform plugin for spec-driven app development. It ensure
 
 ## Anchor Documents
 
-Two persistent documents created during init, referenced throughout:
+Three persistent documents created during init, referenced throughout:
 
 **CONSTITUTION.md** -- Development Practices
 How the user wants code written. Testing standards, coding conventions, security requirements, error handling patterns. The AI MUST follow these. Validated by verify.
 
 **CHARTER.md** -- Technology Vision
 What is this repo? What are we building? Who are the consumers? Architectural invariants. The things that don't change. Referenced by plan to ensure alignment, validated by verify.
+
+**TESTING.md** -- Testing Strategy (optional)
+How the project should be tested. Classifies boundaries as internal (test with real components), external (mock with contracts), or expensive (mock with rationale). Lists test infrastructure and mock allowances. Created by sw-init, consumed by tester agent and gate-tests, updated by sw-learn. Precedence: Constitution > TESTING.md > patterns.md. See `protocols/testing-strategy.md`.
 
 ## Reference Documents
 
@@ -143,7 +146,8 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `convergence.md` | Iterative critic loop with convergence scoring, perspective lenses (Security/Performance/Operability/Simplicity), pre-mortem, charter alignment, dimension rotation | ~600 |
 | `build-context.md` | Continuation snapshots, status cards, context nudge for sw-build | ~125 |
 | `backlog.md` | Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets | ~460 |
-| `spec-review.md` | Spec quality review dimensions (including testability proof), finding levels, resolution flow | ~700 |
+| `spec-review.md` | Spec quality review dimensions (7 including test type appropriateness), finding levels, resolution flow | ~900 |
+| `testing-strategy.md` | TESTING.md lifecycle: creation, consumption, boundary classifications, precedence | ~600 |
 | `parallel-build.md` | Parallel task execution with agent teams (experimental) | ~815 |
 
 Total: ~7,130 words across 20 protocols (loaded on demand, not all at once).
@@ -255,6 +259,7 @@ Runtime state (created by init):
 ├── config.json       # Project configuration
 ├── CONSTITUTION.md   # Development practices
 ├── CHARTER.md        # Technology vision
+├── TESTING.md        # Testing strategy (optional)
 ├── LANDSCAPE.md      # Codebase knowledge (optional)
 ├── AUDIT.md          # Codebase health findings (optional)
 ├── research/         # External research briefs (optional)
