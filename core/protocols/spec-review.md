@@ -92,19 +92,15 @@ tested with mocks when they should be tested with real components.
 - "API returns 200 with payload X" → needs [integration test] with real HTTP
   server (supertest/httpx), not mocked request/response objects
 - "Config loads from environment" → [unit test] is fine, no boundary crossing
-- "Third-party webhook fires on event" → [mock] is appropriate, external service
-  you don't control
+- "Third-party webhook fires on event" → [unit test] with mocked external service
+  is appropriate — you don't control the third party
 - "Cache invalidates when data changes" → needs [integration test] with real
   cache, not mocked cache client
 
 **WARN**: Criterion crosses an internal boundary (database, HTTP, message queue,
 cache, filesystem) but does not specify the test approach. The tester will
-likely mock it.
-
-**BLOCK**: Criterion crosses a database or HTTP boundary AND the design identifies
-this as an `internal` boundary per `protocols/testing-strategy.md`, but the
-criterion has no test approach specified. This will definitely be mocked
-incorrectly.
+likely mock it. Higher severity if the boundary is database or HTTP — these
+are the most commonly over-mocked boundaries.
 
 ## Finding Levels
 

@@ -33,8 +33,10 @@ When complete, ALL of the following exist:
 - `.specwright/config.json` -- detected + configured project settings
 - `.specwright/CONSTITUTION.md` -- development practices the AI must follow
 - `.specwright/CHARTER.md` -- technology vision and project identity
-- `.specwright/TESTING.md` -- testing strategy: boundaries, infrastructure, mock allowances
 - `.specwright/state/workflow.json` -- initialized empty state
+
+Optional (created if the user opts in):
+- `.specwright/TESTING.md` -- testing strategy: boundaries, infrastructure, mock allowances
 - Quality gates configured in config based on user preferences
 - Hooks set up if the user wants them
 

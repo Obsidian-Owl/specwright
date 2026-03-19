@@ -22,7 +22,7 @@ Constitution), but it cannot override Constitution rules.
 | Skill | How it uses TESTING.md |
 |-------|----------------------|
 | `sw-init` | **Creates** TESTING.md from stack detection + user conversation |
-| `sw-design` | Identifies integration boundaries in context.md, classifying each as internal/external/expensive per TESTING.md categories |
+| `sw-design` | May reference TESTING.md when identifying integration boundaries in context.md (no SKILL.md change required — design already scans anchor docs) |
 | `sw-plan` | Spec review includes test type dimension; architect annotates each AC with expected test type |
 | `sw-build` | Tester reads TESTING.md to decide mock vs. integration for each test |
 | `sw-verify` | gate-tests validates that test approach matches TESTING.md strategy |

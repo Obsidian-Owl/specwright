@@ -33,7 +33,7 @@ Three persistent documents drive all decisions:
 - **`.specwright/CHARTER.md`** -- Technology vision. What this repo is, who consumes it, architectural invariants.
 - **`.specwright/TESTING.md`** -- Testing strategy. How the project should be tested, what boundaries exist, what may be mocked. Optional — created during init if the user opts in.
 
-All are created during init, referenced during design and plan, validated during verify. Precedence: Constitution (rules) > Testing Strategy (approach) > patterns.md (reference). Constitution always wins on conflict.
+Constitution and Charter are created during init. TESTING.md is created during init if the user opts in. All are referenced during design and plan, validated during verify. Precedence: Constitution (rules) > Testing Strategy (approach) > patterns.md (reference). Constitution always wins on conflict.
 
 ## Architecture
 
