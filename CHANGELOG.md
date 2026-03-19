@@ -21,6 +21,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.19.0] - 2026-03-19
+
+### Changed
+
+- feat(protocols): headless execution protocol for non-interactive skills (#95)
+
 ## [0.18.0] - 2026-03-19
 
 ### Changed
