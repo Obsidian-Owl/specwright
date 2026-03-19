@@ -1,8 +1,8 @@
 ---
 name: sw-guard
 description: >-
-  Detects project stack and existing guardrails, then interactively helps implement
-  automated quality checks across session, commit, push, and CI/CD layers.
+  Detects project stack and existing guardrails, then interactively configures
+  deterministic quality checks across session, commit, push, and CI/CD layers.
 argument-hint: ""
 allowed-tools:
   - Read
@@ -11,6 +11,7 @@ allowed-tools:
   - Bash
   - Glob
   - Grep
+  - WebSearch
   - AskUserQuestion
   - Task
 ---
@@ -19,64 +20,96 @@ allowed-tools:
 
 ## Goal
 
-Review the project's codebase and development tools, then interactively help the
-user implement automated guardrails tailored to their stack and preferences. Each
-layer (session, commit, push, CI/CD) is independently approvable. Existing guardrails
-are detected and preserved during re-runs.
+Detect the project's stack and interactively configure deterministic guardrails
+across four enforcement layers (session, commit, push, CI/CD). Each layer is
+independently approvable. Existing guardrails are preserved during re-runs.
 
 ## Inputs
 
-- The codebase (dependency manifests, config files, test runners, existing hooks)
-- `.specwright/config.json` -- project configuration
-- `.specwright/CONSTITUTION.md` -- practices to follow
-- Existing Claude Code settings.json, git hooks, CI workflows
-- The user's guardrail preferences
+- The codebase (dependency manifests, config files, existing hooks)
+- `.specwright/config.json` -- project configuration (optional -- not required)
+- `.specwright/CONSTITUTION.md` -- practices to follow (if present)
+- Existing agent hooks, git hooks, CI workflows
 
 ## Outputs
 
 When complete, user-approved guardrails are configured. Artifacts may include:
 
-- `.claude/settings.json` -- Claude Code session-level permissions and hooks
-- Pre-commit hook configurations (via husky, pre-commit, or lefthook)
+<!-- platform:claude-code -->
+- `.claude/settings.json` or `.claude/settings.local.json` -- session-level hooks.
+  User chooses destination (shareable vs gitignored). Use command-type hooks for
+  external tooling, prompt-type for semantic checks (per pattern P9 -- prompt hooks
+  avoid exit-code-2 bugs).
+<!-- /platform -->
+
+<!-- platform:opencode -->
+- `.opencode/plugins/*.ts` -- session-level plugin hooks using `tool.execute.before`
+  (blocking) and `tool.execute.after` (feedback).
+<!-- /platform -->
+
+- Pre-commit hook configurations (framework chosen by user)
 - Pre-push hook configurations (test runner, coverage thresholds)
-- `.github/workflows/*.yml` -- CI/CD quality checks
-- `.specwright/config.json` -- updated with tool commands (linter, formatter, test runner)
+- CI/CD workflow files (backstop checks, integration tests, security scanning)
+- `.specwright/config.json` -- updated with detected tool commands (if present)
 
 Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibility of sw-learn.
 
 ## Constraints
 
 **Detection (MEDIUM freedom):**
-- Scan codebase: language(s), framework(s), package manager, test runner, linter, formatter, type checker.
-- Read dependency manifests, git hooks, Claude Code settings, CI/CD workflows. Don't guess — read files.
-- Detect existing guardrails before recommending. Support idempotent re-runs by showing delta.
+- Follow `protocols/guardrails-detection.md` for the three-step detection algorithm
+  (manifest scan, config file scan, existing guardrail scan).
+- If `.specwright/config.json` exists, read `commands.*` fields as authoritative;
+  supplement with detection for unconfigured dimensions.
+- If `.specwright/config.json` does not exist, rely entirely on detection.
+  Validate detected tools by running them (e.g., `--version` check). Present
+  standalone recommendations with explicit "detected via heuristics" labeling.
+- For unfamiliar stacks or niche tools, use WebSearch to identify tooling conventions.
+- Detect existing guardrails before recommending. Show delta on re-runs.
 
-**User alignment (HIGH freedom):**
-- Use Guardrail Spectrum (Guardian/Balanced/Agile) for default orientation, then gather per-domain preferences.
-- Show detected stack and existing guardrails before recommending. Use AskUserQuestion with concrete options.
+**Gap analysis (MEDIUM freedom):**
+- Load the coverage model from `protocols/guardrails-patterns.md`.
+- Map detected tools against the nine enforcement dimensions. Detected tool for
+  a dimension → covered. No tool → gap. Gaps become recommendations.
+- Present the gap analysis summary to the user before recommending.
 
 **Recommendation (HIGH freedom):**
-- Organize by layer: session (Claude Code hooks), commit (pre-commit), push (pre-push), CI/CD (GitHub Actions). Each independently approvable.
-- Session layer: recommend PostToolUse hooks using detected tools. Generate inline shell commands from config.json — never hardcode tool names. User chooses destination: `.claude/settings.local.json` (gitignored) or `.claude/settings.json` (shareable). Read existing hooks first, show diff, merge (don't overwrite), detect duplicates.
-- Explain why each tool fits. Delegate to `specwright-researcher` for unfamiliar stacks. If tools conflict, present trade-offs.
+- Organize recommendations by enforcement layer. Load hook patterns from
+  `protocols/guardrails-patterns.md`.
+- Each layer is independently approvable. User chooses which layers to configure.
+- For commit hooks: present applicable frameworks with trade-offs.
+  User always chooses — never auto-select.
+- Read existing hooks first, show diff, merge (don't overwrite), detect duplicates.
+- Delegate to `specwright-researcher` for unfamiliar stacks. If tools conflict,
+  present trade-offs.
 
 **Configuration (LOW freedom):**
 - External file writes: diff-show-approve. Installation commands require explicit approval.
-- Update config.json with detected tool commands. Follow `protocols/context.md` for config updates.
+- Update config.json with detected tool commands if `.specwright/` exists.
+  Follow `protocols/context.md` for config updates.
 - Never modify CONSTITUTION.md (sw-learn's responsibility).
+
+**Headless (LOW freedom):**
+- Follow `protocols/headless.md` for non-interactive detection.
+- When headless: apply all PreToolUse blocking patterns, PostToolUse for detected
+  formatter/linter, all detected pre-commit tools, test suite for pre-push (no
+  coverage if no threshold configured), full CI backstop workflow.
+- Write headless result file on ALL exit paths including abort.
 
 ## Protocol References
 
+- `protocols/guardrails-detection.md` -- three-step stack and guardrail detection
+- `protocols/guardrails-patterns.md` -- coverage model, enforcement patterns, framework options
 - `protocols/context.md` -- config.json format and loading
-- `protocols/state.md` -- workflow state mutations if tracking guard setup progress
+- `protocols/headless.md` -- non-interactive execution detection and defaults
 - `protocols/delegation.md` -- agent delegation for researcher
 
 ## Failure Modes
 
 | Condition | Action |
 |-----------|--------|
-| .specwright/ not initialized | "Run /sw-init first" |
-| No dependency manifest | Ask user about language/framework directly |
+| No dependency manifest found | Ask user about language/framework directly |
+| Detected tool fails `--version` check | Warn user, skip that tool, ask for correct command |
 | Install command fails | Show error, let user retry or skip |
 | Detected tools conflict | Present trade-offs, let user choose |
 | Unsupported CI platform | Warn, skip CI/CD layer |
