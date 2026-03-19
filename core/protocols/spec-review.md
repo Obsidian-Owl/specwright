@@ -12,8 +12,8 @@ per-unit spec in multi-unit work — before presenting to the user for approval.
 
 Delegate to `specwright-architect` with:
 - The full spec (all acceptance criteria)
-- The design.md (or context.md for lite intensity) for grounding context
-- This protocol (the five dimensions and finding levels below)
+- The design.md for grounding context
+- This protocol (the six dimensions and finding levels below)
 - Instruction: "Review these acceptance criteria for quality. Return findings
   grouped by dimension. Do not suggest implementation — only assess spec quality."
 
@@ -66,6 +66,18 @@ scope creep or misunderstanding.
 
 **Look for:** criteria that introduce behavior not mentioned in the design.md,
 context.md, or the user's stated requirements.
+
+### 6. Testability Proof
+The architect's review output must include a concrete test description for each
+AC — not a restatement of the criterion, but a specific test: inputs, action,
+and expected observable result.
+
+**Example:** "AC-1 can be tested by: calling `add(2, 3)` and asserting the
+result equals `5`."
+
+**Rule:** If the architect cannot write a concrete test description for an AC,
+that AC is a BLOCK finding. Inability to describe a concrete test is evidence
+the criterion is not testable as written.
 
 ## Finding Levels
 

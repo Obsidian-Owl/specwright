@@ -69,8 +69,12 @@ ships when gates have passed.
   ## Acceptance Criteria
   <For each criterion: status + evidence reference>
 
+  ## Blast Radius
+  <Summary of which modules are affected and failure propagation scope, sourced from the design's blast radius section>
+
   ## Gate Results
   <Summary table: gate, status, findings count>
+  <Any SKIPPED gates must appear as: "Gate X: SKIPPED — no evidence" so reviewers can see which dimensions were not evaluated>
 
   ## Evidence
   <Links to evidence files or inline summaries>

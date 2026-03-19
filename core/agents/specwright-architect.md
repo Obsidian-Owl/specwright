@@ -59,5 +59,15 @@ Always structure your response as:
   - Impact (what breaks if the assumption is wrong)
 - **Verdict**: APPROVED or REJECTED with clear rationale
 
-When invoked for convergence scoring, also include:
+When invoked as a convergence critic (initial or follow-up pass), also include:
+
+- **Security Assessment**: Narrative. Trust boundaries, auth/authz gaps, injection surface, blast radius of compromise.
+- **Performance Assessment**: Narrative. Latency/throughput bottlenecks, unbounded queries, synchronous paths that should be async.
+- **Operability Assessment**: Narrative. Gaps in logging, alerting, rollback, or runbook coverage. Can this be operated in production?
+- **Simplicity Assessment**: Narrative. Abstraction layers, indirection, or configurability that serve no stated requirement.
+- **Pre-Mortem**: Assume this design shipped and caused a production incident 6 months later. What was the root cause? 2-3 sentences.
+- **Charter Alignment**: Does this design advance the project's stated vision? Does it violate any architectural invariants? Cite relevant charter language when flagging a concern.
+
+When invoked for convergence scoring (separate invocation from critic), output ONLY:
 - **Convergence scores**: Completeness: N/5, Coherence: N/5, Feasibility: N/5, Risk Coverage: N/5
+- Do NOT include perspective lenses, pre-mortem, or charter alignment in scoring passes — those belong to the critic pass only.

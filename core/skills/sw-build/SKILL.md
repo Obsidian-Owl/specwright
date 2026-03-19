@@ -94,6 +94,7 @@ When delegating, include in the prompt:
 - The constitution's relevant practices
 - Build and test commands from config.json
 - Behavioral reminder: surface confusion, prefer simplicity, touch only task files
+- For each AC, include one test whose purpose is to find the condition under which this criterion fails silently
 - Build agents MAY read parent `.specwright/work/{currentWork.id}/context.md` as a fallback if unit context is insufficient
 
 **Build failures (MEDIUM freedom):**

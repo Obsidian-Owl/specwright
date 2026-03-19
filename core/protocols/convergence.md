@@ -14,6 +14,43 @@ Each critic pass is scored on four dimensions (1-5):
 | **Feasibility** | Can this actually be built with the stated approach? |
 | **Risk Coverage** | Are failure modes and edge cases identified? |
 
+## Critic Output Requirements
+
+Every critic pass (initial and follow-up) must include the following sections in
+its output, in addition to findings, assumptions, and scores.
+
+### Perspective Lenses
+
+Four narrative assessments — no scores, prose only. Each addresses a specific
+quality angle that the scored dimensions do not fully capture:
+
+**Security Assessment**
+What are the trust boundaries? Are there authentication, authorization, injection,
+or data exposure risks? What is the blast radius of a compromise?
+
+**Performance Assessment**
+Where are the latency or throughput bottlenecks? Are there unbounded queries,
+missing caches, or synchronous paths that should be async?
+
+**Operability Assessment**
+Can this be deployed, monitored, and debugged in production? Are there gaps in
+logging, alerting, rollback, or runbook coverage?
+
+**Simplicity Assessment**
+Is the design more complex than the problem requires? Flag any abstraction layers,
+indirection, or configurability that serves no stated requirement.
+
+### Pre-Mortem
+
+Assume this design shipped and caused a production incident 6 months later. What
+was the root cause? Answer in 2-3 sentences.
+
+### Charter Alignment
+
+Does this design advance the project's stated vision as described in CHARTER.md?
+Does it violate any architectural invariants stated there? Cite the relevant
+charter language when flagging a concern.
+
 ## Scoring Rubric
 
 | Score | Meaning |
@@ -23,10 +60,27 @@ Each critic pass is scored on four dimensions (1-5):
 | 4 | Strong with only minor issues |
 | 5 | Comprehensive — no meaningful gaps |
 
+## Dimension Rotation
+
+Follow-up iterations use deterministic round-robin rotation to determine which
+dimension leads evaluation (i.e., is examined first and given primary emphasis
+when dimensions conflict for prioritization):
+
+| Iteration | Lead Dimension |
+|-----------|----------------|
+| 1 | Risk Coverage |
+| 2 | Completeness |
+| 3 | Coherence |
+
+Risk Coverage leads iteration 1 because it is the dimension most prone to
+optimism bias. This rotation is fixed — not random. If a fourth iteration is
+needed (rare), it leads with Feasibility.
+
 ## Procedure
 
 1. **First iteration**: the existing critic pass. The architect reviews the design,
-   produces findings and assumptions per its normal output format.
+   produces findings and assumptions per its normal output format, including all
+   perspective lens sections (see Critic Output Requirements above).
 
 2. **Scoring**: a **separate architect invocation** (not the same pass) receives the
    original design plus the critic's findings and scores each dimension 1-5.
@@ -38,7 +92,8 @@ Each critic pass is scored on four dimensions (1-5):
 
 4. **Follow-up iteration**: if any dimension scores below 4, a targeted follow-up
    critic pass runs. The follow-up receives the original design, all accumulated
-   findings, and the scores. It focuses ONLY on dimensions scoring below 4.
+   findings, and the scores. It focuses ONLY on dimensions scoring below 4,
+   leading with the dimension assigned by rotation (see Dimension Rotation above).
    After each follow-up, scoring is repeated using the same separate-invocation
    rule (step 2), then the convergence check (step 3) is applied again.
 
@@ -72,5 +127,5 @@ This section gives sw-plan visibility into design confidence levels.
 
 ## When to Skip
 
-Skip the convergence loop for Lite and Quick intensity designs. These go through
-a single critic pass (or no critic) per their existing sw-design constraints.
+The convergence loop always runs for every design. There are no intensity levels
+that bypass it.

@@ -36,8 +36,9 @@ design artifacts the user trusts. Output is a design — not specs, not code.
 When complete, ALL of the following exist in `.specwright/work/{id}/`:
 
 - `design.md` -- solution overview, approach, integration points, risk assessment
+  - Required section: `## Blast Radius` listing: modules/files the design touches, failure propagation scope for each (local/adjacent/systemic), and what the design does NOT change.
 - `context.md` -- research findings, file paths, gotchas (travels with downstream agents)
-- `assumptions.md` -- classified assumptions with resolution status (Full intensity only; Lite inlines in context.md; Quick skips)
+- `assumptions.md` -- classified assumptions with resolution status
 
 When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`. Only produce conditional artifacts when needed.
 
@@ -48,13 +49,6 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 - You produce design artifacts and research context.
 - You NEVER write specs, decompose into work units, write implementation code, create branches, or run tests.
 - After the user approves the design, STOP and present the handoff to `/sw-plan`.
-
-**Triage (MEDIUM freedom):**
-- Assess request size and complexity. Recommend an intensity level via AskUserQuestion:
-  - **Full**: multi-file, architectural, ambiguous → full design cycle, handoff to `/sw-plan`
-  - **Lite**: single concern, 1-3 files, clear scope → minimal `context.md` only (no design.md), status → `planning`, handoff to `/sw-plan`
-  - **Quick**: trivial fix, <20 lines → minimal `context.md` + `spec.md` (1-3 criteria), status → `building`, handoff to `/sw-build`
-- Default to Full when uncertain.
 
 **Research (HIGH freedom):**
 - If `.specwright/LANDSCAPE.md` exists, load it first. If stale per `protocols/landscape.md`, refresh inline and update `Snapshot:` timestamp. If missing, proceed without. Use as baseline for research.
@@ -89,8 +83,6 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
   DEFER tracks the assumption for explicit future resolution.)
 - Design CANNOT be approved while UNVERIFIED assumptions remain. User may ACCEPT or
   DEFER any assumption to unblock.
-- For Lite intensity: capture assumptions inline in `context.md` instead of a separate artifact.
-- For Quick intensity: skip assumption tracking entirely.
 
 **Change requests (MEDIUM freedom):**
 - `design.md` exists + argument: change request, re-run critic. No argument: ask — redesign, continue, or changes.
@@ -100,7 +92,7 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 
 **State mutations (LOW freedom):**
 - Follow `protocols/state.md` for all workflow.json updates.
-- Set `currentWork.status` to `designing`. Set `currentWork.intensity` to chosen level. Create work directory.
+- Set `currentWork.status` to `designing`. Create work directory.
 - Work ID: short, descriptive, kebab-case.
 
 ## Protocol References
