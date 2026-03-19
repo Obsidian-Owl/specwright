@@ -24,5 +24,5 @@
     "sonnet": "claude-sonnet-4-6"
   },
   "protocolPrefix": ".specwright/",
-  "skillOverrides": ["sw-guard"]
+  "skillOverrides": []
 }
