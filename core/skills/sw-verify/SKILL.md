@@ -63,25 +63,21 @@ and be able to discuss or override before proceeding to ship.
 **Gate invocation (MEDIUM freedom):**
 - Gates are internal skills — load their SKILL.md and execute inline (not slash commands). Pass work unit context.
 
-**Non-interactive context (LOW freedom):**
-- Follow `protocols/headless.md` when AskUserQuestion is unavailable.
-- Skip gate freshness prompts — re-run all gates regardless of age.
-- Gate failures: continue and report (run all remaining gates, record results).
-  Do not ask fix/skip/abort.
-- All gate results are written to evidence directory (already standard behavior).
-- Write `headless-result.json` with `status: "completed"`, aggregate `pass_rate`,
-  and per-gate verdicts.
-
 **Freshness (LOW freedom):**
 - Check existing gate results in workflow.json before running.
-- If a gate result exists and is less than 30 minutes old, ask the user: re-run or keep?
-- If older than 30 minutes, re-run automatically.
+- **Interactive**: If a gate result exists and is less than 30 minutes old, ask the user: re-run or keep?
+- **Headless** (per `protocols/headless.md`): Re-run all gates regardless of age.
+- If older than 30 minutes, re-run automatically (both modes).
 
 **Failure handling (MEDIUM freedom):**
-- If a gate returns FAIL or ERROR, show findings to the user immediately.
-- Ask: fix now, skip this gate, or abort verification?
-- If user chooses to fix, pause verification. Resume after fix.
-- If user skips, record SKIP status for that gate.
+- If a gate returns FAIL or ERROR:
+  - **Interactive**: Show findings immediately. Ask: fix now, skip this gate, or abort?
+  - **Headless** (per `protocols/headless.md`): Continue and report. Run all remaining
+    gates, record all results. Do not ask fix/skip/abort.
+- If user chooses to fix (interactive), pause verification. Resume after fix.
+- If user skips (interactive), record SKIP status for that gate.
+- On headless completion: write `headless-result.json` with `status: "completed"`,
+  aggregate `pass_rate`, and per-gate verdicts.
 
 **Aggregate report (MEDIUM freedom):**
 - After all gates, present two tiers:
@@ -103,6 +99,7 @@ and be able to discuss or override before proceeding to ship.
 - `protocols/state.md` -- workflow state and locking
 - `protocols/evidence.md` -- evidence freshness and storage
 - `protocols/gate-verdict.md` -- verdict rendering
+- `protocols/headless.md` -- non-interactive execution defaults
 - `protocols/context.md` -- config and anchor doc loading
 
 ## Failure Modes

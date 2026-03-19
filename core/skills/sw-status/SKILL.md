@@ -56,9 +56,11 @@ next. If they're stuck, give them a way out with `--reset`.
 **Non-interactive context (LOW freedom):**
 - Follow `protocols/headless.md` when AskUserQuestion is unavailable.
 - `--reset`: **abort** without confirming (do not reset without explicit human confirmation).
+  Write `headless-result.json` with `status: "aborted"`, `error: "reset requires confirmation"`.
 - `--cleanup`: **report-only** — list orphaned directories but do not delete any.
   Output the list so the calling system can process it.
 - Default display mode (no flags): already headless-safe — reads state and formats output.
+- Write `headless-result.json` with `status: "completed"`, `pass_rate: null`.
 
 **Reset mode (LOW freedom):**
 - If `--reset` argument is given:

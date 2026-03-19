@@ -6,14 +6,20 @@ is unavailable).
 
 ## Detection
 
-At the **first** decision point requiring user input, attempt AskUserQuestion.
+Detect headless context **at skill start** (before any work), not at the
+first decision point. The skill probes AskUserQuestion availability once:
 
 - If the tool is **not in the toolset**: the skill is running headlessly.
 - If the tool **returns a rejection or error**: the skill is running headlessly.
+- If the tool **is available and responds**: the skill is running interactively.
 
-**Cache this detection for the remainder of the session.** Do not re-attempt
-AskUserQuestion at subsequent decision points. All remaining decisions use
-the headless defaults from the policy table below.
+**Cache this detection for the remainder of the session.** Do not re-probe
+at subsequent decision points. All remaining decisions use the headless
+defaults from the policy table below.
+
+**Clean runs**: Skills that complete without hitting any decision point still
+write `headless-result.json` if headless mode was detected at startup. This
+ensures CI pipelines always get a machine-readable result file.
 
 Interactive sessions are never affected — this protocol only activates when
 AskUserQuestion is genuinely unavailable.
@@ -85,9 +91,12 @@ work directory (`{currentWork.workDir}/headless-result.json`):
 - `"failed"` — skill encountered an unrecoverable error
 - `"aborted"` — skill aborted due to headless policy (e.g., build failure, uncommitted changes)
 
-This file is the machine-readable signal for CI systems. Parse `status` to
-gate PR merges: `completed` with acceptable `pass_rate` = proceed;
-`failed` or `aborted` = block.
+This file is the machine-readable signal for CI systems:
+- `"completed"` = skill finished. Check `pass_rate` if present.
+- `"failed"` or `"aborted"` = block the pipeline.
+- `pass_rate` threshold is **caller-defined** (not set by the protocol).
+  CI pipelines should configure their own acceptance threshold.
+  If no `pass_rate` is relevant (e.g., sw-ship, sw-status), the field is `null`.
 
 ## Platform Compatibility
 
