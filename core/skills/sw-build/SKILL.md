@@ -97,6 +97,12 @@ When delegating, include in the prompt:
 - For each AC, include one test whose purpose is to find the condition under which this criterion fails silently
 - Build agents MAY read parent `.specwright/work/{currentWork.id}/context.md` as a fallback if unit context is insufficient
 
+**Non-interactive context (LOW freedom):**
+- Follow `protocols/headless.md` when AskUserQuestion is unavailable.
+- Build failure after 2 fix attempts: **abort** (do not ask fix/skip/abort).
+  Partial progress is preserved on the branch — all prior task commits remain.
+  Write `headless-result.json` with `status: "aborted"` and the error message.
+
 **Build failures (MEDIUM freedom):**
 - If tests fail after GREEN: delegate to `specwright-build-fixer` (max 2 attempts)
 - If build-fixer fails twice: STOP and show the user the error. Don't loop.
