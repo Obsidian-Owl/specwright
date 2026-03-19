@@ -67,6 +67,18 @@ scope creep or misunderstanding.
 **Look for:** criteria that introduce behavior not mentioned in the design.md,
 context.md, or the user's stated requirements.
 
+### 6. Testability Proof
+The architect's review output must include a concrete test description for each
+AC — not a restatement of the criterion, but a specific test: inputs, action,
+and expected observable result.
+
+**Example:** "AC-1 can be tested by: calling `add(2, 3)` and asserting the
+result equals `5`."
+
+**Rule:** If the architect cannot write a concrete test description for an AC,
+that AC is a BLOCK finding. Inability to describe a concrete test is evidence
+the criterion is not testable as written.
+
 ## Finding Levels
 
 | Level | Meaning | Action required |

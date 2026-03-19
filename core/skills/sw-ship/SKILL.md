@@ -69,6 +69,9 @@ ships when gates have passed.
   ## Acceptance Criteria
   <For each criterion: status + evidence reference>
 
+  ## Blast Radius
+  <Summary of which modules are affected and failure propagation scope, sourced from the design's blast radius section>
+
   ## Gate Results
   <Summary table: gate, status, findings count>
 

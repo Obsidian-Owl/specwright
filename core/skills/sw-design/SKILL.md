@@ -36,6 +36,7 @@ design artifacts the user trusts. Output is a design — not specs, not code.
 When complete, ALL of the following exist in `.specwright/work/{id}/`:
 
 - `design.md` -- solution overview, approach, integration points, risk assessment
+  - Required section: `## Blast Radius` listing: modules/files the design touches, failure propagation scope for each (local/adjacent/systemic), and what the design does NOT change.
 - `context.md` -- research findings, file paths, gotchas (travels with downstream agents)
 - `assumptions.md` -- classified assumptions with resolution status
 

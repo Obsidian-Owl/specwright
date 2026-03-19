@@ -80,6 +80,7 @@ The parent `context.md` (design research) is never overwritten.
   Unit 2: {name} → /sw-build → /sw-verify → /sw-ship
   ```
 - Decomposition is complete when: each unit has a clear single purpose (describable in one sentence), dependencies are identified and ordered, each unit's spec has 3+ testable acceptance criteria, and an implementer could start any unit from its artifacts alone.
+- Note: If the design's Blast Radius section identifies high-blast-radius (systemic) components, those components should get their own work unit to contain risk.
 
 **Spec — single-unit (MEDIUM freedom):**
 - Write acceptance criteria the tester can turn into brutal tests.
