@@ -148,6 +148,7 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `backlog.md` | Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets | ~460 |
 | `spec-review.md` | Spec quality review dimensions (7 including test type appropriateness), finding levels, resolution flow | ~900 |
 | `testing-strategy.md` | TESTING.md lifecycle: creation, consumption, boundary classifications, precedence | ~600 |
+| `headless.md` | Non-interactive execution: detection (AskUserQuestion availability), default policies, headless-result.json format | ~700 |
 | `parallel-build.md` | Parallel task execution with agent teams (experimental) | ~815 |
 
 Total: ~7,130 words across 20 protocols (loaded on demand, not all at once).

@@ -67,6 +67,7 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `backlog.md` -- Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets
 - `spec-review.md` -- Spec quality review dimensions (7), finding levels, resolution flow
 - `testing-strategy.md` -- Testing strategy lifecycle: TESTING.md creation, consumption, boundary classifications
+- `headless.md` -- Non-interactive execution: detection, default policies, result summary format
 - `parallel-build.md` -- Parallel task execution with agent teams (experimental)
 
 ## Key Rules
