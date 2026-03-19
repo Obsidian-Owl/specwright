@@ -67,9 +67,9 @@ def main(args=None):
     parser.add_argument(
         "--timeout",
         type=int,
-        default=300,
+        default=600,
         metavar="SECONDS",
-        help="Per-skill timeout in seconds (default: 300)",
+        help="Per-skill timeout in seconds (default: 600)",
     )
     parser.add_argument(
         "--dry-run",

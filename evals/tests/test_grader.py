@@ -24,6 +24,12 @@ import time
 import unittest
 from unittest.mock import patch, MagicMock
 
+def _wrap_as_stream_json(text: str) -> str:
+    """Wrap text in NDJSON stream-json format for model grader mocks."""
+    event = {"type": "assistant", "message": {"content": [{"type": "text", "text": text}]}}
+    return json.dumps(event) + "\n"
+
+
 from evals.framework.grader import (
     CheckResult,
     VALID_TRANSITIONS,
@@ -1212,7 +1218,7 @@ class TestModelGradeSkip(unittest.TestCase):
     def test_model_grade_counts_as_pass_when_score_high(self, mock_run):
         mock_run.return_value = MagicMock(
             returncode=0,
-            stdout='{"score": 0.9, "passed": true, "evidence": "Good"}',
+            stdout=_wrap_as_stream_json('{"score": 0.9, "passed": true, "evidence": "Good"}'),
             stderr="",
         )
         eval_case = {
@@ -1228,7 +1234,7 @@ class TestModelGradeSkip(unittest.TestCase):
     def test_model_grade_counts_as_fail_when_score_low(self, mock_run):
         mock_run.return_value = MagicMock(
             returncode=0,
-            stdout='{"score": 0.3, "passed": false, "evidence": "Poor"}',
+            stdout=_wrap_as_stream_json('{"score": 0.3, "passed": false, "evidence": "Poor"}'),
             stderr="",
         )
         eval_case = {
@@ -1250,7 +1256,7 @@ class TestModelGradeSkip(unittest.TestCase):
         with patch("evals.framework.model_grader.subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
                 returncode=0,
-                stdout='{"score": 0.9, "passed": true, "evidence": "OK"}',
+                stdout=_wrap_as_stream_json('{"score": 0.9, "passed": true, "evidence": "OK"}'),
                 stderr="",
             )
             result = grade_eval(eval_case, self.workdir)

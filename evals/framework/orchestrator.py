@@ -208,16 +208,18 @@ def run_single_eval(
     snapshots: List[Dict] = []
     exec_error: Optional[str] = None
 
+    run_result = None
+
     try:
         try:
             if layer == _LAYER_SKILL:
                 resolved_prompt = _resolve_prompt_layer1(eval_case)
-                runner.run_skill(
+                run_result = runner.run_skill(
                     skill=eval_case["skill"],
                     prompt=resolved_prompt,
                     workdir=workdir,
                     timeout=timeout,
-                    )
+                )
             else:
                 skills = eval_case.get("sequence") or eval_case.get("workflow") or []
                 prompts_dict = _resolve_prompts_layer2(eval_case)
@@ -227,8 +229,10 @@ def run_single_eval(
                     prompts=prompts_dict,
                     workdir=workdir,
                     timeout_per_skill=timeout,
-                    )
+                )
                 snapshots = chain_result.snapshots
+                if chain_result.steps:
+                    run_result = chain_result.steps[-1]
 
         except Exception as exc:
             exec_error = f"{type(exc).__name__}: {exc}"
@@ -236,6 +240,14 @@ def run_single_eval(
         grade_result = grade_eval(eval_case, workdir, snapshots)
         if exec_error:
             grade_result["error"] = exec_error
+
+        # Add execution telemetry from runner
+        if run_result is not None:
+            grade_result["execution"] = {
+                "exit_code": run_result.exit_code,
+                "duration_ms": run_result.duration_ms,
+                "tokens": run_result.tokens,
+            }
 
         _write_grading_json(
             trial_dir=trial_dir,
