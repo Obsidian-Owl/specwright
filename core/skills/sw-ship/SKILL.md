@@ -74,6 +74,7 @@ ships when gates have passed.
 
   ## Gate Results
   <Summary table: gate, status, findings count>
+  <Any SKIPPED gates must appear as: "Gate X: SKIPPED — no evidence" so reviewers can see which dimensions were not evaluated>
 
   ## Evidence
   <Links to evidence files or inline summaries>

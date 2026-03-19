@@ -44,6 +44,12 @@ and be able to discuss or override before proceeding to ship.
 - After showing the aggregate report, STOP and present the handoff using
   the three-tier posture defined in the aggregate report constraint below.
 
+**Assumption re-validation (LOW freedom) — runs before gate execution:**
+- Scan `assumptions.md` from the work unit's design-level directory (`.specwright/work/{currentWork.id}/assumptions.md`).
+- For each assumption with status ACCEPTED or VERIFIED: check whether it is still valid given the implementation (file contents, interfaces, behaviour).
+- Any assumption that no longer holds becomes a WARN finding in the aggregate report, using the same findings table as gate results.
+- This step runs silently — no new user interaction point. Findings appear in the existing aggregate report.
+
 **Gate execution order (LOW freedom):**
 - Read enabled gates from `config.json` `gates.enabled`.
 - Execute in dependency order:
@@ -72,6 +78,7 @@ and be able to discuss or override before proceeding to ship.
 - After all gates, present two tiers:
   1. **Per-finding detail** (first): every BLOCK/WARN grouped by gate — what, why, recommended action.
   2. **Summary table** (after): `| Gate | Status | Findings (B/W/I) |`
+- SKIP gates MUST be prominently marked in the report. For each skipped gate, add an entry to the summary table with the note: "Gate {name} was SKIPPED — no evidence exists for this dimension."
 - After all gates, check escalation heuristics per `protocols/gate-verdict.md`.
 - Handoff: BLOCKs → "Fix and re-run `/sw-verify`." WARNs only → "Review, then fix or `/sw-ship`." All PASS → "Ready for `/sw-ship`."
 
