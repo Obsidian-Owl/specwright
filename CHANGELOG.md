@@ -20,6 +20,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.18.0] - 2026-03-19
+
+### Changed
+
+- feat(testing): TESTING.md anchor document + spec review test-type dimension (#92)
+
 ## [0.17.0] - 2026-03-19
 
 ### Changed
