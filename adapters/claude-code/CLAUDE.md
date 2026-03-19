@@ -27,12 +27,13 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 
 ## Anchor Documents
 
-Two persistent documents drive all decisions:
+Three persistent documents drive all decisions:
 
 - **`.specwright/CONSTITUTION.md`** -- Development practices. How the user wants code written. The AI MUST follow these.
 - **`.specwright/CHARTER.md`** -- Technology vision. What this repo is, who consumes it, architectural invariants.
+- **`.specwright/TESTING.md`** -- Testing strategy. How the project should be tested, what boundaries exist, what may be mocked. Optional — created during init if the user opts in.
 
-Both are created during init, referenced during design and plan, validated during verify.
+All are created during init, referenced during design and plan, validated during verify. Precedence: Constitution (rules) > Testing Strategy (approach) > patterns.md (reference). Constitution always wins on conflict.
 
 ## Architecture
 
@@ -64,7 +65,8 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `convergence.md` -- Iterative critic loop with convergence scoring for sw-design
 - `build-context.md` -- Continuation snapshots, status cards, and context nudge for sw-build
 - `backlog.md` -- Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets
-- `spec-review.md` -- Spec quality review dimensions, finding levels, resolution flow
+- `spec-review.md` -- Spec quality review dimensions (7), finding levels, resolution flow
+- `testing-strategy.md` -- Testing strategy lifecycle: TESTING.md creation, consumption, boundary classifications
 - `parallel-build.md` -- Parallel task execution with agent teams (experimental)
 
 ## Key Rules
