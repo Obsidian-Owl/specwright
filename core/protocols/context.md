@@ -7,6 +7,7 @@ Load when needed for alignment/verification:
 
 - `.specwright/CONSTITUTION.md` — Development practices and principles
 - `.specwright/CHARTER.md` — Technology vision and project purpose
+- `.specwright/TESTING.md` — Testing strategy: boundaries, mock allowances, test infrastructure (optional — if absent, Constitution testing rules are the sole authority. See `protocols/testing-strategy.md` for precedence: Constitution > TESTING.md > patterns.md)
 
 ### Configuration
 - `.specwright/config.json` — Project settings, commands, gates, git, integration
@@ -54,6 +55,7 @@ if (!state.currentWorkUnit && requiresWorkUnit) {
 **Load on demand:**
 - CONSTITUTION.md (when verifying practices)
 - CHARTER.md (when verifying vision alignment)
+- TESTING.md (when writing or auditing tests — if it exists)
 - Work unit artifacts (when operating on specific epic/task)
 
 ## Error Handling
