@@ -12,7 +12,7 @@ per-unit spec in multi-unit work — before presenting to the user for approval.
 
 Delegate to `specwright-architect` with:
 - The full spec (all acceptance criteria)
-- The design.md (or context.md for lite intensity) for grounding context
+- The design.md for grounding context
 - This protocol (the five dimensions and finding levels below)
 - Instruction: "Review these acceptance criteria for quality. Return findings
   grouped by dimension. Do not suggest implementation — only assess spec quality."

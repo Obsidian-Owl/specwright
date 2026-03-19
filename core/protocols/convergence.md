@@ -126,5 +126,5 @@ This section gives sw-plan visibility into design confidence levels.
 
 ## When to Skip
 
-Skip the convergence loop for Lite and Quick intensity designs. These go through
-a single critic pass (or no critic) per their existing sw-design constraints.
+The convergence loop always runs for every design. There are no intensity levels
+that bypass it.
