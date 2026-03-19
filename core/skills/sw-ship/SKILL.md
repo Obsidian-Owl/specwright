@@ -53,6 +53,13 @@ ships when gates have passed.
 - Check evidence freshness: gate results older than 30 minutes trigger a warning.
 - Check for uncommitted changes. If any, ask user: commit them or abort.
 
+**Non-interactive context (LOW freedom):**
+- Follow `protocols/headless.md` when AskUserQuestion is unavailable.
+- Uncommitted changes: **abort** (do not auto-commit unknown changes).
+- PR creation: **always create PR** (never ask about direct merge).
+- Evidence freshness warnings: log them, do not prompt.
+- Write `headless-result.json` with `status: "completed"` and the PR URL.
+
 **PR creation (MEDIUM freedom):**
 - Follow `protocols/git.md` for push and PR operations.
 - Read `config.json` `git` section for strategy-aware behavior:

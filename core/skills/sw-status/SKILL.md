@@ -53,6 +53,13 @@ next. If they're stuck, give them a way out with `--reset`.
 - If work is complete: suggest `/sw-ship`.
 - Be concise. This is a dashboard, not a report.
 
+**Non-interactive context (LOW freedom):**
+- Follow `protocols/headless.md` when AskUserQuestion is unavailable.
+- `--reset`: **abort** without confirming (do not reset without explicit human confirmation).
+- `--cleanup`: **report-only** — list orphaned directories but do not delete any.
+  Output the list so the calling system can process it.
+- Default display mode (no flags): already headless-safe — reads state and formats output.
+
 **Reset mode (LOW freedom):**
 - If `--reset` argument is given:
   - Confirm with user: "This will abandon work unit '{id}'. Are you sure?"
