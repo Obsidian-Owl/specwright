@@ -117,6 +117,16 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Clean up stale branch/PR from previous failed runs
+          EXISTING_PR=$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number // empty' 2>/dev/null || echo "")
+          if [ -n "$EXISTING_PR" ]; then
+            gh pr close "$EXISTING_PR" --comment "Superseded by release workflow re-run" || true
+          fi
+          if git ls-remote --exit-code origin "refs/heads/$BRANCH" >/dev/null 2>&1; then
+            git push origin --delete "$BRANCH" || true
+          fi
+
           git checkout -b "$BRANCH"
           git add adapters/claude-code/.claude-plugin/plugin.json adapters/claude-code/.claude-plugin/marketplace.json adapters/opencode/package.json README.md CHANGELOG.md .github/banner.svg
           git commit -m "chore(release): v${VERSION}"
