@@ -24,6 +24,7 @@ test quality, not just pass/fail.
 ## Inputs
 
 - `.specwright/config.json` -- test commands, project language
+- `.specwright/TESTING.md` -- testing strategy with boundary classifications (optional)
 - `.specwright/state/workflow.json` -- current work unit
 - Test files in the codebase
 
@@ -48,6 +49,7 @@ test quality, not just pass/fail.
   - **Error paths**: Are failure scenarios tested? (network down, invalid input)
   - **Behavior focus**: Do tests verify behavior or implementation details?
   - **Mutation resistance**: Could a trivially wrong implementation pass? Test against three bypass classes: hardcoded returns, partial implementations, boundary skips.
+  - **Boundary test approach** (if `.specwright/TESTING.md` exists): For boundaries classified as `internal` in TESTING.md, verify that tests use real components (not mocks). A test that mocks an internal boundary is a WARN finding: "Internal boundary X is mocked — TESTING.md classifies it as internal (should use real component)." If TESTING.md does not exist, skip this dimension and note "TESTING.md not found — boundary validation skipped" as an INFO finding.
 - Each weakness is a finding with severity and file:line reference.
 
 **Verdict (LOW freedom):**
