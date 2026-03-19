@@ -99,8 +99,12 @@ When delegating, include in the prompt:
 
 **Build failures (MEDIUM freedom):**
 - If tests fail after GREEN: delegate to `specwright-build-fixer` (max 2 attempts)
-- If build-fixer fails twice: STOP and show the user the error. Don't loop.
+- If build-fixer fails twice:
+  - **Interactive**: STOP and show the user the error. Don't loop.
+  - **Headless** (per `protocols/headless.md`): **abort** — write `headless-result.json`
+    with `status: "aborted"` and the error. Partial progress preserved on branch.
 - If RED phase tests don't fail: the tests are wrong. Tell the tester to fix them.
+- On headless completion (all tasks done): write `headless-result.json` with `status: "completed"`.
 
 **Commits (LOW freedom):**
 - One commit per completed task. Follow `protocols/git.md`.
@@ -158,6 +162,7 @@ When delegating, include in the prompt:
 - `protocols/recovery.md` -- compaction recovery
 - `protocols/build-quality.md` -- post-build review and as-built notes
 - `protocols/build-context.md` -- continuation snapshots, status cards, context nudge
+- `protocols/headless.md` -- non-interactive execution defaults
 - `protocols/parallel-build.md` -- parallel task execution with agent teams
 
 ## Failure Modes
