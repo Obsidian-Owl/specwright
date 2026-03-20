@@ -878,19 +878,11 @@ fi
 
 # --- AC-7b: skillOverrides array has exactly 1 element ---
 
-echo "--- skillOverrides array has exactly 1 element ---"
+echo "--- skillOverrides array is empty (no adapter overrides) ---"
 
 OVERRIDES_COUNT=$(jq '.skillOverrides | length' "$OPENCODE_MAPPINGS" 2>/dev/null)
-assert_eq "$OVERRIDES_COUNT" "1" \
-  "AC-7b: skillOverrides array length is exactly 1"
-
-# --- AC-7c: The single element is sw-guard ---
-
-echo "--- The single skillOverride is sw-guard ---"
-
-FIRST_OVERRIDE=$(jq -r '.skillOverrides[0]' "$OPENCODE_MAPPINGS" 2>/dev/null)
-assert_eq "$FIRST_OVERRIDE" "sw-guard" \
-  "AC-7c: skillOverrides[0] is 'sw-guard'"
+assert_eq "$OVERRIDES_COUNT" "0" \
+  "AC-7b: skillOverrides array is empty (all overrides removed, using platform markers)"
 
 # --- AC-7d: sw-build is NOT in skillOverrides ---
 
@@ -932,20 +924,13 @@ else
   fail "AC-8: test-opencode-build.sh reports 0 failures (got: $BUILD_TEST_LAST_LINE)"
 fi
 
-# AC-8 specifics: verify the test file itself was updated correctly.
-# The AC-10 override loop must iterate only sw-guard (not sw-build).
+# AC-8 specifics: verify the test file itself reflects no overrides.
+# The AC-10 section should check skillOverrides is empty, not loop overrides.
 
-AC10_LOOP_LINE=$(grep -n 'for override_skill in' "$ROOT_DIR/tests/test-opencode-build.sh" || true)
-if echo "$AC10_LOOP_LINE" | grep -q 'sw-build'; then
-  fail "AC-8: test-opencode-build.sh AC-10 loop still includes sw-build"
+if grep -q 'skillOverrides array is empty' "$ROOT_DIR/tests/test-opencode-build.sh"; then
+  pass "AC-8: test-opencode-build.sh verifies empty skillOverrides"
 else
-  pass "AC-8: test-opencode-build.sh AC-10 loop does not include sw-build"
-fi
-
-if echo "$AC10_LOOP_LINE" | grep -q 'sw-guard'; then
-  pass "AC-8: test-opencode-build.sh AC-10 loop includes sw-guard"
-else
-  fail "AC-8: test-opencode-build.sh AC-10 loop missing sw-guard"
+  fail "AC-8: test-opencode-build.sh missing empty skillOverrides check"
 fi
 
 # The test file must have a NEW section that verifies the dist opencode sw-build
@@ -982,65 +967,31 @@ else
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
-# AC-9: Opencode overrides test updated for new pattern
+# AC-9: No adapter overrides exist (all use platform markers now)
 # ═══════════════════════════════════════════════════════════════════════
 
 echo ""
-echo "=== AC-9: Opencode overrides test updated for new pattern ==="
+echo "=== AC-9: No adapter skill overrides ==="
 echo ""
 
-# The overrides test file must exit 0 (all its assertions pass).
-# Run once and capture both exit code and output.
-
-OVERRIDE_TEST_FULL_OUTPUT=$(bash "$ROOT_DIR/tests/test-opencode-overrides.sh" < /dev/null 2>&1)
-OVERRIDE_TEST_EXIT=$?
-OVERRIDE_TEST_LAST_LINE=$(echo "$OVERRIDE_TEST_FULL_OUTPUT" | tail -1)
-
-if [ "$OVERRIDE_TEST_EXIT" -eq 0 ]; then
-  pass "AC-9: test-opencode-overrides.sh exits 0"
+# No adapter override directories should exist
+if [ -d "$ROOT_DIR/adapters/opencode/skills/sw-guard" ]; then
+  fail "AC-9a: adapters/opencode/skills/sw-guard/ still exists (should be deleted)"
 else
-  fail "AC-9: test-opencode-overrides.sh exits 0"
+  pass "AC-9a: adapters/opencode/skills/sw-guard/ does not exist"
 fi
 
-if echo "$OVERRIDE_TEST_LAST_LINE" | grep -q "0 failed"; then
-  pass "AC-9: test-opencode-overrides.sh reports 0 failures"
+if [ -d "$ROOT_DIR/adapters/opencode/skills/sw-build" ]; then
+  fail "AC-9b: adapters/opencode/skills/sw-build/ still exists (should be deleted)"
 else
-  fail "AC-9: test-opencode-overrides.sh reports 0 failures (got: $OVERRIDE_TEST_LAST_LINE)"
+  pass "AC-9b: adapters/opencode/skills/sw-build/ does not exist"
 fi
 
-# AC-9 specifics: verify the overrides test checks the new pattern.
-
-OVERRIDE_TEST_CONTENT=$(cat "$ROOT_DIR/tests/test-opencode-overrides.sh")
-
-# (a) Must verify adapters/opencode/skills/sw-build/SKILL.md does NOT exist.
-# The test must treat non-existence as a PASS (not a failure).
-# We check for a "! -f" test pattern with a corresponding pass() call,
-# which distinguishes the new pattern from the old one that treated non-existence as fail.
-if echo "$OVERRIDE_TEST_CONTENT" | grep -q '! -f.*sw-build'; then
-  pass "AC-9a: test-opencode-overrides.sh has ! -f check for sw-build override"
+# The overrides test file should not exist (no overrides to test)
+if [ -f "$ROOT_DIR/tests/test-opencode-overrides.sh" ]; then
+  fail "AC-9c: test-opencode-overrides.sh still exists (no overrides to test)"
 else
-  fail "AC-9a: test-opencode-overrides.sh missing ! -f check that sw-build override does not exist"
-fi
-
-# (b) Must verify core/skills/sw-build/SKILL.md contains platform:claude-code marker
-if echo "$OVERRIDE_TEST_CONTENT" | grep -q 'platform:claude-code'; then
-  pass "AC-9b: test-opencode-overrides.sh checks for platform:claude-code in core sw-build"
-else
-  fail "AC-9b: test-opencode-overrides.sh missing check for platform:claude-code in core sw-build"
-fi
-
-# (c) Must verify skillOverrides does not contain sw-build
-if echo "$OVERRIDE_TEST_CONTENT" | grep -q 'skillOverrides.*sw-build\|sw-build.*skillOverrides'; then
-  pass "AC-9c: test-opencode-overrides.sh checks skillOverrides excludes sw-build"
-else
-  fail "AC-9c: test-opencode-overrides.sh missing check that skillOverrides excludes sw-build"
-fi
-
-# The sw-guard tests must be unchanged -- verify they still exist
-if echo "$OVERRIDE_TEST_CONTENT" | grep -q 'sw-guard.*SKILL.md'; then
-  pass "AC-9: test-opencode-overrides.sh still has sw-guard tests"
-else
-  fail "AC-9: test-opencode-overrides.sh lost sw-guard tests (should be unchanged)"
+  pass "AC-9c: test-opencode-overrides.sh removed (no overrides to test)"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1086,7 +1037,7 @@ fi
 assert_eq "$CC_AGENT_COUNT" "6" \
   "AC-10c: claude-code dist contains 6 agent files"
 
-# --- AC-10d: claude-code dist has exactly 19 protocol files ---
+# --- AC-10d: claude-code dist has exactly 24 protocol files ---
 
 echo "--- claude-code dist protocol file count ---"
 
@@ -1094,8 +1045,8 @@ CC_PROTOCOL_COUNT=0
 if [ -d "$ROOT_DIR/dist/claude-code/protocols" ]; then
   CC_PROTOCOL_COUNT=$(find "$ROOT_DIR/dist/claude-code/protocols" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')
 fi
-assert_eq "$CC_PROTOCOL_COUNT" "19" \
-  "AC-10d: claude-code dist contains 19 protocol files"
+assert_eq "$CC_PROTOCOL_COUNT" "24" \
+  "AC-10d: claude-code dist contains 24 protocol files"
 
 # --- AC-10e: opencode dist has exactly 19 skill directories ---
 
@@ -1119,7 +1070,7 @@ fi
 assert_eq "$OC_AGENT_COUNT" "6" \
   "AC-10f: opencode dist contains 6 agent files"
 
-# --- AC-10g: opencode dist has exactly 19 protocol files ---
+# --- AC-10g: opencode dist has exactly 24 protocol files ---
 
 echo "--- opencode dist protocol file count ---"
 
@@ -1127,8 +1078,8 @@ OC_PROTOCOL_COUNT=0
 if [ -d "$ROOT_DIR/dist/opencode/protocols" ]; then
   OC_PROTOCOL_COUNT=$(find "$ROOT_DIR/dist/opencode/protocols" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')
 fi
-assert_eq "$OC_PROTOCOL_COUNT" "19" \
-  "AC-10g: opencode dist contains 19 protocol files"
+assert_eq "$OC_PROTOCOL_COUNT" "24" \
+  "AC-10g: opencode dist contains 24 protocol files"
 
 # ═══════════════════════════════════════════════════════════════════════
 # AC-11: Documentation reflects platform markers and override changes
@@ -1183,22 +1134,15 @@ else
   pass "AC-11b: DESIGN.md does not reference sw-build as an override"
 fi
 
-# --- AC-11c: If DESIGN.md mentions skillOverrides, it only references sw-guard ---
+# --- AC-11c: DESIGN.md reflects no skill overrides ---
 
-echo "--- If DESIGN.md mentions skillOverrides, only sw-guard is listed ---"
+echo "--- DESIGN.md reflects no adapter skill overrides ---"
 
-SKILL_OVERRIDE_LINES=$(grep -i 'skillOverrides\|skill.override' "$DESIGN_DOC" 2>/dev/null || true)
-if [ -n "$SKILL_OVERRIDE_LINES" ]; then
-  # skillOverrides is mentioned -- verify sw-build is NOT referenced alongside it
-  if echo "$SKILL_OVERRIDE_LINES" | grep -qi 'sw-build'; then
-    fail "AC-11c: DESIGN.md skillOverrides mention includes sw-build (should only be sw-guard)"
-    echo "    found: $SKILL_OVERRIDE_LINES"
-  else
-    pass "AC-11c: DESIGN.md skillOverrides does not include sw-build"
-  fi
+# DESIGN.md should say "currently: none" for skill overrides, not reference specific skills
+if grep -q 'currently: none' "$DESIGN_DOC"; then
+  pass "AC-11c: DESIGN.md skill overrides says 'currently: none'"
 else
-  # No mention of skillOverrides at all -- acceptable
-  pass "AC-11c: DESIGN.md does not mention skillOverrides (acceptable)"
+  fail "AC-11c: DESIGN.md skill overrides should say 'currently: none'"
 fi
 
 # --- AC-11d: If DESIGN.md or CLAUDE.md reference the adapter skill override pattern,
