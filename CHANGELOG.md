@@ -21,6 +21,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.19.0] - 2026-03-20
+
+### Changed
+
+- feat(guard): redesign sw-guard with four-layer enforcement (#97)
+- feat(protocols): headless execution protocol for non-interactive skills (#95)
+
 ## [0.18.0] - 2026-03-19
 
 ### Changed
