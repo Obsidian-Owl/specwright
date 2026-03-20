@@ -44,6 +44,10 @@ Check for known config filenames. Presence maps to a specific tool:
 **Go:**
 - `.golangci.yml`, `.golangci.yaml`, `.golangci.toml` → golangci-lint
 
+**Secret detection (cross-language):**
+- `.gitleaks.toml` → gitleaks
+- `.secrets.baseline` → detect-secrets
+
 For unfamiliar stacks or tools not in these mappings, use WebSearch to identify
 the project's tooling conventions.
 

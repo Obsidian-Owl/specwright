@@ -37,14 +37,11 @@ When complete, user-approved guardrails are configured. Artifacts may include:
 
 <!-- platform:claude-code -->
 - `.claude/settings.json` or `.claude/settings.local.json` -- session-level hooks.
-  User chooses destination (shareable vs gitignored). Use command-type hooks for
-  external tooling, prompt-type for semantic checks (per pattern P9 -- prompt hooks
-  avoid exit-code-2 bugs).
+  User chooses destination (shareable vs gitignored).
 <!-- /platform -->
 
 <!-- platform:opencode -->
-- `.opencode/plugins/*.ts` -- session-level plugin hooks using `tool.execute.before`
-  (blocking) and `tool.execute.after` (feedback).
+- `.opencode/plugins/*.ts` -- session-level plugin hooks.
 <!-- /platform -->
 
 - Pre-commit hook configurations (framework chosen by user)
@@ -90,10 +87,8 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
 - Never modify CONSTITUTION.md (sw-learn's responsibility).
 
 **Headless (LOW freedom):**
-- Follow `protocols/headless.md` for non-interactive detection.
-- When headless: apply all PreToolUse blocking patterns, PostToolUse for detected
-  formatter/linter, all detected pre-commit tools, test suite for pre-push (no
-  coverage if no threshold configured), full CI backstop workflow.
+- Follow `protocols/headless.md` for non-interactive detection and default policies.
+- When headless: apply all layers using detected tools with conservative defaults.
 - Write headless result file on ALL exit paths including abort.
 
 ## Protocol References

@@ -41,8 +41,9 @@ degrade the session and lead to hook disablement.
 
 Claude Code: generate JSON hook entries for `.claude/settings.json` or
 `.claude/settings.local.json`. Use command-type hooks for external tooling.
-Use prompt-type hooks for semantic checks (prompt hooks avoid exit-code-2 bugs
-per pattern P9). User chooses destination (shareable vs gitignored).
+Use prompt-type hooks for semantic checks (command hooks with exit code 2 can
+abort sessions — prompt hooks avoid this). User chooses destination
+(shareable vs gitignored).
 
 Opencode: generate TypeScript plugin stubs for `.opencode/plugins/` using
 `tool.execute.before` (blocking) and `tool.execute.after` (feedback).
@@ -81,6 +82,6 @@ Present all applicable frameworks with trade-offs. User always chooses.
 
 | Framework | Runtime req | Best for | Key trait |
 |-----------|------------|----------|-----------|
-| Lefthook | None (Go binary) | Multi-language, no-dependency teams | Parallel execution, glob filtering |
+| Lefthook | None (standalone binary; Node.js if installed via npm) | Multi-language teams | Parallel execution, glob filtering |
 | Husky | Node.js | JS/TS-only projects | Native npm integration, lint-staged pairing |
 | pre-commit | Python | Polyglot repos, large hook ecosystems | Isolated per-hook environments, largest community registry |
