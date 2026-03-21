@@ -56,7 +56,8 @@ and be able to discuss or override before proceeding to ship.
   1. `gate-build` first (if code doesn't compile, nothing else matters)
   2. `gate-tests` second (requires build to pass)
   3. `gate-security`, `gate-wiring` (independent, can be either order)
-  4. `gate-spec` last (the ultimate check)
+  4. `gate-semantic` (if enabled in config — skip silently if disabled)
+  5. `gate-spec` last (the ultimate check)
 - Before running gates, load calibration notes per `protocols/gate-verdict.md`.
 - If `--gate=<name>` argument given, run only that gate.
 

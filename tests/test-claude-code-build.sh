@@ -154,8 +154,8 @@ fi
 
 echo "--- skills/ directory ---"
 
-EXPECTED_SKILLS="gate-build gate-security gate-spec gate-tests gate-wiring sw-audit sw-build sw-debug sw-design sw-doctor sw-guard sw-init sw-learn sw-pivot sw-plan sw-research sw-ship sw-status sw-verify"
-EXPECTED_SKILL_COUNT=19
+EXPECTED_SKILLS="gate-build gate-security gate-semantic gate-spec gate-tests gate-wiring sw-audit sw-build sw-debug sw-design sw-doctor sw-guard sw-init sw-learn sw-pivot sw-plan sw-research sw-ship sw-status sw-verify"
+EXPECTED_SKILL_COUNT=20
 
 if [ -d "$CC_DIST/skills" ]; then
   pass "skills/ directory exists"
@@ -871,6 +871,47 @@ if [ -f "$CC_BUILD_SKILL" ]; then
   fi
 else
   fail "sw-build/SKILL.md not found (AC-12e)"
+fi
+
+echo "--- (f) gate-semantic exists and has required sections ---"
+
+CC_GATE_SEM="$CC_DIST/skills/gate-semantic/SKILL.md"
+if [ -f "$CC_GATE_SEM" ]; then
+  SEM_FM=$(extract_frontmatter "$CC_GATE_SEM" || true)
+  SEM_NAME=$(echo "$SEM_FM" | grep -E '^name:' | sed 's/^name:\s*//' | xargs)
+  assert_eq "$SEM_NAME" "gate-semantic" "gate-semantic frontmatter has name: gate-semantic"
+
+  SEM_BODY=$(extract_body "$CC_GATE_SEM" || true)
+  for sem_section in "Goal" "Constraints" "Failure Modes"; do
+    if echo "$SEM_BODY" | grep -q "## $sem_section"; then
+      pass "gate-semantic body contains '## $sem_section'"
+    else
+      fail "gate-semantic body missing '## $sem_section'"
+    fi
+  done
+
+  for sem_term in "error-path resource cleanup" "unchecked error" "WARN" "gate-verdict.md"; do
+    if echo "$SEM_BODY" | grep -qi "$sem_term"; then
+      pass "gate-semantic body contains '$sem_term'"
+    else
+      fail "gate-semantic body missing '$sem_term'"
+    fi
+  done
+else
+  fail "gate-semantic/SKILL.md not found"
+fi
+
+echo "--- (g) sw-verify references gate-semantic ---"
+
+CC_VERIFY="$CC_DIST/skills/sw-verify/SKILL.md"
+if [ -f "$CC_VERIFY" ]; then
+  if grep -q "gate-semantic" "$CC_VERIFY"; then
+    pass "sw-verify references gate-semantic"
+  else
+    fail "sw-verify does not reference gate-semantic"
+  fi
+else
+  fail "sw-verify/SKILL.md not found (AC-12g)"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════

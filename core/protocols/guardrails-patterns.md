@@ -18,6 +18,7 @@ No tool → gap. Gaps become recommendations.
 | Secret detection | Leaked credentials, API keys, tokens in source |
 | Commit enforcement | Hook-level quality gate before commits are created |
 | CI gate | Branch-level enforcement in clean reproducible environment |
+| Semantic analysis | Error-path resource leaks, unchecked error returns (experimental, via gate-semantic) |
 
 ## Four-Layer Enforcement
 

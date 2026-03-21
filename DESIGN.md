@@ -79,6 +79,7 @@ Invoked by verify, not directly by users.
 | `gate-tests` | Test quality: assertions, boundaries, mocks, mutation resistance | BLOCK/WARN |
 | `gate-security` | Secrets, injection, sensitive data, logical security (CWE-636/209/306) | BLOCK/WARN |
 | `gate-wiring` | Unused exports, orphans, layer violations | WARN |
+| `gate-semantic` | Error-path resource leaks, unchecked error returns (experimental, opt-in) | WARN |
 | `gate-spec` | Every acceptance criterion has evidence | BLOCK |
 
 ### Design / Plan Split
@@ -198,7 +199,7 @@ Target: 800 tokens per SKILL.md (~53% of the 1,500 token ceiling).
 ```
 specwright/
 ├── core/                  # Platform-agnostic content
-│   ├── skills/            # SKILL.md files (19 skills)
+│   ├── skills/            # SKILL.md files (20 skills)
 │   │   ├── sw-init/       # User-facing
 │   │   ├── sw-design/
 │   │   ├── sw-plan/
