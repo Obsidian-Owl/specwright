@@ -74,8 +74,8 @@ sw-verify should recommend upstream action.
 
 ## Calibration Data
 
-Lightweight gate outcome tracking. Designed for projects with 5+ shipped work
-units. Silently absent when data is insufficient.
+Lightweight gate outcome tracking. Recorded from the first shipped unit.
+Silently absent from the verify report until 5+ units have shipped.
 
 **Data format** (stored as a sibling field in the learnings JSON):
 ```json

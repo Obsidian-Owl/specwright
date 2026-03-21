@@ -864,11 +864,13 @@ fi
 echo "--- (e) sw-build discrepancy handling ---"
 
 if [ -f "$CC_BUILD_SKILL" ]; then
-  if grep -q "discrepancies" "$CC_BUILD_SKILL"; then
-    pass "sw-build contains 'discrepancies'"
+  if grep -q "plan mismatch" "$CC_BUILD_SKILL"; then
+    pass "sw-build contains 'plan mismatch' discrepancy handling"
   else
-    fail "sw-build missing 'discrepancies'"
+    fail "sw-build missing 'plan mismatch' discrepancy handling"
   fi
+else
+  fail "sw-build/SKILL.md not found (AC-12e)"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════

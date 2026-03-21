@@ -40,7 +40,7 @@ work benefits.
   - `.specwright/CONSTITUTION.md` (new practice rule)
   - Auto-memory MEMORY.md (compact pattern entry, loaded every session)
   - `.specwright/patterns.md` (reusable pattern library)
-- `.specwright/learnings/{work-id}.json` -- only written when at least one finding is promoted (not all dismissed)
+- `.specwright/learnings/{work-id}.json` -- written when any finding is promoted OR when gateCalibration data is available. When only calibration is present (no promoted findings), write with an empty `findings` array.
 
 ## Constraints
 
@@ -77,7 +77,7 @@ work benefits.
 - When 2+ prior learning files exist, surface recurring patterns across units.
 
 **Persistence (LOW freedom):**
-- Write `.specwright/learnings/{work-id}.json` when any finding is promoted.
+- Write `.specwright/learnings/{work-id}.json` when any finding is promoted OR when gateCalibration data is available (mandatory per `protocols/gate-verdict.md`). When only calibration is present, write with an empty `findings` array.
 - Schema: `{ workId, timestamp, findings: [{ category, source, description, proposedRule, disposition }] }`
 
 **Landscape update (MEDIUM freedom):**
@@ -125,6 +125,6 @@ work benefits.
 |-----------|--------|
 | No completed work unit | "Nothing to learn from. Complete a build cycle first." |
 | No evidence files | Skip evidence scanning, focus on git log and plan |
-| User dismisses all learnings | No persistence file written. No archive clutter. |
+| User dismisses all learnings | Calibration data still written (mandatory). Findings array empty. |
 | Insights unavailable/stale | Silently skip enrichment per `protocols/insights.md` |
 | Auto-memory unavailable | Silently fall back to patterns.md only |
