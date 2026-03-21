@@ -77,7 +77,7 @@ Invoked by verify, not directly by users.
 |------|--------|----------|
 | `gate-build` | Build compiles, tests pass | BLOCK |
 | `gate-tests` | Test quality: assertions, boundaries, mocks, mutation resistance | BLOCK/WARN |
-| `gate-security` | Secrets, injection, sensitive data | BLOCK |
+| `gate-security` | Secrets, injection, sensitive data, logical security (CWE-636/209/306) | BLOCK/WARN |
 | `gate-wiring` | Unused exports, orphans, layer violations | WARN |
 | `gate-spec` | Every acceptance criterion has evidence | BLOCK |
 

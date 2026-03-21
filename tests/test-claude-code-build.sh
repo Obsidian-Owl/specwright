@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Tests for the Claude Code build output (AC-1 through AC-11, AC-13)
+# Tests for the Claude Code build output (AC-1 through AC-13)
 #
 # Runs the actual build and inspects dist/claude-code/ output:
 #   AC-1:  File setup, helpers, build invocation, cleanup
