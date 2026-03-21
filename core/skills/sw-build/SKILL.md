@@ -104,6 +104,7 @@ When delegating, include in the prompt:
   - **Headless** (per `protocols/headless.md`): **abort** — write `headless-result.json`
     with `status: "aborted"` and the error. Partial progress preserved on branch.
 - If RED phase tests don't fail: the tests are wrong. Tell the tester to fix them.
+- If executor reports discrepancies (type/interface mismatches): this is a **plan mismatch**, not a build error. Do NOT invoke specwright-build-fixer. Show the user the discrepancy and halt the task so the plan can be corrected.
 - On headless completion (all tasks done): write `headless-result.json` with `status: "completed"`.
 
 **Commits (LOW freedom):**
