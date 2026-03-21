@@ -796,6 +796,82 @@ if [ -f "$CC_BUILD_SKILL" ]; then
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
+# AC-12: Retro refinements content verification
+# ═══════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "=== AC-12: Retro refinements ==="
+
+echo "--- (a) gate-security Phase 3 ---"
+
+CC_GATE_SEC="$CC_DIST/skills/gate-security/SKILL.md"
+if [ -f "$CC_GATE_SEC" ]; then
+  SEC_BODY=$(extract_body "$CC_GATE_SEC" || true)
+  for sec_term in "Phase 3" "CWE-636" "CWE-209" "CWE-306"; do
+    if echo "$SEC_BODY" | grep -q "$sec_term"; then
+      pass "gate-security body contains '$sec_term'"
+    else
+      fail "gate-security body missing '$sec_term'"
+    fi
+  done
+else
+  fail "gate-security/SKILL.md not found"
+fi
+
+echo "--- (b) Executor grounding ---"
+
+CC_EXECUTOR="$CC_DIST/agents/specwright-executor.md"
+if [ -f "$CC_EXECUTOR" ]; then
+  EXEC_BODY=$(cat "$CC_EXECUTOR")
+  for exec_term in "verify that types" "Discrepancies"; do
+    if echo "$EXEC_BODY" | grep -q "$exec_term"; then
+      pass "executor contains '$exec_term'"
+    else
+      fail "executor missing '$exec_term'"
+    fi
+  done
+else
+  fail "specwright-executor.md not found"
+fi
+
+echo "--- (c) sw-learn mandatory calibration ---"
+
+CC_LEARN="$CC_DIST/skills/sw-learn/SKILL.md"
+if [ -f "$CC_LEARN" ]; then
+  LEARN_BODY=$(extract_body "$CC_LEARN" || true)
+  if echo "$LEARN_BODY" | grep -q "MUST record gateCalibration"; then
+    pass "sw-learn contains 'MUST record gateCalibration'"
+  else
+    fail "sw-learn missing 'MUST record gateCalibration'"
+  fi
+else
+  fail "sw-learn/SKILL.md not found"
+fi
+
+echo "--- (d) gate-verdict mandatory calibration ---"
+
+CC_VERDICT="$CC_DIST/protocols/gate-verdict.md"
+if [ -f "$CC_VERDICT" ]; then
+  if grep -q "mandatory" "$CC_VERDICT"; then
+    pass "gate-verdict contains 'mandatory'"
+  else
+    fail "gate-verdict missing 'mandatory'"
+  fi
+else
+  fail "gate-verdict.md not found"
+fi
+
+echo "--- (e) sw-build discrepancy handling ---"
+
+if [ -f "$CC_BUILD_SKILL" ]; then
+  if grep -q "discrepancies" "$CC_BUILD_SKILL"; then
+    pass "sw-build contains 'discrepancies'"
+  else
+    fail "sw-build missing 'discrepancies'"
+  fi
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
 # AC-10: No opencode artifacts
 # ═══════════════════════════════════════════════════════════════════════
 

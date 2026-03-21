@@ -91,10 +91,10 @@ units. Silently absent when data is insufficient.
 }
 ```
 
-**Recording (sw-learn):**
-- After shipping, record gate outcomes (verdict + finding count) per gate.
-- If user dismisses a learning as irrelevant → append to `falsePositives` for the
-  gate+dimension.
+**Recording (sw-learn) — mandatory:**
+- Recording is mandatory. Every shipped work unit produces calibration data for all gates that ran.
+- After shipping, record gate outcomes (verdict + finding count) per gate, even if all PASS with 0 findings.
+- If user explicitly labels a gate finding as "false positive" → append to `falsePositives` for the gate+dimension. Dismissing a learning without labeling it FP does NOT add to the array.
 - If user reports a shipped bug should have been caught → append to `falseNegatives`
   for the relevant gate.
 

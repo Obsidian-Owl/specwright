@@ -55,7 +55,7 @@ work benefits.
 - Scan evidence files, git log, and plan.md for patterns worth remembering.
 - Look for: what broke, what was hard, what worked well.
 - Check as-built notes for discovered behaviors per `protocols/build-quality.md`.
-- Record gate calibration data per `protocols/gate-verdict.md`.
+- MUST record gateCalibration for every gate that ran, even if all PASS with 0 findings. Populate from evidence files automatically. falsePositives array only populated when user explicitly labels a finding as false positive during presentation (dismissal alone does not count). Format per `protocols/gate-verdict.md`.
 
 **Presentation (MEDIUM freedom):**
 - Group by category (build, security, testing, architecture). Show: what happened, why it matters, proposed rule.
