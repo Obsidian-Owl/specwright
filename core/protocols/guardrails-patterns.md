@@ -4,7 +4,7 @@ Coverage model and enforcement patterns for sw-guard.
 
 ## Coverage Model
 
-Nine dimensions of quality enforcement. Detected tool for a dimension → covered.
+Ten dimensions of quality enforcement. Detected tool for a dimension → covered.
 No tool → gap. Gaps become recommendations.
 
 | Dimension | What it covers |
