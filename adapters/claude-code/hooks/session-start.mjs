@@ -50,9 +50,13 @@ try {
             // Fresh snapshot — include in recovery output
             continuationContent = `\n--- Continuation Snapshot ---\n${raw}`;
 
-            // Parse and extract Correction Summary if present
-            const correctionMatch = raw.match(/## Correction Summary\n([\s\S]*?)(?=\n## |\n---|\Z)/);
+            // Parse and extract Correction Summary if present.
+            // Note: \Z is PCRE/Python only — use $ for end-of-string in JS regex.
+            const correctionMatch = raw.match(/## Correction Summary\n([\s\S]*?)(?=\n## |\n---|$)/);
             if (correctionMatch && correctionMatch[1].trim()) {
+              // Intentional duplication: the full snapshot (above) contains the section
+              // in context; this highlighted extract surfaces corrections prominently so
+              // the agent prioritizes avoiding these patterns after compaction recovery.
               continuationContent += `\n--- Quality Corrections ---\nIn this build session, the following quality issues were found and should be avoided:\n${correctionMatch[1].trim()}`;
             }
           }

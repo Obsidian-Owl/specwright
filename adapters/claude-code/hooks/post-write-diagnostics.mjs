@@ -49,49 +49,22 @@ function main() {
     process.exit(0);
   }
 
-  // Step 2: Claude Code platform LSP detection
-  // If platform LSP is active, skip standalone LSP (step 3) but still run ast-grep (step 4)
-  let hasPlatformLSP = false;
-  try {
-    // Check if CLAUDE_PLUGIN_ROOT is set (indicates Claude Code plugin context)
-    // Platform LSP availability is a runtime characteristic — we check for the
-    // plugin root as a proxy. The actual LSP diagnostic injection happens via
-    // the platform's own mechanism, not this hook.
-    if (process.env.CLAUDE_PLUGIN_ROOT) {
-      // In Claude Code context, assume platform may provide LSP diagnostics.
-      // This hook adds ast-grep structural feedback that LSP doesn't provide.
-      hasPlatformLSP = true;
-    }
-  } catch {
-    // Ignore detection errors
-  }
-
-  // Step 3: Standalone LSP fallback (only if no platform LSP)
-  if (!hasPlatformLSP) {
-    try {
-      const lspOutput = execFileSync(
-        'cli-lsp-client', ['diagnostics', filePath],
-        { encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }
-      );
-      if (lspOutput.trim()) {
-        const lines = lspOutput.trim().split('\n');
-        for (const line of lines) {
-          if (line.trim()) {
-            findings.push(`[LSP] ${line.trim()}`);
-          }
-        }
-      }
-    } catch {
-      // cli-lsp-client not available or errored — continue to ast-grep
-    }
-  }
+  // Step 2+3: LSP diagnostics
+  // In the Claude Code plugin context (this hook's only runtime), CLAUDE_PLUGIN_ROOT
+  // is always set — so standalone cli-lsp-client is never needed here. The Claude Code
+  // platform provides LSP diagnostics via its own plugin system. This hook focuses on
+  // ast-grep structural feedback that platform LSP doesn't provide.
+  //
+  // cli-lsp-client is used only in standalone/headless contexts (e.g., CI without
+  // Claude Code). That path is handled by gate-semantic at verify time, not by this
+  // PostToolUse hook.
 
   // Step 4: ast-grep structural feedback (runs independently of LSP)
   try {
     // Validate sg is actually ast-grep (not shadow-utils newgrp)
     const versionCheck = execFileSync('sg', ['--version'], { encoding: 'utf8', timeout: 3000, stdio: ['pipe', 'pipe', 'pipe'] });
     if (/ast-grep/i.test(versionCheck)) {
-      // Determine language from extension for rule path
+      // Language detection — map extensions to ast-grep language identifiers
       const langMap = {
         '.js': 'javascript', '.jsx': 'javascript',
         '.ts': 'typescript', '.tsx': 'typescript',
@@ -103,12 +76,27 @@ function main() {
       };
       const lang = langMap[ext];
 
-      if (lang) {
+      // Per-language patterns — catch/except is not universal. Languages without
+      // try/catch (Go, Rust, C, C++, Bash) are skipped to avoid false negatives.
+      // Future: per-language rule files for broader coverage.
+      const patternMap = {
+        'javascript': 'catch ($$$ARGS) { }',
+        'typescript': 'catch ($$$ARGS) { }',
+        'java': 'catch ($$$ARGS) { }',
+        'kotlin': 'catch ($$$ARGS) { }',
+        'swift': 'catch { }',
+        'csharp': 'catch ($$$ARGS) { }',
+        'python': 'except: pass',
+        'ruby': 'rescue => $E'
+      };
+      const pattern = lang ? patternMap[lang] : null;
+
+      if (lang && pattern) {
         // Future: use per-language rule files from ${CLAUDE_PLUGIN_ROOT}/rules/${lang}/post-write.yml
         try {
           // Use sg run with file path (not --stdin, to preserve line numbers)
           const sgOutput = execFileSync(
-            'sg', ['run', '--pattern', 'catch ($$$ARGS) { }', '--lang', lang, filePath, '--json'],
+            'sg', ['run', '--pattern', pattern, '--lang', lang, filePath, '--json'],
             { encoding: 'utf8', timeout: 3000, stdio: ['pipe', 'pipe', 'pipe'] }
           );
           if (sgOutput.trim()) {
