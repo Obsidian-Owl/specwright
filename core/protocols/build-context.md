@@ -49,6 +49,53 @@ map's budget cap). This is acceptable given subagent context windows are large
 
 **Format and generation details:** See `protocols/repo-map.md`.
 
+## Feedback Log
+
+Accumulated per-task semantic findings from the micro-check step.
+
+**Location:** `{currentWork.workDir}/feedback-log.md` — ephemeral, per-build.
+
+**Accumulation:** Each micro-check appends to the file (does not overwrite).
+
+**Per-task format:**
+```markdown
+## Task: {task-id}
+- **{category}** ({file}:{line}): {description}
+- **{category}** ({file}:{line}): {description}
+```
+
+When no findings exist for a task, no section is appended. When no tasks produce
+findings across the entire build, the file does not exist or is empty.
+
+## Correction Summary
+
+Compressed quality corrections that survive context compaction.
+
+**Generation method:** Observation masking — deduplicate findings by category, keep
+only unique violation patterns with occurrence counts. Do NOT use LLM summarization
+(research shows summarization increases trajectory length 13-15% by smoothing
+failure signals).
+
+**Deterministic instruction** (for the PreCompact agent prompt): "List each unique
+violation category exactly once with its occurrence count. Do not rephrase,
+summarize, or editorialize."
+
+**Maximum size:** 500 tokens (measured as `Math.ceil(wordCount * 1.3)`).
+
+**Example:**
+```markdown
+## Correction Summary
+Unique violations seen in this build (avoid these patterns):
+- unchecked-error (3 occurrences): Always check return values from async calls
+- bare-except (1 occurrence): Use specific exception types
+```
+
+**Injection point:** Written to `.specwright/state/continuation.md` during PreCompact.
+Read and injected by the SessionStart hook on the `compact` trigger.
+
+**When feedback-log.md is absent or empty:** No Correction Summary section is written.
+The existing continuation snapshot content is unaffected.
+
 ## Pause Handling
 
 If user responds "stop" or "pause" to a status card: halt cleanly.
