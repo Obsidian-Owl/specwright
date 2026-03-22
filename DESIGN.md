@@ -61,7 +61,7 @@ Validated, referenced findings about external systems: API documentation, SDK co
 | `sw-verify` | Interactive quality gates | Shows findings, not badges. Orchestrates gate skills in dependency order |
 | `sw-ship` | Strategy-aware merge | PR with evidence-mapped body |
 | `sw-status` | Where am I, what's done, what's next | Supports --reset to abandon work, --cleanup for orphaned work dirs |
-| `sw-guard` | Detect stack, gap-analyze, configure guardrails | Structured detection, 9-dimension coverage model, four-layer enforcement, standalone |
+| `sw-guard` | Detect stack, gap-analyze, configure guardrails | Structured detection, 10-dimension coverage model, four-layer enforcement, standalone |
 | `sw-learn` | Post-ship capture. What worked, what to remember | Promotes patterns to constitution. Clears workflow state (shipped → none) |
 | `sw-research` | Deep outward-facing research | External docs, APIs, patterns, validation. Produces referenced briefs for design |
 | `sw-debug` | Investigation-first debugging | Scope → investigate → diagnose → fix/log/defer |
