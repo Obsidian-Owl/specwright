@@ -22,7 +22,7 @@ pre-processing (when available) to focus LLM reasoning on precise fragments.
 
 ## Inputs
 
-- `.specwright/config.json` -- `gates.semantic` (enabled, categories)
+- `.specwright/config.json` -- `gates.semantic` with schema: `{enabled: bool, categories: ["error-path-cleanup", "unchecked-errors"]}`
 - `.specwright/state/workflow.json` -- current work unit
 - Changed files (detected via `git diff`)
 
@@ -35,7 +35,7 @@ pre-processing (when available) to focus LLM reasoning on precise fragments.
 ## Constraints
 
 **Scope (MEDIUM freedom):**
-- Focus on changed files. Use `git diff --name-only` against base branch.
+- Focus on changed files. Use `git diff --name-only $(git merge-base HEAD main)` to list files changed on this branch.
 - Skip non-code files (markdown, JSON, YAML, config). Return PASS with no findings.
 - If no changed files detected, return PASS.
 
@@ -71,6 +71,7 @@ Two categories only. No overlap with gate-security Phase 3.
 - `protocols/gate-verdict.md` -- verdict rendering
 - `protocols/evidence.md` -- evidence storage
 - `protocols/state.md` -- gate status updates
+- `protocols/context.md` -- config and anchor doc loading
 
 ## Failure Modes
 
@@ -78,6 +79,6 @@ Two categories only. No overlap with gate-security Phase 3.
 |-----------|--------|
 | Gate disabled in config | sw-verify skips silently — no evidence, no error |
 | No changed files | Return PASS with no findings |
-| No symbolic tools available | Degrade to pure LLM review. WARN finding noting reduced precision. |
+| No symbolic tools available | Degrade to pure LLM review. Not an error — clean code still returns PASS. |
 | Changed files are not code | Return PASS with no findings |
 | ast-grep/semgrep not found | Degrade to rg-based extraction. Not an error. |

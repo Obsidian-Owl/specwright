@@ -882,7 +882,7 @@ if [ -f "$CC_GATE_SEM" ]; then
   assert_eq "$SEM_NAME" "gate-semantic" "gate-semantic frontmatter has name: gate-semantic"
 
   SEM_BODY=$(extract_body "$CC_GATE_SEM" || true)
-  for sem_section in "Goal" "Constraints" "Failure Modes"; do
+  for sem_section in "Goal" "Inputs" "Outputs" "Constraints" "Failure Modes"; do
     if echo "$SEM_BODY" | grep -q "## $sem_section"; then
       pass "gate-semantic body contains '## $sem_section'"
     else

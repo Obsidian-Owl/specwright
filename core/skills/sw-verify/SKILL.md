@@ -51,12 +51,12 @@ and be able to discuss or override before proceeding to ship.
 - This step runs silently — no new user interaction point. Findings appear in the existing aggregate report.
 
 **Gate execution order (LOW freedom):**
-- Read enabled gates from `config.json` `gates.enabled`.
+- Read enabled gates from `config.json` `gates.enabled`. Skip any gate not in `gates.enabled` silently. Note: `gate-semantic` is disabled by default and must be explicitly enabled.
 - Execute in dependency order:
   1. `gate-build` first (if code doesn't compile, nothing else matters)
   2. `gate-tests` second (requires build to pass)
   3. `gate-security`, `gate-wiring` (independent, can be either order)
-  4. `gate-semantic` (if enabled in config — skip silently if disabled)
+  4. `gate-semantic`
   5. `gate-spec` last (the ultimate check)
 - Before running gates, load calibration notes per `protocols/gate-verdict.md`.
 - If `--gate=<name>` argument given, run only that gate.
