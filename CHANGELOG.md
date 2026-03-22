@@ -22,6 +22,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.20.0] - 2026-03-22
+
+### Changed
+
+- feat(gate): add gate-semantic — experimental neuro-symbolic semantic analysis (#100)
+- feat(quality): retro-driven refinements — security gate Phase 3, executor grounding, mandatory calibration (#99)
+
 ## [0.19.0] - 2026-03-20
 
 ### Changed
