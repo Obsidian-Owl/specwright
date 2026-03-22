@@ -33,13 +33,18 @@ pre-processing (when available) to focus LLM reasoning on precise fragments.
     "tools": {
       "ast-grep": { "command": "sg", "detected": true },
       "opengrep": { "command": "opengrep", "detected": false },
-      "lsp": { "source": "platform|cli-lsp-client|none", "detected": false }
+      "lsp": { "source": "none", "detected": false }
     }
   }
   ```
   The `categories` field accepts both string values (default WARN severity) and
   object values (`{"name": "...", "severity": "block"}`) for BLOCK promotion
   opt-in (subject to calibration — see Verdict section).
+  The `lsp.source` field accepts one of: `"platform"`, `"cli-lsp-client"`, or `"none"`.
+  The `opengrep` tool entry may include an optional `rulesDir` field specifying the
+  path to OpenGrep/Semgrep-compatible taint rule files. If absent, the gate looks for
+  rules at `.opengrep/rules/` in the project root; if that does not exist, the
+  resource-lifecycle category is skipped with an INFO note.
 - `.specwright/state/workflow.json` -- current work unit
 - Changed files (detected via `git diff`)
 
@@ -52,7 +57,7 @@ pre-processing (when available) to focus LLM reasoning on precise fragments.
 ## Constraints
 
 **Scope (MEDIUM freedom):**
-- Focus on changed files. Use `git diff --name-only $(git merge-base HEAD main)` to list files changed on this branch.
+- Focus on changed files. Use `git diff --name-only $(git merge-base HEAD <baseBranch>)` to list files changed on this branch, where `<baseBranch>` is read from `config.json` `git.defaultBranch` or `git.baseBranch` (fallback: `main`).
 - Skip non-code files (markdown, JSON, YAML, config). Return PASS with no findings.
 - If no changed files detected, return PASS.
 
@@ -80,8 +85,16 @@ pre-processing (when available) to focus LLM reasoning on precise fragments.
 - Extract structural facts from changed files relevant to each category's tier.
 - Use the highest available tier's tool for extraction:
   - Tier 0 (rg): text-based extraction of error handlers, callers, resource patterns
-  - Tier 1 (ast-grep): `sg scan <file> --json --rule <rule>` for structured extraction with metavariable capture. Write content to temp file if using stdin patterns via `sg run --pattern '...' --stdin --json`.
-  - Tier 2 (OpenGrep): `opengrep scan --config <rules-dir> --json <file>` for taint analysis
+  - Tier 1 (ast-grep): `sg scan <file> --json --rule <rule>` for structured extraction
+    with metavariable capture. For ad-hoc patterns without a rule file, use
+    `sg run --pattern '...' <file> --json` (pass the file path directly — avoid
+    `--stdin` as it loses line-number context). If the file doesn't exist on disk yet
+    (e.g., PostToolUse with content from stdin), write to `$(mktemp)` first and clean
+    up with `rm` after the scan completes.
+  - Tier 2 (OpenGrep): `opengrep scan --config <rules-dir> --json <file>` for taint
+    analysis. The `<rules-dir>` is resolved from `gates.semantic.tools.opengrep.rulesDir`
+    in config, falling back to `.opengrep/rules/` in the project root. If neither exists,
+    the resource-lifecycle category is skipped with an INFO note.
 - Feed extracted facts (not raw files) to LLM with targeted semantic questions per category.
 
 **Categories (LOW freedom):**
@@ -91,10 +104,14 @@ Five categories across three tiers. No overlap with gate-security.
 
 1. **Error-path resource cleanup:** Does any error/exception path in a changed
    function skip releasing/closing an acquired resource (file handle, database
-   connection, lock, network socket)?
+   connection, lock, network socket)? When ast-grep is available (Tier 1+), use
+   `sg scan` with error-handler and resource-acquisition patterns for more precise
+   extraction; fall back to `rg` patterns if no applicable rule files exist.
 2. **Unchecked error-producing calls:** Does any call to a function that returns
    an error or throws get its return value discarded or ignored without explicit
    justification (e.g., cleanup functions where errors are intentionally ignored)?
+   When ast-grep is available (Tier 1+), use `sg scan` with call-site and
+   return-value patterns; fall back to `rg` patterns if no applicable rule files exist.
 
 **Tier 1+ (requires ast-grep):**
 
@@ -127,7 +144,7 @@ future iteration after base tiers are validated.
 **Verdict (LOW freedom):**
 - Follow `protocols/gate-verdict.md`.
 - **Default: All findings are WARN.** BLOCK promotion requires calibration (see below).
-- WARN-only findings = gate WARN. No findings = gate PASS.
+- No findings = gate PASS. WARN-only findings = gate WARN. Any BLOCK finding = gate FAIL.
 
 **Verdict calibration (LOW freedom):**
 - Tier 0 categories (error-path-cleanup, unchecked-errors) are **permanently WARN-only**.
@@ -136,8 +153,14 @@ future iteration after base tiers are validated.
   conditions are met:
   1. At least 5 work units have been shipped with the category enabled (count from
      sw-learn gateCalibration history — each shipped unit increments the count).
-  2. The category's cumulative false-positive rate is below 10%, calculated as:
-     `totalFalsePositives / totalFindings` summed across all gateCalibration entries.
+  2. The category's cumulative false-positive rate is below 10%. Since the current
+     `gateCalibration` schema in `protocols/gate-verdict.md` stores data per gate
+     (not per category), use the gate-level FP rate as a conservative proxy:
+     `totalFalsePositives / totalFindings` summed across all gateCalibration entries
+     for gate-semantic. When `totalFindings` is 0, the FP rate is treated as 0%
+     (no findings = no false positives; condition 2 is satisfied, leaving condition 1
+     as the binding constraint). A future schema extension may add per-category
+     granularity for independent promotion.
   3. The user has opted in via config: `{"name": "<category>", "severity": "block"}`.
 - When gateCalibration data does not exist (no units shipped yet), condition 1 is
   not met and findings remain WARN. The gate does not error on missing calibration data.
