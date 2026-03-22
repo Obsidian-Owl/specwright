@@ -48,7 +48,7 @@ Persistent record of systemic issues that per-change gates miss: architecture de
 **research/** -- External Research Briefs (optional)
 Validated, referenced findings about external systems: API documentation, SDK contracts, industry patterns, best practices. Created by sw-research, consumed by sw-design during its research phase. Each brief is a standalone file with topic ID and date. Briefs older than 90 days are stale. Format, confidence scoring, and lifecycle rules in `protocols/research.md`.
 
-## Skills (19)
+## Skills (20)
 
 ### User-Facing (14)
 
@@ -69,7 +69,7 @@ Validated, referenced findings about external systems: API documentation, SDK co
 | `sw-doctor` | Installation health check | Read-only validation of config, gates, hooks |
 | `sw-audit` | Periodic codebase health check | Finds systemic debt gates miss. Feeds findings into design + learn |
 
-### Internal Gate Skills (5)
+### Internal Gate Skills (6)
 
 Invoked by verify, not directly by users.
 
@@ -79,6 +79,7 @@ Invoked by verify, not directly by users.
 | `gate-tests` | Test quality: assertions, boundaries, mocks, mutation resistance | BLOCK/WARN |
 | `gate-security` | Secrets, injection, sensitive data, logical security (CWE-636/209/306) | BLOCK/WARN |
 | `gate-wiring` | Unused exports, orphans, layer violations | WARN |
+| `gate-semantic` | Error-path resource leaks, unchecked error returns (experimental, opt-in) | WARN |
 | `gate-spec` | Every acceptance criterion has evidence | BLOCK |
 
 ### Design / Plan Split
@@ -151,7 +152,7 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `headless.md` | Non-interactive execution: detection (AskUserQuestion availability), default policies, headless-result.json format | ~700 |
 | `parallel-build.md` | Parallel task execution with agent teams (experimental) | ~815 |
 | `guardrails-detection.md` | Three-step stack detection: manifest scan, config file scan, guardrail scan | ~340 |
-| `guardrails-patterns.md` | Nine-dimension coverage model, four-layer enforcement patterns, framework options | ~486 |
+| `guardrails-patterns.md` | Ten-dimension coverage model, four-layer enforcement patterns, framework options | ~486 |
 
 Total: ~7,956 words across 24 protocols (loaded on demand, not all at once).
 
@@ -198,7 +199,7 @@ Target: 800 tokens per SKILL.md (~53% of the 1,500 token ceiling).
 ```
 specwright/
 ├── core/                  # Platform-agnostic content
-│   ├── skills/            # SKILL.md files (19 skills)
+│   ├── skills/            # SKILL.md files (20 skills)
 │   │   ├── sw-init/       # User-facing
 │   │   ├── sw-design/
 │   │   ├── sw-plan/
@@ -216,6 +217,7 @@ specwright/
 │   │   ├── gate-build/    # Internal (invoked by verify)
 │   │   ├── gate-tests/
 │   │   ├── gate-security/
+│   │   ├── gate-semantic/
 │   │   ├── gate-spec/
 │   │   └── gate-wiring/
 │   ├── protocols/         # Shared protocols (loaded on demand)
