@@ -68,6 +68,18 @@ After all tasks:
 - If `git.branchPerWorkUnit` is false: stay on current branch.
 - All task commits happen on the feature branch. NEVER commit to baseBranch.
 
+**Repo map generation (MEDIUM freedom) — after branch setup, before first task:**
+- Generate a repo map per `protocols/repo-map.md`.
+- Read the file change map from `{currentWork.workDir}/plan.md` to identify which
+  files this unit will modify.
+- If `sg` (ast-grep) is on PATH: extract definition signatures from those files and
+  their direct dependents. Write result to `{currentWork.workDir}/repo-map.md`.
+- If `sg` is not available or exits with nonzero: degrade to a file listing (paths
+  only, no signatures). Log WARN but do not halt.
+- If no changed files are identified in the plan: produce an empty map and continue.
+- Token budget: enforce `config.context.repoMapTokens` (default 1024). Truncate
+  dependents first per the protocol's truncation rules.
+
 **Task loop (MEDIUM freedom):**
 - Work one task at a time. Complete it before starting the next.
 - If no task ID given, pick the next incomplete task from `{currentWork.workDir}/spec.md`.
@@ -87,7 +99,10 @@ The sequence is strict: RED → GREEN → REFACTOR. Never skip RED.
 3. **REFACTOR**: Executor may refactor code written in THIS task only. Tests must still pass. No adjacent code cleanup.
 
 **Context envelope (LOW freedom):**
-When delegating, include in the prompt:
+When delegating, include in the prompt (in this order):
+- **Repo map content** (at the TOP — longform codebase data before instructions, per
+  Anthropic guidance that queries after data improve quality by up to 30%). Read from
+  `{currentWork.workDir}/repo-map.md` if it exists. If absent, skip without error.
 - The specific task and its acceptance criteria
 - Relevant sections of design.md, plan.md, and context.md
 - File paths the agent needs to read or modify
@@ -162,7 +177,8 @@ When delegating, include in the prompt:
 - `protocols/delegation.md` -- agent delegation with fallback
 - `protocols/recovery.md` -- compaction recovery
 - `protocols/build-quality.md` -- post-build review and as-built notes
-- `protocols/build-context.md` -- continuation snapshots, status cards, context nudge
+- `protocols/build-context.md` -- continuation snapshots, status cards, context nudge, repo map injection
+- `protocols/repo-map.md` -- repo map format, generation, token budget, truncation
 - `protocols/headless.md` -- non-interactive execution defaults
 - `protocols/parallel-build.md` -- parallel task execution with agent teams
 

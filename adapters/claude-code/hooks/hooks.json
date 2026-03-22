@@ -30,6 +30,17 @@
         ]
       }
     ],
+    "SubagentStart": [
+      {
+        "matcher": "specwright-executor|specwright-tester|specwright-architect|specwright-reviewer",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/subagent-context.mjs"
+          }
+        ]
+      }
+    ],
     "PreCompact": [
       {
         "matcher": "auto|manual",

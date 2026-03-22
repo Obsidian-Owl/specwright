@@ -224,7 +224,7 @@ fi
 
 echo "--- protocols/ directory ---"
 
-EXPECTED_PROTO_COUNT=24
+EXPECTED_PROTO_COUNT=25
 
 if [ -d "$CC_DIST/protocols" ]; then
   pass "protocols/ directory exists"
@@ -237,7 +237,7 @@ if [ -d "$CC_DIST/protocols" ]; then
   assert_eq "$PROTO_COUNT" "$EXPECTED_PROTO_COUNT" "protocols/ has exactly $EXPECTED_PROTO_COUNT .md files"
 
   # Spot-check specific protocol files
-  for proto in state.md git.md delegation.md recovery.md evidence.md stage-boundary.md context.md; do
+  for proto in state.md git.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md; do
     if [ -f "$CC_DIST/protocols/$proto" ]; then
       pass "protocols/$proto exists"
     else
@@ -610,7 +610,7 @@ fi
 echo ""
 echo "=== AC-6: Hook files ==="
 
-EXPECTED_HOOKS="session-start.mjs session-stop.mjs task-completed.mjs"
+EXPECTED_HOOKS="session-start.mjs session-stop.mjs subagent-context.mjs task-completed.mjs"
 
 echo "--- Hook files exist ---"
 
@@ -653,7 +653,7 @@ echo "--- No unexpected hook files ---"
 
 if [ -d "$CC_DIST/hooks" ]; then
   HOOK_MJS_COUNT=$(find "$CC_DIST/hooks" -maxdepth 1 -name '*.mjs' -type f | wc -l | tr -d ' ')
-  assert_eq "$HOOK_MJS_COUNT" "3" "hooks/ has exactly 3 .mjs files"
+  assert_eq "$HOOK_MJS_COUNT" "4" "hooks/ has exactly 4 .mjs files"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
