@@ -19,7 +19,7 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | `sw-ship` | Strategy-aware merge via PR. |
 | `sw-debug` | Investigation-first debugging. Scope → investigate → diagnose → fix/log/defer. |
 | `sw-pivot` | Mid-build course correction. Revises remaining tasks via architect; append-only. |
-| `sw-doctor` | Read-only installation health check. 9 checks, repair hints. |
+| `sw-doctor` | Read-only installation health check. 12 checks, repair hints. |
 | `sw-guard` | Detect stack, gap-analyze against 10 quality dimensions, configure guardrails across 4 layers. |
 | `sw-status` | Current state and progress. Supports `--cleanup` to remove orphaned work directories. |
 | `sw-learn` | Post-ship capture of patterns and learnings. Clears workflow state after persistence. |
@@ -70,7 +70,7 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `headless.md` -- Non-interactive execution: detection, default policies, result summary format
 - `parallel-build.md` -- Parallel task execution with agent teams (experimental)
 - `guardrails-detection.md` -- Three-step stack detection: manifest scan, config file scan, guardrail scan
-- `guardrails-patterns.md` -- Nine-dimension coverage model, four-layer enforcement patterns
+- `guardrails-patterns.md` -- Ten-dimension coverage model, four-layer enforcement patterns
 
 ## Key Rules
 
