@@ -224,7 +224,7 @@ fi
 
 echo "--- protocols/ directory ---"
 
-EXPECTED_PROTO_COUNT=24
+EXPECTED_PROTO_COUNT=25
 
 if [ -d "$CC_DIST/protocols" ]; then
   pass "protocols/ directory exists"
@@ -653,7 +653,7 @@ echo "--- No unexpected hook files ---"
 
 if [ -d "$CC_DIST/hooks" ]; then
   HOOK_MJS_COUNT=$(find "$CC_DIST/hooks" -maxdepth 1 -name '*.mjs' -type f | wc -l | tr -d ' ')
-  assert_eq "$HOOK_MJS_COUNT" "3" "hooks/ has exactly 3 .mjs files"
+  assert_eq "$HOOK_MJS_COUNT" "4" "hooks/ has exactly 4 .mjs files"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
