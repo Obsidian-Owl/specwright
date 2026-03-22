@@ -41,7 +41,7 @@ pre-processing (when available) to focus LLM reasoning on precise fragments.
 
 **Tool detection (LOW freedom):**
 - Detect available symbolic tools on PATH: `rg` (ripgrep), `ast-grep` (`sg`), `semgrep`.
-- No tool is required. Zero runtime dependencies (Charter invariant 5).
+- Tools are optional — graceful degradation is required (Charter invariant 5).
 - Use the best available tool for extraction. Graceful degradation:
   - `ast-grep` or `semgrep` available: use for syntax-aware pattern extraction (JSON output)
   - `rg` available (default): use for text-based extraction of error handlers, callers, resource patterns

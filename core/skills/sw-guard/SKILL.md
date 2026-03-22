@@ -56,6 +56,9 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
 **Detection (MEDIUM freedom):**
 - Follow `protocols/guardrails-detection.md` for the three-step detection algorithm
   (manifest scan, config file scan, existing guardrail scan).
+- Detection scope includes traditional tools (linters, formatters, test runners) and
+  semantic analysis tools: ast-grep (`sg`), OpenGrep (`opengrep`), and platform LSP
+  (Claude Code `.lsp.json`, Opencode built-in, `cli-lsp-client` standalone).
 - If `.specwright/config.json` exists, read `commands.*` fields as authoritative;
   supplement with detection for unconfigured dimensions.
 - If `.specwright/config.json` does not exist, rely entirely on detection.
@@ -66,7 +69,7 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
 
 **Gap analysis (MEDIUM freedom):**
 - Load the coverage model from `protocols/guardrails-patterns.md`.
-- Map detected tools against the nine enforcement dimensions. Detected tool for
+- Map detected tools against the ten enforcement dimensions. Detected tool for
   a dimension → covered. No tool → gap. Gaps become recommendations.
 - Present the gap analysis summary to the user before recommending.
 
