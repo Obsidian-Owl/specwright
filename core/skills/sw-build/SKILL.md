@@ -177,7 +177,8 @@ When delegating, include in the prompt (in this order):
 - `protocols/delegation.md` -- agent delegation with fallback
 - `protocols/recovery.md` -- compaction recovery
 - `protocols/build-quality.md` -- post-build review and as-built notes
-- `protocols/build-context.md` -- continuation snapshots, status cards, context nudge
+- `protocols/build-context.md` -- continuation snapshots, status cards, context nudge, repo map injection
+- `protocols/repo-map.md` -- repo map format, generation, token budget, truncation
 - `protocols/headless.md` -- non-interactive execution defaults
 - `protocols/parallel-build.md` -- parallel task execution with agent teams
 

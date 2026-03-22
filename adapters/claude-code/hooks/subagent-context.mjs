@@ -12,7 +12,7 @@
  */
 
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 
 const REPO_MAP_AGENTS = ['specwright-executor', 'specwright-tester'];
 const CONTEXT_AGENTS = ['specwright-architect', 'specwright-reviewer'];
@@ -58,10 +58,17 @@ function main() {
     process.exit(0);
   }
 
-  // Read the target file
+  // Read the target file (with path traversal validation)
   let content;
   try {
-    const filePath = join(process.cwd(), workDir, targetFile);
+    const projectRoot = process.cwd();
+    const filePath = resolve(projectRoot, workDir, targetFile);
+
+    // Validate resolved path is within project root to prevent path traversal
+    if (!filePath.startsWith(projectRoot)) {
+      process.exit(0);
+    }
+
     content = readFileSync(filePath, 'utf8');
   } catch {
     // File doesn't exist — graceful degradation

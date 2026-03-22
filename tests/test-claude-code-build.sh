@@ -610,7 +610,7 @@ fi
 echo ""
 echo "=== AC-6: Hook files ==="
 
-EXPECTED_HOOKS="session-start.mjs session-stop.mjs task-completed.mjs"
+EXPECTED_HOOKS="session-start.mjs session-stop.mjs subagent-context.mjs task-completed.mjs"
 
 echo "--- Hook files exist ---"
 
