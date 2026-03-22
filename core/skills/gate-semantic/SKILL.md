@@ -22,7 +22,22 @@ pre-processing (when available) to focus LLM reasoning on precise fragments.
 
 ## Inputs
 
-- `.specwright/config.json` -- `gates.semantic` with schema: `{enabled: bool, categories: ["error-path-cleanup", "unchecked-errors"]}`
+- `.specwright/config.json` -- `gates.semantic` with schema:
+  ```json
+  {
+    "enabled": true,
+    "categories": ["error-path-cleanup", "unchecked-errors", "fail-open-handling",
+                    "error-data-leakage", "resource-lifecycle"],
+    "tools": {
+      "ast-grep": { "command": "sg", "detected": true },
+      "opengrep": { "command": "opengrep", "detected": false },
+      "lsp": { "source": "platform|cli-lsp-client|none", "detected": false }
+    }
+  }
+  ```
+  The `categories` field accepts both string values (default WARN severity) and
+  object values (`{"name": "...", "severity": "block"}`) for BLOCK promotion
+  opt-in (subject to calibration — see Verdict section).
 - `.specwright/state/workflow.json` -- current work unit
 - Changed files (detected via `git diff`)
 
@@ -40,16 +55,32 @@ pre-processing (when available) to focus LLM reasoning on precise fragments.
 - If no changed files detected, return PASS.
 
 **Tool detection (LOW freedom):**
-- Detect available symbolic tools on PATH: `rg` (ripgrep), `ast-grep` (`sg`), `semgrep`.
 - Tools are optional — graceful degradation is required (Charter invariant 5).
-- Use the best available tool for extraction. Graceful degradation:
-  - `ast-grep` or `semgrep` available: use for syntax-aware pattern extraction (JSON output)
-  - `rg` available (default): use for text-based extraction of error handlers, callers, resource patterns
-  - Nothing available: fall back to direct LLM review of changed file content
+- Four progressive tiers. Higher tiers add capability; lower tiers always work:
+
+  | Tier | Tool | What it adds | Available when |
+  |------|------|-------------|----------------|
+  | 0 | rg | Text-pattern extraction + LLM | Always (rg absent → direct LLM review) |
+  | 1 | ast-grep | Structural JSON extraction, metavariable capture | `sg` on PATH |
+  | 2 | OpenGrep | Cross-function taint, at-exit sinks | `opengrep` on PATH |
+  | 3 | Platform LSP | Type info, call hierarchy, diagnostics | Platform provides LSP (out of scope for now) |
+
+- **Detection order**: Read `gates.semantic.tools` from config first. For each tool:
+  - If `tools` key exists and tool entry has `"detected": false` → tool unavailable, do not PATH-check.
+  - If `tools` key exists and tool entry has `"detected": true` → verify binary on PATH. If missing at runtime, log WARN and skip that tier.
+  - If `tools` key exists but a specific tool entry is absent → fall back to PATH detection for that tool only.
+  - If `tools` key does not exist (backward compatibility) → fall back to PATH detection for all tools.
+- For `sg` (ast-grep): validate identity with `sg --version 2>&1 | grep -iq 'ast-grep'` (plain `which sg` is insufficient — `/usr/bin/sg` from shadow-utils exists on most Linux distros).
+- Categories requiring an unavailable tier are silently skipped with an INFO note in the evidence report: "Category {name} skipped: requires {tool} (Tier {n}), not detected."
+- The gate never returns FAIL or ERROR due to missing tools — it narrows scope.
 
 **Extraction (HIGH freedom):**
-- Extract structural facts from changed files relevant to the two categories.
-- Feed extracted facts (not raw files) to LLM with targeted semantic questions.
+- Extract structural facts from changed files relevant to each category's tier.
+- Use the highest available tier's tool for extraction:
+  - Tier 0 (rg): text-based extraction of error handlers, callers, resource patterns
+  - Tier 1 (ast-grep): `sg scan <file> --json --rule <rule>` for structured extraction with metavariable capture. Write content to temp file if using stdin patterns via `sg run --pattern '...' --stdin --json`.
+  - Tier 2 (OpenGrep): `opengrep scan --config <rules-dir> --json <file>` for taint analysis
+- Feed extracted facts (not raw files) to LLM with targeted semantic questions per category.
 
 **Categories (LOW freedom):**
 Two categories only. No overlap with gate-security Phase 3.
