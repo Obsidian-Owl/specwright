@@ -57,7 +57,7 @@ project, but the `sg` binary must also be on PATH for the tool to be available.
 Config presence without the binary means the tool is configured but not installed.
 
 **Semantic analysis tools on PATH:**
-- `sg` → ast-grep (validate with `which sg`)
+- `sg` → ast-grep (validate with `sg --version 2>&1 | grep -iq 'ast-grep'` — plain `which sg` is insufficient because `/usr/bin/sg` from shadow-utils exists on most Linux distros)
 - `opengrep` → OpenGrep (validate with `which opengrep`)
 
 For unfamiliar stacks or tools not in these mappings, use WebSearch to identify
@@ -86,8 +86,8 @@ Check for already-configured guardrails at each enforcement layer:
 - `.git/hooks/pre-commit`, `.git/hooks/pre-push` (non-sample files)
 
 **Platform LSP:**
-- `.lsp.json` in plugin directory → Claude Code LSP plugin
-- `.opencode/` configuration with LSP settings → Opencode built-in LSP
+- Claude Code: detect at runtime by checking if LSP tools are available to the agent (e.g., hover, diagnostics capabilities). No filesystem artifact reliably indicates Claude Code LSP plugin presence — detection is behavioral, not file-based.
+- `.opencode/` configuration with `lsp` section → Opencode built-in LSP
 - `cli-lsp-client` on PATH (validate with `which cli-lsp-client`) → standalone LSP daemon
 
 When platform LSP (Claude Code or Opencode) is detected alongside `cli-lsp-client`,

@@ -35,11 +35,13 @@ Enforcement at generation time — before or immediately after tool calls.
 - Edit|Write: run detected formatter (auto-fix)
 - Edit|Write: run detected linter (feedback to agent)
 - Edit|Write: ast-grep structural feedback (if `sg` detected on PATH).
-  Run `sg scan --stdin --json --rule <rule>` on written file content with a
-  single targeted rule per language for the highest-value pattern (e.g.,
+  Write content to a temp file, then run `sg scan <tmpfile> --json --rule <rule>`
+  with a single targeted rule per language for the highest-value pattern (e.g.,
   unchecked error return for Go, unhandled promise for JS/TS, bare except
-  for Python). Return findings as `additionalContext`. Recommend async mode
-  (`"async": true` in Claude Code, non-blocking callback in Opencode).
+  for Python). Alternatively, use `sg run --pattern '...' --stdin --json` for
+  single-pattern inline checks without a temp file. Return findings as
+  `additionalContext`. Recommend async mode (`"async": true` in Claude Code,
+  non-blocking callback in Opencode).
   Performance budget: approximately 50-150ms for single file + single rule.
 
 Performance: keep PostToolUse hooks under 300ms per invocation. Slow tools

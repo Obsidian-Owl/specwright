@@ -51,9 +51,9 @@ Makes NO state mutations.
 9. **Backlog config** — if `config.backlog.type` is set:
    - `markdown`: `.specwright/` directory is accessible (PASS)
    - `github-issues`: run `gh auth status`; WARN if exits non-zero
-10. **ast-grep** — `which sg` exits 0: PASS with `ℹ ast-grep available`; not found: INFO `ℹ ast-grep not installed (optional — enables semantic analysis)`
-11. **OpenGrep** — `which opengrep` exits 0: PASS with `ℹ OpenGrep available`; not found: INFO `ℹ OpenGrep not installed (optional — enables taint analysis)`
-12. **LSP** — detect platform LSP (Claude Code `.lsp.json` or Opencode built-in):
+10. **ast-grep** — `sg --version 2>&1 | grep -iq ast-grep` succeeds: INFO `ℹ ast-grep available (enables semantic analysis)`; not found or wrong binary: INFO `ℹ ast-grep not installed (optional — enables semantic analysis)`
+11. **OpenGrep** — `which opengrep` exits 0: INFO `ℹ OpenGrep available (enables taint analysis)`; not found: INFO `ℹ OpenGrep not installed (optional — enables taint analysis)`
+12. **LSP** — detect platform LSP (Claude Code: behavioral detection via agent capabilities; Opencode: `.opencode/` config with `lsp` section):
     - Platform LSP detected: PASS
     - Only `cli-lsp-client` on PATH: INFO `ℹ Standalone LSP daemon available`
     - `cli-lsp-client` + platform LSP both detected: WARN `⚠ cli-lsp-client may conflict with platform LSP — duplicate servers cause resource doubling`
@@ -80,6 +80,7 @@ Specwright Health Check
 → Run /sw-guard to reconfigure hooks.
 ```
 - PASS: ✓ prefix, no detail needed
+- INFO: ℹ prefix + brief status description (used for optional tool availability checks)
 - WARN: ⚠ prefix + specific issue description (which file, which command)
 - FAIL: ✗ prefix + specific issue + one repair hint pointing to a command
 - Repair hints: use `→ Run /sw-guard` for hooks/guardrail issues; `→ Run /sw-init` for config/anchor issues; `→ Run gh auth login` for GitHub auth issues
