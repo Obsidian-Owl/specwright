@@ -36,9 +36,15 @@ Use ast-grep `kind` rules to match definition nodes per language:
 **Rust:**
 - `kind: function_item`, `kind: impl_item`, `kind: struct_item`, `kind: trait_item`
 
-Output from `sg scan <file> --json --rule <rule>`: extract `text` field truncated
-to the first line (signature only, not body). For ad-hoc extraction without rule
-files, use `sg run --pattern '...' <file> --json`.
+**Extraction commands:**
+- When a project-level `sgconfig.yml` exists: `sg scan --json` operates on the
+  project directory using configured rules. Extract `text` field truncated to the
+  first line (signature only, not body).
+- For per-file extraction without sgconfig: `sg run --pattern '...' --lang <lang> <file> --json`.
+  This is the primary command for repo map generation.
+
+Note: `sg scan` does NOT accept individual file arguments — it operates on
+directories with a config file. Use `sg run` for targeted per-file extraction.
 
 ## Scope
 
@@ -69,7 +75,10 @@ When the map exceeds the token budget:
 1. Remove symbols from dependent files first (before changed-file symbols).
 2. Within dependents, remove deeper-nested symbols before top-level symbols.
 3. If still over budget after removing all dependents, truncate changed-file symbols
-   from the least-relevant file (fewest symbols) upward.
+   starting from the file with the fewest imports from other changed files (least
+   coupled to the changeset). Tie-break: alphabetical order. The ordering is a
+   heuristic — some information loss is acceptable since file path headers are
+   always preserved.
 4. Always preserve at least the file path headers — a list of paths with no symbols
    is still useful context.
 

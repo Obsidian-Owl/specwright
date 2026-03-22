@@ -237,7 +237,7 @@ if [ -d "$CC_DIST/protocols" ]; then
   assert_eq "$PROTO_COUNT" "$EXPECTED_PROTO_COUNT" "protocols/ has exactly $EXPECTED_PROTO_COUNT .md files"
 
   # Spot-check specific protocol files
-  for proto in state.md git.md delegation.md recovery.md evidence.md stage-boundary.md context.md; do
+  for proto in state.md git.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md; do
     if [ -f "$CC_DIST/protocols/$proto" ]; then
       pass "protocols/$proto exists"
     else

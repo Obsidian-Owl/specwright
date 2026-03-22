@@ -42,7 +42,10 @@ the TDD loop begins).
    insurance — if the orchestrator's prompt trimming drops the map, the hook restores it.
 
 Both channels may deliver the same content. The SubagentStart hook is a redundant
-backup, not a replacement for the context envelope.
+backup, not a replacement for the context envelope. When both fire, the agent
+receives the repo map twice — worst-case overhead is ~1024 additional tokens (the
+map's budget cap). This is acceptable given subagent context windows are large
+(200K+) and the map provides high-value grounding context.
 
 **Format and generation details:** See `protocols/repo-map.md`.
 

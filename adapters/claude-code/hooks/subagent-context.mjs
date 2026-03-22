@@ -12,7 +12,7 @@
  */
 
 import { readFileSync } from 'fs';
-import { join, resolve } from 'path';
+import { join, resolve, isAbsolute } from 'path';
 
 const REPO_MAP_AGENTS = ['specwright-executor', 'specwright-tester'];
 const CONTEXT_AGENTS = ['specwright-architect', 'specwright-reviewer'];
@@ -58,14 +58,20 @@ function main() {
     process.exit(0);
   }
 
+  // Defense-in-depth: reject absolute workDir paths (workflow.json is user-writable)
+  if (isAbsolute(workDir)) {
+    process.exit(0);
+  }
+
   // Read the target file (with path traversal validation)
   let content;
   try {
     const projectRoot = process.cwd();
     const filePath = resolve(projectRoot, workDir, targetFile);
 
-    // Validate resolved path is within project root to prevent path traversal
-    if (!filePath.startsWith(projectRoot)) {
+    // Validate resolved path is within project root to prevent path traversal.
+    // Append separator to avoid prefix matching siblings (e.g., /repo-evil matching /repo).
+    if (!filePath.startsWith(projectRoot + '/')) {
       process.exit(0);
     }
 
