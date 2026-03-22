@@ -1,10 +1,12 @@
 ---
 name: gate-semantic
 description: >-
-  LLM-assisted semantic analysis of changed code with optional symbolic
-  pre-processing. Detects error-path resource leaks and unchecked error
-  returns. Experimental — all findings are WARN. Internal gate — invoked
-  by verify when enabled.
+  Tiered semantic analysis of changed code using progressive tool
+  enhancement (rg → ast-grep → OpenGrep → Platform LSP). Detects
+  error-path resource leaks, unchecked errors, fail-open handling,
+  error data leakage, and resource lifecycle issues. Findings start
+  as WARN; BLOCK promotion requires calibration. Internal gate —
+  invoked by verify when enabled.
 allowed-tools:
   - Read
   - Bash
@@ -124,8 +126,30 @@ future iteration after base tiers are validated.
 
 **Verdict (LOW freedom):**
 - Follow `protocols/gate-verdict.md`.
-- All findings are WARN. Never BLOCK. This gate is experimental.
+- **Default: All findings are WARN.** BLOCK promotion requires calibration (see below).
 - WARN-only findings = gate WARN. No findings = gate PASS.
+
+**Verdict calibration (LOW freedom):**
+- Tier 0 categories (error-path-cleanup, unchecked-errors) are **permanently WARN-only**.
+  They use rg + LLM which has insufficient precision for BLOCK verdicts.
+- Tier 1+ and Tier 2+ categories may be promoted to BLOCK only when **ALL THREE**
+  conditions are met:
+  1. At least 5 work units have been shipped with the category enabled (count from
+     sw-learn gateCalibration history — each shipped unit increments the count).
+  2. The category's cumulative false-positive rate is below 10%, calculated as:
+     `totalFalsePositives / totalFindings` summed across all gateCalibration entries.
+  3. The user has opted in via config: `{"name": "<category>", "severity": "block"}`.
+- When gateCalibration data does not exist (no units shipped yet), condition 1 is
+  not met and findings remain WARN. The gate does not error on missing calibration data.
+- When any condition is not met, findings remain WARN regardless of config opt-in.
+
+**Evidence report (LOW freedom):**
+- The semantic-report.md evidence file includes:
+  - A "## Tool Availability" section listing each tool, its detected status (from
+    config or PATH), and the active tier.
+  - Each skipped category with the INFO-note reason.
+  - Each finding with: category, file path, line range, tier/tool that produced it,
+    severity (WARN or BLOCK per calibration), and remediation guidance.
 
 ## Protocol References
 
@@ -140,6 +164,9 @@ future iteration after base tiers are validated.
 |-----------|--------|
 | Gate disabled in config | sw-verify skips silently — no evidence, no error |
 | No changed files | Return PASS with no findings |
-| No symbolic tools available | Degrade to pure LLM review. Not an error — clean code still returns PASS. |
+| No symbolic tools available | Degrade to pure LLM review (Tier 0). Not an error. |
 | Changed files are not code | Return PASS with no findings |
-| ast-grep/semgrep not found | Degrade to rg-based extraction. Not an error. |
+| ast-grep not found | Tier 1+ categories skipped with INFO. Tier 0 categories still run. |
+| OpenGrep not found | resource-lifecycle category skipped with INFO. Other categories still run. |
+| Tool in config `detected: true` but missing at runtime | Log WARN, skip that tier. Other tiers still run. |
+| gateCalibration data missing | All findings remain WARN. No error. |
