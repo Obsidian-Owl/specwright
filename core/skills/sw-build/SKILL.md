@@ -136,6 +136,26 @@ When delegating, include in the prompt (in this order):
 - Follow `protocols/assumptions.md` late discovery lifecycle at build start and after each task commit.
 - Follow `protocols/build-quality.md` for discovered behaviors capture after each task.
 
+**Per-task micro-check (MEDIUM freedom) — after each task commit:**
+- Identify files changed in the latest commit via `git diff --name-only HEAD~1`.
+  If the command fails (initial commit, detached HEAD), skip the micro-check.
+- Filter to code files using the same inclusion list as the PostToolUse hook
+  (`.js`, `.ts`, `.jsx`, `.tsx`, `.py`, `.go`, `.rs`, `.java`, `.rb`, `.c`, `.cpp`,
+  `.h`, `.cs`, `.swift`, `.kt`, `.sh`). If all changed files are non-code, skip.
+- When `sg` is on PATH: run ast-grep extraction on the changed code files using
+  `kind` rules from `protocols/repo-map.md` (function definitions, class definitions,
+  error handlers) to produce structural facts as JSON.
+- Feed the structural facts to a single LLM prompt: "Given these structural facts
+  about the just-committed changes, are there any error-path cleanup issues or
+  unchecked error returns?"
+- When `sg` is not on PATH: skip the micro-check entirely (no LLM call without
+  structured input).
+- Append findings to `{currentWork.workDir}/feedback-log.md` per
+  `protocols/build-context.md` Feedback Log format.
+- Include findings in the status card as warning lines (e.g.,
+  `  ⚠ unchecked-error (src/handler.ts:42)`). The build continues regardless —
+  micro-check findings are non-blocking.
+
 **Post-build review (MEDIUM freedom):**
 - After all tasks committed, delegate review to `specwright-reviewer`.
 - Follow `protocols/build-quality.md` for trigger, depth calibration, delegation details, and findings triage.
