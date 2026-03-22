@@ -15,7 +15,7 @@
 
 import { readFileSync } from 'fs';
 import { extname } from 'path';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 const CODE_EXTENSIONS = new Set([
   '.js', '.ts', '.jsx', '.tsx', '.py', '.go', '.rs', '.java',
@@ -69,8 +69,8 @@ function main() {
   // Step 3: Standalone LSP fallback (only if no platform LSP)
   if (!hasPlatformLSP) {
     try {
-      const lspOutput = execSync(
-        `cli-lsp-client diagnostics "${filePath}"`,
+      const lspOutput = execFileSync(
+        'cli-lsp-client', ['diagnostics', filePath],
         { encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }
       );
       if (lspOutput.trim()) {
@@ -89,7 +89,7 @@ function main() {
   // Step 4: ast-grep structural feedback (runs independently of LSP)
   try {
     // Validate sg is actually ast-grep (not shadow-utils newgrp)
-    const versionCheck = execSync('sg --version 2>&1', { encoding: 'utf8', timeout: 3000 });
+    const versionCheck = execFileSync('sg', ['--version'], { encoding: 'utf8', timeout: 3000, stdio: ['pipe', 'pipe', 'pipe'] });
     if (/ast-grep/i.test(versionCheck)) {
       // Determine language from extension for rule path
       const langMap = {
@@ -107,9 +107,9 @@ function main() {
         // Future: use per-language rule files from ${CLAUDE_PLUGIN_ROOT}/rules/${lang}/post-write.yml
         try {
           // Use sg run with file path (not --stdin, to preserve line numbers)
-          const sgOutput = execSync(
-            `sg run --pattern 'catch ($$$ARGS) { }' --lang ${lang} "${filePath}" --json 2>/dev/null`,
-            { encoding: 'utf8', timeout: 3000 }
+          const sgOutput = execFileSync(
+            'sg', ['run', '--pattern', 'catch ($$$ARGS) { }', '--lang', lang, filePath, '--json'],
+            { encoding: 'utf8', timeout: 3000, stdio: ['pipe', 'pipe', 'pipe'] }
           );
           if (sgOutput.trim()) {
             try {
