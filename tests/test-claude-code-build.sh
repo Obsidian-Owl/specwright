@@ -610,7 +610,7 @@ fi
 echo ""
 echo "=== AC-6: Hook files ==="
 
-EXPECTED_HOOKS="session-start.mjs session-stop.mjs subagent-context.mjs task-completed.mjs"
+EXPECTED_HOOKS="post-write-diagnostics.mjs session-start.mjs session-stop.mjs subagent-context.mjs task-completed.mjs"
 
 echo "--- Hook files exist ---"
 
@@ -653,7 +653,7 @@ echo "--- No unexpected hook files ---"
 
 if [ -d "$CC_DIST/hooks" ]; then
   HOOK_MJS_COUNT=$(find "$CC_DIST/hooks" -maxdepth 1 -name '*.mjs' -type f | wc -l | tr -d ' ')
-  assert_eq "$HOOK_MJS_COUNT" "4" "hooks/ has exactly 4 .mjs files"
+  assert_eq "$HOOK_MJS_COUNT" "5" "hooks/ has exactly 5 .mjs files"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
