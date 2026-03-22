@@ -30,6 +30,18 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/post-write-diagnostics.mjs",
+            "async": true
+          }
+        ]
+      }
+    ],
     "SubagentStart": [
       {
         "matcher": "specwright-executor|specwright-tester|specwright-architect|specwright-reviewer",
