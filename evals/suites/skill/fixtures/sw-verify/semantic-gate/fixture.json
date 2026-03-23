@@ -1,0 +1,6 @@
+{
+  "specwright_version": "0.20.0",
+  "created_date": "2026-03-23",
+  "language": "typescript",
+  "description": "TypeScript project with planted semantic bugs for testing gate-semantic tiered analysis"
+}

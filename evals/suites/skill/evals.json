@@ -104,6 +104,37 @@
         }
       ],
       "tags": ["skill", "sw-design", "adversarial", "failure-mode"]
+    },
+    {
+      "id": "sw-verify-semantic-gate",
+      "layer": "skill",
+      "skill": "sw-verify",
+      "prompt_template": "verify",
+      "prompt_args": {},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/skill/fixtures/sw-verify/semantic-gate"
+      },
+      "expectations": [
+        {
+          "type": "file_exists",
+          "path": ".specwright/work/semantic-test/evidence/semantic-report.md",
+          "description": "Semantic gate produces evidence report"
+        },
+        {
+          "type": "state",
+          "field": "gates.semantic.status",
+          "expected": "WARN",
+          "description": "Semantic gate returns WARN (findings detected)"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The semantic report identifies at least one of: empty catch block (fail-open handling), stack trace in error response (error data leakage), or unchecked return value. Findings are WARN severity, not BLOCK.",
+          "target": ".specwright/work/semantic-test/evidence/semantic-report.md",
+          "description": "Semantic gate detects planted bugs"
+        }
+      ],
+      "tags": ["skill", "sw-verify", "gate-semantic", "semantic-analysis"]
     }
   ]
 }

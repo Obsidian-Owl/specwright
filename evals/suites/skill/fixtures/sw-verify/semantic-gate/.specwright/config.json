@@ -1,0 +1,41 @@
+{
+  "version": "2.0",
+  "project": {
+    "name": "semantic-gate-test",
+    "type": "node",
+    "languages": ["typescript"],
+    "framework": null,
+    "packageManager": "npm",
+    "testRunner": "vitest",
+    "linter": null,
+    "formatter": null
+  },
+  "commands": {
+    "build": null,
+    "test": "npx vitest run",
+    "lint": null,
+    "format": null
+  },
+  "git": {
+    "defaultBranch": "main",
+    "strategy": "trunk-based",
+    "conventionalCommits": true,
+    "branchPrefix": "work/"
+  },
+  "gates": {
+    "build": { "enabled": true },
+    "tests": { "enabled": true },
+    "security": { "enabled": true },
+    "wiring": { "enabled": true },
+    "semantic": {
+      "enabled": true,
+      "categories": ["error-path-cleanup", "unchecked-errors", "fail-open-handling", "error-data-leakage"],
+      "tools": {
+        "ast-grep": { "command": "sg", "detected": false },
+        "opengrep": { "command": "opengrep", "detected": false },
+        "lsp": { "source": "none", "detected": false }
+      }
+    },
+    "spec": { "enabled": true }
+  }
+}
