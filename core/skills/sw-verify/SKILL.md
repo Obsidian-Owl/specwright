@@ -87,6 +87,16 @@ and be able to discuss or override before proceeding to ship.
 - SKIP gates MUST be prominently marked in the report. For each skipped gate, add an entry to the summary table with the note: "Gate {name} was SKIPPED — no evidence exists for this dimension."
 - After all gates, check escalation heuristics per `protocols/gate-verdict.md`.
 - Handoff: BLOCKs → "Fix and re-run `/sw-verify`." WARNs only → "Review, then fix or `/sw-ship`." All PASS → "Ready for `/sw-ship`."
+  3. **Actionable Findings** (after summary): only shown when WARN or BLOCK findings exist; omit when all gates PASS. Populate from gate evidence as source. Include only WARN and BLOCK severity rows, not INFO.
+
+     | # | Gate | Severity | File | Finding | Recommended Fix |
+     |---|------|----------|------|---------|-----------------|
+     | 1 | gate-tests | WARN | src/foo.ts | description | concrete fix suggestion or "manual review" |
+
+     - File column: specific file path from gate evidence (not vague references).
+     - Recommended Fix column: WARN rows get concrete, actionable fix suggestions; BLOCK rows that require human judgment get "manual review".
+     - Summary line: "N of M findings require action — resolve the warns before shipping. If all require manual review, each needs human judgment before proceeding."
+     - All-manual case: when every finding requires manual review, note that no automated resolution is possible.
 
 **State updates (LOW freedom):**
 - Follow `protocols/state.md`.
