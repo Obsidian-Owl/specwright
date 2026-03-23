@@ -5,9 +5,9 @@
 #   AC-1: subagent-context.mjs security guards (absolute path, traversal)
 #   AC-2: subagent-context.mjs routing by agent_type
 #   AC-3: post-write-diagnostics.mjs extension filtering and OPENCODE env
-#   AC-4: session-start.mjs no workflow.json → silent exit
-#   AC-5: session-start.mjs active work recovery summary output
-#   AC-6: session-start.mjs continuation.md lifecycle (fresh/stale/delete)
+#   AC-4: session-start.mjs correction bridge E2E (fresh continuation + corrections)
+#   AC-5: session-start.mjs missing/stale continuation handling
+#   AC-6: session-start.mjs lock warnings + shipped work skip
 #
 # Dependencies: bash, node
 # Usage: ./tests/test-hooks.sh
@@ -17,8 +17,9 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-TMPDIR="$(mktemp -d)"
-trap 'rm -rf "$TMPDIR"' EXIT
+# Use a non-reserved variable name — TMPDIR is POSIX/macOS system env
+TEST_TMPDIR="$(mktemp -d)"
+trap 'rm -rf "$TEST_TMPDIR"' EXIT
 
 SUBAGENT_HOOK="$ROOT_DIR/adapters/claude-code/hooks/subagent-context.mjs"
 POST_WRITE_HOOK="$ROOT_DIR/adapters/claude-code/hooks/post-write-diagnostics.mjs"
@@ -79,7 +80,7 @@ echo ""
 echo "=== Section 1: subagent-context.mjs ==="
 
 # AC-1: Absolute workDir is rejected
-T="$TMPDIR/t-abs-workdir"
+T="$TEST_TMPDIR/t-abs-workdir"
 make_project "$T"
 # Write workflow.json with absolute workDir /etc
 cat > "$T/.specwright/state/workflow.json" <<'EOF'
@@ -99,7 +100,7 @@ assert_eq "$exit_code" "0" "subagent-context: absolute workDir → exit 0"
 assert_eq "$output" "" "subagent-context: absolute workDir → no output"
 
 # AC-1: Path traversal workDir is rejected
-T="$TMPDIR/t-traversal"
+T="$TEST_TMPDIR/t-traversal"
 make_project "$T"
 cat > "$T/.specwright/state/workflow.json" <<'EOF'
 {
@@ -118,7 +119,7 @@ assert_eq "$exit_code" "0" "subagent-context: path traversal workDir → exit 0"
 assert_eq "$output" "" "subagent-context: path traversal workDir → no output"
 
 # AC-2: Valid workDir but missing repo-map.md → silent exit
-T="$TMPDIR/t-missing-repomap"
+T="$TEST_TMPDIR/t-missing-repomap"
 make_project "$T"
 mkdir -p "$T/.specwright/work/WU-001"
 write_workflow "$T" ".specwright/work/WU-001"
@@ -129,11 +130,11 @@ assert_eq "$exit_code" "0" "subagent-context: missing repo-map.md → exit 0"
 assert_eq "$output" "" "subagent-context: missing repo-map.md → no output"
 
 # AC-2: specwright-executor with repo-map.md → JSON output with content
-T="$TMPDIR/t-executor-repomap"
+T="$TEST_TMPDIR/t-executor-repomap"
 make_project "$T"
 mkdir -p "$T/.specwright/work/WU-001"
 write_workflow "$T" ".specwright/work/WU-001"
-echo "# Repo Map\nsome content here" > "$T/.specwright/work/WU-001/repo-map.md"
+printf '# Repo Map\nsome content here\n' > "$T/.specwright/work/WU-001/repo-map.md"
 output=$(cd "$T" && echo '{"agent_type":"specwright-executor"}' | node "$SUBAGENT_HOOK" 2>/dev/null)
 exit_code=$?
 assert_eq "$exit_code" "0" "subagent-context: executor with repo-map.md → exit 0"
@@ -141,18 +142,18 @@ assert_contains "$output" "additionalContext" "subagent-context: executor with r
 assert_contains "$output" "SubagentStart" "subagent-context: executor with repo-map.md → hookEventName present"
 
 # AC-2: specwright-architect with context.md → JSON output with content
-T="$TMPDIR/t-architect-context"
+T="$TEST_TMPDIR/t-architect-context"
 make_project "$T"
 mkdir -p "$T/.specwright/work/WU-001"
 write_workflow "$T" ".specwright/work/WU-001"
-echo "# Context\nresearch findings" > "$T/.specwright/work/WU-001/context.md"
+printf '# Context\nresearch findings\n' > "$T/.specwright/work/WU-001/context.md"
 output=$(cd "$T" && echo '{"agent_type":"specwright-architect"}' | node "$SUBAGENT_HOOK" 2>/dev/null)
 exit_code=$?
 assert_eq "$exit_code" "0" "subagent-context: architect with context.md → exit 0"
 assert_contains "$output" "additionalContext" "subagent-context: architect with context.md → JSON with additionalContext"
 
 # AC-2: unknown agent_type → silent exit
-T="$TMPDIR/t-unknown-agent"
+T="$TEST_TMPDIR/t-unknown-agent"
 make_project "$T"
 mkdir -p "$T/.specwright/work/WU-001"
 write_workflow "$T" ".specwright/work/WU-001"
@@ -162,7 +163,7 @@ assert_eq "$exit_code" "0" "subagent-context: unknown agent_type → exit 0"
 assert_eq "$output" "" "subagent-context: unknown agent_type → no output"
 
 # AC-2: missing agent_type → silent exit
-T="$TMPDIR/t-no-agent-type"
+T="$TEST_TMPDIR/t-no-agent-type"
 make_project "$T"
 mkdir -p "$T/.specwright/work/WU-001"
 write_workflow "$T" ".specwright/work/WU-001"
@@ -202,6 +203,12 @@ exit_code=$?
 assert_eq "$exit_code" "0" "post-write-diagnostics: OPENCODE=1 → exit 0"
 assert_eq "$output" "" "post-write-diagnostics: OPENCODE=1 → no output"
 
+# AC-3: OPENCODE_VERSION set → exit 0 (covers second branch of the OR guard)
+output=$(OPENCODE_VERSION=1.0 node "$POST_WRITE_HOOK" <<< '{"tool_input":{"file_path":"/tmp/app.ts"}}' 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "post-write-diagnostics: OPENCODE_VERSION → exit 0"
+assert_eq "$output" "" "post-write-diagnostics: OPENCODE_VERSION → no output"
+
 # ---------------------------------------------------------------------------
 # Section 3: session-start.mjs
 # ---------------------------------------------------------------------------
@@ -210,7 +217,7 @@ echo ""
 echo "=== Section 3: session-start.mjs ==="
 
 # AC-4: No workflow.json → exit 0, no output
-T="$TMPDIR/t-ss-no-workflow"
+T="$TEST_TMPDIR/t-ss-no-workflow"
 mkdir -p "$T"
 # No .specwright directory at all
 output=$(cd "$T" && node "$SESSION_START_HOOK" 2>/dev/null)
@@ -219,7 +226,7 @@ assert_eq "$exit_code" "0" "session-start: no workflow.json → exit 0"
 assert_eq "$output" "" "session-start: no workflow.json → no output"
 
 # AC-4: Shipped work → exit 0, no output
-T="$TMPDIR/t-ss-shipped"
+T="$TEST_TMPDIR/t-ss-shipped"
 make_project "$T"
 write_workflow "$T" ".specwright/work/WU-001" "shipped"
 output=$(cd "$T" && node "$SESSION_START_HOOK" 2>/dev/null)
@@ -228,7 +235,7 @@ assert_eq "$exit_code" "0" "session-start: shipped work → exit 0"
 assert_eq "$output" "" "session-start: shipped work → no output"
 
 # AC-5: Active work, no continuation → output contains "Work in progress"
-T="$TMPDIR/t-ss-active-no-cont"
+T="$TEST_TMPDIR/t-ss-active-no-cont"
 make_project "$T"
 write_workflow "$T" ".specwright/work/WU-001" "in-progress"
 output=$(cd "$T" && node "$SESSION_START_HOOK" 2>/dev/null)
@@ -238,7 +245,7 @@ assert_contains "$output" "Work in progress" "session-start: active work no cont
 assert_not_contains "$output" "Continuation Snapshot" "session-start: active work no continuation → no snapshot"
 
 # AC-6: Active work, fresh continuation WITH Correction Summary → output contains both sections
-T="$TMPDIR/t-ss-fresh-cont"
+T="$TEST_TMPDIR/t-ss-fresh-cont"
 make_project "$T"
 write_workflow "$T" ".specwright/work/WU-001" "in-progress"
 # Write a fresh continuation.md (timestamp = now)
@@ -270,10 +277,10 @@ else
 fi
 
 # AC-6: Active work, stale continuation (3 hours old) → no snapshot content, continuation.md deleted
-T="$TMPDIR/t-ss-stale-cont"
+T="$TEST_TMPDIR/t-ss-stale-cont"
 make_project "$T"
 write_workflow "$T" ".specwright/work/WU-001" "in-progress"
-# 3 hours ago
+# 3 hours ago — clearly stale (production threshold is 2 hours in session-start.mjs)
 STALE_TIME="$(node -e 'console.log(new Date(Date.now() - 3*60*60*1000).toISOString())')"
 cat > "$T/.specwright/state/continuation.md" <<EOF
 Snapshot: $STALE_TIME
@@ -296,7 +303,7 @@ else
 fi
 
 # AC-5: Lock held → output contains "Lock held by"
-T="$TMPDIR/t-ss-lock"
+T="$TEST_TMPDIR/t-ss-lock"
 make_project "$T"
 cat > "$T/.specwright/state/workflow.json" <<'EOF'
 {
