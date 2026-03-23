@@ -26,6 +26,7 @@ sw-init → sw-design → sw-plan → sw-build → sw-verify → sw-ship
 | `sw-status` | Current state and progress. |
 | `sw-learn` | Post-ship capture of patterns and learnings. |
 | `sw-audit` | Periodic codebase health check. Finds systemic tech debt. |
+| `sw-sync` | Git housekeeping. Fetch, prune stale branches, sync with remote. |
 
 ## Anchor Documents
 

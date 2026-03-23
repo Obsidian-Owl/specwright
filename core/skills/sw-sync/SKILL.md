@@ -44,8 +44,8 @@ read-only utility: it never modifies workflow state.
   which indicates the remote tracking branch has been deleted. This is the
   most reliable signal.
 - Supplementary method: use `git branch --merged` against the base branch to
-  find branches whose commits are already merged. Cross-reference both lists
-  to build the candidate set.
+  find branches whose commits are already merged. Deduplicate and cross-reference
+  both lists to build a single candidate set.
 - Base branch must be read from `config.json` (`git.baseBranch`). Never
   hardcode `main` or any other branch name as a fallback without consulting
   config.
@@ -53,8 +53,9 @@ read-only utility: it never modifies workflow state.
 **Safety checks (LOW freedom — never skip):**
 - Current branch protection: never delete the branch currently checked out;
   exclude current branch from all candidate lists and skip it silently.
-- Base branch protection: never delete the base branch; exclude base branch
-  from candidates and protect it unconditionally.
+- Base branch and perennial branch protection: never delete the base branch
+  or any configured perennial branches (e.g., `develop`, `staging`). Exclude
+  them from candidates unconditionally.
 - Worktree safety: run `git worktree list` and exclude any branch referenced
   by an active worktree. Deleting a branch in use by another worktree corrupts
   the worktree.
@@ -71,8 +72,8 @@ read-only utility: it never modifies workflow state.
 **Confirmation (LOW freedom):**
 - Show the user the full list of candidate branches and their reason for
   deletion (e.g., `[gone]` or `--merged`) before asking anything.
-- Use AskUserQuestion to confirm deletion. Never delete without explicit
-  approval.
+- Use AskUserQuestion to confirm deletion with three options: confirm all,
+  select a subset, or abort. Never delete without explicit approval.
 - Use `git branch -d` (safe delete) for all deletions. Safe delete refuses
   to delete unmerged branches, providing a second safety layer. Never use
   `-D` (force delete).
@@ -113,3 +114,6 @@ read-only utility: it never modifies workflow state.
   deletion and warn the user.
 - **Branch name fails validation (metacharacter detected)** — skip that branch,
   log a warning with the branch name, continue with remaining candidates.
+- **Active build in progress** — if `workflow.json` shows `currentWork.status`
+  is `building` or `verifying`, warn about potential interference before
+  proceeding.

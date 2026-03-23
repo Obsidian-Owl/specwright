@@ -230,7 +230,7 @@ specwright/
 │   │   ├── hooks/           # Session lifecycle hooks
 │   │   └── CLAUDE.md        # Claude Code project instructions
 │   └── opencode/          # Opencode adapter (npm package)
-│       ├── commands/        # Skill command definitions (14 .md files)
+│       ├── commands/        # Skill command definitions (15 .md files)
 │       ├── skills/          # Skill overrides (none currently)
 │       ├── plugin.ts        # Plugin entry point
 │       ├── package.json     # npm package manifest
