@@ -120,6 +120,7 @@ echo "--- Running: build.sh claude-code ---"
 BUILD_OUTPUT=$("$BUILD_SCRIPT" claude-code 2>&1) || {
   fail "build.sh claude-code exited with non-zero status"
   echo "  Build output:"
+  # shellcheck disable=SC2001
   echo "$BUILD_OUTPUT" | sed 's/^/    /'
   echo ""
   echo "RESULT: $PASS passed, $FAIL failed (build failed, cannot continue)"
@@ -154,8 +155,8 @@ fi
 
 echo "--- skills/ directory ---"
 
-EXPECTED_SKILLS="gate-build gate-security gate-semantic gate-spec gate-tests gate-wiring sw-audit sw-build sw-debug sw-design sw-doctor sw-guard sw-init sw-learn sw-pivot sw-plan sw-research sw-ship sw-status sw-verify"
-EXPECTED_SKILL_COUNT=20
+EXPECTED_SKILLS="gate-build gate-security gate-semantic gate-spec gate-tests gate-wiring sw-audit sw-build sw-debug sw-design sw-doctor sw-guard sw-init sw-learn sw-pivot sw-plan sw-research sw-ship sw-status sw-sync sw-verify"
+EXPECTED_SKILL_COUNT=21
 
 if [ -d "$CC_DIST/skills" ]; then
   pass "skills/ directory exists"
