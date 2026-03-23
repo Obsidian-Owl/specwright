@@ -3,8 +3,7 @@
 # Tests for skills/sw-sync/SKILL.md (AC1-AC7, AC9)
 #
 # Validates the skill definition file structure and content against
-# acceptance criteria. These are RED phase tests -- the skill file
-# does not exist yet and all tests must fail.
+# acceptance criteria.
 #
 # Boundary classification: Internal (TESTING.md -- core skills are
 # validated via file reads and pattern matching, no mocks).

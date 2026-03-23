@@ -3,8 +3,8 @@
 #
 # Tests for sw-sync documentation updates (AC8)
 #
-# Validates that DESIGN.md and CLAUDE.md are updated to include sw-sync
-# in skill tables, directory structures, and counts.
+# Validates that DESIGN.md, CLAUDE.md, and AGENTS.md are updated to include
+# sw-sync in skill tables, directory structures, and counts.
 #
 # Boundary classification: Internal (core docs validated via file reads
 # and pattern matching, no mocks).
@@ -243,13 +243,46 @@ CLAUDE_SKILL_ROWS=$(echo "$CLAUDE_CONTENT" | grep -cE '^\| `sw-' || true)
 assert_eq "$CLAUDE_SKILL_ROWS" "15" "CLAUDE.md has exactly 15 skill rows"
 
 # ═══════════════════════════════════════════════════════════════════════
-# Cross-cutting: consistency between DESIGN.md and CLAUDE.md
+# AC8.6: AGENTS.md includes sw-sync
+# ═══════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "--- AGENTS.md ---"
+
+AGENTS_FILE="$ROOT_DIR/AGENTS.md"
+if [ ! -f "$AGENTS_FILE" ]; then
+  fail "AGENTS.md exists"
+else
+  AGENTS_CONTENT=$(cat "$AGENTS_FILE")
+
+  if echo "$AGENTS_CONTENT" | grep -q '| `sw-sync`'; then
+    pass "AGENTS.md skill table includes sw-sync row"
+  else
+    fail "AGENTS.md skill table includes sw-sync row"
+  fi
+
+  if echo "$AGENTS_CONTENT" | grep '`sw-sync`' | grep -qiE 'sync|clean|stale|prune|branch|housekeeping'; then
+    pass "AGENTS.md sw-sync purpose mentions sync-related concept"
+  else
+    fail "AGENTS.md sw-sync purpose mentions sync-related concept"
+  fi
+
+  AGENTS_SYNC_ROWS=$(echo "$AGENTS_CONTENT" | grep -c '| `sw-sync`' || true)
+  if [ "$AGENTS_SYNC_ROWS" -eq 1 ]; then
+    pass "exactly one sw-sync row in AGENTS.md"
+  else
+    fail "exactly one sw-sync row in AGENTS.md (found $AGENTS_SYNC_ROWS)"
+  fi
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Cross-cutting: consistency between DESIGN.md, CLAUDE.md, and AGENTS.md
 # ═══════════════════════════════════════════════════════════════════════
 
 echo ""
 echo "--- Cross-document consistency ---"
 
-# sw-sync must appear in BOTH files (not just one)
+# sw-sync must appear in ALL THREE files
 DESIGN_HAS=$(echo "$DESIGN_CONTENT" | grep -c '`sw-sync`' || true)
 CLAUDE_HAS=$(echo "$CLAUDE_CONTENT" | grep -c '`sw-sync`' || true)
 

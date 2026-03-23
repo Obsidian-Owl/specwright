@@ -44,8 +44,10 @@ read-only utility: it never modifies workflow state.
   which indicates the remote tracking branch has been deleted. This is the
   most reliable signal.
 - Supplementary method: use `git branch --merged` against the base branch to
-  find branches whose commits are already merged. Deduplicate and cross-reference
-  both lists to build a single candidate set.
+  surface local-only branches (no tracking ref) whose commits are already in base.
+  Do NOT promote a branch to the candidate list solely because it is `--merged`
+  if its remote tracking ref is still present; surface those separately for the
+  user to review. Deduplicate the combined candidate set.
 - Base branch must be read from `config.json` (`git.baseBranch`). Never
   hardcode `main` or any other branch name as a fallback without consulting
   config.
@@ -80,7 +82,7 @@ read-only utility: it never modifies workflow state.
 
 **Base branch sync (MEDIUM freedom):**
 - After fetch, checkout the base branch and pull to bring it up to date.
-  Use fast-forward only to avoid creating merge commits on the base branch.
+  Use `--ff-only` to avoid creating merge commits on the base branch.
 - After the base branch pull, switch back to the original branch so the user
   is returned to where they started.
 
@@ -99,6 +101,7 @@ read-only utility: it never modifies workflow state.
 - `protocols/git.md` -- git config schema, `baseBranch`, `cleanupBranch`, branch lifecycle
 - `protocols/context.md` -- config loading from `.specwright/config.json`
 - `protocols/headless.md` -- non-interactive execution and result file format
+- `protocols/state.md` -- workflow state schema, `currentWork` fields, read-only access patterns
 
 ## Failure Modes
 
@@ -115,5 +118,9 @@ read-only utility: it never modifies workflow state.
 - **Branch name fails validation (metacharacter detected)** — skip that branch,
   log a warning with the branch name, continue with remaining candidates.
 - **Active build in progress** — if `workflow.json` shows `currentWork.status`
-  is `building` or `verifying`, warn about potential interference before
-  proceeding.
+  is `building` or `verifying`, abort with an error message and instructions
+  to wait for the build to complete or cancel it first. Do not proceed.
+- **Base branch cannot fast-forward** — if `git pull --ff-only` fails (e.g.,
+  upstream was rebased), warn the user that the base branch has diverged; skip
+  the pull and continue with the summary report. Never attempt a merge or
+  reset automatically.
