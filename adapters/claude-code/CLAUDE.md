@@ -24,6 +24,7 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | `sw-status` | Current state and progress. Supports `--cleanup` to remove orphaned work directories. |
 | `sw-learn` | Post-ship capture of patterns and learnings. Clears workflow state after persistence. |
 | `sw-audit` | Periodic codebase health check. Finds systemic tech debt. |
+| `sw-sync` | Git housekeeping. Fetch, prune stale branches, sync with remote. |
 
 ## Anchor Documents
 
