@@ -70,9 +70,7 @@ BODY=$(extract_body "$SKILL_FILE") || {
   exit 1
 }
 
-# Extract aggregate report constraint section for focused checks
-# Reserved for future use in scoped checks
-_AGG_SECTION=$(echo "$BODY" | sed -n '/Aggregate report/,/^\*\*/p')
+# (Scoped checks below use BODY directly or AFTER_* slices)
 
 # ═══════════════════════════════════════════════════════════════════════
 # AC1: Actionable Findings table appears in aggregate report
@@ -90,7 +88,14 @@ fi
 # AC1b: Table columns -- must mention the column names that form the table
 # We check each column individually to prevent a partial implementation
 # that omits one or two columns.
-for col in "#" "Gate" "Severity" "File" "Finding" "Recommended Fix"; do
+# Check '#' column inside a table row (grep -qi "#" matches markdown headings, not useful)
+if echo "$BODY" | grep -E '^\s*\|[[:space:]]*#[[:space:]]*\|' | grep -q .; then
+  pass "AC1b: table column '#' mentioned (in table row)"
+else
+  fail "AC1b: table column '#' mentioned (in table row)"
+fi
+
+for col in "Gate" "Severity" "File" "Finding" "Recommended Fix"; do
   if echo "$BODY" | grep -qi "$col"; then
     pass "AC1b: table column '$col' mentioned"
   else
