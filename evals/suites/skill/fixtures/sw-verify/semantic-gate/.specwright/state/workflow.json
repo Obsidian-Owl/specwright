@@ -1,0 +1,16 @@
+{
+  "version": "2.0",
+  "currentWork": {
+    "id": "semantic-test",
+    "description": "Test project with planted semantic bugs",
+    "status": "building",
+    "workDir": ".specwright/work/semantic-test",
+    "unitId": null,
+    "tasksTotal": 1,
+    "tasksCompleted": ["task-1"],
+    "currentTask": null
+  },
+  "gates": {},
+  "lock": null,
+  "lastUpdated": "2026-03-23T00:00:00.000Z"
+}
