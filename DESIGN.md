@@ -48,9 +48,9 @@ Persistent record of systemic issues that per-change gates miss: architecture de
 **research/** -- External Research Briefs (optional)
 Validated, referenced findings about external systems: API documentation, SDK contracts, industry patterns, best practices. Created by sw-research, consumed by sw-design during its research phase. Each brief is a standalone file with topic ID and date. Briefs older than 90 days are stale. Format, confidence scoring, and lifecycle rules in `protocols/research.md`.
 
-## Skills (21)
+## Skills (22)
 
-### User-Facing (15)
+### User-Facing (16)
 
 | Skill | Purpose | Key Innovation |
 |-------|---------|----------------|
@@ -69,6 +69,7 @@ Validated, referenced findings about external systems: API documentation, SDK co
 | `sw-doctor` | Installation health check | Read-only validation of config, gates, hooks |
 | `sw-audit` | Periodic codebase health check | Finds systemic debt gates miss. Feeds findings into design + learn |
 | `sw-sync` | Git housekeeping — fetch, prune, sync | Config-driven stale branch cleanup with safety guards and preview |
+| `sw-review` | PR comment review and response | Fetches all 3 comment types (REST + GraphQL), groups by status, responds inline |
 
 ### Internal Gate Skills (6)
 
@@ -200,7 +201,7 @@ Target: 800 tokens per SKILL.md (~53% of the 1,500 token ceiling).
 ```
 specwright/
 ├── core/                  # Platform-agnostic content
-│   ├── skills/            # SKILL.md files (21 skills)
+│   ├── skills/            # SKILL.md files (22 skills)
 │   │   ├── sw-init/       # User-facing
 │   │   ├── sw-design/
 │   │   ├── sw-plan/
@@ -216,6 +217,7 @@ specwright/
 │   │   ├── sw-doctor/
 │   │   ├── sw-audit/
 │   │   ├── sw-sync/
+│   │   ├── sw-review/
 │   │   ├── gate-build/    # Internal (invoked by verify)
 │   │   ├── gate-tests/
 │   │   ├── gate-security/
@@ -230,7 +232,7 @@ specwright/
 │   │   ├── hooks/           # Session lifecycle hooks
 │   │   └── CLAUDE.md        # Claude Code project instructions
 │   └── opencode/          # Opencode adapter (npm package)
-│       ├── commands/        # Skill command definitions (15 .md files)
+│       ├── commands/        # Skill command definitions (16 .md files)
 │       ├── skills/          # Skill overrides (none currently)
 │       ├── plugin.ts        # Plugin entry point
 │       ├── package.json     # npm package manifest

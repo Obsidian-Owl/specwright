@@ -25,6 +25,7 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | `sw-learn` | Post-ship capture of patterns and learnings. Clears workflow state after persistence. |
 | `sw-audit` | Periodic codebase health check. Finds systemic tech debt. |
 | `sw-sync` | Git housekeeping. Fetch, prune stale branches, sync with remote. |
+| `sw-review` | PR comment review. Fetch all comment types, group by status, respond inline. |
 
 ## Anchor Documents
 

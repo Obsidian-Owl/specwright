@@ -27,6 +27,7 @@ sw-init → sw-design → sw-plan → sw-build → sw-verify → sw-ship
 | `sw-learn` | Post-ship capture of patterns and learnings. |
 | `sw-audit` | Periodic codebase health check. Finds systemic tech debt. |
 | `sw-sync` | Git housekeeping. Fetch, prune stale branches, sync with remote. |
+| `sw-review` | PR comment review. Fetch all comment types, group by status, respond inline. |
 
 ## Anchor Documents
 
