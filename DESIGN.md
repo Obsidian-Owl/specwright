@@ -58,7 +58,7 @@ Validated, referenced findings about external systems: API documentation, SDK co
 | `sw-design` | Interactive solution architecture | Research, design, adversarial critic, assumption surfacing, user approval throughout |
 | `sw-plan` | Decompose + spec | Per-unit specs with individual user approval. Self-contained unit directories |
 | `sw-build` | TDD implementation | Tester → executor delegation. Context doc travels with agents |
-| `sw-verify` | Interactive quality gates | Shows findings, not badges. Orchestrates gate skills in dependency order |
+| `sw-verify` | Interactive quality gates | Shows findings, not badges. Orchestrates gate skills in dependency order. Enriched handoff with actionable findings table |
 | `sw-ship` | Strategy-aware merge | PR with evidence-mapped body |
 | `sw-status` | Where am I, what's done, what's next | Supports --reset to abandon work, --cleanup for orphaned work dirs |
 | `sw-guard` | Detect stack, gap-analyze, configure guardrails | Structured detection, 10-dimension coverage model, four-layer enforcement, standalone |
