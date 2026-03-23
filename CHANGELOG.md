@@ -24,6 +24,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.22.0] - 2026-03-23
+
+### Changed
+
+- feat(sw-verify): enriched handoff with actionable findings table (#110)
+- feat(sw-review): add PR comment review utility skill (#109)
+- feat(sw-sync): add git housekeeping utility skill (#108)
+
 ## [0.21.0] - 2026-03-23
 
 ### Changed
