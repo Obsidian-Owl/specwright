@@ -23,6 +23,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.21.0] - 2026-03-23
+
+### Changed
+
+- test(quality): hook behavioral tests, semantic gate eval fixture, and correction bridge E2E (#106) (#106)
+- feat(feedback): PostToolUse diagnostics, per-task micro-checks, and compaction correction bridge (#101) (#105)
+- feat(build): repo map protocol, SubagentStart context injection, and context envelope (#101) (#104)
+- feat(gate-semantic): tiered extraction, new categories, and calibration constraint (#101) (#103)
+- feat(foundation): semantic context enhancements — charter, detection, patterns, health checks (#102)
+
 ## [0.20.0] - 2026-03-22
 
 ### Changed
