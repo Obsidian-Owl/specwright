@@ -484,7 +484,7 @@ fi
 
 # At least 4 distinct failure mode bullet entries
 if [ -n "$FM_SECTION" ]; then
-  FM_BULLET_COUNT=$(echo "$FM_SECTION" | grep -c '^\s*[-*]' || true)
+  FM_BULLET_COUNT=$(echo "$FM_SECTION" | grep -c '^[[:space:]]*[-*]' || true)
   if [ "$FM_BULLET_COUNT" -ge 4 ]; then
     pass "at least 4 failure mode entries ($FM_BULLET_COUNT found)"
   else
