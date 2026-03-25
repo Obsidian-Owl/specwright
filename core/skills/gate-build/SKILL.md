@@ -22,8 +22,7 @@ else matters.
 ## Inputs
 
 - `.specwright/config.json` -- `commands.build`, `commands.test`,
-  `commands.test:integration`
-- `.specwright/config.json` -- `commands.test:smoke`
+  `commands.test:integration`, `commands.test:smoke`
 - `.specwright/state/workflow.json` -- current work unit for evidence path
 
 ## Outputs
@@ -38,7 +37,7 @@ else matters.
 
 Run tiers in execution order: `commands.build` → `commands.test` →
 `commands.test:integration` → `commands.test:smoke`. Each tier runs only if the
-previous tier passes (build failure stops further execution).
+previous tier passes (any tier failure stops further execution).
 
 - If a tier's command is null or not configured, that tier produces SKIP. Emit
   an INFO note for each unconfigured tier — visibility rule: display the
@@ -53,7 +52,7 @@ previous tier passes (build failure stops further execution).
 | `commands.build` | FAIL |
 | `commands.test` | FAIL (test failure = FAIL) |
 | `commands.test:integration` | FAIL (integration failure = FAIL) |
-| `commands.test:smoke` | WARN (smoke produces WARN on failure — charter invariant 3 exception: smoke tests validate optional end-to-end paths; degraded smoke is advisory, not blocking) |
+| `commands.test:smoke` | WARN (smoke produces WARN on failure — charter exception: quality gates default to FAIL: smoke tests validate optional end-to-end paths; degraded smoke is advisory, not blocking) |
 
 Unconfigured tier = SKIP.
 
@@ -85,4 +84,4 @@ written regardless of tier outcome.
 | All tier commands null | Gate status = SKIP |
 | Command times out (>5min) | Gate status = ERROR with timeout message |
 | test:integration failure | FAIL verdict (integration failures block ship) |
-| test:smoke failure | WARN verdict (smoke is advisory; see charter invariant 3 exception) |
+| test:smoke failure | WARN verdict (smoke is advisory; see charter exception: quality gates default to FAIL) |

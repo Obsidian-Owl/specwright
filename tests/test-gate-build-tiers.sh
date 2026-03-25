@@ -178,16 +178,18 @@ else
 fi
 
 # The full ordering must be: build -> test -> test:integration -> test:smoke
-# Verify test:integration appears before test:smoke
-INTEGRATION_LINE=$(echo "$BODY" | grep -ni 'test:integration' | head -n 1 | cut -d: -f1)
-if [ -n "$INTEGRATION_LINE" ] && [ -n "$SMOKE_LINE" ]; then
-  if [ "$INTEGRATION_LINE" -lt "$SMOKE_LINE" ]; then
-    pass "test:integration appears before test:smoke in document"
+# Verify test:integration appears before test:smoke in the Constraints section
+# (Inputs may list them on the same line)
+CONSTRAINTS_INTEGRATION_LINE=$(echo "$BODY" | sed -n '/^## Constraints/,/^## /p' | grep -ni 'test:integration' | head -n 1 | cut -d: -f1)
+CONSTRAINTS_SMOKE_LINE=$(echo "$BODY" | sed -n '/^## Constraints/,/^## /p' | grep -ni 'test:smoke' | head -n 1 | cut -d: -f1)
+if [ -n "$CONSTRAINTS_INTEGRATION_LINE" ] && [ -n "$CONSTRAINTS_SMOKE_LINE" ]; then
+  if [ "$CONSTRAINTS_INTEGRATION_LINE" -le "$CONSTRAINTS_SMOKE_LINE" ]; then
+    pass "test:integration appears before test:smoke in constraints"
   else
-    fail "test:integration appears before test:smoke in document (integration at line $INTEGRATION_LINE, smoke at line $SMOKE_LINE)"
+    fail "test:integration appears before test:smoke in constraints (integration at line $CONSTRAINTS_INTEGRATION_LINE, smoke at line $CONSTRAINTS_SMOKE_LINE)"
   fi
 else
-  fail "test:integration appears before test:smoke in document (one or both not found)"
+  fail "test:integration appears before test:smoke in constraints (one or both not found)"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -221,11 +223,13 @@ else
   fail "test:smoke tier failure produces WARN verdict (not FAIL)"
 fi
 
-# Negative: smoke must NOT produce FAIL (catch impl that makes all tiers FAIL)
-if echo "$BODY" | grep -qi 'smoke.*FAIL\b'; then
-  fail "test:smoke must NOT produce FAIL on failure (should be WARN)"
+# Negative: smoke verdict must NOT be FAIL (catch impl that makes all tiers FAIL)
+# Check the verdict table specifically — the smoke row's verdict column should say WARN, not FAIL
+SMOKE_VERDICT_LINE=$(echo "$BODY" | grep -i 'smoke' | grep -i '|' | head -n 1)
+if echo "$SMOKE_VERDICT_LINE" | grep -qi 'WARN'; then
+  pass "test:smoke verdict is WARN (not FAIL)"
 else
-  pass "test:smoke does not produce FAIL on failure"
+  fail "test:smoke must NOT produce FAIL on failure (should be WARN)"
 fi
 
 # Unconfigured tiers = SKIP

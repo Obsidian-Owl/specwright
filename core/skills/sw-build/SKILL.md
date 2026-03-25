@@ -128,8 +128,10 @@ When delegating, include in the prompt (in this order):
 If `commands.test:integration` is configured, run it (5-minute timeout). On pass, note
 in status card. On fail, delegate to `specwright-build-fixer` (max 2 attempts) — the
 fixer should check infrastructure health before assuming code is wrong. If still failing
-after 2 attempts: interactive — present to user; headless — skip and record in
-headless-result.json. If not configured, skip silently.
+after 2 attempts: interactive — present to user (including abort); headless — skip and
+record in headless-result.json. If unconfigured, skip silently. Note: verify re-runs
+integration tests via gate-build; the inner-loop catch is earlier, when fixer context
+is fresh.
 
 **Parallel execution — experimental (MEDIUM freedom):**
 - Follow `protocols/parallel-build.md` when all prerequisites are met:
