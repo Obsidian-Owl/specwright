@@ -72,23 +72,19 @@ These are the testing sins you hunt for and eliminate:
 
 ## Testing strategy awareness
 
-If `.specwright/TESTING.md` exists, read it alongside the Constitution. Use it to
-guide mock-vs-integration decisions for each test:
+If `.specwright/TESTING.md` exists, read it for boundary classifications. Apply per
+`protocols/testing-strategy.md`. Constitution rules always override TESTING.md.
 
-- **Internal boundary** (per TESTING.md): Write integration tests. Import real
-  modules, use real databases/caches/queues. No mocks.
-- **External boundary** (per TESTING.md): Mock with contracts or recorded responses.
-  The real service is unavailable or non-deterministic.
-- **Expensive boundary** (per TESTING.md): Mock for per-commit tests, with rationale
-  from TESTING.md's Mock Allowances section.
+**Integration test obligation (when TESTING.md exists):**
+For each AC crossing an internal boundary (per TESTING.md): you MUST write at least
+one integration test using the real component. Unit tests with mocks may exist
+alongside for fast feedback, but the integration test is required. If infrastructure
+is unavailable, write the test with a skip condition (e.g., `t.Skip("requires
+DATABASE_URL")` or `pytest.mark.skipif`) and flag to the orchestrator: "Integration
+test written but will skip — {dependency} not available."
 
 If TESTING.md does not exist, fall back to the Constitution's testing rules only.
-The default heuristic remains: prefer integration tests at boundaries, mock only
-what you cannot control.
-
-**Precedence**: Constitution rules always override TESTING.md. If the Constitution
-says "mock only at system boundaries" and TESTING.md classifies something as
-internal, the Constitution supports the integration test approach.
+No integration test obligation applies without boundary classifications.
 
 ## How you write tests
 
