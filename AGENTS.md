@@ -31,12 +31,13 @@ sw-init → sw-design → sw-plan → sw-build → sw-verify → sw-ship
 
 ## Anchor Documents
 
-Two persistent documents drive all decisions:
+Three persistent documents drive all decisions:
 
 - **`.specwright/CONSTITUTION.md`** -- Development practices. How the user wants code written. The AI MUST follow these.
 - **`.specwright/CHARTER.md`** -- Technology vision. What this repo is, who consumes it, architectural invariants.
+- **`.specwright/TESTING.md`** -- Testing strategy. How the project should be tested, what boundaries exist, what may be mocked. Optional — created during init if the user opts in.
 
-Both are created during init, referenced during design and plan, validated during verify.
+Constitution and Charter are created during init. TESTING.md is created during init if the user opts in. All are referenced during design and plan, validated during verify. Precedence: Constitution (rules) > Testing Strategy (approach) > patterns.md (reference).
 
 ## Architecture
 
@@ -70,7 +71,12 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `build-context.md` -- Continuation snapshots, status cards, and context nudge for sw-build
 - `backlog.md` -- Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets
 - `spec-review.md` -- Spec quality review dimensions, finding levels, resolution flow
+- `testing-strategy.md` -- Testing strategy lifecycle: TESTING.md creation, consumption, boundary classifications
+- `headless.md` -- Non-interactive execution: detection, default policies, result summary format
 - `parallel-build.md` -- Parallel task execution with agent teams (experimental)
+- `guardrails-detection.md` -- Three-step stack detection: manifest scan, config file scan, guardrail scan
+- `guardrails-patterns.md` -- Ten-dimension coverage model, four-layer enforcement patterns
+- `repo-map.md` -- Repo map format, generation method, token budget, and truncation rules for build context
 
 ## Key Rules
 

@@ -85,13 +85,15 @@ Optional (created if the user opts in):
   - "Any other expensive or unreliable dependencies?"
 - Batch these into 1-2 questions based on what stack detection reveals.
   Don't ask about services the codebase doesn't use.
-- Generate TESTING.md with three required sections:
+- Generate TESTING.md with required sections:
   - **Boundaries**: Classify each detected dependency as `internal` (test with real
     components), `external` (mock with contracts), or `expensive` (mock with rationale)
   - **Test Infrastructure**: What test database, fixtures, containers, or test servers
     are available based on detected stack and user answers
   - **Mock Allowances**: Which dependencies may be mocked, with explicit rationale
-    (e.g., "Stripe API: mocked in CI due to per-request cost; live in weekly integration suite")
+  - **Test Commands** (added after gate configuration): If tiered commands were captured
+    during gate config, append this section to TESTING.md with the actual commands.
+    See `protocols/testing-strategy.md` Test Commands section. Omit if no tiers configured.
 - The user must approve TESTING.md before it's saved.
 - If the user declines or skips: do not create TESTING.md. Constitution testing rules
   remain the sole authority. TESTING.md is recommended but not required.
@@ -111,6 +113,12 @@ Optional (created if the user opts in):
 **Gate configuration (MEDIUM freedom):**
 - Ask user which quality checks matter. Defaults: build, security, spec-compliance.
 - Enable test/lint gates if detected. Configure thresholds per user expectations.
+- If a test runner is detected, batch these additional questions:
+  - "Do you have integration tests against real infrastructure? What command runs them?"
+    → Populate `commands.test:integration` in config.json. Skip if user answers none.
+  - "Do you have smoke or E2E tests? What command?"
+    → Populate `commands.test:smoke`. Skip if user answers none.
+  Empty or declined answers are not written to config (tiers are optional).
 
 **Backlog configuration (MEDIUM freedom):**
 - Batch with gate configuration question (both are quality infrastructure).
