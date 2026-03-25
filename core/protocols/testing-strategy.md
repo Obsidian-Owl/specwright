@@ -97,6 +97,25 @@ When testing patterns are discovered during build (e.g., "mocking the cache laye
 hid a serialization bug"), sw-learn offers to promote the insight to TESTING.md.
 The "testing" category in sw-learn maps to TESTING.md as a promotion target.
 
+## Test Commands Section
+
+When tiered test commands are configured in `config.json` (`commands.test:integration`,
+`commands.test:smoke`), TESTING.md should include a Test Commands section mapping
+boundary classifications to executable test tiers:
+
+```markdown
+## Test Commands
+
+| Tier | Command | What It Validates |
+|------|---------|-------------------|
+| Unit | `go test ./...` | Internal logic, isolated functions |
+| Integration | `go test ./... -tags=integration` | Internal boundaries: database, message queue, cache |
+| Smoke | `make test-eval-smoke` | Application starts, critical paths respond |
+```
+
+This section is omitted when no tiered commands are configured. The table connects
+"TESTING.md says database is an internal boundary" to "which command actually tests that."
+
 ## When TESTING.md Does Not Exist
 
 Skills proceed without it. The Constitution's testing rules remain the sole
