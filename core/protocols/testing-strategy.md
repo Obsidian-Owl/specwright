@@ -108,10 +108,12 @@ boundary classifications to executable test tiers:
 
 | Tier | Command | What It Validates |
 |------|---------|-------------------|
-| Unit | `go test ./...` | Internal logic, isolated functions |
-| Integration | `go test ./... -tags=integration` | Internal boundaries: database, message queue, cache |
-| Smoke | `make test-eval-smoke` | Application starts, critical paths respond |
+| Unit | {commands.test} | Internal logic, isolated functions |
+| Integration | {commands.test:integration} | Internal boundaries: database, message queue, cache |
+| Smoke | {commands.test:smoke} | Application starts, critical paths respond |
 ```
+
+Replace `{commands.*}` placeholders with actual commands from config.json.
 
 This section is omitted when no tiered commands are configured. The table connects
 "TESTING.md says database is an internal boundary" to "which command actually tests that."

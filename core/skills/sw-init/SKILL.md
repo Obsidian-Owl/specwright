@@ -91,9 +91,9 @@ Optional (created if the user opts in):
   - **Test Infrastructure**: What test database, fixtures, containers, or test servers
     are available based on detected stack and user answers
   - **Mock Allowances**: Which dependencies may be mocked, with explicit rationale
-  - **Test Commands** (if tiered commands configured): Table mapping tiers to commands
-    and what each validates. See `protocols/testing-strategy.md` Test Commands section.
-    Omit if no tiered commands are configured.
+  - **Test Commands** (added after gate configuration): If tiered commands were captured
+    during gate config, append this section to TESTING.md with the actual commands.
+    See `protocols/testing-strategy.md` Test Commands section. Omit if no tiers configured.
 - The user must approve TESTING.md before it's saved.
 - If the user declines or skips: do not create TESTING.md. Constitution testing rules
   remain the sole authority. TESTING.md is recommended but not required.

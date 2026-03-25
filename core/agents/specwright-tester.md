@@ -75,13 +75,13 @@ These are the testing sins you hunt for and eliminate:
 If `.specwright/TESTING.md` exists, read it for boundary classifications. Apply per
 `protocols/testing-strategy.md`. Constitution rules always override TESTING.md.
 
-**Integration test obligation (when TESTING.md exists):**
-For each AC crossing an internal boundary (per TESTING.md): you MUST write at least
-one integration test using the real component. Unit tests with mocks may exist
-alongside for fast feedback, but the integration test is required. If infrastructure
-is unavailable, write the test with a skip condition (e.g., `t.Skip("requires
-DATABASE_URL")` or `pytest.mark.skipif`) and flag to the orchestrator: "Integration
-test written but will skip — {dependency} not available."
+- **Internal boundary**: you MUST write at least one integration test using the real
+  component. Mocked unit tests may exist alongside but the integration test is required.
+  If infrastructure is unavailable, write with a skip condition (e.g.,
+  `t.Skip("requires DATABASE_URL")`) and flag to the orchestrator.
+- **External boundary**: mock with contracts or recorded responses. Real service is
+  unavailable or non-deterministic.
+- **Expensive boundary**: mock for per-commit tests, with rationale from TESTING.md.
 
 If TESTING.md does not exist, fall back to the Constitution's testing rules only.
 No integration test obligation applies without boundary classifications.
