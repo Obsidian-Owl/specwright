@@ -43,6 +43,7 @@ When running headlessly, use these defaults instead of prompting the user:
 |--------------|---------------------|-----------------|-----------|
 | Build failure (2 fix attempts exhausted) | Ask: fix now / skip / abort | **Abort** | Can't fix without human; continuing produces bad output. Partial progress is preserved on the branch. |
 | Gate freshness check | Ask: re-run or keep stale results? | **Re-run** | Stale results are worse than redundant runs in CI. |
+| Inner-loop integration test failure (2 fix attempts exhausted) | Ask: fix now / skip / abort | **Skip and record** | Integration tests are environment-dependent; headless environments may lack infrastructure. sw-build may add an `innerLoop` field to headless-result.json to record the skip. |
 | Gate failure (FAIL or ERROR) | Ask: fix now / skip / abort | **Continue and report** | Record the FAIL, run remaining gates, write full report. Human reads the aggregate output. |
 | Uncommitted changes before ship | Ask: commit them or abort? | **Abort** | Unexpected state; don't auto-commit unknown changes. |
 | PR creation decision | Ask: create PR or merge directly? | **Create PR** | PRs are the universal human review checkpoint. |
@@ -115,7 +116,7 @@ AskUserQuestion availability, not platform detection:
 
 | Skill | Headless Constraint Added |
 |-------|--------------------------|
-| `sw-build` | Build failure → abort |
+| `sw-build` | Build failure → abort; inner-loop integration failure → skip and record |
 | `sw-verify` | Skip freshness, gate failure → continue and report |
 | `sw-ship` | Uncommitted → abort, always create PR |
 | `sw-status` | Reset → abort, cleanup → report-only |

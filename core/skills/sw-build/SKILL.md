@@ -52,9 +52,7 @@ After all tasks:
 ## Constraints
 
 **Stage boundary (LOW freedom):**
-- Follow `protocols/stage-boundary.md`.
-- You implement ONE work unit via TDD. You NEVER run quality gates, create PRs, ship code, or start the next work unit.
-- After all tasks for this unit are committed, STOP and present the handoff to `/sw-verify`.
+Follow `protocols/stage-boundary.md`. This skill implements one work unit via TDD. Handoff to `/sw-verify`.
 
 **Branch setup (LOW freedom) — FIRST action before any coding:**
 - Read `config.json` `git` section. Follow `protocols/git.md` branch lifecycle.
@@ -69,22 +67,10 @@ After all tasks:
 - All task commits happen on the feature branch. NEVER commit to baseBranch.
 
 **Repo map generation (MEDIUM freedom) — after branch setup, before first task:**
-- Generate a repo map per `protocols/repo-map.md`.
-- Read the file change map from `{currentWork.workDir}/plan.md` to identify which
-  files this unit will modify.
-- If `sg` (ast-grep) is on PATH: extract definition signatures from those files and
-  their direct dependents. Write result to `{currentWork.workDir}/repo-map.md`.
-- If `sg` is not available or exits with nonzero: degrade to a file listing (paths
-  only, no signatures). Log WARN but do not halt.
-- If no changed files are identified in the plan: produce an empty map and continue.
-- Token budget: enforce `config.context.repoMapTokens` (default 1024). Truncate
-  dependents first per the protocol's truncation rules.
+Generate repo map per `protocols/repo-map.md` before the first task.
 
 **Task loop (MEDIUM freedom):**
-- Work one task at a time. Complete it before starting the next.
-- If no task ID given, pick the next incomplete task from `{currentWork.workDir}/spec.md`.
-- If no work unit ID given, use `currentWork` from workflow.json.
-- After each task commit, emit a status card (see Context management for format).
+Work one task at a time. Complete before starting the next. After each task commit, emit a status card.
 
 **TDD cycle (HIGH freedom for test design, LOW freedom for sequence):**
 
@@ -100,9 +86,7 @@ The sequence is strict: RED → GREEN → REFACTOR. Never skip RED.
 
 **Context envelope (LOW freedom):**
 When delegating, include in the prompt (in this order):
-- **Repo map content** (at the TOP — longform codebase data before instructions, per
-  Anthropic guidance that queries after data improve quality by up to 30%). Read from
-  `{currentWork.workDir}/repo-map.md` if it exists. If absent, skip without error.
+- **Repo map content** at the TOP (read from `{currentWork.workDir}/repo-map.md`; skip if absent)
 - The specific task and its acceptance criteria
 - Relevant sections of design.md, plan.md, and context.md
 - File paths the agent needs to read or modify
@@ -110,17 +94,12 @@ When delegating, include in the prompt (in this order):
 - Build and test commands from config.json
 - Behavioral reminder: surface confusion, prefer simplicity, touch only task files
 - For each AC, include one test whose purpose is to find the condition under which this criterion fails silently
-- Build agents MAY read parent `.specwright/work/{currentWork.id}/context.md` as a fallback if unit context is insufficient
+- Build agents MAY read parent `.specwright/work/{currentWork.id}/context.md` as a fallback
 
 **Build failures (MEDIUM freedom):**
-- If tests fail after GREEN: delegate to `specwright-build-fixer` (max 2 attempts)
-- If build-fixer fails twice:
-  - **Interactive**: STOP and show the user the error. Don't loop.
-  - **Headless** (per `protocols/headless.md`): **abort** — write `headless-result.json`
-    with `status: "aborted"` and the error. Partial progress preserved on branch.
+- If tests fail after GREEN: delegate to `specwright-build-fixer` (max 2 attempts). If still failing: interactive — stop and show the user; headless — abort per `protocols/headless.md`.
 - If RED phase tests don't fail: the tests are wrong. Tell the tester to fix them.
-- If executor reports discrepancies (type/interface mismatches): this is a **plan mismatch**, not a build error. Do NOT invoke specwright-build-fixer. Show the user the discrepancy and halt the task so the plan can be corrected.
-- On headless completion (all tasks done): write `headless-result.json` with `status: "completed"`.
+- If executor reports a discrepancy (type/interface mismatch): this is a **plan mismatch**, not a build error. Do NOT invoke specwright-build-fixer. Show the user the discrepancy and halt.
 
 **Commits (LOW freedom):**
 - One commit per completed task. Follow `protocols/git.md`.
@@ -137,28 +116,22 @@ When delegating, include in the prompt (in this order):
 - Follow `protocols/build-quality.md` for discovered behaviors capture after each task.
 
 **Per-task micro-check (MEDIUM freedom) — after each task commit:**
-- Identify files changed in the latest commit via `git diff --name-only HEAD~1`.
-  If the command fails (initial commit, detached HEAD), skip the micro-check.
-- Filter to code files using the same inclusion list as the PostToolUse hook
-  (`.js`, `.ts`, `.jsx`, `.tsx`, `.py`, `.go`, `.rs`, `.java`, `.rb`, `.c`, `.cpp`,
-  `.h`, `.cs`, `.swift`, `.kt`, `.sh`). If all changed files are non-code, skip.
-- When `sg` is on PATH: run ast-grep extraction on the changed code files using
-  `kind` rules from `protocols/repo-map.md` (function definitions, class definitions,
-  error handlers) to produce structural facts as JSON.
-- Feed the structural facts to a single LLM prompt: "Given these structural facts
-  about the just-committed changes, are there any error-path cleanup issues or
-  unchecked error returns?"
-- When `sg` is not on PATH: skip the micro-check entirely (no LLM call without
-  structured input).
-- Append findings to `{currentWork.workDir}/feedback-log.md` per
-  `protocols/build-context.md` Feedback Log format.
-- Include findings in the status card as warning lines (e.g.,
-  `  ⚠ unchecked-error (src/handler.ts:42)`). The build continues regardless —
-  micro-check findings are non-blocking.
+- Identify changed code files via `git diff --name-only HEAD~1`. Skip if command fails or no code files changed.
+- When `sg` is on PATH: run ast-grep extraction per `protocols/repo-map.md` kind rules; feed structural facts to a single LLM prompt checking for error-path issues. Append findings to `{currentWork.workDir}/feedback-log.md` and include in status card as warning lines. Micro-check is non-blocking.
+- When `sg` is not on PATH: skip entirely.
 
 **Post-build review (MEDIUM freedom):**
 - After all tasks committed, delegate review to `specwright-reviewer`.
 - Follow `protocols/build-quality.md` for trigger, depth calibration, delegation details, and findings triage.
+
+**Inner-loop validation (MEDIUM freedom) — runs after post-build review:**
+If `commands.test:integration` is configured, run it (5-minute timeout). On pass, note
+in status card. On fail, delegate to `specwright-build-fixer` (max 2 attempts) — the
+fixer should check infrastructure health before assuming code is wrong. If still failing
+after 2 attempts: interactive — present to user (including abort); headless — skip and
+record in headless-result.json. If unconfigured, skip silently. Note: verify re-runs
+integration tests via gate-build; the inner-loop catch is earlier, when fixer context
+is fresh.
 
 **Parallel execution — experimental (MEDIUM freedom):**
 - Follow `protocols/parallel-build.md` when all prerequisites are met:
@@ -181,12 +154,11 @@ When delegating, include in the prompt (in this order):
 
 <!-- platform:claude-code -->
 **Task tracking (LOW freedom):**
-- At build start, create Claude Code tasks from spec/plan for visual progress tracking (subject = task name, description = acceptance criteria summary, activeForm = present-continuous).
-- Write ordering: update workflow.json FIRST (source of truth), then TaskUpdate as best-effort. Task tracking failures never halt the build.
-- Orchestrator-only: delegated agents (tester, executor, build-fixer) do not update task status.
-- Do not use `blockedBy`/`blocks` dependencies. The sequential task loop handles ordering.
-- Disambiguation: `Task` tool = agent delegation (`protocols/delegation.md`). `TaskCreate`/`TaskUpdate`/`TaskList`/`TaskGet` = visual progress tracking. Never conflate.
-- On recovery after compaction: create fresh tasks from spec/plan, sync status from workflow.json.
+- At build start, create Claude Code tasks from spec/plan (subject = task name, description = AC summary, activeForm = present-continuous).
+- Update workflow.json FIRST; TaskUpdate is best-effort. Tracking failures never halt the build.
+- Orchestrator-only: delegated agents do not update task status.
+- Disambiguation: `Task` tool = agent delegation. `TaskCreate`/`TaskUpdate`/`TaskList`/`TaskGet` = visual tracking. Never conflate.
+- On compaction recovery: create fresh tasks from spec/plan, sync from workflow.json.
 <!-- /platform -->
 
 ## Protocol References
@@ -211,11 +183,8 @@ When delegating, include in the prompt (in this order):
 | Tester writes tests that pass immediately | Tests are wrong. Re-delegate with instruction to write tests that FAIL first. |
 | Executor can't pass tests after 2 build-fixer attempts | STOP. Show error to user. Don't loop forever. |
 | Compaction during build | Read workflow.json, find last completed task, resume next task. |
-<!-- platform:claude-code -->
-| Compaction during build (tasks) | Create fresh Claude Code tasks from spec/plan, sync status from workflow.json. |
-<!-- /platform -->
 | Compaction during parallel execution | Read workflow.json, check `.specwright/worktrees/` for orphans, clean up, resume sequential. |
 <!-- platform:claude-code -->
-| Task tracking tools unavailable | Continue with workflow.json-only tracking. Graceful degradation — task tracking is best-effort. |
+| Task tracking tools unavailable | Continue with workflow.json-only tracking. Best-effort. |
 <!-- /platform -->
 | Lock held by another skill | STOP with lock info. Don't force-clear. |

@@ -49,11 +49,7 @@ test quality, not just pass/fail.
   - **Error paths**: Are failure scenarios tested? (network down, invalid input)
   - **Behavior focus**: Do tests verify behavior or implementation details?
   - **Mutation resistance**: Could a trivially wrong implementation pass? Test against three bypass classes: hardcoded returns, partial implementations, boundary skips.
-  - **Boundary test approach** (requires `.specwright/TESTING.md`):
-    - Read TESTING.md's boundary classifications
-    - For boundaries classified as `internal`: verify tests use real components, not mocks
-    - WARN finding if internal boundary is mocked: "Internal boundary X is mocked — TESTING.md classifies it as internal (should use real component)"
-    - If TESTING.md does not exist: skip this dimension, note "TESTING.md not found — boundary validation skipped" as INFO
+  - **Boundary test approach**: Validate mock-vs-integration decisions against TESTING.md boundary classifications per `protocols/testing-strategy.md`. WARN if internal boundary is mocked. INFO if TESTING.md absent.
 - Each weakness is a finding with severity and file:line reference.
 
 **Verdict (LOW freedom):**
@@ -68,6 +64,7 @@ test quality, not just pass/fail.
 - `protocols/evidence.md` -- evidence storage
 - `protocols/state.md` -- gate status updates
 - `protocols/delegation.md` -- tester agent delegation
+- `protocols/testing-strategy.md` -- boundary classifications for mock-vs-integration validation
 
 ## Failure Modes
 

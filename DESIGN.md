@@ -265,7 +265,7 @@ Platform markers allow a single core SKILL.md to contain platform-specific body 
 Runtime state (created by init):
 ```
 .specwright/
-├── config.json       # Project configuration
+├── config.json       # Project configuration (commands: build, test, test:integration, test:smoke)
 ├── CONSTITUTION.md   # Development practices
 ├── CHARTER.md        # Technology vision
 ├── TESTING.md        # Testing strategy (optional)
