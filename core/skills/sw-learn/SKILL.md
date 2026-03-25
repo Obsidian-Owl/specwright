@@ -55,6 +55,9 @@ work benefits.
 - Scan evidence files, git log, and plan.md for patterns worth remembering.
 - Look for: what broke, what was hard, what worked well.
 - Check as-built notes for discovered behaviors per `protocols/build-quality.md`.
+- Check gate-build evidence for `test:integration` tier. If integration tier was SKIP
+  or absent: surface as a learning candidate ("No integration tests ran during this
+  build"). Informational — user decides whether to promote.
 - MUST record gateCalibration for every gate that ran, even if all PASS with 0 findings. Populate from evidence files automatically. falsePositives array only populated when user explicitly labels a finding as false positive during presentation (dismissal alone does not count). Format per `protocols/gate-verdict.md`.
 
 **Presentation (MEDIUM freedom):**
