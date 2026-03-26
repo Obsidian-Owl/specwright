@@ -31,8 +31,10 @@ Agent-classified Type 1 decisions are highlighted in the gate handoff.
 ### APPROVAL
 Artifacts auto-progress when quality checks pass (convergence ≥4/5, spec-review
 no BLOCKs, TDD + post-build review no BLOCKs). On quality failure: auto-revise
-(up to 2 iterations), then document deficiency and proceed. At the gate: human
-sees artifact + quality results + deficiencies.
+(up to 2 iterations). If the deficiency involves a Type 1 decision (structural
+override or agent-classified), halt and surface at the gate — do not proceed.
+For Type 2 deficiencies: document and proceed. At the gate: human sees artifact +
+quality results + deficiencies.
 
 ### DISAMBIGUATION
 Apply in order until resolved:
@@ -46,7 +48,7 @@ Apply in order until resolved:
 SRE-informed recovery:
 1. Mitigate first (restore working state), root-cause second
 2. Test fixes in decreasing likelihood order
-3. After max attempts: document failure, proceed to next task
+3. After 2 attempts: document failure, proceed to next task
 4. **Exception**: cascading failure (later tasks depend on this one) → halt
 
 ### CURATION
@@ -76,10 +78,11 @@ Every autonomous decision is recorded in `{workDir}/decisions.md`:
 ```
 ## D-{n}: {description}
 - **Type**: 1 | 2
-- **Category**: APPROVAL | DISAMBIGUATION | ERROR_HANDLING | CURATION
+- **Category**: APPROVAL | DISAMBIGUATION | ERROR_HANDLING | CURATION | CONFIRMATION
 - **Rule applied**: {which heuristic resolved it}
 - **Choice**: {what was decided}
 - **Alternatives**: {rejected options and why}
+- **Timestamp**: {ISO-8601}
 - **Reversible by**: {undo path}
 ```
 
