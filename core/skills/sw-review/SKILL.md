@@ -13,15 +13,19 @@ allowed-tools:
 
 ## Goal
 
-Surface all open PR review comments for the current branch so the user can
-read, respond to, and resolve reviewer feedback without leaving the terminal.
-This is a read-only utility skill with respect to Specwright workflow state —
-it never modifies workflow.json or any `.specwright/` state file.
+Surface PR review comments, triage autonomously per Google severity framework
+(`protocols/decision.md`), draft replies, and present for approval before posting.
+Stateless with respect to Specwright state — never modifies workflow.json.
 
-Unresolved review threads are the highest priority. Fetch all three comment
-types (issue comments, review comments, thread resolution state), group them
-by status, and present them in a structured format showing author, timestamp,
-and file/line context. The user can then post replies or mark threads resolved.
+Fetch all comment types, group by status, apply autonomous triage:
+- Functional issues (API misuse, missing validation): fix code and draft reply
+- Nits (style, naming): acknowledge, apply if <2 minutes
+- Suggestions: apply if they improve code health, push back with reasoning if not
+- Conflicting comments: follow the one most aligned with constitution/spec
+
+**External reply gate**: replies to non-self reviewers are Type 1 (structural override
+per `protocols/decision.md` — external-facing, not retractable). Draft all replies,
+then present for human approval before posting.
 
 ## Inputs
 
@@ -106,6 +110,7 @@ and file/line context. The user can then post replies or mark threads resolved.
 
 ## Protocol References
 
+- `protocols/decision.md` — autonomous decision framework (Google severity triage, external reply gate)
 - `protocols/git.md` — PR operations, remote URL conventions, gh CLI patterns
 - `protocols/headless.md` — non-interactive execution and result file format
 - `protocols/context.md` — config loading from `.specwright/config.json`

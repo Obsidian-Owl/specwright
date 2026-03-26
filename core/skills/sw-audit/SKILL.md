@@ -11,7 +11,6 @@ allowed-tools:
   - Glob
   - Grep
   - Task
-  - AskUserQuestion
 ---
 
 # Specwright Audit
@@ -66,16 +65,18 @@ and persist findings for future design cycles.
 - Enforce size cap per protocol. Write AUDIT.md.
 
 **Presentation (MEDIUM freedom):**
-- Show findings grouped by dimension. For each: severity, location, description, impact, recommendation.
-- Use AskUserQuestion to let user adjust severity, dismiss, or export to backlog for each finding.
-  Export to backlog: write a BL-{n} item with `finding` tag per `protocols/backlog.md`.
-  The finding remains in AUDIT.md; the backlog item is for prioritization and action tracking.
+- Show findings grouped by dimension. For each: severity, location, description, impact.
+- Apply `protocols/decision.md` CURATION for severity and export decisions:
+  - Cascading impact → BLOCKER. Auto-export to backlog as BL-{n} with `finding` tag.
+  - Isolated impact → WARN. Stays in AUDIT.md only.
+  - The finding remains in AUDIT.md regardless; backlog items are for action tracking.
 - Maximum 20 findings per run. If more, keep highest-severity.
 
 ## Protocol References
 
 - `protocols/audit.md` -- finding format, IDs, matching, lifecycle
 - `protocols/delegation.md` -- agent delegation
+- `protocols/decision.md` -- autonomous decision framework (CURATION for severity)
 - `protocols/context.md` -- config and anchor doc loading
 - `protocols/backlog.md` -- backlog item format and write targets
 
