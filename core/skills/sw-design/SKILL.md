@@ -1,7 +1,7 @@
 ---
 name: sw-design
 description: >-
-  Interactive solution architecture. Researches the codebase, designs a
+  Autonomous solution architecture. Researches the codebase, designs a
   solution, challenges it adversarially, and produces design artifacts.
 argument-hint: "[what you want to build or change]"
 allowed-tools:
@@ -12,7 +12,6 @@ allowed-tools:
   - Glob
   - Grep
   - Task
-  - AskUserQuestion
 ---
 
 # Specwright Design
@@ -20,7 +19,8 @@ allowed-tools:
 ## Goal
 
 Research the codebase, design a solution, challenge it adversarially, and produce
-design artifacts the user trusts. Output is a design — not specs, not code.
+design artifacts. Output is a design — not specs, not code. Operates autonomously
+between research and gate handoff, applying `protocols/decision.md` for all decisions.
 
 ## Inputs
 
@@ -39,70 +39,69 @@ When complete, ALL of the following exist in `.specwright/work/{id}/`:
   - Required section: `## Blast Radius` listing: modules/files the design touches, failure propagation scope for each (local/adjacent/systemic), and what the design does NOT change.
 - `context.md` -- research findings, file paths, gotchas (travels with downstream agents)
 - `assumptions.md` -- classified assumptions with resolution status
+- `decisions.md` -- all autonomous decisions recorded per `protocols/decision.md`
 
-When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`. Only produce conditional artifacts when needed.
+When warranted: `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`.
 
 ## Constraints
 
 **Stage boundary (LOW freedom):**
-- Follow `protocols/stage-boundary.md`.
-- You produce design artifacts and research context.
-- You NEVER write specs, decompose into work units, write implementation code, create branches, or run tests.
-- After the user approves the design, STOP and present the handoff to `/sw-plan`.
+Follow `protocols/stage-boundary.md`. Produce design artifacts and research context.
+NEVER write specs, decompose, implement, branch, or test. After gate handoff, STOP.
 
 **Research (HIGH freedom):**
-- If `.specwright/LANDSCAPE.md` exists, load it first. If stale per `protocols/landscape.md`, refresh inline and update `Snapshot:` timestamp. If missing, proceed without. Use as baseline for research.
-- If `.specwright/AUDIT.md` exists and fresh per `protocols/audit.md`, surface relevant findings for the area being designed.
-- If `.specwright/research/` exists, scan for briefs relevant to the current request. Incorporate relevant findings into `context.md` with brief references. Warn if briefs are stale per `protocols/research.md`. When deep external unknowns surface, suggest `/sw-research` to the user.
-- Scan code, dependencies, APIs, existing patterns. Check `.specwright/patterns.md` if it exists.
+- Load LANDSCAPE.md, AUDIT.md, research briefs if they exist. Scan code, dependencies, patterns.md.
 - Delegate to `specwright-researcher` and `specwright-architect` as needed.
-- When gathering requirements from the user, listen for: hesitation or qualifiers ("maybe", "probably") → capture as uncertainty; repeated module mentions → likely natural boundaries; "core" or "foundation" language → ordering information; multiple alternatives → decision point to surface. Cover natural boundaries, ordering intuition, uncertainty mapping, and existing constraints.
-- Produce `context.md` summarizing findings for downstream agents.
-- Research is complete when: can describe how the solution integrates with existing code (specific files/modules), can identify the main risk and at least one mitigation, can list what the solution does NOT change (blast radius is bounded), and no major "I'm guessing" gaps remain.
+- Derive hard constraints from constitution + charter (do not ask — these are documented).
+- When the request itself is ambiguous, apply `protocols/decision.md` DISAMBIGUATION:
+  infer intent from the argument, codebase context, and charter vision. Record the
+  interpretation in decisions.md. If genuinely undetermined, surface at the gate.
+- Research is complete when: integration is described, main risk is identified with
+  mitigation, blast radius is bounded, no major gaps remain.
 
 **Design (HIGH freedom):**
-- Propose the simplest solution grounded in research. Justify any abstractions.
-- Reference charter (vision) and constitution (practices). Present alternatives when reasonable.
+- Propose the simplest solution grounded in research. Justify abstractions.
+- When choosing between alternatives, apply `protocols/decision.md` DISAMBIGUATION
+  hierarchy. Record the choice and which rule resolved it in decisions.md.
 
 **Critic (HIGH freedom):**
-- For non-trivial requests, delegate to `specwright-architect` to find flaws AND identify assumptions. Show user findings and resolutions.
-- Follow `protocols/convergence.md` for iterative critic loop with convergence scoring.
-- Skip for straightforward requests.
+- For non-trivial requests, delegate to `specwright-architect` for adversarial review.
+- Follow `protocols/convergence.md` for iterative critic loop. Convergence at ≥4/5 on
+  all dimensions with no BLOCKs auto-approves (per convergence.md autonomous mode).
+- Auto-revise BLOCKs (up to 2 iterations). Document WARNs in design.md.
+- If critic rejects the entire approach: apply DISAMBIGUATION to choose the best
+  alternative. Record in decisions.md.
 
 **Assumption resolution (MEDIUM freedom):**
-- Follow `protocols/assumptions.md` for format and classification.
-- After critic, present UNVERIFIED assumptions to the user grouped by resolution type:
-  - `clarify` -- ask the user specific questions to resolve ambiguity
-  - `reference` -- ask the user to provide API docs, schemas, interface definitions, or types
-  - `external` -- flag items the user must resolve with other teams or third parties
-- User resolves each: answer the question, provide the doc, accept the risk, defer to
-  backlog, or mark as resolved.
-- DEFER: write assumption as BL-{n} with `defer` tag per `protocols/backlog.md`. Design
-  may proceed. The assumption becomes a tracked backlog item for later resolution.
-  (Distinct from ACCEPT: ACCEPT acknowledges risk and proceeds without tracking;
-  DEFER tracks the assumption for explicit future resolution.)
-- Design CANNOT be approved while UNVERIFIED assumptions remain. User may ACCEPT or
-  DEFER any assumption to unblock.
+- Follow `protocols/assumptions.md` for format, classification, and autonomous resolution.
+- After critic: auto-resolve per the assumptions protocol's Type 1/2 rules. Clarify+technical
+  → auto-ACCEPT. Reference/external → auto-DEFER to backlog per `protocols/backlog.md`.
+- Assumptions contradicting an AC are Type 1 structural override — always blocking.
+  Type 1 deficiencies halt and surface at the gate (do not auto-proceed).
 
 **Change requests (MEDIUM freedom):**
-- `design.md` exists + argument: change request, re-run critic. No argument: ask — redesign, continue, or changes.
+- `design.md` exists + argument: change request, re-run critic.
+- `design.md` exists + no argument: apply DISAMBIGUATION — if the user's prior message
+  implies a change, treat as change request. Otherwise, present status at the gate.
 
-**User checkpoints:**
-- Ask for hard constraints before research. Share findings after research, alternatives after design, resolutions after critic, assumption resolution before approval. User approves design before saving.
+**Gate handoff (LOW freedom):**
+- Present the gate using `protocols/decision.md` gate handoff template: artifact,
+  decision digest, quality checks, deficiencies, recommendation.
+- The user reviews and approves before `/sw-plan` begins.
 
 **State mutations (LOW freedom):**
-- Follow `protocols/state.md` for all workflow.json updates.
-- Set `currentWork.status` to `designing`. Create work directory.
-- Work ID: short, descriptive, kebab-case.
+- Follow `protocols/state.md`. Set `currentWork.status` to `designing`. Create work directory.
 
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope, termination, and handoff
+- `protocols/decision.md` -- autonomous decision framework and gate handoff
 - `protocols/state.md` -- workflow state updates and locking
 - `protocols/context.md` -- anchor doc and config loading
 - `protocols/delegation.md` -- agent delegation for research and critic
 - `protocols/recovery.md` -- compaction recovery
-- `protocols/assumptions.md` -- assumption format, classification, and lifecycle
+- `protocols/assumptions.md` -- assumption format, classification, autonomous resolution
+- `protocols/convergence.md` -- iterative critic loop with auto-approve threshold
 - `protocols/landscape.md` -- codebase reference document format
 - `protocols/audit.md` -- codebase health findings format
 - `protocols/backlog.md` -- backlog item format and write targets
@@ -112,11 +111,9 @@ When warranted: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strate
 
 | Condition | Action |
 |-----------|--------|
-| Request too vague | Ask user with concrete options based on codebase scan |
-| Active work already in progress | Ask user: continue existing, or start new? |
-| `design.md` exists, no argument | Ask: redesign from scratch, continue to `/sw-plan`, or describe changes? |
-| Critic rejects entire approach | Present rejection to user with alternatives. Don't silently override. |
-| User disagrees with critic | User wins. Note disagreement in design.md for the record. |
-| Unresolved assumptions block approval | Present grouped by resolution type. User must clarify, provide references, or accept risk. |
-| User cannot resolve external assumption now | Mark as ACCEPTED with note. Design proceeds; assumption becomes a tracked risk in plan. |
+| Request too vague | Apply DISAMBIGUATION from codebase + charter context. Record interpretation. If undetermined, surface at gate. |
+| Active work in progress | Apply DISAMBIGUATION: if argument provided, start new. If no argument, continue existing. Record choice. |
+| `design.md` exists, no argument | Apply DISAMBIGUATION: if user's message implies change, treat as change request. Otherwise, present status at gate. |
+| Critic rejects entire approach | Apply DISAMBIGUATION to choose best alternative. Record in decisions.md. |
+| Unresolved Type 1 assumptions | Surface at gate handoff as deficiencies. Do not auto-proceed. |
 | Compaction during design | Read workflow.json, check which artifacts exist, resume next missing phase |

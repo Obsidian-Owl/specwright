@@ -12,149 +12,101 @@ allowed-tools:
   - Glob
   - Grep
   - Task
-  - AskUserQuestion
 ---
 
 # Specwright Plan
 
 ## Goal
 
-Turn the approved design into implementation-ready specs with testable
-acceptance criteria. If the work is large, decompose into ordered work
-units. The user should feel confident every criterion is testable and
-every unit is independently buildable.
+Turn the approved design into implementation-ready specs with testable acceptance
+criteria. Decompose into ordered work units if large. Operates autonomously,
+applying `protocols/decision.md` for all decisions. Gate handoff at the end.
 
 ## Inputs
 
 - `.specwright/state/workflow.json` -- current state (must be `designing` or `planning`)
 - `.specwright/work/{currentWork.id}/design.md` -- approved solution design
 - `.specwright/work/{currentWork.id}/context.md` -- research findings from sw-design
-- Conditional design artifacts at `.specwright/work/{currentWork.id}/`: `decisions.md`, `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`
+- `.specwright/work/{currentWork.id}/decisions.md` -- design-phase decisions
+- Conditional design artifacts: `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`
 - `.specwright/CONSTITUTION.md` -- practices to follow
 - `.specwright/config.json` -- project configuration
 
 ## Outputs
 
-**Single-unit work** (not decomposed):
+**Single-unit work**: `spec.md` + `plan.md` in `.specwright/work/{id}/` (flat layout).
 
-All of the following exist in `.specwright/work/{id}/` (flat layout, unchanged):
+**Multi-unit work**: For each unit in `.specwright/work/{id}/units/{unit-id}/`:
+`spec.md` + `plan.md` + `context.md`. `workUnits` array in workflow.json.
 
-- `spec.md` -- acceptance criteria (each testable)
-- `plan.md` -- task breakdown, file change map, architecture decisions
-
-**Multi-unit work** (decomposed into 2+ units):
-
-For each unit, the following exist in `.specwright/work/{id}/units/{unit-id}/`:
-
-- `spec.md` -- unit-scoped acceptance criteria
-- `plan.md` -- unit-scoped task breakdown, file change map
-- `context.md` -- curated subset of parent context relevant to this unit
-
-Also:
-- `workUnits` array populated in `workflow.json` per `protocols/state.md`, each entry with `workDir` set
-- No `spec.md` or `plan.md` at the work root — the `units/` directory is the multi-unit indicator
-
-The parent `context.md` (design research) is never overwritten.
+Also: `decisions.md` updated with planning-phase autonomous decisions.
 
 ## Constraints
 
 **Stage boundary (LOW freedom):**
-- Follow `protocols/stage-boundary.md`.
-- You produce specs and plans. You NEVER write implementation code, create branches, run tests, or commit changes.
-- After the user approves the spec, STOP and present the handoff to `/sw-build`.
+Follow `protocols/stage-boundary.md`. Produce specs and plans. NEVER implement, branch,
+test, or commit. After gate handoff, STOP.
 
 **Pre-condition check (LOW freedom):**
-- Check `currentWork.status` is `designing` or `planning`. If neither: "Run /sw-design first."
-- Check `design.md` exists. If not: "Run /sw-design first."
+Check `currentWork.status` is `designing` or `planning` and `design.md` exists.
 
 **Decompose (MEDIUM freedom, only if large):**
-- Assess whether the design requires multiple work units.
-- Each unit is independently buildable and testable.
-- Ordered by dependency (what must be built first).
-- If decomposition results in exactly 1 unit, use the single-unit flat layout (no `units/` directory, no `workUnits` array). Proceed to Spec constraint.
-- Present the decomposition to the user. The user approves before any unit directories are created.
-- After approval, populate `workUnits` array in workflow.json with all units at status `pending`, per `protocols/state.md`.
-- Present the expected cycle per unit:
-  ```
-  Unit 1: {name} → /sw-build → /sw-verify → /sw-ship
-  Unit 2: {name} → /sw-build → /sw-verify → /sw-ship
-  ```
-- Decomposition is complete when: each unit has a clear single purpose (describable in one sentence), dependencies are identified and ordered, each unit's spec has 3+ testable acceptance criteria, and an implementer could start any unit from its artifacts alone.
-- Note: If the design's Blast Radius section identifies high-blast-radius (systemic) components, those components should get their own work unit to contain risk.
+- Assess whether the design requires multiple work units. Apply autonomously — use
+  design blast radius to determine boundaries. High-blast-radius (systemic) components
+  get their own unit.
+- Each unit: independently buildable, testable, single purpose, 3+ testable ACs.
+- Ordered by dependency. If exactly 1 unit, use flat layout.
+- Record decomposition rationale in decisions.md per `protocols/decision.md` DISAMBIGUATION.
 
-**Spec — single-unit (MEDIUM freedom):**
-- Write acceptance criteria the tester can turn into brutal tests.
-- Each criterion answers: "How will we KNOW this works?"
-- Include boundary conditions and error cases, not just happy paths.
-- If `.specwright/patterns.md` exists, check for patterns that should inform
-  acceptance criteria (e.g., known edge cases, testing approaches that worked).
-- Follow `protocols/assumptions.md` late discovery lifecycle for assumptions encountered during spec writing.
-- Ground criteria in the design artifacts — reference specific decisions, contracts, data models.
-- The user must approve the spec before it's saved.
+**Spec writing (MEDIUM freedom):**
+- Write acceptance criteria the tester can turn into brutal tests. Each answers:
+  "How will we KNOW this works?" Include boundary conditions and error cases.
+- Check patterns.md for known edge cases.
+- Follow `protocols/assumptions.md` late discovery lifecycle. Auto-resolve per Type 1/2
+  rules in the assumptions protocol.
+- Ground criteria in design artifacts.
 
-**Spec — per-unit loop (MEDIUM freedom, multi-unit only):**
-- For each unit (sequentially, in dependency order):
-  1. Create directory: `.specwright/work/{id}/units/{unit-id}/`
-  2. Write `context.md` — curated subset of parent context.md containing:
-     - File paths and module boundaries relevant to this unit
-     - Integration points this unit touches
-     - Gotchas and patterns from the parent context that apply
-     - Dependency notes (what other units this one builds on)
-     - Relevant design excerpts summarized inline
-     - The unit's context.md must be self-contained — an agent reading only the unit directory has sufficient context to build
-  3. Write `plan.md` — task breakdown and file change map scoped to this unit
-  4. Write `spec.md` — acceptance criteria scoped to this unit
-  5. Present the spec to the user via AskUserQuestion for individual approval
-  6. If the user requests changes, revise and re-present (loop until approved)
-  7. After approval, update this unit's `workUnits` entry: status → `planned`, `workDir` set
-- Criteria quality: same standards as single-unit (testable, boundary conditions, grounded in design).
+**Spec per-unit loop (MEDIUM freedom, multi-unit only):**
+For each unit sequentially: create directory, write context.md (self-contained),
+plan.md (task breakdown + file change map), spec.md (unit-scoped ACs). Each unit's
+context.md must be sufficient for an agent reading only that directory.
 
 **Spec pre-review (MEDIUM freedom):**
-- After each spec is drafted — single-unit: after draft; multi-unit: after each unit's
-  spec draft — before presenting to the user for approval: follow `protocols/spec-review.md`.
-- Delegate spec quality review to `specwright-architect`.
-- Surface BLOCK findings before user approval checkpoint. BLOCKs must be revised or
-  overridden (with user acknowledgement) before the spec is finalized.
-- Surface WARN findings alongside the spec at the user approval checkpoint.
+- After drafting each spec, delegate to `specwright-architect` per `protocols/spec-review.md`.
+- Auto-revise BLOCKs (up to 2 iterations). Document WARNs in spec.md.
+- If BLOCKs persist after 2 revisions: Type 1 deficiency — record and surface at gate.
 
 **Code budget (MEDIUM freedom):**
-- plan.md files contain structure, not implementation. Allowed: function/method signatures (no bodies), type/interface definitions, API endpoint contracts (method, path, request/response shapes), directory/file structure, configuration examples, CLI commands.
-- NOT allowed: function implementations, algorithm logic, business rule code, full test implementations. The tester and executor receive the plan — keeping it focused gives them cleaner signal about *what* to build without biasing *how*.
+plan.md contains structure, not implementation. Allowed: signatures, types, contracts,
+directory structure, config examples. NOT allowed: function bodies, algorithm logic.
 
-**User checkpoints:**
-- After decomposition (if large): approve unit breakdown before creating directories.
-- After each unit's spec (multi-unit): approve acceptance criteria individually.
-- After spec (single-unit): approve acceptance criteria.
-- Use AskUserQuestion with options grounded in design artifacts.
+**Gate handoff (LOW freedom):**
+Present the gate using `protocols/decision.md` gate handoff template: artifact (spec.md
+for all units), decision digest, quality checks (spec-review results), deficiencies,
+recommendation. The user reviews and approves before `/sw-build` begins.
 
 **State mutations (LOW freedom):**
-- Follow `protocols/state.md` for all workflow.json updates.
-- Transition `currentWork.status` from `designing` to `planning` at the start.
-- Single-unit: transition to `planning`, no `workUnits` array. Handoff to `/sw-build`.
-- Multi-unit: after all units approved:
-  - Set `currentWork.unitId` to the first unit's ID
-  - Set `currentWork.workDir` to the first unit's `workDir`
-  - Set the first unit's `workUnits` entry status to `building`
-  - Transition `currentWork.status` from `planning` to `building`
-  - Reset the `gates` section to `{}`
-  - Handoff to `/sw-build`
+Follow `protocols/state.md`. Transition `designing` → `planning`. Multi-unit: populate
+workUnits array, set first unit to `building`, transition to `building`, handoff to
+`/sw-build`.
 
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope, termination, and handoff
+- `protocols/decision.md` -- autonomous decision framework and gate handoff
 - `protocols/state.md` -- workflow state updates and locking
 - `protocols/context.md` -- anchor doc and config loading
 - `protocols/recovery.md` -- compaction recovery
-- `protocols/assumptions.md` -- late assumption capture during spec writing
-- `protocols/spec-review.md` -- spec quality review before user approval
+- `protocols/assumptions.md` -- late assumption capture and autonomous resolution
+- `protocols/spec-review.md` -- spec quality review
 
 ## Failure Modes
 
 | Condition | Action |
 |-----------|--------|
 | Status not `designing`/`planning` | STOP: "Run /sw-design first" |
-| Required artifact missing | STOP: "Run /sw-design first" (design.md required) |
-| Design too vague for specs | Ask user for clarification with concrete options |
-| Active work already in progress | Ask user: continue existing, or start new? |
-| Compaction during planning | Read workflow.json. Check `workUnits` entries: skip `planned` units, resume from first `pending` unit. If a `pending` unit has partially written artifacts (spec.md exists), re-present to user for approval. |
-| Decomposition revision after partial approval | Partial teardown not supported. User must `/sw-status --reset` and re-run `/sw-plan`. |
+| Required artifact missing | STOP: "Run /sw-design first" |
+| Design too vague for specs | Apply DISAMBIGUATION from design context. Record interpretation. Surface at gate if undetermined. |
+| Active work in progress | Apply DISAMBIGUATION: argument provided → start new. No argument → continue. Record. |
+| Compaction during planning | Read workflow.json. Skip `planned` units, resume first `pending`. |
+| Decomposition revision needed | `/sw-status --reset` and re-run `/sw-plan`. |
