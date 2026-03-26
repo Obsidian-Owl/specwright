@@ -12,7 +12,6 @@ allowed-tools:
   - Glob
   - Grep
   - Task
-  - AskUserQuestion
 ---
 
 # Specwright Pivot
@@ -47,8 +46,8 @@ Status must be `building`. If all tasks done: STOP — "Run /sw-verify."
 Read tasksCompleted, present done vs. remaining.
 
 **Pivot input (MEDIUM freedom):**
-If argument provided, use it as the pivot reason. If no argument, ask via
-AskUserQuestion: "What changed?" Accept free-text.
+If argument provided, use it as the pivot reason. If no argument, infer from
+conversation context per `protocols/decision.md` DISAMBIGUATION.
 
 **Revise (HIGH freedom for architect, LOW freedom for mutation):**
 Delegate to `specwright-architect` per `protocols/delegation.md`. Completed tasks
@@ -56,11 +55,9 @@ are immutable. Architect revises remaining tasks only. If architect proposes mod
 completed criteria: reject and re-delegate (max 2 attempts).
 
 **Apply (MEDIUM freedom):**
-Apply `protocols/decision.md` for scope assessment:
-- Revision changes <30% of remaining tasks → **auto-apply** (Type 2). Append revision
-  to spec.md and pivot note to plan.md. Update workflow.json. Record in decisions.md.
-- Revision changes ≥30% of remaining tasks or touches completed work context →
-  **gate**: present diff to user via AskUserQuestion. Apply on approval.
+Auto-apply revision. Append revision to spec.md and pivot note to plan.md. Update
+workflow.json. Record scope (% tasks changed) and rationale in decisions.md. The
+revised plan is the artifact — sw-build resumes from it, verify validates the result.
 NEVER overwrite existing content — append only.
 
 **Stage boundary (LOW freedom):**

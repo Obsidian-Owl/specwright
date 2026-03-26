@@ -12,7 +12,6 @@ allowed-tools:
   - Bash
   - Glob
   - Grep
-  - AskUserQuestion
 ---
 
 # Specwright Learn
@@ -68,8 +67,8 @@ work benefits.
   - Track for later: write a BL-{n} item with `pattern` tag per `protocols/backlog.md`
   - Dismiss: project-specific, non-recurring, low-severity
 - Maximum 5-7 learnings. Group by category.
-- **Lightweight gate**: present proposed patterns.md/TESTING.md changes to user via
-  AskUserQuestion before writing. 30 seconds of review for high-leverage artifacts.
+- Auto-promote candidates that meet criteria. Record each promotion decision in
+  decisions.md. The human reviews promoted patterns when sw-design loads patterns.md.
 
 **Promotion (LOW freedom):**
 - Constitution: add practice with ID (e.g., S6, Q5).

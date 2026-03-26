@@ -6,7 +6,6 @@ allowed-tools:
   - Read
   - Bash
   - Grep
-  - AskUserQuestion
 ---
 
 # Specwright Review
@@ -23,9 +22,8 @@ Fetch all comment types, group by status, apply autonomous triage:
 - Suggestions: apply if they improve code health, push back with reasoning if not
 - Conflicting comments: follow the one most aligned with constitution/spec
 
-**External reply gate**: replies to non-self reviewers are Type 1 (structural override
-per `protocols/decision.md` — external-facing, not retractable). Draft all replies,
-then present for human approval before posting.
+External replies are recorded in decisions.md with the drafted text and reasoning.
+The PR itself is the review surface — reviewers see replies directly.
 
 ## Inputs
 
