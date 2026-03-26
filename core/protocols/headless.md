@@ -35,6 +35,14 @@ Headless skills NEVER auto-chain. Each skill invocation is independent.
 
 This preserves the stage-boundary protocol: each skill owns one stage.
 
+## Relationship to Decision Protocol
+
+In **interactive autonomous mode** (AskUserQuestion available but skill operates
+autonomously between gates), skills apply `protocols/decision.md` for decisions.
+In **headless mode** (AskUserQuestion unavailable), this protocol's policy table
+takes precedence over decision.md. Different contexts, different risk profiles:
+headless has no human at the next gate; interactive-autonomous does.
+
 ## Default Policies
 
 When running headlessly, use these defaults instead of prompting the user:

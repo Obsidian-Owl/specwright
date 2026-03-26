@@ -93,6 +93,23 @@ Status: {resolved-count}/{total-count} resolved
 4. **Resolution** -- User resolves each assumption by answering, providing docs, or accepting the risk.
 5. **Gate** -- Design cannot be approved while BLOCK-category assumptions remain UNVERIFIED. The user may move any assumption to ACCEPTED (risk acknowledged) to unblock.
 
+## Autonomous Resolution (per `protocols/decision.md`)
+
+When operating autonomously between gates, assumptions are auto-resolved by type:
+
+| Resolution Type | Classification | Auto-Resolution | Rationale |
+|----------------|---------------|-----------------|-----------|
+| `clarify` | `technical` | auto-ACCEPT (Type 2) | Technical behavior assumptions are verifiable during build and reversible |
+| `clarify` | `behavioral` | remains blocking | User intent cannot be inferred from code |
+| `reference` | any | remains blocking | Requires external docs the agent cannot obtain |
+| `external` | any | remains blocking | Requires other teams the agent cannot contact |
+
+**Structural override**: any assumption contradicting an acceptance criterion is Type 1
+regardless of resolution type — always blocking, always halts.
+
+Auto-resolved assumptions are recorded in `{workDir}/decisions.md` and surfaced in the
+gate handoff digest. The human at the gate sees what was auto-accepted and can reject.
+
 ## Identification Heuristics
 
 Flag as an assumption when the design:
