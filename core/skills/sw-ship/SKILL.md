@@ -18,8 +18,8 @@ allowed-tools:
 ## Goal
 
 Merge the current work unit to main via a pull request. The PR body maps
-evidence to acceptance criteria so reviewers can verify the work. Only
-ships when gates have passed.
+evidence to acceptance criteria so reviewers can verify. The PR itself is the
+human gate — reviewers verify before merge.
 
 ## Inputs
 
@@ -32,93 +32,50 @@ ships when gates have passed.
 
 - Pull request created with evidence-mapped body
 - `workflow.json` currentWork status set to `shipped`
-- Feature branch cleaned up after merge (if configured)
 
 ## Constraints
 
 **Stage boundary (LOW freedom):**
-- Follow `protocols/stage-boundary.md`.
-- You create PRs and mark work as shipped. You NEVER start new work, run builds, or begin the next work unit.
-- After PR creation, STOP and present:
-  - The PR URL
-  - "Consider running `/sw-learn` to capture learnings."
-  - If more work units pending: "Then run `/sw-build` for the next unit."
-  - If no more units: "All work units complete."
+Follow `protocols/stage-boundary.md`. Create PRs and mark shipped. NEVER start new
+work, run builds, or begin next unit. After PR: show URL, suggest `/sw-learn`, handoff.
 
 **Pre-flight checks (LOW freedom):**
 - Verify `currentWork` exists and status is `verifying` or `building`.
-- Check gate results in workflow.json:
-  - All enabled gates must have status PASS, WARN, or SKIP.
-  - If any gate is FAIL or has no result: STOP and tell the user to run verify.
-- Check evidence freshness: gate results older than 30 minutes trigger a warning.
-- Check for uncommitted changes. If any, ask user: commit them or abort.
-
-**Non-interactive context (LOW freedom):**
-- Follow `protocols/headless.md` when AskUserQuestion is unavailable.
-- Uncommitted changes: **abort** — write `headless-result.json` with
-  `status: "aborted"`, `error: "uncommitted changes"`, `pr_url: null`.
-- PR creation: **always create PR** (never ask about direct merge).
-- Evidence freshness warnings: log them, do not prompt.
-- On success: write `headless-result.json` with `status: "completed"`,
-  `pr_url: "<url>"`, `pass_rate: null` (not applicable for ship).
+- All enabled gates must have status PASS, WARN, or SKIP. FAIL → STOP.
+- Evidence freshness: results >30 minutes → warning (logged, not blocking).
+- Uncommitted changes: ask user to commit or abort (CONFIRMATION — uncommitted changes
+  at ship time are unexpected and may include debug code or experiments).
+  Headless: abort per `protocols/headless.md`.
 
 **PR creation (MEDIUM freedom):**
 - Follow `protocols/git.md` for push and PR operations.
-- Read `config.json` `git` section for strategy-aware behavior:
-  - Push feature branch to remote: `git push -u origin {branch}`
-  - PR target: determined by `git.strategy` (see protocol strategy table)
-  - PR tool: `config.git.prTool` (default: `gh`)
-  - If `config.git.prRequired` is false: ask user whether to create a PR or merge directly
-- PR title follows `config.git.commitFormat` style (e.g., `feat(scope): description` for conventional).
-- PR body structure:
-  ```
-  ## Summary
-  <1-3 bullet points from spec description>
-
-  ## Acceptance Criteria
-  <For each criterion: status + evidence reference>
-
-  ## Blast Radius
-  <Summary of which modules are affected and failure propagation scope, sourced from the design's blast radius section>
-
-  ## Gate Results
-  <Summary table: gate, status, findings count>
-  <Any SKIPPED gates must appear as: "Gate X: SKIPPED — no evidence" so reviewers can see which dimensions were not evaluated>
-
-  ## Evidence
-  <Links to evidence files or inline summaries>
-  ```
-- Use HEREDOC for PR body to preserve formatting.
+- Always create PR (both interactive and headless — PRs are the universal review gate).
+- PR title follows `config.git.commitFormat` style.
+- PR body structure: Summary, Acceptance Criteria (status + evidence per criterion),
+  Blast Radius, Gate Results (with SKIP gates marked), Evidence links.
+- Use HEREDOC for PR body.
 
 **State updates (LOW freedom):**
-- Follow `protocols/state.md`.
-- Set `currentWork.status` to `shipped` after PR creation.
-- If `workUnits` array exists:
-  - Update the matching entry's status to `shipped`.
-  - Find the next `planned` entry by `order`. If found:
-    - Set that entry's status to `building`
-    - Set `currentWork.unitId` to the next unit's `id`
-    - Set `currentWork.workDir` to the next unit's `workDir`
-    - Set `currentWork.status` to `building`
-    - Reset `gates` to `{}`, `tasksCompleted` to `[]`, `tasksTotal` to `null`, `currentTask` to `null`
-    - Handoff: "Next: {unit-name}. Run `/sw-build`."
-  - If no more `planned` entries: "All work units complete."
-- Release lock.
+Follow `protocols/state.md`. Set `shipped` after PR creation. If `workUnits` exists:
+update entry to `shipped`, advance to next `planned` unit (set `building`, reset gates),
+handoff. If no more units: "All work units complete."
 
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope, termination, and handoff
+- `protocols/decision.md` -- autonomous decision framework
 - `protocols/git.md` -- branch, push, PR creation
 - `protocols/state.md` -- workflow state updates
 - `protocols/evidence.md` -- evidence references for PR body
+- `protocols/headless.md` -- non-interactive execution defaults
 
 ## Failure Modes
 
 | Condition | Action |
 |-----------|--------|
 | Gates not passed | STOP: "Run /sw-verify first" |
-| No git changes to ship | STOP: "Nothing to ship. No changes detected." |
-| PR creation fails | Show error. Don't update state. User can retry. |
+| No git changes to ship | STOP: "Nothing to ship." |
+| PR creation fails | Show error. Don't update state. |
 | Evidence files missing | WARN in PR body: "Evidence not available for gate X" |
-| gh CLI not installed | STOP: "Install gh CLI or configure alternative PR tool" |
-| Compaction during ship | Read workflow.json, check if PR was already created |
+| gh CLI not installed | STOP: "Install gh CLI" |
+| Compaction during ship | Read workflow.json, check if PR already created |
