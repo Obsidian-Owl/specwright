@@ -64,7 +64,11 @@ Other tools in this space tend to focus on the **front half** of the loop — sp
 
 Specwright focuses on the **verification and evidence** side — the part where AI agents actually fail.
 
-**Evidence Pipeline** — Five sequential gates capture proof into structured reports. PRs ship with a compliance matrix mapping every acceptance criterion to code and test evidence. Reviewers don't have to trust — they can verify.
+**Autonomous Gated Engineering** — Skills operate autonomously between human gates, applying a decision protocol grounded in Amazon's Type 1/Type 2 framework, Google's SRE heuristics, and the Principle of Least Surprise. Every autonomous decision is recorded in `decisions.md` and surfaced at the gate handoff. Humans review at skill transitions — like reviewing a PR, not like pair programming. 64 intervention points reduced to 5 human gates.
+
+**Tiered Test Execution** — `gate-build` runs four test tiers in order: build → unit → integration → smoke. Integration tests validate against real infrastructure (databases, clusters, APIs). Smoke tests verify critical paths end-to-end. The inner-loop in `sw-build` runs integration tests after TDD — catching runtime issues while the build-fixer is still in context, just like a real engineer who starts the app and checks it works before submitting a PR.
+
+**Evidence Pipeline** — Six sequential gates capture proof into structured reports. PRs ship with a compliance matrix mapping every acceptance criterion to code and test evidence. Reviewers don't have to trust — they can verify.
 
 **Wiring Verification** — Static analysis catches orphaned files, unused exports, layer violations, and circular dependencies. Other tools check if code compiles and tests pass. Specwright checks if the code is actually connected.
 
@@ -106,12 +110,12 @@ graph LR
 |-------|-------------|----------------|
 | **Init** | Detect stack, configure gates, create anchor documents | Auto-detection — don't ask what you can infer |
 | **Research** | Investigate external docs, APIs, patterns; produce validated briefs | Evidence-graded findings with confidence scoring |
-| **Design** | Triage as Full / Lite / Quick, research codebase, design solution, adversarial critic | Right-sized ceremony — trivial fixes skip the full cycle |
+| **Design** | Research codebase, design solution, adversarial critic — autonomously with gate handoff | Decisions recorded, human reviews at the gate |
 | **Plan** | Decompose into work units, write testable acceptance criteria | Specs grounded in approved design artifacts |
-| **Build** | TDD — tester writes hard-to-pass tests, executor makes them pass. Optional parallel execution via agent teams (experimental). | Adversarial test-first, not test-after |
-| **Verify** | 5 quality gates with evidence capture | Findings shown inline, not just pass/fail badges |
+| **Build** | TDD + inner-loop validation against real infrastructure. Optional parallel execution (experimental). | Integration tests run during build, not just at verify |
+| **Verify** | 6 quality gates with tiered test execution and evidence capture | Findings shown inline, not just pass/fail badges |
 | **Ship** | PR with acceptance criteria mapped to evidence | Every requirement traceable to code + test |
-| **Learn** | Capture patterns, promote to constitution | Knowledge compounds across sessions |
+| **Learn** | Capture patterns, auto-promote by objective criteria | Knowledge compounds across sessions |
 | **Audit** | Periodic health check — architecture, complexity, consistency, debt | Finds systemic issues gates miss. Run anytime. |
 
 ## Quick Start
@@ -213,19 +217,20 @@ Specwright delegates to purpose-built agents — each with a distinct role, mode
 | **Tester** | Opus | Write tests designed to be hard to pass | *"How can I prove this is wrong?"* |
 | **Executor** | Sonnet | Make the tests pass. Minimal code, maximum correctness. | *"What's the simplest thing that works?"* |
 | **Reviewer** | Opus | Spec compliance verification | *"Show me the evidence."* |
-| **Build Fixer** | Sonnet | Fix build/test failures with minimal diffs | *"Get green, don't refactor."* |
+| **Build Fixer** | Sonnet | Fix build/test failures — checks infrastructure health first | *"Get green, don't refactor."* |
 | **Researcher** | Sonnet | External documentation and API lookup | *"What does the official doc say?"* |
 
-## Five Quality Gates
+## Six Quality Gates
 
 Every work unit passes through configurable gates before shipping. **Default stance: FAIL.** Evidence must prove PASS.
 
 | Gate | Checks | Severity |
 |------|--------|----------|
-| **Build** | Compilation + test suite pass | BLOCK |
+| **Build** | Tiered test execution: build → unit → integration → smoke | BLOCK (smoke = WARN) |
 | **Tests** | Assertion strength, boundary coverage, mock discipline | BLOCK/WARN |
 | **Security** | Leaked secrets, injection patterns, sensitive data | BLOCK |
 | **Wiring** | Orphaned files, unused exports, layer violations, circular deps | WARN |
+| **Semantic** | Error-path cleanup, unchecked errors, fail-open handling, resource lifecycle | WARN (experimental) |
 | **Spec** | Every acceptance criterion mapped to code + test evidence | BLOCK |
 
 ## Persistent Documents
@@ -261,10 +266,10 @@ When a work unit has 4+ independent tasks, Specwright can execute them in parall
 | Skill | Purpose |
 |-------|---------|
 | `/sw-init` | Project setup, constitution, charter |
-| `/sw-design` | Research, design, adversarial critic |
-| `/sw-plan` | Decompose, spec, acceptance criteria |
-| `/sw-build` | TDD implementation |
-| `/sw-verify` | Quality gates |
+| `/sw-design` | Autonomous design with gate handoff |
+| `/sw-plan` | Autonomous decomposition and specs |
+| `/sw-build` | TDD + inner-loop integration tests |
+| `/sw-verify` | 6 quality gates, tiered execution |
 | `/sw-ship` | PR with evidence |
 
 </td><td>
@@ -280,6 +285,8 @@ When a work unit has 4+ independent tasks, Specwright can execute them in parall
 | `/sw-status` | Progress and state |
 | `/sw-learn` | Pattern capture |
 | `/sw-audit` | Codebase health check |
+| `/sw-sync` | Git housekeeping |
+| `/sw-review` | PR comment triage |
 
 </td></tr>
 </table>
@@ -292,8 +299,8 @@ Specwright reads project configuration from `.specwright/config.json`:
 ```json
 {
   "project": { "name": "...", "languages": [...] },
-  "commands": { "build": "...", "test": "...", "lint": "..." },
-  "gates": { "enabled": ["build", "tests", "wiring", "security", "spec"] }
+  "commands": { "build": "...", "test": "...", "test:integration": "...", "test:smoke": "...", "lint": "..." },
+  "gates": { "enabled": ["build", "tests", "wiring", "security", "semantic", "spec"] }
 }
 ```
 
@@ -309,8 +316,8 @@ See `DESIGN.md` for the complete architecture document.
 ```
 specwright/
 ├── core/              # Platform-agnostic content
-│   ├── skills/        # 19 SKILL.md files (14 user + 5 gates)
-│   ├── protocols/     # 21 shared protocols (loaded on demand)
+│   ├── skills/        # 22 SKILL.md files (16 user + 6 gates)
+│   ├── protocols/     # 26 shared protocols (loaded on demand)
 │   └── agents/        # 6 custom subagent definitions
 ├── adapters/          # Platform-specific packaging
 │   ├── claude-code/   # Claude Code adapter (hooks, plugin metadata)
