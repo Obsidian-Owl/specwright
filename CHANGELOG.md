@@ -25,6 +25,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.23.0] - 2026-03-26
+
+### Changed
+
+- feat(skills): support skills fully artifact-driven — 24 interventions → 0 prompts, -492 words (#116)
+- feat(skills): core pipeline autonomous operation — 30 interventions → 5 gates, -1370 words (#115)
+- feat(protocol): autonomous decision framework — Type 1/2, CCR, gate handoffs (#114)
+- feat(testing): tester integration discipline, tiered init, learn gaps, AGENTS.md sync (#113)
+- feat(testing): tiered test execution — gate-build tiers, sw-build inner-loop, build-fixer infra awareness (#112)
+
 ## [0.22.0] - 2026-03-23
 
 ### Changed
