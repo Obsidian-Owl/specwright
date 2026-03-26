@@ -43,7 +43,10 @@ indirection, or configurability that serves no stated requirement.
 ### Pre-Mortem
 
 Assume this design shipped and caused a production incident 6 months later. What
-was the root cause? Answer in 2-3 sentences.
+was the root cause? Answer in 2-3 sentences. Note: this is a systemic/architectural
+pre-mortem. Cross-Context Review (`protocols/decision.md`) uses a narrow artifact-specific
+pre-mortem on individual Type 1 decisions (e.g., "this data model field caused the
+incident"). The two are complementary, not redundant.
 
 ### Charter Alignment
 
@@ -88,7 +91,9 @@ needed (rare), it leads with Feasibility.
    evaluate the critic's work independently.
 
 3. **Convergence check**: if ALL four dimensions score 4 or higher, the loop exits.
-   The design is ready for user review.
+   The design is ready for user review. In autonomous mode (per `protocols/decision.md`
+   APPROVAL heuristic): convergence at ≥4/5 with no BLOCK findings auto-approves the
+   design and proceeds to the gate handoff. The human reviews at the gate, not inline.
 
 4. **Follow-up iteration**: if any dimension scores below 4, a targeted follow-up
    critic pass runs. The follow-up receives the original design, all accumulated
