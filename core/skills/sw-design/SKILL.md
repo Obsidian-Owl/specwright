@@ -115,5 +115,6 @@ NEVER write specs, decompose, implement, branch, or test. After gate handoff, ST
 | Active work in progress | Apply DISAMBIGUATION: if argument provided, start new. If no argument, continue existing. Record choice. |
 | `design.md` exists, no argument | Apply DISAMBIGUATION: if user's message implies change, treat as change request. Otherwise, present status at gate. |
 | Critic rejects entire approach | Apply DISAMBIGUATION to choose best alternative. Record in decisions.md. |
+| User rejects design at gate | Revise per user feedback and re-run critic. User overrides critic — note in design.md. |
 | Unresolved Type 1 assumptions | Surface at gate handoff as deficiencies. Do not auto-proceed. |
 | Compaction during design | Read workflow.json, check which artifacts exist, resume next missing phase |

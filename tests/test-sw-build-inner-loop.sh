@@ -90,9 +90,9 @@ WORD_COUNT=$(wc -w < "$SKILL_FILE" | tr -d ' ')
 MAX_WORDS=$((BASELINE_WORDS + 30))
 
 if [ "$WORD_COUNT" -le "$MAX_WORDS" ]; then
-  pass "word count reduced by at least 300 from baseline (now $WORD_COUNT, max $MAX_WORDS)"
+  pass "word count within budget of baseline (now $WORD_COUNT, max $MAX_WORDS)"
 else
-  fail "word count reduced by at least 300 from baseline (now $WORD_COUNT, max $MAX_WORDS)"
+  fail "word count within budget of baseline (now $WORD_COUNT, max $MAX_WORDS)"
 fi
 
 # Sanity: the file should still have substantial content (not gutted)
