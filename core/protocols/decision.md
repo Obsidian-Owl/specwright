@@ -14,7 +14,6 @@ These are Type 1 regardless of the agent's assessment:
 - Changes to files outside the current task's plan.md file-change-map
 - Assumptions that contradict an existing acceptance criterion
 - Destructive filesystem operations (`rm -rf`, file deletion)
-- External-facing actions (PR comment replies to non-self reviewers)
 - Plan mismatches (spec says X, codebase has Y)
 
 ### Agent Classification

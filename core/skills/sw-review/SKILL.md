@@ -22,7 +22,6 @@ Fetch all comment types, group by status, apply autonomous triage:
 - Suggestions: apply if they improve code health, push back with reasoning if not
 - Conflicting comments: follow the one most aligned with constitution/spec
 
-External replies are recorded in decisions.md with the drafted text and reasoning.
 The PR itself is the review surface — reviewers see replies directly.
 
 ## Inputs
@@ -49,8 +48,7 @@ The PR itself is the review surface — reviewers see replies directly.
   is empty or HEAD is detached, report the detached HEAD condition and stop.
 - Discover the associated PR using `gh pr list --head {branch} --json number,title,url`.
   If no open PR is found, retry with `--state merged` as a fallback for merged PRs.
-- If multiple PRs are returned, use AskUserQuestion to disambiguate — present
-  titles and numbers so the user can select one. Do not guess.
+- If multiple PRs are returned, use the most recent. Record the choice in output.
 - If a PR number is passed as an argument, use it directly instead of detecting
   from the current branch.
 - Read `config.git.prTool` before invoking `gh`; if the value is not `gh` or is
@@ -96,8 +94,7 @@ The PR itself is the review surface — reviewers see replies directly.
   URL), display it, and inform the user: "Install gh CLI to fetch and respond
   to comments from the terminal." Do not abort or STOP — present the URL as a
   fallback so the user can open the PR in a browser.
-- In headless mode, follow `protocols/headless.md`. Skip AskUserQuestion
-  disambiguation; if multiple PRs exist, report them all and exit.
+- In headless mode, follow `protocols/headless.md`.
 
 **Stateless utility (STRICT):**
 - This skill is stateless with respect to Specwright state. It never writes

@@ -20,8 +20,8 @@ allowed-tools:
 
 Graceful course correction during an active sw-build. Capture what's committed,
 understand what changed, revise remaining tasks via architect, and hand back to
-sw-build. Applies `protocols/decision.md` for revision scope decisions. Gate when
-revision scope is large (>30% of remaining tasks).
+sw-build. Applies `protocols/decision.md` for all decisions. Revisions auto-applied
+and recorded in decisions.md — the revised plan is the artifact.
 
 ## Inputs
 
@@ -78,5 +78,4 @@ Follow `protocols/stage-boundary.md`. After apply: STOP → "Run `/sw-build`."
 | Status not `building` | STOP: "sw-pivot only valid during active sw-build" |
 | All tasks completed | STOP: "Run /sw-verify" |
 | Architect modifies completed criteria | Reject, re-delegate (max 2) |
-| Revision too large (≥30%) | Gate: present diff, await approval |
 | Compaction during pivot | Read workflow.json, check if revision was applied |

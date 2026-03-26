@@ -3,7 +3,7 @@ name: sw-learn
 description: >-
   Captures patterns and learnings from the current work unit. Reviews
   build failures, gate findings, and architecture decisions. Applies
-  objective promotion criteria, then presents proposed changes for approval.
+  objective promotion criteria autonomously — patterns.md is the artifact.
 argument-hint: ""
 allowed-tools:
   - Read

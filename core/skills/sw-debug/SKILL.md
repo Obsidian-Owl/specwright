@@ -58,9 +58,10 @@ diagnosis and note the gap in decisions.md.
 
 **Decision (MEDIUM freedom):**
 Apply `protocols/decision.md` DISAMBIGUATION + reversibility:
-- Fix spans ≤3 files → **Fix it now** (Type 2). Write spec.md, handoff to `/sw-build`.
-- Fix spans >3 files → **halt and recommend `/sw-design`** (Type 1 — structural scope).
-  This is a threshold gate, not a prompt.
+- Fix spans ≤3 files with local architectural scope → **Fix it now** (Type 2). Write
+  spec.md, handoff to `/sw-build`.
+- Fix spans >3 files or crosses architectural boundaries → **halt and recommend
+  `/sw-design`** (Type 1 — structural scope).
 - Known pattern (matches patterns.md entry) → **Log it** as BL-{n} per `protocols/backlog.md`.
 - Requires design-level decisions → **Defer** as BL-{n} with `defer` tag.
 Record the decision in decisions.md.
