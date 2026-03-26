@@ -2,8 +2,7 @@
 name: sw-verify
 description: >-
   Orchestrates quality gates for the current work unit. Runs enabled gates
-  in dependency order, shows findings interactively, produces an aggregate
-  evidence report.
+  in dependency order, produces an aggregate evidence report with gate handoff.
 argument-hint: "[--gate=<name>]"
 allowed-tools:
   - Read
@@ -12,16 +11,15 @@ allowed-tools:
   - Glob
   - Grep
   - Task
-  - AskUserQuestion
 ---
 
 # Specwright Verify
 
 ## Goal
 
-Run quality gates against the current work unit and show the user what
-was found. The user should see every finding, understand why it matters,
-and be able to discuss or override before proceeding to ship.
+Run quality gates against the current work unit autonomously. Continue through
+all gates regardless of individual failures. Present the aggregate report at the
+gate handoff using `protocols/decision.md` template.
 
 ## Inputs
 
@@ -34,82 +32,65 @@ and be able to discuss or override before proceeding to ship.
 
 - Evidence files in `{currentWork.workDir}/evidence/`, one per gate
 - `workflow.json` gates section updated; status set to `verifying` during run
-- Aggregate summary shown to user with all findings
+- Aggregate report presented at gate handoff
 
 ## Constraints
 
 **Stage boundary (LOW freedom):**
-- Follow `protocols/stage-boundary.md`.
-- You run quality gates and show findings. You NEVER fix code, create PRs, or ship.
-- After showing the aggregate report, STOP and present the handoff using
-  the three-tier posture defined in the aggregate report constraint below.
+Follow `protocols/stage-boundary.md`. Run quality gates and show findings. NEVER fix
+code, create PRs, or ship. After gate handoff, STOP.
 
-**Assumption re-validation (LOW freedom) — runs before gate execution:**
-- Scan `assumptions.md` from the work unit's design-level directory (`.specwright/work/{currentWork.id}/assumptions.md`). If the file does not exist, skip this step silently.
-- For each assumption with status ACCEPTED or VERIFIED: check whether it is still valid given the implementation (file contents, interfaces, behaviour).
-- Any assumption that no longer holds becomes a WARN finding in the aggregate report, using the same findings table as gate results.
-- This step runs silently — no new user interaction point. Findings appear in the existing aggregate report.
+**Assumption re-validation (LOW freedom) — before gate execution:**
+Scan `assumptions.md` from design-level directory. Check ACCEPTED/VERIFIED assumptions
+still hold. Invalid assumptions → WARN in aggregate report. Runs silently.
 
 **Gate execution order (LOW freedom):**
-- Read enabled gates from `config.json` `gates.enabled`. Skip any gate not in `gates.enabled` silently. Note: `gate-semantic` is disabled by default and must be explicitly enabled.
-- Execute in dependency order:
-  1. `gate-build` first (if code doesn't compile, nothing else matters)
-  2. `gate-tests` second (requires build to pass)
-  3. `gate-security`, `gate-wiring` (independent, can be either order)
-  4. `gate-semantic`
-  5. `gate-spec` last (the ultimate check)
-- Before running gates, load calibration notes per `protocols/gate-verdict.md`.
-- If `--gate=<name>` argument given, run only that gate.
+Execute in dependency order: gate-build → gate-tests → gate-security, gate-wiring →
+gate-semantic → gate-spec. Skip gates not in `gates.enabled`. If `--gate=<name>`
+argument, run only that gate. Load calibration notes per `protocols/gate-verdict.md`.
 
 **Gate invocation (MEDIUM freedom):**
-- Gates are internal skills — load their SKILL.md and execute inline (not slash commands). Pass work unit context.
+Gates are internal skills — load SKILL.md and execute inline. Pass work unit context.
 
 **Freshness (LOW freedom):**
-- Check existing gate results in workflow.json before running.
-- **Interactive**: If a gate result exists and is less than 30 minutes old, ask the user: re-run or keep?
-- **Headless** (per `protocols/headless.md`): Re-run all gates regardless of age.
-- If older than 30 minutes, re-run automatically (both modes).
+Always re-run gates (stale results are worse than redundant runs). If results exist
+and are <30 minutes old, re-run anyway — the unified approach for both interactive and
+headless modes.
 
 **Failure handling (MEDIUM freedom):**
-- If a gate returns FAIL or ERROR:
-  - **Interactive**: Show findings immediately. Ask: fix now, skip this gate, or abort?
-  - **Headless** (per `protocols/headless.md`): Continue and report. Run all remaining
-    gates, record all results. Do not ask fix/skip/abort.
-- If user chooses to fix (interactive), pause verification. Resume after fix.
-- If user skips (interactive), record SKIP status for that gate.
-- On headless completion: write `headless-result.json` with `status: "completed"`,
-  aggregate `pass_rate`, and per-gate verdicts.
+Gate FAIL or ERROR: continue and report. Run ALL remaining gates, record all results.
+No fix/skip/abort decisions — the gate handoff presents everything for human review.
+On headless completion: write `headless-result.json`.
 
 **Aggregate report (MEDIUM freedom):**
-- After all gates, present three tiers:
-  1. **Per-finding detail** (first): every BLOCK/WARN grouped by gate — what, why, recommended action.
-  2. **Summary table** (after): `| Gate | Status | Findings (B/W/I) |`
-  3. **Actionable Findings** (after summary): only shown when WARN or BLOCK findings exist; omit when all gates PASS. Populate from gate evidence as source. Include only WARN and BLOCK severity rows, not INFO.
+After all gates, present three tiers:
+1. **Per-finding detail**: every BLOCK/WARN grouped by gate — what, why, action.
+2. **Summary table**: `| Gate | Status | Findings (B/W/I) |`
+3. **Actionable Findings** (only when WARN/BLOCK exist):
 
-     | # | Gate | Severity | File | Finding | Recommended Fix |
-     |---|------|----------|------|---------|-----------------|
-     | 1 | gate-tests | WARN | src/foo.ts | description | concrete fix suggestion or "manual review" |
+   | # | Gate | Severity | File | Finding | Recommended Fix |
+   |---|------|----------|------|---------|-----------------|
 
-     - File column: specific file path from gate evidence (not vague references).
-     - Recommended Fix column: WARN rows get concrete, actionable fix suggestions; BLOCK rows that require human judgment get "manual review".
-     - Summary line: state the count of actionable findings (N of M) and indicate whether any require human judgment before the user proceeds. Wording must remain informational — do not use imperative verbs that imply the skill will perform fixes.
-     - All-manual case: when every finding requires manual review, note that no automated resolution is possible.
-- SKIP gates MUST be prominently marked in the report. For each skipped gate, add an entry to the summary table with the note: "Gate {name} was SKIPPED — no evidence exists for this dimension."
-- After all gates, check escalation heuristics per `protocols/gate-verdict.md`.
-- Handoff: BLOCKs → "Fix and re-run `/sw-verify`." WARNs only → "Review, then fix or `/sw-ship`." All PASS → "Ready for `/sw-ship`."
+   WARN → concrete fix suggestion. BLOCK → "manual review."
+
+SKIP gates prominently marked. Check escalation heuristics per `protocols/gate-verdict.md`.
+
+**Gate handoff (LOW freedom):**
+Present using `protocols/decision.md` gate handoff template. Auto-generate recommendation:
+BLOCKs → "Fix and re-run `/sw-verify`." WARNs only → "Review, then `/sw-ship`."
+All PASS → "Ready for `/sw-ship`." Human reviews and decides.
 
 **State updates (LOW freedom):**
-- Follow `protocols/state.md`.
-- Set `currentWork.status` to `verifying` at start.
-- Update `gates` section after each gate completes.
-- Do NOT change status to `shipped` — that's the ship skill's job.
+Follow `protocols/state.md`. Set status to `verifying` at start. Update `gates` section
+after each gate completes. Do NOT set `shipped`.
 
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope, termination, and handoff
+- `protocols/decision.md` -- autonomous decision framework and gate handoff
 - `protocols/state.md` -- workflow state and locking
 - `protocols/evidence.md` -- evidence freshness and storage
-- `protocols/gate-verdict.md` -- verdict rendering
+- `protocols/gate-verdict.md` -- verdict rendering and escalation
 - `protocols/headless.md` -- non-interactive execution defaults
 - `protocols/context.md` -- config and anchor doc loading
 

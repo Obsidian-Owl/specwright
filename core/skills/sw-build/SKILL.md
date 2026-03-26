@@ -97,9 +97,12 @@ When delegating, include in the prompt (in this order):
 - Build agents MAY read parent `.specwright/work/{currentWork.id}/context.md` as a fallback
 
 **Build failures (MEDIUM freedom):**
-- If tests fail after GREEN: delegate to `specwright-build-fixer` (max 2 attempts). If still failing: interactive — stop and show the user; headless — abort per `protocols/headless.md`.
+- If tests fail after GREEN: delegate to `specwright-build-fixer` (max 2 attempts).
+  If still failing: apply `protocols/decision.md` ERROR_HANDLING — document failure,
+  proceed to next task unless cascading. Headless: abort per `protocols/headless.md`.
 - If RED phase tests don't fail: the tests are wrong. Tell the tester to fix them.
-- If executor reports a discrepancy (type/interface mismatch): this is a **plan mismatch**, not a build error. Do NOT invoke specwright-build-fixer. Show the user the discrepancy and halt.
+- If executor reports a discrepancy (type/interface mismatch): this is a **plan mismatch**
+  (Type 1 structural override). Do NOT invoke build-fixer. Present to user and halt.
 
 **Commits (LOW freedom):**
 - One commit per completed task. Follow `protocols/git.md`.
@@ -171,6 +174,7 @@ is fresh.
 - `protocols/build-quality.md` -- post-build review and as-built notes
 - `protocols/build-context.md` -- continuation snapshots, status cards, context nudge, repo map injection
 - `protocols/repo-map.md` -- repo map format, generation, token budget, truncation
+- `protocols/decision.md` -- autonomous decision framework (ERROR_HANDLING for build failures)
 - `protocols/headless.md` -- non-interactive execution defaults
 - `protocols/parallel-build.md` -- parallel task execution with agent teams
 
