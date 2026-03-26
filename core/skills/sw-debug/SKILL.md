@@ -2,7 +2,7 @@
 name: sw-debug
 description: >-
   Investigation-first debugging workflow. Scopes the problem, delegates root
-  cause analysis, produces a diagnosis report, and offers fix/log/defer paths.
+  cause analysis, produces a diagnosis report, and applies fix/log/defer autonomously.
 argument-hint: "[problem description]"
 allowed-tools:
   - Read
@@ -11,7 +11,6 @@ allowed-tools:
   - Glob
   - Grep
   - Task
-  - AskUserQuestion
 ---
 
 # Specwright Debug
@@ -19,92 +18,70 @@ allowed-tools:
 ## Goal
 
 First-class debugging path. Scope the problem, investigate concurrently,
-diagnose with evidence, then decide: fix it now, log it for later, or defer.
-Does NOT require going through the full design→plan→build cycle.
+diagnose with evidence, then decide: fix it now, log it, or defer. Operates
+autonomously, applying `protocols/decision.md` for the fix/log/defer decision.
 
 ## Inputs
 
-- Problem description (argument or conversation)
+- Problem description (argument or recent error context)
 - Initial evidence: error messages, logs, failing test output
-- `.specwright/config.json` — `backlog.type` and `backlog.label` for logging items
+- `.specwright/config.json` — `backlog.type` and `backlog.label`
 - Codebase files — read during investigation
 
 ## Outputs
 
 - `diagnosis.md` at `.specwright/work/{id}/` — always produced
 - `spec.md` at `.specwright/work/{id}/` — Fix path only (2-3 acceptance criteria)
+- `decisions.md` — fix/log/defer decision recorded per `protocols/decision.md`
 
 ## Constraints
 
 **Stage boundary (LOW freedom):**
-- Follow `protocols/stage-boundary.md`.
-- You investigate and diagnose. You NEVER write code, run tests, create branches,
-  or make commits.
-- Fix path: produce `spec.md` and hand off to `/sw-build`. Stop there.
-- Log/Defer path: write backlog item and stop.
+Follow `protocols/stage-boundary.md`. Investigate and diagnose. NEVER write code,
+run tests, branch, or commit. Fix path: produce spec.md, handoff to `/sw-build`.
 
 **Scope (MEDIUM freedom):**
-- If problem description provided as argument, use it. Otherwise ask via
-  AskUserQuestion: what IS happening, what SHOULD happen.
-- Collect any initial evidence the user can share: error messages, stack traces,
-  failing test names, logs.
-- Define the boundary: what modules or files are likely involved.
+- If argument provided, use it. If no argument, infer from recent error context
+  (last failed command, error output in conversation). If genuinely undetermined,
+  apply DISAMBIGUATION: choose the most likely problem from available context.
+- Collect evidence: error messages, stack traces, failing tests. Define boundary.
 
 **Investigate (HIGH freedom):**
-- Delegate concurrently to two agents per `protocols/delegation.md`:
-  - `specwright-researcher`: gather code context — read relevant files, trace
-    call paths, identify the affected surface area
-  - `specwright-architect`: analyze root cause candidates, assess blast radius,
-    identify what this does NOT affect
-- Synthesize findings into `diagnosis.md`.
+Delegate concurrently per `protocols/delegation.md`: `specwright-researcher` (code
+context, call paths) and `specwright-architect` (root cause, blast radius).
 
 **Diagnose (MEDIUM freedom):**
-- Write `diagnosis.md` with these sections:
-  ```
-  ## Problem
-  [Observed behavior vs expected behavior]
+Write `diagnosis.md`: Problem (observed vs expected), Root Cause (confidence level,
+file:line evidence), Blast Radius (affected / not affected), Fix Approach (high-level),
+Alternatives Considered. If agents return insufficient evidence: produce low-confidence
+diagnosis and note the gap in decisions.md.
 
-  ## Root Cause
-  [Primary cause — confidence: HIGH / MEDIUM / LOW]
-  [Supporting evidence with file:line references]
-
-  ## Blast Radius
-  [What's affected | What's NOT affected]
-
-  ## Fix Approach
-  [High-level fix — no implementation code]
-
-  ## Alternatives Considered
-  [Other hypotheses and why they were ruled out]
-  ```
-- If agents return insufficient evidence: present "low confidence" diagnosis.
-  Offer to expand scope before deciding.
-
-**Decision (LOW freedom):**
-- Present AskUserQuestion with exactly three options:
-  - **Fix it now** → write `spec.md` with 2-3 acceptance criteria for the fix.
-    Set workflow status to `planning`. Hand off to `/sw-build`.
-    WARN if the fix spans many files/modules: "This may need `/sw-design` first."
-  - **Log it** → write a `BL-{n}` backlog item (`debug` tag) per `protocols/backlog.md`. Stop.
-  - **Defer** → write a `BL-{n}` item (`defer` tag), mark diagnosis.md DEFERRED. Stop.
+**Decision (MEDIUM freedom):**
+Apply `protocols/decision.md` DISAMBIGUATION + reversibility:
+- Fix spans ≤3 files with local architectural scope → **Fix it now** (Type 2). Write
+  spec.md, handoff to `/sw-build`.
+- Fix spans >3 files or crosses architectural boundaries → **halt and recommend
+  `/sw-design`** (Type 1 — structural scope).
+- Known pattern (matches patterns.md entry) → **Log it** as BL-{n} per `protocols/backlog.md`.
+- Requires design-level decisions → **Defer** as BL-{n} with `defer` tag.
+Record the decision in decisions.md.
 
 **State (LOW freedom):**
-- Follow `protocols/state.md`. Set status to `designing` when work begins.
-- Work ID format: `debug-{short-description}` (e.g., `debug-n1-query`).
-- "Fix it now": transition status to `planning` after spec.md is written.
+Follow `protocols/state.md`. Work ID: `debug-{short-description}`.
 
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope and handoff
+- `protocols/decision.md` -- autonomous decision framework (fix/log/defer)
 - `protocols/state.md` -- workflow state updates
-- `protocols/delegation.md` -- concurrent researcher + architect delegation
-- `protocols/backlog.md` -- backlog item format and write targets
+- `protocols/delegation.md` -- concurrent delegation
+- `protocols/backlog.md` -- backlog items
 
 ## Failure Modes
 
 | Condition | Action |
 |-----------|--------|
-| No problem description | Ask via AskUserQuestion before investigating |
-| Agents return no evidence | Present low-confidence diagnosis; ask to expand scope or log |
-| Fix is architectural (many files) | WARN: suggest `/sw-design` instead of direct fix |
-| Compaction during investigation | Re-run investigation; diagnosis.md is rebuilt from scratch |
+| No problem description or context | Apply DISAMBIGUATION from conversation history. Record interpretation. |
+| Agents return no evidence | Low-confidence diagnosis. Apply fix/log/defer per reversibility. |
+| Fix is architectural (>3 files) | Halt. Recommend `/sw-design`. |
+| Compaction during investigation | Re-run investigation; diagnosis.md rebuilt from scratch |

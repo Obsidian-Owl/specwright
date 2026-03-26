@@ -2,8 +2,8 @@
 name: sw-learn
 description: >-
   Captures patterns and learnings from the current work unit. Reviews
-  build failures, gate findings, and architecture decisions. Promotes
-  user-approved patterns to constitution or patterns file.
+  build failures, gate findings, and architecture decisions. Applies
+  objective promotion criteria autonomously — patterns.md is the artifact.
 argument-hint: ""
 allowed-tools:
   - Read
@@ -12,7 +12,6 @@ allowed-tools:
   - Bash
   - Glob
   - Grep
-  - AskUserQuestion
 ---
 
 # Specwright Learn
@@ -60,14 +59,16 @@ work benefits.
   ("No integration tests ran"). Skip this check when no integration tier is configured.
 - MUST record gateCalibration for every gate that ran, even if all PASS with 0 findings. Populate from evidence files automatically. falsePositives array only populated when user explicitly labels a finding as false positive during presentation (dismissal alone does not count). Format per `protocols/gate-verdict.md`.
 
-**Presentation (MEDIUM freedom):**
-- Group by category (build, security, testing, architecture). Show: what happened, why it matters, proposed rule.
-- Use AskUserQuestion for curation. Two-step to stay within option limits:
-  1. Ask: "Promote, track for later, or dismiss?"
-  2. If promote: ask where — constitution, auto-memory, patterns, or testing strategy (TESTING.md).
-- Track for later: write a BL-{n} item with `pattern` tag per `protocols/backlog.md`.
-  No learning file written for tracked items (only for promoted items).
-- Maximum 5-7 learnings.
+**Curation (MEDIUM freedom):**
+- Apply `protocols/decision.md` CURATION criteria autonomously:
+  - Candidate for patterns.md: recurs across 2+ units OR known failure category
+  - Candidate for TESTING.md: boundary classification or test infra discovery
+  - Never auto-promote to constitution or auto-memory (Type 1 — irreversible)
+  - Track for later: write a BL-{n} item with `pattern` tag per `protocols/backlog.md`
+  - Dismiss: project-specific, non-recurring, low-severity
+- Maximum 5-7 learnings. Group by category.
+- Auto-promote candidates that meet criteria. Record each promotion decision in
+  decisions.md. The human reviews promoted patterns when sw-design loads patterns.md.
 
 **Promotion (LOW freedom):**
 - Constitution: add practice with ID (e.g., S6, Q5).
@@ -112,6 +113,7 @@ work benefits.
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope, termination, and handoff
+- `protocols/decision.md` -- autonomous decision framework (CURATION heuristics)
 - `protocols/context.md` -- anchor doc loading
 - `protocols/state.md` -- workflow state reading and cleanup transition
 - `protocols/insights.md` -- session pattern enrichment

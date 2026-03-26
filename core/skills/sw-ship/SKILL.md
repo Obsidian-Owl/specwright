@@ -10,7 +10,6 @@ allowed-tools:
   - Bash
   - Glob
   - Grep
-  - AskUserQuestion
 ---
 
 # Specwright Ship
@@ -43,9 +42,9 @@ work, run builds, or begin next unit. After PR: show URL, suggest `/sw-learn`, h
 - Verify `currentWork` exists and status is `verifying` or `building`.
 - All enabled gates must have status PASS, WARN, or SKIP. FAIL → STOP.
 - Evidence freshness: results >30 minutes → warning (logged, not blocking).
-- Uncommitted changes: ask user to commit or abort (CONFIRMATION — uncommitted changes
-  at ship time are unexpected and may include debug code or experiments).
-  Headless: abort per `protocols/headless.md`.
+- Uncommitted changes: commit only files within the work unit's plan.md file-change-map.
+  Report out-of-scope uncommitted files in the gate handoff — do not commit them.
+  The PR diff is the review surface.
 
 **PR creation (MEDIUM freedom):**
 - Follow `protocols/git.md` for push and PR operations.

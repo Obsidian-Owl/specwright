@@ -14,7 +14,6 @@ These are Type 1 regardless of the agent's assessment:
 - Changes to files outside the current task's plan.md file-change-map
 - Assumptions that contradict an existing acceptance criterion
 - Destructive filesystem operations (`rm -rf`, file deletion)
-- External-facing actions (PR comment replies to non-self reviewers)
 - Plan mismatches (spec says X, codebase has Y)
 
 ### Agent Classification
@@ -56,10 +55,11 @@ Objective promotion criteria:
 - Candidate for patterns.md: recurs across 2+ units OR known failure category
 - Candidate for TESTING.md: boundary classification or test infra discovery
 - Never auto-promote to constitution or auto-memory (Type 1 — irreversible)
-- Lightweight gate: show proposed changes before writing
+- Auto-promote candidates that meet criteria. Record in decisions.md.
 
 ### CONFIRMATION
-Destructive actions always require human confirmation. No exceptions.
+Destructive actions (sw-status --reset, --cleanup) require human confirmation.
+All other decisions are artifact-driven — the artifact IS the review surface.
 
 ## Cross-Context Review (CCR)
 
