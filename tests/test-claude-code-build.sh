@@ -225,7 +225,7 @@ fi
 
 echo "--- protocols/ directory ---"
 
-EXPECTED_PROTO_COUNT=25
+EXPECTED_PROTO_COUNT=26
 
 if [ -d "$CC_DIST/protocols" ]; then
   pass "protocols/ directory exists"

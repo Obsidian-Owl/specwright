@@ -74,6 +74,7 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `testing-strategy.md` -- Testing strategy lifecycle: TESTING.md creation, consumption, boundary classifications
 - `headless.md` -- Non-interactive execution: detection, default policies, result summary format
 - `parallel-build.md` -- Parallel task execution with agent teams (experimental)
+- `decision.md` -- Autonomous decision framework: reversibility classification, heuristics, CCR, decision records
 - `guardrails-detection.md` -- Three-step stack detection: manifest scan, config file scan, guardrail scan
 - `guardrails-patterns.md` -- Ten-dimension coverage model, four-layer enforcement patterns
 - `repo-map.md` -- Repo map format, generation method, token budget, and truncation rules for build context
