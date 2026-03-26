@@ -3,7 +3,7 @@ name: sw-pivot
 description: >-
   Mid-build course correction. Captures committed progress, takes pivot input,
   has the architect revise remaining tasks, and resumes sw-build with a revised plan.
-argument-hint: ""
+argument-hint: "[reason for pivot]"
 allowed-tools:
   - Read
   - Write
@@ -19,95 +19,67 @@ allowed-tools:
 
 ## Goal
 
-Graceful course correction during an active sw-build. Capture what's been
-committed, understand what changed, revise the remaining tasks via architect
-review, and hand back to sw-build — without losing committed work or context.
+Graceful course correction during an active sw-build. Capture what's committed,
+understand what changed, revise remaining tasks via architect, and hand back to
+sw-build. Applies `protocols/decision.md` for revision scope decisions. Gate when
+revision scope is large (>30% of remaining tasks).
 
 ## Inputs
 
 - `.specwright/state/workflow.json` — `tasksCompleted`, `tasksTotal`, `workDir`
-- `{currentWork.workDir}/spec.md` — full spec (completed + remaining criteria)
+- `{currentWork.workDir}/spec.md` — full spec (completed + remaining)
 - `{currentWork.workDir}/plan.md` — task breakdown
+- Pivot reason (argument or conversation)
 
 ## Outputs
 
-- `spec.md` — appended with `## Revision — [date]: [reason]` section
+- `spec.md` — appended with `## Revision` section
 - `plan.md` — appended with `## Pivot Note` section
-- `workflow.json` — remaining task list updated
+- `workflow.json` — remaining tasks updated
+- `decisions.md` — pivot decisions recorded
 
 ## Constraints
 
 **Pre-condition (LOW freedom):**
-- Read `currentWork.status` from workflow.json.
-- If status is not `building`: STOP — "sw-pivot is only valid during an active
-  sw-build. Current status: {status}."
-- If `tasksCompleted` equals `tasksTotal` (all tasks done): STOP — "No remaining
-  tasks to pivot. Run `/sw-verify`."
+Status must be `building`. If all tasks done: STOP — "Run /sw-verify."
 
 **Snapshot (LOW freedom):**
-- Read `tasksCompleted` from workflow.json.
-- Read spec.md and plan.md for task names and criteria.
-- Present to user:
-  ```
-  Done (committed): task-1 — [name], task-2 — [name]
-  Remaining: task-3 — [name], task-4 — [name], task-5 — [name]
-  ```
+Read tasksCompleted, present done vs. remaining.
 
 **Pivot input (MEDIUM freedom):**
-- Ask via AskUserQuestion: "What changed? Describe the new information,
-  wrong assumption, or scope change that requires course correction."
-- Accept free-text input. Confirm understanding before delegating.
+If argument provided, use it as the pivot reason. If no argument, ask via
+AskUserQuestion: "What changed?" Accept free-text.
 
 **Revise (HIGH freedom for architect, LOW freedom for mutation):**
-- Delegate to `specwright-architect` per `protocols/delegation.md` with:
-  - Completed task list (names + criteria — READ ONLY context)
-  - Remaining task list (names + criteria — subject to revision)
-  - User's pivot description
-  - Constraint: "You may remove, modify, add, or reorder REMAINING tasks only.
-    Completed tasks and their criteria are immutable. Do not reference or alter
-    any completed task's acceptance criteria."
-- Architect returns revised task list for remaining work.
-- If architect proposes modifying completed criteria: reject, re-delegate with
-  explicit constraint reminder (max 2 attempts).
+Delegate to `specwright-architect` per `protocols/delegation.md`. Completed tasks
+are immutable. Architect revises remaining tasks only. If architect proposes modifying
+completed criteria: reject and re-delegate (max 2 attempts).
 
-**Apply (LOW freedom):**
-- Present diff of changes to user: tasks removed, tasks modified, tasks added.
-- On user approval:
-  1. APPEND to spec.md:
-     ```
-     ## Revision — [YYYY-MM-DD]: [one-line reason]
-     [Revised task list with updated acceptance criteria]
-     ```
-  2. APPEND to plan.md:
-     ```
-     ## Pivot Note
-     Date: [YYYY-MM-DD]
-     Reason: [pivot description]
-     Changes: [summary of what was removed/modified/added]
-     ```
-  3. Update `workflow.json` remaining task list (completed entries untouched).
-- Status stays `building` after apply.
-- NEVER overwrite or modify existing content in spec.md or plan.md.
+**Apply (MEDIUM freedom):**
+Apply `protocols/decision.md` for scope assessment:
+- Revision changes <30% of remaining tasks → **auto-apply** (Type 2). Append revision
+  to spec.md and pivot note to plan.md. Update workflow.json. Record in decisions.md.
+- Revision changes ≥30% of remaining tasks or touches completed work context →
+  **gate**: present diff to user via AskUserQuestion. Apply on approval.
+NEVER overwrite existing content — append only.
 
 **Stage boundary (LOW freedom):**
-- Follow `protocols/stage-boundary.md`.
-- You revise plans. You NEVER write code, run tests, create branches, or commit.
-- After apply and user approval: STOP and hand off — "Run `/sw-build` to continue
-  with the revised plan."
+Follow `protocols/stage-boundary.md`. After apply: STOP → "Run `/sw-build`."
 
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope and handoff
+- `protocols/decision.md` -- autonomous decision framework (scope assessment)
 - `protocols/state.md` -- workflow state updates
 - `protocols/delegation.md` -- architect delegation
-- `protocols/git.md` -- branch context awareness
+- `protocols/git.md` -- branch context
 
 ## Failure Modes
 
 | Condition | Action |
 |-----------|--------|
-| Status not `building` | STOP: "sw-pivot is only valid during an active sw-build" |
-| All tasks completed | STOP: "No remaining tasks to pivot. Run /sw-verify." |
-| Architect proposes modifying completed criteria | Reject, re-delegate with explicit constraint (max 2 attempts) |
-| User rejects architect's revision | Re-delegate with user feedback (max 2 attempts) |
-| User abandons pivot | Do not write any files. Return to sw-build as-is. |
+| Status not `building` | STOP: "sw-pivot only valid during active sw-build" |
+| All tasks completed | STOP: "Run /sw-verify" |
+| Architect modifies completed criteria | Reject, re-delegate (max 2) |
+| Revision too large (≥30%) | Gate: present diff, await approval |
+| Compaction during pivot | Read workflow.json, check if revision was applied |
