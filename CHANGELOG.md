@@ -26,6 +26,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.24.0] - 2026-03-27
+
+### Changed
+
+- fix(verify): semantic gate reliability — dual-format detection + evidence validation (#119)
+
 ## [0.23.0] - 2026-03-26
 
 ### Changed
