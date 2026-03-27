@@ -81,7 +81,7 @@ Invoked by verify, not directly by users.
 | `gate-tests` | Test quality: assertions, boundaries, mocks, mutation resistance | BLOCK/WARN |
 | `gate-security` | Secrets, injection, sensitive data, logical security (CWE-636/209/306) | BLOCK/WARN |
 | `gate-wiring` | Unused exports, orphans, layer violations | WARN |
-| `gate-semantic` | Error-path resource leaks, unchecked error returns (experimental, opt-in) | WARN |
+| `gate-semantic` | Error-path resource leaks, unchecked error returns | WARN |
 | `gate-spec` | Every acceptance criterion has evidence | BLOCK |
 
 ### Design / Plan Split
