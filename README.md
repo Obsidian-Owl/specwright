@@ -230,7 +230,7 @@ Every work unit passes through configurable gates before shipping. **Default sta
 | **Tests** | Assertion strength, boundary coverage, mock discipline | BLOCK/WARN |
 | **Security** | Leaked secrets, injection patterns, sensitive data | BLOCK |
 | **Wiring** | Orphaned files, unused exports, layer violations, circular deps | WARN |
-| **Semantic** | Error-path cleanup, unchecked errors, fail-open handling, resource lifecycle | WARN (experimental) |
+| **Semantic** | Error-path cleanup, unchecked errors, fail-open handling, resource lifecycle | WARN |
 | **Spec** | Every acceptance criterion mapped to code + test evidence | BLOCK |
 
 ## Persistent Documents
