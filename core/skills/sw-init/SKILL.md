@@ -37,8 +37,9 @@ When complete, ALL of the following exist:
 
 Optional (created if the user opts in):
 - `.specwright/TESTING.md` -- testing strategy: boundaries, infrastructure, mock allowances
-- Quality gates configured in config based on user preferences
 - Hooks set up if the user wants them
+
+Quality gates are configured in config (all six default to enabled; user may disable).
 
 ## Constraints
 
@@ -113,7 +114,9 @@ Optional (created if the user opts in):
 **Gate configuration (MEDIUM freedom):**
 - All six gates default to enabled: build, tests, security, wiring, semantic, spec.
   Semantic is WARN-only with graceful degradation (no tools required). The user may
-  disable any gate. Configure thresholds per user expectations.
+  disable any gate. Write gates as object format in config.json:
+  `{ "gates": { "build": { "enabled": true }, ... } }`.
+  Configure thresholds per user expectations.
 - If a test runner is detected, batch these additional questions:
   - "Do you have integration tests against real infrastructure? What command runs them?"
     → Populate `commands.test:integration` in config.json. Skip if user answers none.

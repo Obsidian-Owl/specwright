@@ -41,8 +41,8 @@ Follow `protocols/stage-boundary.md`. Run quality gates and show findings. NEVER
 code, create PRs, or ship. After gate handoff, STOP.
 
 **Assumption re-validation (LOW freedom) — before gate execution:**
-Scan `assumptions.md` from design-level directory. Invalid ACCEPTED/VERIFIED
-assumptions → WARN in aggregate report. Runs silently.
+Scan `assumptions.md` from design-level directory. Check ACCEPTED/VERIFIED assumptions
+still hold against current code. Invalid → WARN in aggregate report. Runs silently.
 
 **Gate execution order (LOW freedom):**
 Determine enabled gates from config. Two formats exist — support both:
@@ -63,25 +63,20 @@ Always re-run all gates regardless of existing results or age.
 
 **Failure handling (MEDIUM freedom):**
 Gate FAIL or ERROR: continue. Run ALL remaining gates, record all results.
+No fix/skip/abort decisions — the gate handoff presents everything for human review.
 Headless: write `headless-result.json`.
 
 **Aggregate report (MEDIUM freedom):**
-After all gates, present three tiers:
-1. **Per-finding detail**: every BLOCK/WARN grouped by gate — what, why, action.
-2. **Summary table**: `| Gate | Status | Findings (B/W/I) |`
-3. **Actionable Findings** (only when WARN/BLOCK exist):
-
-   | # | Gate | Severity | File | Finding | Recommended Fix |
-   |---|------|----------|------|---------|-----------------|
-
-   WARN → concrete fix suggestion. BLOCK → "manual review."
-
-SKIP gates prominently marked. Check escalation heuristics per `protocols/gate-verdict.md`.
+After all gates, present: (1) per-finding detail grouped by gate, (2) summary table
+`| Gate | Status | Findings (B/W/I) |`, (3) actionable findings table (WARN → fix
+suggestion, BLOCK → "manual review"). SKIP gates prominently marked. Check escalation
+heuristics per `protocols/gate-verdict.md`.
 
 **Evidence completeness (LOW freedom):**
-After all gates, check every enabled gate has a status in `workflow.json`
-`gates.{name}`. No status and no evidence file → ERROR: "Gate {name} was enabled
-but produced no evidence — gate was not executed."
+Skip when `--gate=<name>` was used (partial run — only the targeted gate is expected).
+In full mode: check every enabled gate has a status in `workflow.json` `gates.{name}`.
+No status and no evidence file → ERROR: "Gate {name} was enabled but produced no
+evidence — gate was not executed."
 
 **Gate handoff (LOW freedom):**
 Present using `protocols/decision.md` gate handoff template. Auto-generate recommendation:
