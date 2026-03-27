@@ -24,7 +24,7 @@ gate handoff using `protocols/decision.md` template.
 ## Inputs
 
 - `.specwright/state/workflow.json` -- current work unit, previous gate results
-- `.specwright/config.json` -- `gates.enabled` list
+- `.specwright/config.json` -- gate configuration (object or array format)
 - `{currentWork.workDir}/spec.md` -- for spec compliance gate
 - Gate skill files in `skills/gate-*/SKILL.md`
 
@@ -41,26 +41,29 @@ Follow `protocols/stage-boundary.md`. Run quality gates and show findings. NEVER
 code, create PRs, or ship. After gate handoff, STOP.
 
 **Assumption re-validation (LOW freedom) — before gate execution:**
-Scan `assumptions.md` from design-level directory. Check ACCEPTED/VERIFIED assumptions
-still hold. Invalid assumptions → WARN in aggregate report. Runs silently.
+Scan `assumptions.md` from design-level directory. Invalid ACCEPTED/VERIFIED
+assumptions → WARN in aggregate report. Runs silently.
 
 **Gate execution order (LOW freedom):**
-Execute in dependency order: gate-build → gate-tests → gate-security, gate-wiring →
-gate-semantic → gate-spec. Skip gates not in `gates.enabled`. If `--gate=<name>`
-argument, run only that gate. Load calibration notes per `protocols/gate-verdict.md`.
+Determine enabled gates from config. Two formats exist — support both:
+- **Object format**: `config.gates.{gateName}` exists and `.enabled === true`
+- **Array format**: gate name present in `config.gates.enabled` array
+
+All six gates are eligible: build, tests, security, wiring, semantic, spec.
+Execute enabled gates in dependency order: gate-build → gate-tests →
+gate-security, gate-wiring → gate-semantic → gate-spec.
+If `--gate=<name>` argument, run only that gate.
+Load calibration notes per `protocols/gate-verdict.md`.
 
 **Gate invocation (MEDIUM freedom):**
 Gates are internal skills — load SKILL.md and execute inline. Pass work unit context.
 
 **Freshness (LOW freedom):**
-Always re-run gates (stale results are worse than redundant runs). If results exist
-and are <30 minutes old, re-run anyway — the unified approach for both interactive and
-headless modes.
+Always re-run all gates regardless of existing results or age.
 
 **Failure handling (MEDIUM freedom):**
-Gate FAIL or ERROR: continue and report. Run ALL remaining gates, record all results.
-No fix/skip/abort decisions — the gate handoff presents everything for human review.
-On headless completion: write `headless-result.json`.
+Gate FAIL or ERROR: continue. Run ALL remaining gates, record all results.
+Headless: write `headless-result.json`.
 
 **Aggregate report (MEDIUM freedom):**
 After all gates, present three tiers:
@@ -74,6 +77,11 @@ After all gates, present three tiers:
    WARN → concrete fix suggestion. BLOCK → "manual review."
 
 SKIP gates prominently marked. Check escalation heuristics per `protocols/gate-verdict.md`.
+
+**Evidence completeness (LOW freedom):**
+After all gates, check every enabled gate has a status in `workflow.json`
+`gates.{name}`. No status and no evidence file → ERROR: "Gate {name} was enabled
+but produced no evidence — gate was not executed."
 
 **Gate handoff (LOW freedom):**
 Present using `protocols/decision.md` gate handoff template. Auto-generate recommendation:
