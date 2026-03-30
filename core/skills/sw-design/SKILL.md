@@ -90,7 +90,9 @@ NEVER write specs, decompose, implement, branch, or test. After gate handoff, ST
 - The user reviews and approves before `/sw-plan` begins.
 
 **State mutations (LOW freedom):**
-- Follow `protocols/state.md`. Set `currentWork.status` to `designing`. Create work directory.
+- Follow `protocols/state.md`. If `currentWork` exists with status `abandoned`, clear it to
+  null first (transition `abandoned` → `(none)`), then proceed with new work creation.
+- Set `currentWork.status` to `designing`. Create work directory.
 - Set `currentWork.baselineCommit` to `git rev-parse origin/{config.git.baseBranch}`
   (default `origin/main` if `baseBranch` is not configured). This captures the base branch
   HEAD before any work begins — used by gate-wiring for cross-unit integration verification.

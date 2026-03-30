@@ -156,3 +156,4 @@ existing working tree.
 | IC not structurally verifiable | WARN per IC (not false PASS) |
 | Cross-unit import missing | BLOCK with unit attribution |
 | Interface mismatch across units | BLOCK with unit attribution |
+| Architect delegation fails or returns no findings | ERROR for cross-unit section. Cross-unit analysis is not optional once activated. |
