@@ -91,6 +91,11 @@ NEVER write specs, decompose, implement, branch, or test. After gate handoff, ST
 
 **State mutations (LOW freedom):**
 - Follow `protocols/state.md`. Set `currentWork.status` to `designing`. Create work directory.
+- Set `currentWork.baselineCommit` to `git rev-parse origin/{config.git.baseBranch}`
+  (default `origin/main` if `baseBranch` is not configured). This captures the base branch
+  HEAD before any work begins — used by gate-wiring for cross-unit integration verification.
+- If `currentWork.baselineCommit` is already set (change request re-entry), do NOT overwrite.
+  The baseline represents the original starting point of the design.
 
 ## Protocol References
 
