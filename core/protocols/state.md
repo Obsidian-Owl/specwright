@@ -17,7 +17,8 @@
     "unitId": "string | null",
     "tasksTotal": "number | null",
     "tasksCompleted": ["task-id strings"],
-    "currentTask": "string | null"
+    "currentTask": "string | null",
+    "baselineCommit": "string | null — SHA of baseBranch HEAD at design start"
   },
   "gates": {
     "{gate-name}": {
@@ -42,6 +43,8 @@
 `workUnits` is null for single-unit work (backward compatible). When present, `currentWork` still points to the active unit.
 
 `unitId` is the active unit within the work. Null for single-unit work. In multi-unit mode, `workDir` points to the active unit's directory (e.g., `.specwright/work/{id}/units/{unitId}/`). For single-unit work, `workDir` points to the work root (unchanged).
+
+`baselineCommit` is the SHA of the base branch HEAD at design start. Set by sw-design when creating `currentWork`. Never mutated after initial set (sw-pivot does not change it). Cleared when `currentWork` is cleared to null by sw-learn.
 
 `workUnits` entry statuses: `pending` (not yet planned), `planned` (spec written and approved, waiting to be activated), `building`/`verifying`/`shipped`/`abandoned` (same as currentWork). The `planned` status is set by sw-plan after a unit's spec is individually approved. Each entry's `workDir` is the artifact directory path for that unit (source of truth — skills read this field, never construct paths from id).
 
