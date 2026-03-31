@@ -58,9 +58,16 @@ read-only utility: it never modifies workflow state.
 - Base branch and perennial branch protection: never delete the base branch
   or any configured perennial branches (e.g., `develop`, `staging`). Exclude
   them from candidates unconditionally.
-- Worktree safety: run `git worktree list` and exclude any branch referenced
-  by an active worktree. Deleting a branch in use by another worktree corrupts
-  the worktree.
+- Worktree safety: run `git worktree list --porcelain` for machine-parseable
+  output. Parse `worktree` and `branch` lines to build the protection set.
+  Exclude any branch referenced by an active worktree. Deleting a branch in
+  use by another worktree corrupts the worktree. If `--porcelain` is
+  unavailable (old git), fall back to plain `git worktree list` and parse
+  the human-readable text output to extract worktree paths and branch names.
+- Branch pattern protection: do not delete branches matching `worktree-*`
+  (Claude Code worktree pattern) or `specwright-wt-*` (Specwright parallel
+  build pattern). These are prefix-matched and excluded from deletion
+  candidates regardless of worktree list output.
 - Active feature branch protection: read `workflow.json` to identify the
   active feature branch (`currentWork.branch`). Exclude it from candidates
   even if its remote tracking ref is gone.
@@ -115,6 +122,9 @@ read-only utility: it never modifies workflow state.
   skip stale detection; still report current local state.
 - **Worktree check fails** — treat all branches as potentially in use; skip
   deletion and warn the user.
+- **`git worktree list --porcelain` unavailable** — fall back to plain
+  `git worktree list` and parse the human-readable text output. Extract
+  worktree paths and branch names from the formatted output.
 - **Branch name fails validation (metacharacter detected)** — skip that branch,
   log a warning with the branch name, continue with remaining candidates.
 - **Active build in progress** — if `workflow.json` shows `currentWork.status`
