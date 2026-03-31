@@ -27,6 +27,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.25.0] - 2026-03-31
+
+### Changed
+
+- feat(protocols): worktree safety hardening — detection, protection, degradation (#122)
+- feat(gate-wiring): cross-unit integration verification for multi-unit designs (#121) (#121)
+
 ## [0.24.0] - 2026-03-27
 
 ### Changed
