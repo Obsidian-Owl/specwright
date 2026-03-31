@@ -67,7 +67,9 @@ disconnected entry points.
 2. `currentWork.baselineCommit` is non-null
 3. `git cat-file -t {baselineCommit}` exits 0 (commit is reachable)
 4. All `workUnits` entries except the current `unitId` have status `shipped` or
-   `abandoned` (abandoned units are intentionally excluded, not blocking)
+   `abandoned`, AND at least one non-current unit has status `shipped` (if all
+   non-current units are `abandoned`, skip with WARN "All prior units abandoned —
+   cross-unit integration check skipped")
 
 If condition 1 is false: skip cross-unit check entirely (single-unit — not applicable,
 no WARN, no output). If condition 2 is false: skip with WARN "No baseline commit
@@ -81,10 +83,16 @@ Run `git merge-base --is-ancestor origin/{config.git.baseBranch} HEAD` (default
 cross-unit diff may be incomplete. Consider rebasing." Continue the check.
 
 *Full-feature diff:*
-`git diff {baselineCommit} HEAD --name-only` (two-dot, direct tree comparison — NOT
-three-dot). If the diff returns empty: WARN "Full-feature diff returned no changed
-files — cross-unit integration check skipped" and exit without delegating. Filter the
-file list to only files that exist on HEAD (remove deleted files).
+Compute the merge base to scope the diff to feature-only changes:
+```
+MERGE_BASE=$(git merge-base {baselineCommit} HEAD)
+git diff $MERGE_BASE HEAD --name-only
+```
+Using the merge base (not `baselineCommit` directly) ensures that after a rebase onto
+a newer main, the diff includes only files changed on the feature branch — not unrelated
+files merged to main since design start. If the diff returns empty: WARN "Full-feature
+diff returned no changed files — cross-unit integration check skipped" and exit without
+delegating. Filter the file list to only files that exist on HEAD (remove deleted files).
 
 *Architect delegation for cross-unit analysis:*
 Delegate to `specwright-architect` with: (a) the full-feature file list (HEAD-existing
@@ -156,4 +164,6 @@ existing working tree.
 | IC not structurally verifiable | WARN per IC (not false PASS) |
 | Cross-unit import missing | BLOCK with unit attribution |
 | Interface mismatch across units | BLOCK with unit attribution |
-| Architect delegation fails or returns no findings | ERROR for cross-unit section. Cross-unit analysis is not optional once activated. |
+| Architect delegation fails (error/timeout) | ERROR for cross-unit section. Cross-unit analysis is not optional once activated. |
+| Architect returns no findings | PASS — clean integration confirmed |
+| All non-current units abandoned (none shipped) | WARN, skip cross-unit check |

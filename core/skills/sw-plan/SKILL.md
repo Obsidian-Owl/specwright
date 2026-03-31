@@ -71,8 +71,12 @@ Check `currentWork.status` is `designing` or `planning` and `design.md` exists.
 - ICs are derived from the design's integration points and blast radius. They answer:
   "After all units are built, what structural connections must exist?"
 - On re-entry to sw-plan (replanning), overwrite `integration-criteria.md` with freshly
-  generated criteria (same behavior as spec.md/plan.md regeneration).
+  generated criteria (same behavior as spec.md/plan.md regeneration). If replanning
+  reduces from multi-unit to single-unit, delete `integration-criteria.md` if it exists.
 - Consumed by gate-wiring during the final unit's verification.
+- If sw-pivot changes unit boundaries mid-build, `integration-criteria.md` may become
+  stale. sw-pivot should regenerate ICs when unit boundaries change. If it does not,
+  gate-wiring will WARN on unverifiable ICs rather than false-PASS.
 
 **Spec writing (MEDIUM freedom):**
 - Write acceptance criteria the tester can turn into brutal tests. Each answers:
