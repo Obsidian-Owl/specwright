@@ -43,6 +43,13 @@ Quality gates are configured in config (all six default to enabled; user may dis
 
 ## Constraints
 
+**Worktree context (LOW freedom):**
+- Check `worktreeContext` per `protocols/context.md`. If `linked`, WARN: "This is a linked
+  git worktree. `.specwright/` created here will not be visible in other worktrees (it's
+  gitignored). Consider running `/sw-init` in the main worktree instead." The user may
+  proceed — this is a warning, not a block. Creating local `.specwright/` in a linked
+  worktree is a valid use case for isolated work.
+
 **Detection (MEDIUM freedom):**
 - Scan codebase: language(s), framework(s), package manager, test runner, linting/formatting, git workflow, CI/CD. Read dependency manifests. Don't guess what you can detect.
 
