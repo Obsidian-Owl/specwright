@@ -38,6 +38,7 @@ invocation (recomputed, not cached).
    - Any other content → `worktreeContext = primary` (unknown, conservative)
 3. If `.git` is a directory → `worktreeContext = primary` (main worktree)
 4. If `.git` is unreadable (permissions) → `worktreeContext = primary` (conservative)
+5. If `.git` does not exist → `worktreeContext = primary` (not a git repo; git ops will fail separately)
 
 **Values:**
 - `primary` — main worktree, submodule, or unreadable `.git`. Normal behavior.
@@ -70,16 +71,21 @@ Cannot function without `.specwright/` state. STOP message:
 | sw-ship | Creates PR, sets shipped status |
 | sw-pivot | Modifies plan.md, revises tasks |
 | sw-learn | Writes patterns.md, clears currentWork |
+| sw-verify | Sets status to verifying, writes gate results and evidence files |
 
 **Tier B — Read-only skills (WARN and continue):**
 
-Can function with degraded output. WARN message:
+Can function without `.specwright/` state. These skills either operate on external
+data (GitHub, codebase) or produce advisory output. The Initialization Checks
+`config.json` gate is suppressed for Tier B skills when `worktreeContext` is `linked`
+— the WARN message replaces the init error.
+
+WARN message:
 > Running in a linked git worktree — state files may not be present. Results
 > may be incomplete.
 
 | Skill | Rationale |
 |-------|-----------|
-| sw-verify | Runs gates (read-only analysis). Evidence files created locally. |
 | sw-review | Fetches PR comments from GitHub — no state needed |
 | sw-status | Reports state — warns if state missing |
 | sw-doctor | Read-only health check |
@@ -93,7 +99,7 @@ Never touch `.specwright/state/`. No worktree behavior change needed.
 
 | Skill | Rationale |
 |-------|-----------|
-| sw-sync | Already stateless (reads config only) |
+| sw-sync | Reads config and workflow.json (active branch); never writes state |
 | sw-guard | Configures external guardrails, no state |
 | sw-init | Creates `.specwright/` — special case* |
 | gate-build | Internal gate invoked by verify |
@@ -107,15 +113,18 @@ Never touch `.specwright/state/`. No worktree behavior change needed.
 `skills/sw-init/SKILL.md`) but allows the user to proceed. Creating
 `.specwright/` locally in a linked worktree is a valid use case.
 
-Gate skills are invoked by sw-verify (Tier B). The verify orchestrator handles
-the worktree context check. If verify proceeds, gates execute normally.
+Gate skills are invoked by sw-verify (Tier A). In a linked worktree without state,
+sw-verify STOPs before invoking any gates.
 
 ## Initialization Checks
 
 **Before any operation:**
 
 ```javascript
-if (!exists('.specwright/config.json')) {
+// Tier B skills in linked worktrees skip this check (WARN was already emitted)
+if (worktreeContext === 'linked' && skillTier === 'B') {
+  // config.json absence is expected — degradation WARN already shown
+} else if (!exists('.specwright/config.json')) {
   error("Run /sw-init first.");
 }
 if (!config.version) {

@@ -63,7 +63,8 @@ read-only utility: it never modifies workflow state.
   Exclude any branch referenced by an active worktree. Deleting a branch in
   use by another worktree corrupts the worktree. If `--porcelain` is
   unavailable (old git), fall back to plain `git worktree list` and parse
-  the human-readable text output to extract worktree paths and branch names.
+  the human-readable text output (format: `/path/to/worktree  abc1234 [branch-name]`
+  per line; detached HEAD shows `(detached HEAD)` instead of `[branch]`).
 - Branch pattern protection: do not delete branches matching `worktree-*`
   (Claude Code worktree pattern) or `specwright-wt-*` (Specwright parallel
   build pattern). These are prefix-matched and excluded from deletion
@@ -122,9 +123,6 @@ read-only utility: it never modifies workflow state.
   skip stale detection; still report current local state.
 - **Worktree check fails** — treat all branches as potentially in use; skip
   deletion and warn the user.
-- **`git worktree list --porcelain` unavailable** — fall back to plain
-  `git worktree list` and parse the human-readable text output. Extract
-  worktree paths and branch names from the formatted output.
 - **Branch name fails validation (metacharacter detected)** — skip that branch,
   log a warning with the branch name, continue with remaining candidates.
 - **Active build in progress** — if `workflow.json` shows `currentWork.status`
