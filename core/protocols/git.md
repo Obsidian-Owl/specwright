@@ -87,6 +87,18 @@ git add src/foo.ts protocols/git.md
 
 **NEVER use:** `git add -A`, `git add .`, `git add --all`
 
+## Blocked Operations
+
+**NEVER run these commands. They are destructive to worktrees or working state.**
+
+- `git worktree prune` — Global operation that can destroy worktrees outside Specwright's
+  control. If orphaned worktree metadata needs cleanup, use `git worktree remove` on
+  specific known paths within `.specwright/worktrees/` only.
+- `git worktree remove --force` — If `git worktree remove` fails, warn the user. Do not
+  force-remove. Forced removal bypasses safety checks that protect active worktrees.
+- `git checkout .` / `git restore .` — Discards all changes globally. Use specific file
+  paths instead.
+
 ## Commit Format
 
 Read `config.git.commitFormat`:

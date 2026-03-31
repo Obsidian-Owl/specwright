@@ -38,7 +38,11 @@ For each task in the parallel batch, create an isolated git worktree:
 
 ```bash
 git worktree add .specwright/worktrees/{task-id} -b specwright-wt-{task-id} HEAD
+git worktree lock .specwright/worktrees/{task-id} --reason "Specwright parallel build"
 ```
+
+Lock prevents `git gc` from pruning worktrees during long builds. If `git worktree lock`
+fails (e.g., old git version without lock support), WARN and continue without lock.
 
 `.specwright/worktrees/` is project-local and gitignored.
 
@@ -110,9 +114,14 @@ The range `HEAD..specwright-wt-{task-id}` picks all commits on the worktree bran
 After cherry-pick (or on any exit path):
 
 ```bash
+# Only unlock if the lock step succeeded for this worktree
+git worktree unlock .specwright/worktrees/{task-id}
 git worktree remove .specwright/worktrees/{task-id}
 git branch -d specwright-wt-{task-id}
 ```
+
+Run `git worktree unlock` only if the lock step succeeded for this worktree. If the
+worktree was never locked (lock failed during setup), skip the unlock step.
 
 Use `git branch -d` (not `-D`) and `git worktree remove` (no `--force` flag). If removal fails, warn the user. Do not force-remove.
 
@@ -131,8 +140,9 @@ The lead handles these tasks directly, one at a time, with normal state updates.
 
 | Condition | Action |
 |-----------|--------|
-| Compaction during parallel execution | Read workflow.json, check `.specwright/worktrees/` for orphaned worktrees, clean up worktrees and branches, resume with sequential execution for remaining tasks |
-| Orphaned worktrees (from crash or prior failure) | Check `.specwright/worktrees/` at build start. If non-empty, warn user. Offer cleanup or resume. |
+| Compaction during parallel execution | Read workflow.json, check `.specwright/worktrees/` for orphaned worktrees. For each orphan: run `git worktree unlock` (locked worktrees cannot be removed without `--force`, which is blocked), then `git worktree remove`, then `git branch -d`. Resume with sequential execution for remaining tasks. |
+| Orphaned worktrees (from crash or prior failure) | Check `.specwright/worktrees/` at build start. If non-empty, unlock any locked worktrees first (`git worktree unlock`), then warn user. Offer cleanup or resume. |
 | Teammate failure (build-fixer exhausted) | Record failure, continue with other teammates, retry failed task in sequential tail |
 | Cherry-pick conflict | Abort cherry-pick, present to user, offer manual resolution or sequential re-run |
 | Agent team creation failure | Fall back to sequential execution for all tasks. No error — graceful degradation. |
+| git worktree lock fails (old git version) | WARN, continue without lock — graceful degradation. Worktrees are unprotected from gc pruning. |
