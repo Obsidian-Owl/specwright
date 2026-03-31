@@ -38,6 +38,7 @@ applying `protocols/decision.md` for all decisions. Gate handoff at the end.
 
 **Multi-unit work**: For each unit in `.specwright/work/{id}/units/{unit-id}/`:
 `spec.md` + `plan.md` + `context.md`. `workUnits` array in workflow.json.
+Also: `integration-criteria.md` in the design-level directory (`.specwright/work/{id}/`).
 
 Also: `decisions.md` updated with planning-phase autonomous decisions.
 
@@ -57,6 +58,25 @@ Check `currentWork.status` is `designing` or `planning` and `design.md` exists.
 - Each unit: independently buildable, testable, single purpose, 3+ testable ACs.
 - Ordered by dependency. If exactly 1 unit, use flat layout.
 - Record decomposition rationale in decisions.md per `protocols/decision.md` DISAMBIGUATION.
+
+**Integration criteria (MEDIUM freedom, multi-unit only):**
+- When decomposing into multiple work units, also write `integration-criteria.md` in
+  the design-level directory (`.specwright/work/{currentWork.id}/`). Not generated for
+  single-unit work.
+- Each IC must be structurally verifiable — reference specific module paths, export names,
+  or import relationships. Example (valid): "Module `src/routes/index.ts` imports handler
+  from `src/handlers/payment.ts`". Example (invalid): "The payment feature works
+  end-to-end" (too abstract — use a spec AC instead).
+- Format: `- [ ] IC-{n}: {assertion with file paths or export names}`.
+- ICs are derived from the design's integration points and blast radius. They answer:
+  "After all units are built, what structural connections must exist?"
+- On re-entry to sw-plan (replanning), overwrite `integration-criteria.md` with freshly
+  generated criteria (same behavior as spec.md/plan.md regeneration). If replanning
+  reduces from multi-unit to single-unit, delete `integration-criteria.md` if it exists.
+- Consumed by gate-wiring during the final unit's verification.
+- If sw-pivot changes unit boundaries mid-build, `integration-criteria.md` may become
+  stale. sw-pivot should regenerate ICs when unit boundaries change. If it does not,
+  gate-wiring will WARN on unverifiable ICs rather than false-PASS.
 
 **Spec writing (MEDIUM freedom):**
 - Write acceptance criteria the tester can turn into brutal tests. Each answers:
