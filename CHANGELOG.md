@@ -28,6 +28,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.25.1] - 2026-04-02
+
+### Changed
+
+- fix(ci): use OIDC trusted publishing for npm instead of token auth (#124)
+
 ## [0.25.0] - 2026-03-31
 
 ### Changed

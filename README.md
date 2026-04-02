@@ -348,5 +348,5 @@ Specwright is open source under the MIT license.
 </p>
 
 <p align="center">
-  <sub>Built by <a href="https://github.com/Obsidian-Owl">ObsidianOwl</a> · MIT License · v0.25.0</sub>
+  <sub>Built by <a href="https://github.com/Obsidian-Owl">ObsidianOwl</a> · MIT License · v0.25.1</sub>
 </p>
