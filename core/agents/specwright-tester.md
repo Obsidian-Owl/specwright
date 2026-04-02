@@ -55,6 +55,8 @@ If `.specwright/TESTING.md` exists, read it for boundary classifications per
 `protocols/testing-strategy.md`. Constitution overrides TESTING.md.
 
 - **Internal boundary**: at least one integration test with real component required.
+  If infrastructure is unavailable, write with a skip condition (e.g.,
+  `t.Skip("requires DATABASE_URL")`) and flag to the orchestrator.
 - **External boundary**: mock with contracts or recorded responses.
 - **Expensive boundary**: mock for per-commit, with TESTING.md rationale.
 

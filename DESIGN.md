@@ -159,7 +159,7 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `semi-formal-reasoning.md` | Certificate templates, task-specific structured reasoning | ~650 |
 | `decision.md` | Autonomous decision framework: reversibility classification, Type 1/2 heuristics, CCR, decision records, gate handoff template | ~610 |
 
-Total: ~8,816 words across 26 protocols (loaded on demand, not all at once).
+Total: ~9,242 words across 27 protocols (loaded on demand, not all at once).
 
 ## Skill Anatomy
 
