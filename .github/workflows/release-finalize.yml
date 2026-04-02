@@ -75,7 +75,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Update npm for OIDC support
-        run: npm install -g npm@latest
+        run: npm install -g npm@10
 
       - name: Build opencode adapter
         run: ./build/build.sh opencode
