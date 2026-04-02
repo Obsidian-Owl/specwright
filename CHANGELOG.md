@@ -31,6 +31,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.26.0] - 2026-04-02
+
+### Changed
+
+- feat(protocols): integrate semi-formal reasoning into quality gates (#130)
+
 ## [0.25.3] - 2026-04-02
 
 ### Changed
