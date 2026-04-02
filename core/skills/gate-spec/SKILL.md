@@ -44,6 +44,8 @@ that closes the loop.
 - For each criterion, search the codebase for implementation evidence.
 - For each criterion, search test files for test evidence.
 - Delegate to `specwright-reviewer` for thorough analysis if needed.
+- For behavioral criteria (execution-path claims, not structural checks), use
+  the verification template from `protocols/semi-formal-reasoning.md`.
 - Evidence must be specific: file path and line number, not "somewhere in src/".
 
 **Verdict (LOW freedom):**
@@ -52,7 +54,6 @@ that closes the loop.
 - Criterion with implementation but no test = WARN.
 - Criterion with neither = FAIL.
 - Overall: if ANY criterion is FAIL, gate is FAIL.
-- Self-critique: would a skeptical auditor agree with each mapping?
 - Reference discovered behaviors at INFO level per `protocols/build-quality.md`. Does not alter PASS/WARN/FAIL verdict.
 
 **Compliance matrix format:**
@@ -64,6 +65,7 @@ that closes the loop.
 
 ## Protocol References
 
+- `protocols/semi-formal-reasoning.md` -- verification template for behavioral criteria
 - `protocols/gate-verdict.md` -- verdict rendering and self-critique
 - `protocols/evidence.md` -- evidence storage
 - `protocols/state.md` -- gate status updates
