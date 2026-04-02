@@ -33,6 +33,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.26.2] - 2026-04-02
+
+### Changed
+
+- fix(ci): pin npm@11 for provenance publish compatibility (#134)
+
 ## [0.26.1] - 2026-04-02
 
 ### Changed
