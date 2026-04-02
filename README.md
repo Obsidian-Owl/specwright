@@ -317,7 +317,7 @@ See `DESIGN.md` for the complete architecture document.
 specwright/
 ├── core/              # Platform-agnostic content
 │   ├── skills/        # 22 SKILL.md files (16 user + 6 gates)
-│   ├── protocols/     # 26 shared protocols (loaded on demand)
+│   ├── protocols/     # 27 shared protocols (loaded on demand)
 │   └── agents/        # 6 custom subagent definitions
 ├── adapters/          # Platform-specific packaging
 │   ├── claude-code/   # Claude Code adapter (hooks, plugin metadata)
