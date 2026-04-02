@@ -225,7 +225,7 @@ fi
 
 echo "--- protocols/ directory ---"
 
-EXPECTED_PROTO_COUNT=26
+EXPECTED_PROTO_COUNT=27
 
 if [ -d "$CC_DIST/protocols" ]; then
   pass "protocols/ directory exists"
@@ -238,7 +238,7 @@ if [ -d "$CC_DIST/protocols" ]; then
   assert_eq "$PROTO_COUNT" "$EXPECTED_PROTO_COUNT" "protocols/ has exactly $EXPECTED_PROTO_COUNT .md files"
 
   # Spot-check specific protocol files
-  for proto in state.md git.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md; do
+  for proto in state.md git.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md semi-formal-reasoning.md; do
     if [ -f "$CC_DIST/protocols/$proto" ]; then
       pass "protocols/$proto exists"
     else
@@ -891,7 +891,7 @@ if [ -f "$CC_GATE_SEM" ]; then
     fi
   done
 
-  for sem_term in "error-path resource cleanup" "unchecked error" "WARN" "gate-verdict.md"; do
+  for sem_term in "error-path-cleanup" "unchecked-errors" "WARN" "gate-verdict.md"; do
     if echo "$SEM_BODY" | grep -qi "$sem_term"; then
       pass "gate-semantic body contains '$sem_term'"
     else
