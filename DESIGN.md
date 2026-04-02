@@ -156,6 +156,7 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `guardrails-detection.md` | Three-step stack detection: manifest scan, config file scan, guardrail scan | ~340 |
 | `guardrails-patterns.md` | Ten-dimension coverage model, four-layer enforcement patterns, framework options | ~486 |
 | `repo-map.md` | Repo map format, generation method, token budget, truncation rules | ~250 |
+| `semi-formal-reasoning.md` | Certificate templates, task-specific structured reasoning | ~650 |
 | `decision.md` | Autonomous decision framework: reversibility classification, Type 1/2 heuristics, CCR, decision records, gate handoff template | ~610 |
 
 Total: ~8,816 words across 26 protocols (loaded on demand, not all at once).
