@@ -29,6 +29,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.25.2] - 2026-04-02
+
+### Changed
+
+- fix(ci): remove registry-url from setup-node to enable OIDC publish (#126)
+
 ## [0.25.1] - 2026-04-02
 
 ### Changed
