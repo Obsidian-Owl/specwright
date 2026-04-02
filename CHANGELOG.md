@@ -32,6 +32,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.26.1] - 2026-04-02
+
+### Changed
+
+- fix(ci): pin npm@10 to avoid MODULE_NOT_FOUND on Node 22.22.2 (#132)
+
 ## [0.26.0] - 2026-04-02
 
 ### Changed
