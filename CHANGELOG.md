@@ -30,6 +30,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.25.3] - 2026-04-02
+
+### Changed
+
+- fix(ci): configure OIDC trusted publishing for npm (#128)
+
 ## [0.25.2] - 2026-04-02
 
 ### Changed
