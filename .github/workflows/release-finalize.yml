@@ -89,5 +89,3 @@ jobs:
       - name: Publish to npm
         if: env.SKIP_PUBLISH != 'true'
         run: cd dist/opencode && npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
