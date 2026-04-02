@@ -225,7 +225,7 @@ fi
 
 echo "--- protocols/ directory ---"
 
-EXPECTED_PROTO_COUNT=26
+EXPECTED_PROTO_COUNT=27
 
 if [ -d "$CC_DIST/protocols" ]; then
   pass "protocols/ directory exists"
@@ -891,7 +891,7 @@ if [ -f "$CC_GATE_SEM" ]; then
     fi
   done
 
-  for sem_term in "error-path resource cleanup" "unchecked error" "WARN" "gate-verdict.md"; do
+  for sem_term in "error-path-cleanup" "unchecked-errors" "WARN" "gate-verdict.md"; do
     if echo "$SEM_BODY" | grep -qi "$sem_term"; then
       pass "gate-semantic body contains '$sem_term'"
     else
