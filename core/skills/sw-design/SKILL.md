@@ -1,17 +1,9 @@
 ---
 name: sw-design
-description: >-
-  Autonomous solution architecture. Researches the codebase, designs a
-  solution, challenges it adversarially, and produces design artifacts.
-argument-hint: "[what you want to build or change]"
-allowed-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Glob
-  - Grep
-  - Task
+description: "Autonomous solution architecture for a feature or system change. Researches the codebase, produces a design document with blast radius analysis, challenges it via adversarial critic review, and records assumptions and decisions. Use when the user asks to design, architect, plan the approach for, or create a technical design document for a feature or change."
+allowed-tools: "Read, Write, Edit, Bash, Glob, Grep, Task"
+metadata:
+  argument-hint: "[what you want to build or change]"
 ---
 
 # Specwright Design

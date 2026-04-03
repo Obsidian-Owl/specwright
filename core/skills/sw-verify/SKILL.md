@@ -1,16 +1,9 @@
 ---
 name: sw-verify
-description: >-
-  Orchestrates quality gates for the current work unit. Runs enabled gates
-  in dependency order, produces an aggregate evidence report with gate handoff.
-argument-hint: "[--gate=<name>]"
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Glob
-  - Grep
-  - Task
+description: "Runs quality checks (build, tests, security, wiring, semantic, spec compliance) for the current work unit in dependency order and produces a pass/fail summary report. Use when the user asks to verify, validate, run checks, run quality gates, or confirm code is ready before shipping."
+allowed-tools: "Read, Write, Bash, Glob, Grep, Task"
+metadata:
+  argument-hint: "[--gate=<name>]"
 ---
 
 # Specwright Verify

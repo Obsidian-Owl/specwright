@@ -1,16 +1,9 @@
 ---
 name: sw-init
-description: >-
-  Initializes Specwright in a project. Detects stack, asks about practices,
-  creates constitution and charter, configures quality gates and hooks.
-argument-hint: ""
-allowed-tools:
-  - Bash
-  - Read
-  - Write
-  - Glob
-  - Grep
-  - AskUserQuestion
+description: "Initializes Specwright in a project. Detects stack, asks about practices, creates constitution and charter, configures quality gates and hooks. Use when the user wants to set up, initialize, onboard, or configure Specwright in a new or existing project."
+allowed-tools: "Bash, Read, Write, Glob, Grep, AskUserQuestion"
+metadata:
+  argument-hint: ""
 ---
 
 # Specwright Init

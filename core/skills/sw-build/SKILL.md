@@ -1,22 +1,9 @@
 ---
 name: sw-build
-description: >-
-  TDD implementation of one work unit. Delegates test writing to the tester
-  agent and implementation to the executor agent. Commits per task.
-argument-hint: "[work-id] [task-id]"
-allowed-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Glob
-  - Grep
-  - Task
-  - TaskCreate
-  - TaskUpdate
-  - TaskList
-  - TaskGet
-  - AskUserQuestion
+description: "TDD implementation of one work unit via red-green-refactor cycle. Delegates test writing to the tester agent and code implementation to the executor agent, committing after each completed task. Use when the user asks to implement, build, or code a feature using test-driven development, or wants to start the build phase of a planned work unit."
+allowed-tools: "Read, Write, Edit, Bash, Glob, Grep, Task, TaskCreate, TaskUpdate, TaskList, TaskGet, AskUserQuestion"
+metadata:
+  argument-hint: "[work-id] [task-id]"
 ---
 
 # Specwright Build

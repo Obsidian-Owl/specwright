@@ -1,15 +1,9 @@
 ---
 name: sw-ship
-description: >-
-  Ships the current work unit. Verifies all gates passed, creates a PR
-  with evidence-mapped body, updates workflow state to shipped.
-argument-hint: ""
-allowed-tools:
-  - Read
-  - Write
-  - Bash
-  - Glob
-  - Grep
+description: "Ships the current work unit by creating a pull request with evidence-mapped body after verifying all quality gates passed, then updates workflow state to shipped. Use when the user wants to ship, submit a pull request, finalize work, merge to main, or mark a task as complete."
+allowed-tools: "Read, Write, Bash, Glob, Grep"
+metadata:
+  argument-hint: ""
 ---
 
 # Specwright Ship
