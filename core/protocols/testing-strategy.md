@@ -23,7 +23,7 @@ Constitution), but it cannot override Constitution rules.
 |-------|----------------------|
 | `sw-init` | **Creates** TESTING.md from stack detection + user conversation |
 | `sw-design` | May reference TESTING.md when identifying integration boundaries in context.md (no SKILL.md change required — design already scans anchor docs) |
-| `sw-plan` | Spec review includes test type dimension; architect annotates each AC with expected test type |
+| `sw-plan` | Spec review includes test type dimension; architect annotates each AC with a tier tag (`[tier: unit]`, `[tier: integration]`, `[tier: contract]`, `[tier: e2e]`) |
 | `sw-build` | Tester reads TESTING.md to decide mock vs. integration for each test |
 | `sw-verify` | gate-tests validates that test approach matches TESTING.md strategy |
 | `sw-learn` | Testing patterns promoted to TESTING.md (not just patterns.md) |
@@ -56,6 +56,44 @@ Dependencies you could test live but choose not to for cost, time, or resource r
 
 **Example**: An OpenAI API call at $0.01/request → mock with recorded responses for unit tests, but include one scheduled integration test that validates the real API contract weekly. TESTING.md documents: "OpenAI API: mocked in CI (cost), live in weekly integration suite."
 
+## Tier Classification
+
+Four tiers classify how acceptance criteria (ACs) are tested. The architect annotates each AC with a `[tier: X]` tag during sw-plan. Untagged ACs default to unit tier.
+
+### Tiers
+
+| Tier | Classification Rule |
+|------|---------------------|
+| **unit** | Tests a single unit in isolation — no external dependencies, no boundary crossings, no process calls. Pure functions and self-contained logic qualify. |
+| **integration** | Tests code that crosses an internal boundary (service → repository, module → database, layer → cache). Uses real components; no mocks of internal dependencies. |
+| **contract** | Validates your code against an external API or third-party interface schema. Tests the wire format and response contract without calling the live service. |
+| **e2e** | Exercises a complete user flow or critical system path from entry point to outcome. Validates the full system behaves correctly end-to-end. |
+
+### Boundary-to-Tier Mapping
+
+TESTING.md boundary classifications map to tier tags as follows:
+
+| Boundary | Tier | Notes |
+|----------|------|-------|
+| Internal boundary | `[tier: integration]` | Own code crossing module/layer lines — test with real components |
+| External boundary | `[tier: contract]` | Third-party API or vendor interface — validate contract, mock the live call |
+| Expensive boundary | `[tier: integration]` | Could be tested live but is cost- or resource-prohibitive; rationale must be documented in TESTING.md's Mock Allowances section |
+
+The expensive boundary maps to `integration` rather than `contract` because the dependency is technically accessible — the decision to mock it is a cost/resource judgment, not an ownership boundary. The justification must be documented.
+
+### Annotation Format
+
+Annotate each AC with `[tier: unit]`, `[tier: integration]`, `[tier: contract]`, or `[tier: e2e]` inline:
+
+```
+AC-1: Parser rejects malformed input [tier: unit]
+AC-2: Repository saves record to database [tier: integration]
+AC-3: Client handles Stripe error responses [tier: contract]
+AC-4: User can complete checkout flow [tier: e2e]
+```
+
+Acceptance criteria without a tier annotation default to unit tier. When the architect has evidence that an AC crosses a boundary, they must tag it explicitly.
+
 ## Pipeline Flow
 
 ### sw-init creates TESTING.md
@@ -76,8 +114,9 @@ context.md and classifies each using TESTING.md's three categories.
 
 ### sw-plan annotates test types
 The spec review protocol includes a "Test Type Appropriateness" dimension.
-The architect's testability proof for each AC states the expected test type:
-`[unit test]`, `[integration test]`, or `[E2E test]`.
+The architect annotates each AC with a tier tag using the `[tier: X]` format:
+`[tier: unit]`, `[tier: integration]`, `[tier: contract]`, or `[tier: e2e]`.
+Untagged ACs default to unit tier.
 
 ### sw-build reads strategy
 The tester agent reads TESTING.md alongside the Constitution. For each test:
