@@ -14,7 +14,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 from evals.framework.grader import CheckResult
-from evals.framework.model_grader import grade_with_model
+from evals.framework.model_grader import grade_with_model, _extract_json
 
 
 # ---------------------------------------------------------------------------
@@ -287,16 +287,16 @@ class TestUnparseableResponse(unittest.TestCase):
         self.assertIn("no assistant text", result.evidence)
 
     @patch("evals.framework.model_grader.subprocess.run")
-    def test_json_with_preamble_text_fails(self, mock_run):
-        """Model adds text before JSON -- must be unparseable."""
+    def test_json_with_preamble_text_now_parses(self, mock_run):
+        """Model adds text before JSON -- _extract_json handles this."""
         mock_run.return_value = _mock_run(
             stdout=_wrap_as_stream_json(
                 'Here is my assessment:\n{"score": 0.8, "evidence": "ok"}'
             )
         )
         result = grade_with_model("rubric", "content")
-        self.assertFalse(result.passed)
-        self.assertIn("unparseable response", result.evidence)
+        self.assertTrue(result.passed)
+        self.assertAlmostEqual(result.score, 0.8)
 
     @patch("evals.framework.model_grader.subprocess.run")
     def test_score_not_a_number_fails(self, mock_run):
@@ -645,6 +645,98 @@ class TestScoreBoundaryValues(unittest.TestCase):
         )
         result = grade_with_model("rubric", "content")
         self.assertFalse(result.passed)
+
+
+# ===========================================================================
+# _extract_json
+# ===========================================================================
+
+class TestExtractJson(unittest.TestCase):
+    """Tests for robust JSON extraction from model responses."""
+
+    def test_raw_json(self):
+        result = _extract_json('{"score": 0.8, "evidence": "good"}')
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(result["score"], 0.8)
+
+    def test_markdown_fenced_json(self):
+        text = '```json\n{"score": 0.9, "evidence": "great"}\n```'
+        result = _extract_json(text)
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(result["score"], 0.9)
+
+    def test_plain_fenced_json(self):
+        text = '```\n{"score": 0.7, "evidence": "ok"}\n```'
+        result = _extract_json(text)
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(result["score"], 0.7)
+
+    def test_preamble_then_json(self):
+        text = 'Here is the result: {"score": 0.5, "evidence": "weak"}'
+        result = _extract_json(text)
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(result["score"], 0.5)
+
+    def test_json_with_trailing_explanation(self):
+        text = '{"score": 0.6, "evidence": "partial"}\n\nThe above scores reflect...'
+        result = _extract_json(text)
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(result["score"], 0.6)
+
+    def test_no_json_returns_none(self):
+        result = _extract_json("This is just text with no JSON")
+        self.assertIsNone(result)
+
+    def test_empty_string_returns_none(self):
+        result = _extract_json("")
+        self.assertIsNone(result)
+
+    def test_json_array_returns_none(self):
+        """Only dicts are accepted, not arrays."""
+        result = _extract_json('[1, 2, 3]')
+        self.assertIsNone(result)
+
+    def test_braces_inside_json_strings(self):
+        """Braces inside string values must not break brace matching."""
+        text = 'Result: {"score": 0.8, "evidence": "The {code} looks correct"}'
+        result = _extract_json(text)
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(result["score"], 0.8)
+        self.assertIn("{code}", result["evidence"])
+
+    def test_escaped_quotes_in_json_strings(self):
+        """Escaped quotes inside strings must not break string tracking."""
+        text = r'{"score": 0.9, "evidence": "said \"hello\" to {user}"}'
+        result = _extract_json(text)
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(result["score"], 0.9)
+
+
+class TestExtractJsonUsedByGrader(unittest.TestCase):
+    """grade_with_model uses _extract_json for fenced responses."""
+
+    @patch("evals.framework.model_grader.subprocess.run")
+    def test_fenced_response_parses_correctly(self, mock_run):
+        fenced = '```json\n{"score": 0.85, "evidence": "found all bugs"}\n```'
+        mock_run.return_value = _mock_run(
+            stdout=_valid_model_response_raw(fenced)
+        )
+        result = grade_with_model("rubric", "content")
+        self.assertTrue(result.passed)
+        self.assertAlmostEqual(result.score, 0.85)
+
+
+# Helper for raw NDJSON with custom assistant text
+def _valid_model_response_raw(assistant_text: str) -> str:
+    """Build NDJSON with custom assistant text content."""
+    import json as _json
+    event = {
+        "type": "assistant",
+        "message": {
+            "content": [{"type": "text", "text": assistant_text}]
+        }
+    }
+    return _json.dumps(event)
 
 
 if __name__ == "__main__":

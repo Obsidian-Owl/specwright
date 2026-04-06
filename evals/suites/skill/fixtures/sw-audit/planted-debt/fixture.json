@@ -1,0 +1,9 @@
+{
+  "id": "sw-audit-planted-debt",
+  "description": "TypeScript project with 3 planted architectural issues for sw-audit evaluation",
+  "setup": { "type": "copy" },
+  "skill": "sw-audit",
+  "prompt_template": "audit",
+  "prompt_args": {},
+  "timeout": 180
+}

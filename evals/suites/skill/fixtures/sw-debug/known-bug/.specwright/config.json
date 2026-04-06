@@ -1,0 +1,17 @@
+{
+  "version": "2.0",
+  "project": {
+    "name": "debug-test",
+    "type": "node",
+    "languages": ["typescript"],
+    "testRunner": "vitest"
+  },
+  "commands": {
+    "build": "npx tsc --noEmit",
+    "test": "npx vitest run"
+  },
+  "git": {
+    "defaultBranch": "main",
+    "strategy": "trunk-based"
+  }
+}

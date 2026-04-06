@@ -581,7 +581,7 @@ def check_gate_results(expected: Dict[str, str], workdir: str) -> CheckResult:
         if gate is None:
             mismatches.append(f"{gate_name}: missing (expected {expected_status!r})")
         else:
-            actual_status = gate.get("status")
+            actual_status = gate.get("verdict") or gate.get("status")
             if actual_status != expected_status:
                 mismatches.append(
                     f"{gate_name}: {actual_status!r} (expected {expected_status!r})"

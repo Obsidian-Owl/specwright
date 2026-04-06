@@ -1,0 +1,6 @@
+{
+  "id": "sw-debug-known-bug",
+  "description": "TypeScript project with off-by-one bug in array processing. Debug should diagnose and fix.",
+  "setup": { "type": "copy" },
+  "timeout": 120
+}

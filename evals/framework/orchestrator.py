@@ -372,6 +372,7 @@ REQUIRED_FIELDS = {
 
 REGISTERED_PROMPT_TEMPLATES = frozenset({
     "init", "design", "plan", "build", "verify", "ship",
+    "debug", "research", "learn", "pivot", "status", "sync", "guard", "audit",
 })
 
 _LAYER_FIELDS = ("skill", "sequence", "workflow")

@@ -25,7 +25,7 @@ After each gate, update `workflow.json`:
 {
   "gates": {
     "security": {
-      "status": "PASS",
+      "verdict": "PASS",
       "lastRun": "2026-02-10T12:34:56Z",
       "evidence": "{currentWork.workDir}/evidence/security-report.md"
     }
@@ -33,7 +33,7 @@ After each gate, update `workflow.json`:
 }
 ```
 
-**Status values:** `PASS`, `WARN`, `FAIL`, `ERROR`, `SKIP`
+**Verdict values:** `PASS`, `WARN`, `FAIL`, `ERROR`, `SKIP`
 
 `SKIP` — gate was skipped; no evidence file produced.
 
