@@ -49,8 +49,17 @@ Follow TDD strictly. Commit after each completed task.
 Do not ask for confirmation — proceed through all tasks."""
 
 
-def verify() -> str:
-    """Prompt template for /sw-verify."""
+def verify(gate: str = "") -> str:
+    """Prompt template for /sw-verify.
+
+    Args:
+        gate: Optional single gate name to run (e.g. "security"). Empty = all gates.
+    """
+    if gate:
+        return f"""Run /sw-verify --gate={gate}
+
+Run only the {gate} quality gate. Report results.
+Accept all defaults."""
     return """Run /sw-verify.
 
 Run all enabled quality gates. Report results.

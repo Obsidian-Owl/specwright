@@ -1,0 +1,29 @@
+{
+  "version": "2.0",
+  "project": {
+    "name": "semantic-bugs",
+    "type": "node",
+    "languages": ["javascript"],
+    "framework": "express"
+  },
+  "commands": {
+    "build": null,
+    "test": "npx jest"
+  },
+  "git": {
+    "defaultBranch": "main",
+    "strategy": "trunk-based"
+  },
+  "gates": {
+    "semantic": {
+      "enabled": true,
+      "categories": [
+        "error-path-cleanup",
+        "unchecked-errors",
+        "fail-open-handling",
+        "error-data-leakage",
+        "resource-lifecycle"
+      ]
+    }
+  }
+}

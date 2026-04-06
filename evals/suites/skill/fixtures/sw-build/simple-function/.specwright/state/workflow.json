@@ -1,0 +1,17 @@
+{
+  "version": "2.0",
+  "currentWork": {
+    "id": "simple-function",
+    "description": "Implement add function in src/math.ts",
+    "status": "building",
+    "workDir": ".specwright/work/simple-function",
+    "unitId": null,
+    "tasksTotal": 1,
+    "tasksCompleted": [],
+    "currentTask": null,
+    "intensity": "quick"
+  },
+  "gates": {},
+  "lock": null,
+  "lastUpdated": "2026-01-01T00:00:00.000Z"
+}

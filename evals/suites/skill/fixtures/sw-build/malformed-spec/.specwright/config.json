@@ -1,0 +1,23 @@
+{
+  "version": "2.0",
+  "project": {
+    "name": "malformed-spec-test",
+    "type": "node",
+    "languages": ["typescript"],
+    "testRunner": "jest"
+  },
+  "commands": {
+    "build": "npx tsc --noEmit",
+    "test": "npx jest"
+  },
+  "git": {
+    "defaultBranch": "main",
+    "strategy": "trunk-based",
+    "conventionalCommits": true,
+    "branchPrefix": "work/"
+  },
+  "gates": {
+    "build": { "enabled": true },
+    "tests": { "enabled": true }
+  }
+}

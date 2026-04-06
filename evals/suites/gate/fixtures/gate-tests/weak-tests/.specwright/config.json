@@ -1,0 +1,23 @@
+{
+  "version": "2.0",
+  "project": {
+    "name": "weak-tests",
+    "type": "node",
+    "languages": ["javascript"],
+    "testRunner": "jest"
+  },
+  "commands": {
+    "build": null,
+    "test": "npx jest"
+  },
+  "git": {
+    "defaultBranch": "main",
+    "strategy": "trunk-based"
+  },
+  "gates": {
+    "tests": {
+      "enabled": true,
+      "philosophy": "tdd-strict"
+    }
+  }
+}

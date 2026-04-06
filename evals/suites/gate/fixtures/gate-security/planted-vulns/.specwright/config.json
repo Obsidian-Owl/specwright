@@ -1,0 +1,27 @@
+{
+  "version": "2.0",
+  "project": {
+    "name": "planted-vulns",
+    "type": "node",
+    "languages": ["javascript"],
+    "framework": "express",
+    "testRunner": "jest"
+  },
+  "commands": {
+    "build": null,
+    "test": "npx jest"
+  },
+  "git": {
+    "defaultBranch": "main",
+    "strategy": "trunk-based",
+    "conventionalCommits": true
+  },
+  "gates": {
+    "security": {
+      "enabled": true,
+      "scanSecrets": true,
+      "checkInjection": true,
+      "checkDataExposure": true
+    }
+  }
+}

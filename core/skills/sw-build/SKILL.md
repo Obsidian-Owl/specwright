@@ -123,7 +123,7 @@ When `sg` is on PATH: run ast-grep on changed code files per `protocols/repo-map
 After all tasks committed, delegate to `specwright-reviewer` per `protocols/build-quality.md`.
 
 **Inner-loop validation (MEDIUM freedom) — runs after post-build review:**
-If `commands.test:integration` is configured, run the full integration suite (5-minute timeout). On fail, delegate to `specwright-build-fixer` (max 2 attempts, check infrastructure health first). If still failing: interactive — present to user; headless — skip. If unconfigured, skip silently.
+If `commands.test:integration` is configured, run the full integration suite (5-minute timeout). Tests may have already run during the task loop via tier-aware delegation — this is the full-suite catch. On fail, delegate to `specwright-build-fixer` (max 2 attempts, check infrastructure health first). If still failing: interactive — present to user; headless — skip. If unconfigured, skip silently.
 
 **Parallel execution — experimental (MEDIUM freedom):**
 Follow `protocols/parallel-build.md` when all prerequisites met. Sequential if any prerequisite fails.

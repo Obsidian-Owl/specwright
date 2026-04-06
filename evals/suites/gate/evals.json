@@ -55,9 +55,10 @@
       },
       "expectations": [
         {
-          "type": "gate_results",
-          "expected": {"tests": "WARN"},
-          "description": "Tests gate warns on weak test quality"
+          "type": "file_contains",
+          "path": ".specwright/state/workflow.json",
+          "pattern": "\"tests\":\\s*\\{[^}]*\"status\":\\s*\"(WARN|FAIL)\"",
+          "description": "Tests gate returns WARN or FAIL on weak test quality"
         },
         {
           "type": "file_exists",

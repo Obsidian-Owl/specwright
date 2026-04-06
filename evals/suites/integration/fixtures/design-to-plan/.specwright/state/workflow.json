@@ -1,0 +1,17 @@
+{
+  "version": "2.0",
+  "currentWork": {
+    "id": "test-work",
+    "description": "Test feature for integration eval",
+    "status": "designing",
+    "workDir": ".specwright/work/test-work",
+    "unitId": null,
+    "tasksTotal": null,
+    "tasksCompleted": [],
+    "currentTask": null,
+    "intensity": "full"
+  },
+  "gates": {},
+  "lock": null,
+  "lastUpdated": "2026-01-01T00:00:00.000Z"
+}

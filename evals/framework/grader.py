@@ -208,7 +208,11 @@ def check_file_contains(path: str, pattern: str, workdir: str) -> CheckResult:
 
 
 def check_file_not_contains(path: str, pattern: str, workdir: str) -> CheckResult:
-    """Return passed=True when pattern does NOT match file content."""
+    """Return passed=True when pattern does NOT match file content.
+
+    A missing file returns passed=False (not vacuous truth). Pair with
+    a file_exists check if you need to distinguish missing from clean.
+    """
     full_path = os.path.join(workdir, path)
     try:
         with open(full_path, "r") as f:
@@ -671,6 +675,8 @@ def _dispatch_expectation(
             kwargs = {}
             if threshold is not None:
                 kwargs["threshold"] = threshold
+            if target_path == "$TRANSCRIPT" and snapshots is not None:
+                kwargs["transcript"] = snapshots
             return grade_with_model(rubric, target_content, **kwargs)
         except ImportError:
             return CheckResult(

@@ -1,7 +1,11 @@
 # Local development state (dogfooding)
 .specwright/
+!evals/suites/**/fixtures/**/.specwright/
 .claude/
 !.claude/commands/
+
+# Runtime state files
+.orphaned_at
 
 # Build output
 dist/
