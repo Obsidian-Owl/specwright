@@ -63,13 +63,24 @@ Check `currentWork.status` is `designing` or `planning` and `design.md` exists.
 - When decomposing into multiple work units, also write `integration-criteria.md` in
   the design-level directory (`.specwright/work/{currentWork.id}/`). Not generated for
   single-unit work.
-- Each IC must be structurally verifiable — reference specific module paths, export names,
-  or import relationships. Example (valid): "Module `src/routes/index.ts` imports handler
-  from `src/handlers/payment.ts`". Example (invalid): "The payment feature works
+- Two IC types coexist in `integration-criteria.md`: structural (IC-{n}) and behavioral
+  (IC-B{n}). Both types go to the same file.
+- **Structural ICs (IC-{n}):** Each structural IC must be structurally verifiable —
+  reference specific module paths, export names, or import relationships.
+  Example (valid): "Module `src/routes/index.ts` imports handler from
+  `src/handlers/payment.ts`". Example (invalid): "The payment feature works
   end-to-end" (too abstract — use a spec AC instead).
-- Format: `- [ ] IC-{n}: {assertion with file paths or export names}`.
+  Format: `- [ ] IC-{n}: {assertion with file paths or export names}`.
+- **Behavioral ICs (IC-B{n}):** Reference observable outputs — return values, state
+  changes, or emitted events — that are only verifiable when multiple units interact.
+  Example (valid): `- [ ] IC-B1: calling checkout() returns an order ID after the
+  payment and inventory units are both active`.
+  Format: `- [ ] IC-B{n}: {assertion referencing observable outputs}`.
+  spec-review validates IC-B quality: each behavioral IC must name a concrete observable,
+  not restate implementation intent.
 - ICs are derived from the design's integration points and blast radius. They answer:
-  "After all units are built, what structural connections must exist?"
+  "After all units are built, what structural connections must exist, and what observable
+  behaviors must hold?"
 - On re-entry to sw-plan (replanning), overwrite `integration-criteria.md` with freshly
   generated criteria (same behavior as spec.md/plan.md regeneration). If replanning
   reduces from multi-unit to single-unit, delete `integration-criteria.md` if it exists.
@@ -85,6 +96,9 @@ Check `currentWork.status` is `designing` or `planning` and `design.md` exists.
 - Follow `protocols/assumptions.md` late discovery lifecycle. Auto-resolve per Type 1/2
   rules in the assumptions protocol.
 - Ground criteria in design artifacts.
+- For each AC that crosses a boundary classified in TESTING.md, add a `[tier: X]`
+  annotation. Tier classification rules are defined in `protocols/testing-strategy.md`
+  — apply them declaratively; do not reproduce them here.
 
 **Spec per-unit loop (MEDIUM freedom, multi-unit only):**
 For each unit sequentially: create directory, write context.md (self-contained),
@@ -119,6 +133,7 @@ workUnits array, set first unit to `building`, transition to `building`, handoff
 - `protocols/recovery.md` -- compaction recovery
 - `protocols/assumptions.md` -- late assumption capture and autonomous resolution
 - `protocols/spec-review.md` -- spec quality review
+- `protocols/testing-strategy.md` -- tier tagging for ACs crossing TESTING.md boundaries
 
 ## Failure Modes
 
