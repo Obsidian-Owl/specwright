@@ -131,9 +131,9 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 
 | Protocol | Purpose | Words (measured) |
 |----------|---------|-----------------|
-| `stage-boundary.md` | Stage scope, termination, handoff enforcement | ~250 |
+| `stage-boundary.md` | Stage scope, termination, handoff enforcement, blocked operations by state, PreToolUse hook enforcement (Claude Code), evidence integrity for PR bodies | ~350 |
 | `delegation.md` | Agent delegation (custom subagents + agent teams) | ~410 |
-| `state.md` | Workflow state, work unit queue, transition validation (includes shipped → none via sw-learn) | ~670 |
+| `state.md` | Workflow state (7 statuses incl. `shipping`), work unit queue, transition validation (includes shipped → none via sw-learn) | ~700 |
 | `git.md` | Strategy-aware branch lifecycle, commit format, PR creation | ~650 |
 | `recovery.md` | Compaction recovery procedure | ~190 |
 | `evidence.md` | Gate evidence format and storage | ~120 |

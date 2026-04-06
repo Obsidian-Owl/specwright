@@ -398,6 +398,62 @@ fi
 
 echo ""
 
+# ── T5: Session-start hooks and documentation — AC-15, AC-17 ────────────────
+
+echo "=== T5: Session-start hooks and documentation ==="
+
+SESSION_START_MJS="$ROOT_DIR/adapters/claude-code/hooks/session-start.mjs"
+PLUGIN_TS="$ROOT_DIR/adapters/opencode/plugin.ts"
+DESIGN_MD="$ROOT_DIR/DESIGN.md"
+
+# AC-15: session-start.mjs handles shipping status
+if grep -q 'shipping' "$SESSION_START_MJS"; then
+  pass "AC-15a: session-start.mjs handles shipping status"
+else
+  fail "AC-15a: session-start.mjs does not handle shipping status"
+fi
+
+# AC-15: plugin.ts handles shipping status
+if grep -q 'shipping' "$PLUGIN_TS"; then
+  pass "AC-15b: plugin.ts handles shipping status"
+else
+  fail "AC-15b: plugin.ts does not handle shipping status"
+fi
+
+# AC-15: Messages contain both "shipping" and "PR"/"pull request"
+if grep -A3 'shipping' "$SESSION_START_MJS" | grep -qi 'PR\|pull request'; then
+  pass "AC-15c: session-start.mjs shipping message mentions PR"
+else
+  fail "AC-15c: session-start.mjs shipping message doesn't mention PR"
+fi
+
+if grep -A3 'shipping' "$PLUGIN_TS" | grep -qi 'PR\|pull request'; then
+  pass "AC-15d: plugin.ts shipping message mentions PR"
+else
+  fail "AC-15d: plugin.ts shipping message doesn't mention PR"
+fi
+
+# AC-17: DESIGN.md references shipping, PreToolUse, and evidence
+if grep -q 'shipping' "$DESIGN_MD"; then
+  pass "AC-17a: DESIGN.md references shipping state"
+else
+  fail "AC-17a: DESIGN.md does not reference shipping state"
+fi
+
+if grep -qi 'PreToolUse\|pre-tool\|pre-ship-guard' "$DESIGN_MD"; then
+  pass "AC-17b: DESIGN.md references PreToolUse hook"
+else
+  fail "AC-17b: DESIGN.md does not reference PreToolUse hook"
+fi
+
+if grep -qi 'evidence.*integrity\|evidence.*sourc\|evidence.*file' "$DESIGN_MD"; then
+  pass "AC-17c: DESIGN.md references evidence integrity"
+else
+  fail "AC-17c: DESIGN.md does not reference evidence integrity"
+fi
+
+echo ""
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo "=== Results ==="
