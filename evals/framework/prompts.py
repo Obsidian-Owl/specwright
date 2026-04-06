@@ -158,7 +158,9 @@ Accept recommended defaults."""
 def audit(scope: str = "") -> str:
     """Prompt template for /sw-audit."""
     if scope:
-        return f"""Run /sw-audit {scope}
+        return f"""Run /sw-audit.
+
+Scope: {scope}
 
 Analyze the codebase for architectural debt, complexity, consistency,
 and accumulated issues. Produce findings in AUDIT.md."""

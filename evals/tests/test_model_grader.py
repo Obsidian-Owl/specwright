@@ -696,6 +696,21 @@ class TestExtractJson(unittest.TestCase):
         result = _extract_json('[1, 2, 3]')
         self.assertIsNone(result)
 
+    def test_braces_inside_json_strings(self):
+        """Braces inside string values must not break brace matching."""
+        text = 'Result: {"score": 0.8, "evidence": "The {code} looks correct"}'
+        result = _extract_json(text)
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(result["score"], 0.8)
+        self.assertIn("{code}", result["evidence"])
+
+    def test_escaped_quotes_in_json_strings(self):
+        """Escaped quotes inside strings must not break string tracking."""
+        text = r'{"score": 0.9, "evidence": "said \"hello\" to {user}"}'
+        result = _extract_json(text)
+        self.assertIsNotNone(result)
+        self.assertAlmostEqual(result["score"], 0.9)
+
 
 class TestExtractJsonUsedByGrader(unittest.TestCase):
     """grade_with_model uses _extract_json for fenced responses."""

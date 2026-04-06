@@ -40,14 +40,28 @@ def _extract_json(text: str) -> dict | None:
         except (json.JSONDecodeError, ValueError):
             pass
 
-    # Strategy 3: find first JSON object via brace matching
+    # Strategy 3: find first JSON object via string-aware brace matching
     start = text.find('{')
     if start >= 0:
         depth = 0
+        in_string = False
+        escape_next = False
         for i in range(start, len(text)):
-            if text[i] == '{':
+            ch = text[i]
+            if escape_next:
+                escape_next = False
+                continue
+            if ch == '\\' and in_string:
+                escape_next = True
+                continue
+            if ch == '"':
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+            if ch == '{':
                 depth += 1
-            elif text[i] == '}':
+            elif ch == '}':
                 depth -= 1
                 if depth == 0:
                     candidate = text[start:i + 1]

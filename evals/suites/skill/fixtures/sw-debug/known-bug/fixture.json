@@ -2,10 +2,5 @@
   "id": "sw-debug-known-bug",
   "description": "TypeScript project with off-by-one bug in array processing. Debug should diagnose and fix.",
   "setup": { "type": "copy" },
-  "skill": "sw-debug",
-  "prompt_template": "debug",
-  "prompt_args": {
-    "error_output": "Test failure: processor.test.ts\n  FAIL: processes all elements\n    Expected: [2, 4, 6, 8, 10]\n    Received: [2, 4, 6, 8]\n    Last element (5) was not processed."
-  },
   "timeout": 120
 }
