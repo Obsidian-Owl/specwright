@@ -6,7 +6,10 @@ AC-12: design() accepts problem_statement, plan() and build() accept no args
 
 import unittest
 
-from evals.framework.prompts import init, design, plan, build, verify, ship
+from evals.framework.prompts import (
+    init, design, plan, build, verify, ship,
+    debug, research, learn, pivot, status, sync, guard, audit,
+)
 
 
 class TestPromptTemplatesReturnStrings(unittest.TestCase):
@@ -106,6 +109,58 @@ class TestPromptTemplatesContainPreScriptedDecisions(unittest.TestCase):
             "tdd" in lower or "test" in lower or "implement" in lower or "spec" in lower,
             "Build template should reference implementation approach"
         )
+
+
+class TestNewPromptTemplates(unittest.TestCase):
+    """New templates return non-empty strings with default args."""
+
+    def test_debug_returns_string(self):
+        self.assertIsInstance(debug(), str)
+        self.assertTrue(len(debug()) > 0)
+
+    def test_debug_with_error_output(self):
+        result = debug(error_output="TypeError: undefined is not a function")
+        self.assertIn("TypeError", result)
+
+    def test_research_returns_string(self):
+        self.assertIsInstance(research(), str)
+        self.assertTrue(len(research()) > 0)
+
+    def test_research_with_topic(self):
+        result = research(topic="GraphQL pagination patterns")
+        self.assertIn("GraphQL", result)
+
+    def test_learn_returns_string(self):
+        self.assertIsInstance(learn(), str)
+        self.assertTrue(len(learn()) > 0)
+
+    def test_pivot_returns_string(self):
+        self.assertIsInstance(pivot(), str)
+        self.assertTrue(len(pivot()) > 0)
+
+    def test_pivot_with_change(self):
+        result = pivot(change_description="Switch from REST to GraphQL")
+        self.assertIn("GraphQL", result)
+
+    def test_status_returns_string(self):
+        self.assertIsInstance(status(), str)
+        self.assertTrue(len(status()) > 0)
+
+    def test_sync_returns_string(self):
+        self.assertIsInstance(sync(), str)
+        self.assertTrue(len(sync()) > 0)
+
+    def test_guard_returns_string(self):
+        self.assertIsInstance(guard(), str)
+        self.assertTrue(len(guard()) > 0)
+
+    def test_audit_returns_string(self):
+        self.assertIsInstance(audit(), str)
+        self.assertTrue(len(audit()) > 0)
+
+    def test_audit_with_scope(self):
+        result = audit(scope="src/handlers/")
+        self.assertIn("src/handlers/", result)
 
 
 if __name__ == "__main__":

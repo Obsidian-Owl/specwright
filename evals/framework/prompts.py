@@ -72,3 +72,97 @@ def ship() -> str:
 
 Create a PR with evidence-mapped body. Use the default branch strategy.
 Do not ask for confirmation — proceed with shipping."""
+
+
+def debug(error_output: str = "") -> str:
+    """Prompt template for /sw-debug."""
+    if error_output:
+        return f"""Run /sw-debug.
+
+Investigate and diagnose the root cause of this error. Apply a fix.
+Do not ask clarifying questions — proceed with investigation.
+
+Error output:
+{error_output}"""
+    return """Run /sw-debug.
+
+Investigate the failing tests or reported error in this project.
+Diagnose the root cause and apply a fix.
+Do not ask clarifying questions — proceed with investigation."""
+
+
+def research(topic: str = "") -> str:
+    """Prompt template for /sw-research."""
+    if topic:
+        return f"""Run /sw-research.
+
+Research this topic and produce a validated research brief.
+Do not ask clarifying questions.
+
+Topic: {topic}"""
+    return """Run /sw-research.
+
+Research the topic described in the project context.
+Produce a validated research brief."""
+
+
+def learn() -> str:
+    """Prompt template for /sw-learn."""
+    return """Run /sw-learn.
+
+Capture patterns and learnings from the current work unit.
+Review build failures, gate findings, and architecture decisions.
+Apply objective promotion criteria autonomously."""
+
+
+def pivot(change_description: str = "") -> str:
+    """Prompt template for /sw-pivot."""
+    if change_description:
+        return f"""Run /sw-pivot.
+
+Apply this mid-build course correction. Revise remaining tasks.
+Do not ask for confirmation.
+
+Change: {change_description}"""
+    return """Run /sw-pivot.
+
+Review the current build state and apply course corrections
+based on the most recent feedback or change request."""
+
+
+def status() -> str:
+    """Prompt template for /sw-status."""
+    return """Run /sw-status.
+
+Show current Specwright state — active work unit, task progress,
+gate results, and lock status."""
+
+
+def sync() -> str:
+    """Prompt template for /sw-sync."""
+    return """Run /sw-sync.
+
+Fetch all remotes, sync the base branch, and identify stale local branches.
+Do not delete any branches without confirmation."""
+
+
+def guard() -> str:
+    """Prompt template for /sw-guard."""
+    return """Run /sw-guard.
+
+Detect the project stack and existing guardrails.
+Configure quality checks across session, commit, push, and CI layers.
+Accept recommended defaults."""
+
+
+def audit(scope: str = "") -> str:
+    """Prompt template for /sw-audit."""
+    if scope:
+        return f"""Run /sw-audit {scope}
+
+Analyze the codebase for architectural debt, complexity, consistency,
+and accumulated issues. Produce findings in AUDIT.md."""
+    return """Run /sw-audit.
+
+Analyze the full codebase for architectural debt, complexity,
+consistency, and accumulated issues. Produce findings in AUDIT.md."""
