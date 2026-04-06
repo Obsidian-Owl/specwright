@@ -1,11 +1,65 @@
 """Eval framework model grader — grade eval outputs using claude as a judge."""
 
 import json
+import re
 import subprocess
 
 from evals.framework.grader import CheckResult
 
 _PASS_THRESHOLD = 0.7
+
+
+def _extract_json(text: str) -> dict | None:
+    """Extract a JSON object from text that may contain fences, preamble, or trailing content.
+
+    Tries three strategies in order:
+    1. Direct parse (text is valid JSON)
+    2. Strip markdown code fences and parse
+    3. Regex-extract the first {...} block and parse
+
+    Returns the parsed dict, or None if no valid JSON object found.
+    """
+    text = text.strip()
+
+    # Strategy 1: direct parse
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict):
+            return data
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # Strategy 2: strip markdown fences
+    stripped = re.sub(r'^```(?:json)?\s*\n?', '', text)
+    stripped = re.sub(r'\n?```\s*$', '', stripped).strip()
+    if stripped != text:
+        try:
+            data = json.loads(stripped)
+            if isinstance(data, dict):
+                return data
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    # Strategy 3: find first JSON object via brace matching
+    start = text.find('{')
+    if start >= 0:
+        depth = 0
+        for i in range(start, len(text)):
+            if text[i] == '{':
+                depth += 1
+            elif text[i] == '}':
+                depth -= 1
+                if depth == 0:
+                    candidate = text[start:i + 1]
+                    try:
+                        data = json.loads(candidate)
+                        if isinstance(data, dict):
+                            return data
+                    except (json.JSONDecodeError, ValueError):
+                        pass
+                    break
+
+    return None
 
 
 def _extract_assistant_text(raw_stdout: str) -> str | None:
@@ -67,7 +121,7 @@ def grade_with_model(rubric: str, target_content: str, transcript=None, threshol
     cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose", "--max-turns", "1"]
 
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     except subprocess.TimeoutExpired as exc:
         return CheckResult(
             type="model_grade",
@@ -108,10 +162,17 @@ def grade_with_model(rubric: str, target_content: str, transcript=None, threshol
             score=0.0,
         )
 
+    data = _extract_json(assistant_text)
+    if data is None:
+        return CheckResult(
+            type="model_grade",
+            description="Model grade",
+            passed=False,
+            evidence=f"Model grader returned unparseable response: {assistant_text[:500]}",
+            score=0.0,
+        )
+
     try:
-        data = json.loads(assistant_text)
-        if not isinstance(data, dict):
-            raise ValueError("not a dict")
         if "score" not in data or "evidence" not in data:
             raise ValueError("missing required fields")
         score = data["score"]
@@ -119,7 +180,7 @@ def grade_with_model(rubric: str, target_content: str, transcript=None, threshol
             raise ValueError("score is not a number")
         score = float(score)
         evidence = data["evidence"]
-    except (json.JSONDecodeError, ValueError, KeyError):
+    except (ValueError, KeyError):
         return CheckResult(
             type="model_grade",
             description="Model grade",

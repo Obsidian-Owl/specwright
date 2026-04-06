@@ -1022,6 +1022,48 @@ class TestCheckGateResultsBoundary(unittest.TestCase):
 
 
 # ===========================================================================
+# verdict/status compatibility
+# ===========================================================================
+
+class TestGateResultsVerdictStatus(unittest.TestCase):
+    """check_gate_results reads verdict field with status fallback."""
+
+    def setUp(self):
+        self.workdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.workdir, ignore_errors=True)
+
+    def test_reads_verdict_field(self):
+        _make_workflow_json(self.workdir, {
+            "gates": {"security": {"verdict": "FAIL"}},
+        })
+        result = check_gate_results({"security": "FAIL"}, self.workdir)
+        self.assertTrue(result.passed)
+
+    def test_falls_back_to_status_field(self):
+        _make_workflow_json(self.workdir, {
+            "gates": {"security": {"status": "PASS"}},
+        })
+        result = check_gate_results({"security": "PASS"}, self.workdir)
+        self.assertTrue(result.passed)
+
+    def test_verdict_takes_precedence_over_status(self):
+        _make_workflow_json(self.workdir, {
+            "gates": {"security": {"verdict": "FAIL", "status": "PASS"}},
+        })
+        result = check_gate_results({"security": "FAIL"}, self.workdir)
+        self.assertTrue(result.passed)
+
+    def test_verdict_mismatch_fails(self):
+        _make_workflow_json(self.workdir, {
+            "gates": {"security": {"verdict": "WARN"}},
+        })
+        result = check_gate_results({"security": "FAIL"}, self.workdir)
+        self.assertFalse(result.passed)
+
+
+# ===========================================================================
 # AC-22: grade_eval
 # ===========================================================================
 
