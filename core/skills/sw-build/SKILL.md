@@ -114,40 +114,25 @@ Follow `protocols/delegation.md` for context handoff format. Additionally includ
   not a build-fixer scenario.
 
 **Mid-build checks (MEDIUM freedom):**
-- Follow `protocols/assumptions.md` late discovery lifecycle at build start and after each task commit.
-- Follow `protocols/build-quality.md` for discovered behaviors capture after each task.
+Follow `protocols/assumptions.md` for late discoveries and `protocols/build-quality.md` for behavior capture, at build start and after each task.
 
 **Per-task micro-check (MEDIUM freedom) — after each task commit:**
-- Identify changed code files via `git diff --name-only HEAD~1`. Skip if command fails or no code files changed.
-- When `sg` is on PATH: run ast-grep extraction per `protocols/repo-map.md` kind rules; feed structural facts to a single LLM prompt checking for error-path issues. Append findings to `{currentWork.workDir}/feedback-log.md` and include in status card as warning lines. Micro-check is non-blocking.
-- When `sg` is not on PATH: skip entirely.
+When `sg` is on PATH: run ast-grep on changed code files per `protocols/repo-map.md`, check for error-path issues, append to `{currentWork.workDir}/feedback-log.md`. Non-blocking. Skip if `sg` absent or no code files changed.
 
 **Post-build review (MEDIUM freedom):**
-- After all tasks committed, delegate review to `specwright-reviewer`.
-- Follow `protocols/build-quality.md` for trigger, depth calibration, delegation details, and findings triage.
+After all tasks committed, delegate to `specwright-reviewer` per `protocols/build-quality.md`.
 
 **Inner-loop validation (MEDIUM freedom) — runs after post-build review:**
-If `commands.test:integration` is configured, run the full integration suite (5-minute timeout).
-Integration tests may have already run during the task loop via tier-aware delegation to
-specwright-integration-tester; the inner-loop runs the full configured suite. On fail,
-delegate to `specwright-build-fixer` (max 2 attempts, check infrastructure health first).
-If still failing: interactive — present to user; headless — skip and record in headless-result.json.
-If unconfigured, skip silently.
+If `commands.test:integration` is configured, run the full integration suite (5-minute timeout). On fail, delegate to `specwright-build-fixer` (max 2 attempts, check infrastructure health first). If still failing: interactive — present to user; headless — skip. If unconfigured, skip silently.
 
 **Parallel execution — experimental (MEDIUM freedom):**
-- Follow `protocols/parallel-build.md` when all prerequisites are met:
-  `config.experimental.agentTeams.enabled`, `SPECWRIGHT_AGENT_TEAMS` env var, 4+ tasks.
-- If any prerequisite fails: execute tasks sequentially (normal behavior). No error.
-- Do NOT start implementing tasks yourself while teammates are working.
+Follow `protocols/parallel-build.md` when all prerequisites met. Sequential if any prerequisite fails.
 
 **As-built notes (LOW freedom):**
-- After all tasks committed, append `## As-Built Notes` to `{currentWork.workDir}/plan.md`: plan deviations, implementation decisions, actual file paths. spec.md stays untouched.
-- Follow `protocols/build-quality.md` for content scope.
+After all tasks, append `## As-Built Notes` to `{currentWork.workDir}/plan.md`: deviations, decisions, actual paths. Follow `protocols/build-quality.md` for scope.
 
 **State updates (LOW freedom):**
-- Follow `protocols/state.md` for all workflow.json mutations.
-- Acquire lock before starting. Release after each task commit.
-- Update `tasksCompleted` array after each successful task.
+Follow `protocols/state.md`. Acquire lock before starting, release after each task commit. Update `tasksCompleted` after each successful task.
 
 **Context management (MEDIUM freedom):**
 - Follow `protocols/build-context.md` for continuation snapshots, status cards, and context nudge.

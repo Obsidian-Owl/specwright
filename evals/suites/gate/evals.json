@@ -14,6 +14,11 @@
       },
       "expectations": [
         {
+          "type": "gate_results",
+          "expected": {"security": "FAIL"},
+          "description": "Security gate fails on planted vulnerabilities"
+        },
+        {
           "type": "file_exists",
           "path": ".specwright/work/test-work/evidence/security-report.md",
           "description": "Security gate evidence file produced"
@@ -50,6 +55,11 @@
       },
       "expectations": [
         {
+          "type": "gate_results",
+          "expected": {"tests": "WARN"},
+          "description": "Tests gate warns on weak test quality"
+        },
+        {
           "type": "file_exists",
           "path": ".specwright/work/test-work/evidence/tests-report.md",
           "description": "Tests gate evidence file produced"
@@ -73,6 +83,11 @@
         "path": "suites/gate/fixtures/gate-semantic/semantic-bugs"
       },
       "expectations": [
+        {
+          "type": "gate_results",
+          "expected": {"semantic": "WARN"},
+          "description": "Semantic gate warns on planted bugs"
+        },
         {
           "type": "file_exists",
           "path": ".specwright/work/test-work/evidence/semantic-report.md",
