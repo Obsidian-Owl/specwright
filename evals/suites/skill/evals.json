@@ -40,6 +40,20 @@
           "rubric": "Tests assert behavior (input/output), not implementation details. At least one edge case (negative numbers or zero) is tested.",
           "target": "src/math.test.ts",
           "description": "Test quality meets constitution standards"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The tester agent's test suite includes boundary condition tests (zero, negative numbers, large numbers) and at least one assertion designed to catch a hardcoded return value. Tests assert on specific expected values, not truthiness checks like toBeDefined(). Score 0.8+ if boundary tests and anti-hardcode test present, 0.5-0.7 if only basic assertions, below 0.5 if tests are weak.",
+          "target": "$TRANSCRIPT",
+          "threshold": 0.6,
+          "description": "Subagent quality: tester adversarial test design"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The executor agent's implementation is minimal — it solves the spec requirements without unnecessary abstractions, unused parameters, or speculative features. Error handling matches what the spec requires, nothing more. The code follows the project's TypeScript conventions. Score 0.8+ if implementation is minimal and correct, 0.5-0.7 if correct but includes unnecessary code, below 0.5 if incorrect or significantly over-engineered.",
+          "target": "$TRANSCRIPT",
+          "threshold": 0.6,
+          "description": "Subagent quality: executor implementation discipline"
         }
       ],
       "tags": ["skill", "sw-build", "typescript", "simple"]
@@ -214,6 +228,43 @@
         }
       ],
       "tags": ["skill", "sw-audit", "architectural-debt", "planted-issues"]
+    },
+    {
+      "id": "sw-build-rate-limiter",
+      "skill": "sw-build",
+      "prompt_template": "build",
+      "prompt_args": {},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/skill/fixtures/sw-build/rate-limiter"
+      },
+      "expectations": [
+        {
+          "type": "file_exists",
+          "path": "src/rate-limiter.ts",
+          "description": "Rate limiter implementation file created"
+        },
+        {
+          "type": "tests_pass",
+          "command": "npx vitest run",
+          "description": "All tests pass after implementation"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The tester agent wrote tests that include: (1) boundary conditions — consuming exactly capacity tokens, consuming 0 available tokens, refill to exactly capacity (never exceeds). (2) Error path tests — negative capacity config, zero tokens consume attempt. (3) At least one test designed to catch a hardcoded implementation — e.g., testing multiple different consume amounts or verifying token count changes after consume. Score 0.8+ if all 3 present, 0.5-0.7 if 2 of 3, below 0.5 if only happy path.",
+          "target": "$TRANSCRIPT",
+          "threshold": 0.6,
+          "description": "Subagent quality: tester adversarial test coverage"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The executor agent's rate limiter implementation: (1) uses no external dependencies beyond the TypeScript standard library, (2) correctly handles the refill-over-time logic without race conditions in the calculation, (3) does not include features beyond what the spec requires (no HTTP middleware, no Redis integration, no async patterns unless spec demands them). Score 0.8+ if minimal and correct, 0.5-0.7 if correct but over-engineered, below 0.5 if incorrect or missing spec requirements.",
+          "target": "$TRANSCRIPT",
+          "threshold": 0.6,
+          "description": "Subagent quality: executor implementation discipline"
+        }
+      ],
+      "tags": ["skill", "sw-build", "rate-limiter", "subagent-quality", "non-trivial"]
     }
   ]
 }
