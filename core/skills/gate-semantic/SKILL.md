@@ -65,7 +65,7 @@ Extract structural facts using highest available tier's tool. Feed facts
 | resource-lifecycle | 2+ | Is any acquired resource not released on all exit paths? |
 
 Categories requiring an unavailable tier are skipped with an INFO note.
-No overlap with gate-security.
+Sole owner of CWE-636 and CWE-209 analysis (transferred from gate-security to avoid duplicate findings).
 
 **Verdict (LOW freedom):**
 Per `protocols/gate-verdict.md`. All findings WARN by default.

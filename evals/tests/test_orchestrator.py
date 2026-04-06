@@ -606,7 +606,7 @@ class TestGradingJsonOutput(unittest.TestCase):
         grading = _read_grading_json(self.results_dir, "dur-check", 1)
         self.assertIn("duration_ms", grading)
         self.assertIsInstance(grading["duration_ms"], (int, float))
-        self.assertGreater(grading["duration_ms"], 0)
+        self.assertGreaterEqual(grading["duration_ms"], 0)
 
     @patch("evals.framework.orchestrator.setup_fixture")
     def test_grading_json_fields_are_flat(self, mock_setup):

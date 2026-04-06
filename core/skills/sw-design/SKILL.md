@@ -90,18 +90,11 @@ NEVER write specs, decompose, implement, branch, or test. After gate handoff, ST
 - The user reviews and approves before `/sw-plan` begins.
 
 **State mutations (LOW freedom):**
-- Follow `protocols/state.md`. If `currentWork` exists with status `abandoned`, clear it to
-  null first (transition `abandoned` → `(none)`); also reset `workUnits` to null to prevent
-  stale multi-unit data from triggering cross-unit checks on subsequent work. Then proceed
-  with new work creation.
-- Set `currentWork.status` to `designing`. Create work directory.
-- Set `currentWork.baselineCommit` to `git rev-parse origin/{config.git.baseBranch}`
-  (default `origin/main` if `baseBranch` is not configured). This captures the base branch
-  HEAD before any work begins — used by gate-wiring for cross-unit integration verification.
-- If `currentWork.baselineCommit` is already set (change request re-entry), do NOT overwrite.
-  The baseline represents the original starting point of the design.
-- Also write `baselineCommit: {sha}` to `{workDir}/context.md` for historical reference.
-  This persists after sw-learn clears `currentWork`.
+Follow `protocols/state.md` for read-modify-write mechanics. Postconditions:
+- If prior `currentWork` has status `abandoned`: cleared to null, `workUnits` reset to null (prevents stale multi-unit data from triggering cross-unit checks).
+- `currentWork.status` is `designing`. Work directory created at `.specwright/work/{id}/`.
+- `currentWork.baselineCommit` is the SHA of `origin/{config.git.baseBranch}` (default `origin/main`). Captures base branch HEAD before any work begins — used by gate-wiring for cross-unit verification. Never overwritten on re-entry (change request).
+- `baselineCommit` also written to `{workDir}/context.md` for historical reference (persists after sw-learn clears currentWork).
 
 ## Protocol References
 

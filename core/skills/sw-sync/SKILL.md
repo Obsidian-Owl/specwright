@@ -94,7 +94,7 @@ read-only utility: it never modifies workflow state.
 - After the base branch pull, switch back to the original branch so the user
   is returned to where they started.
 
-**No state mutation (STRICT):**
+**No state mutation (LOW freedom):**
 - This skill is read-only with respect to Specwright state. It never writes
   to workflow.json or any other `.specwright/` state file. No state changes.
 - No exclusive ownership of state is taken. No workflow transition is triggered.

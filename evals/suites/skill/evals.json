@@ -135,6 +135,32 @@
         }
       ],
       "tags": ["skill", "sw-verify", "gate-semantic", "semantic-analysis"]
+    },
+    {
+      "id": "sw-build-malformed-spec",
+      "layer": "skill",
+      "skill": "sw-build",
+      "prompt_template": "build",
+      "prompt_args": {},
+      "expected_behavior": "refuse_or_warn",
+      "seed": {
+        "type": "fixture",
+        "path": "suites/skill/fixtures/sw-build/malformed-spec"
+      },
+      "expectations": [
+        {
+          "type": "file_not_exists",
+          "path": "src/auth.ts",
+          "description": "Build should NOT produce implementation files from a spec with no ACs"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The build output indicates that the spec is deficient — missing acceptance criteria, unable to proceed, or similar. The build should NOT silently produce implementation code. Score 0.8+ if explicitly mentions missing/absent acceptance criteria. Score 0.5-0.7 if mentions spec is incomplete. Below 0.5 if silently proceeds.",
+          "target": "$TRANSCRIPT",
+          "description": "Build recognizes the spec deficiency"
+        }
+      ],
+      "tags": ["skill", "sw-build", "negative", "malformed-spec"]
     }
   ]
 }

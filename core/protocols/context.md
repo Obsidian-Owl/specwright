@@ -137,7 +137,7 @@ if (!config.version) {
 **Before work-unit operations:**
 
 ```javascript
-if (!state.currentWorkUnit && requiresWorkUnit) {
+if (!state.currentWork && requiresWorkUnit) {
   error("Run /sw-design first.");
 }
 ```

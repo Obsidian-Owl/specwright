@@ -55,14 +55,8 @@ After all tasks:
 Follow `protocols/stage-boundary.md`. This skill implements one work unit via TDD. Handoff to `/sw-verify`.
 
 **Branch setup (LOW freedom) — FIRST action before any coding:**
-- Read `config.json` `git` section. Follow `protocols/git.md` branch lifecycle.
-- Determine branch name:
-  - If `currentWork.unitId` is set (multi-unit): `{git.branchPrefix}{currentWork.unitId}`
-  - If `currentWork.unitId` is null (single-unit): `{git.branchPrefix}{currentWork.id}`
-- If `git.branchPerWorkUnit` is true (default):
-  - Check if the determined branch already exists (recovery case).
-  - If exists: `git checkout {branch}`. Pull latest if remote tracking exists.
-  - If not: checkout `git.baseBranch`, pull latest, create branch.
+Postcondition: A feature branch is checked out, synced with the base branch per `protocols/git.md` branch lifecycle.
+- Branch name: `{git.branchPrefix}{currentWork.unitId}` (multi-unit) or `{git.branchPrefix}{currentWork.id}` (single-unit).
 - If `git.branchPerWorkUnit` is false: stay on current branch.
 - All task commits happen on the feature branch. NEVER commit to baseBranch.
 
@@ -82,39 +76,22 @@ The sequence is strict: RED → GREEN → INTEGRATION → REGRESSION CHECK → R
 2. **GREEN**: Delegate to `specwright-executor` with the failing tests, context.md,
    plan.md, and constitution. The executor writes minimal code to pass. Run
    build + tests to confirm they pass.
-3. **INTEGRATION**: After GREEN, check the task's ACs for tier tags. If any AC has
-   `[tier: integration]`, `[tier: contract]`, or `[tier: e2e]`, delegate those
-   non-unit ACs to `specwright-integration-tester`. Include in the delegation
-   prompt: repo map content (same as RED/GREEN), the non-unit ACs and their tier
-   tags, relevant file paths, config.json languages field, language patterns from
-   `core/skills/lang-building/{language}.md` (same detection rule as context
-   envelope: `project.languages[0]` with file-extension override), and a reference to
-   TESTING.md for boundary context. If integration tests fail, delegate to
-   `specwright-build-fixer` (max 2 attempts) —
-   the fixer should check infrastructure health before assuming code is wrong. If
-   still failing: interactive — present to user; headless — abort per headless
-   protocol. If no non-unit ACs exist for this task, skip this step entirely —
-   zero additional overhead for tasks with no non-unit tier tags.
+3. **INTEGRATION**: After GREEN, check ACs for tier tags. If any AC has `[tier: integration]`,
+   `[tier: contract]`, or `[tier: e2e]`, delegate those non-unit ACs to
+   `specwright-integration-tester` (use same context envelope plus TESTING.md for boundary
+   context). On failure, delegate to `specwright-build-fixer` (max 2 attempts — check
+   infrastructure health before assuming code is wrong). If still failing: interactive —
+   present to user; headless — abort. If no non-unit ACs exist, skip this step (zero
+   additional overhead).
 4. **REGRESSION CHECK**: Run the project's configured test commands (`commands.test`
    and `commands.test:integration` if configured) to confirm nothing regressed —
    both unit and integration tests must pass before proceeding.
 5. **REFACTOR**: Executor may refactor code written in THIS task only. Tests must still pass. No adjacent code cleanup.
 
 **Context envelope (LOW freedom):**
-When delegating, include in the prompt (in this order):
-- **Repo map content** at the TOP (read from `{currentWork.workDir}/repo-map.md`; skip if absent)
-- The specific task and its acceptance criteria
-- Relevant sections of design.md, plan.md, and context.md
-- File paths the agent needs to read or modify
-- The constitution's relevant practices
-- **Language patterns** from `core/skills/lang-building/{language}.md` if available for
-  the project's primary language (per `config.json` `project.languages[0]`). When the
-  current task modifies files in a different language, load the matching language file
-  instead (detected from file extensions). If no matching language file exists, skip
-  silently. Language patterns provide idiomatic implementation guidance — the agent
-  adapts to the project's conventions but these patterns set a quality baseline.
-- Build and test commands from config.json
-- Behavioral reminder: surface confusion, prefer simplicity, touch only task files
+Follow `protocols/delegation.md` for context handoff format. Additionally include:
+- **Repo map content** at the TOP (from `{currentWork.workDir}/repo-map.md`; skip if absent)
+- **Language patterns** from `core/skills/lang-building/{language}.md` if available (per `config.json` `project.languages[0]`, with file-extension override for cross-language tasks)
 - For each AC, include one test whose purpose is to find the condition under which this criterion fails silently
 - Build agents MAY read parent `.specwright/work/{currentWork.id}/context.md` as a fallback
 
@@ -137,45 +114,25 @@ When delegating, include in the prompt (in this order):
   not a build-fixer scenario.
 
 **Mid-build checks (MEDIUM freedom):**
-- Follow `protocols/assumptions.md` late discovery lifecycle at build start and after each task commit.
-- Follow `protocols/build-quality.md` for discovered behaviors capture after each task.
+Follow `protocols/assumptions.md` for late discoveries and `protocols/build-quality.md` for behavior capture, at build start and after each task.
 
 **Per-task micro-check (MEDIUM freedom) — after each task commit:**
-- Identify changed code files via `git diff --name-only HEAD~1`. Skip if command fails or no code files changed.
-- When `sg` is on PATH: run ast-grep extraction per `protocols/repo-map.md` kind rules; feed structural facts to a single LLM prompt checking for error-path issues. Append findings to `{currentWork.workDir}/feedback-log.md` and include in status card as warning lines. Micro-check is non-blocking.
-- When `sg` is not on PATH: skip entirely.
+When `sg` is on PATH: run ast-grep on changed code files per `protocols/repo-map.md`, check for error-path issues, append to `{currentWork.workDir}/feedback-log.md`. Non-blocking. Skip if `sg` absent or no code files changed.
 
 **Post-build review (MEDIUM freedom):**
-- After all tasks committed, delegate review to `specwright-reviewer`.
-- Follow `protocols/build-quality.md` for trigger, depth calibration, delegation details, and findings triage.
+After all tasks committed, delegate to `specwright-reviewer` per `protocols/build-quality.md`.
 
 **Inner-loop validation (MEDIUM freedom) — runs after post-build review:**
-If `commands.test:integration` is configured, run it (5-minute timeout). On pass, note
-in status card. On fail, delegate to `specwright-build-fixer` (max 2 attempts) — the
-fixer should check infrastructure health before assuming code is wrong. If still failing
-after 2 attempts: interactive — present to user (including abort); headless — skip and
-record in headless-result.json. If unconfigured, skip silently. Note: integration tests
-may have already run during the task loop via tier-aware delegation to
-specwright-integration-tester. The inner-loop validation runs the project's full
-configured integration suite, which may include tests beyond those written for this WU.
-Verify re-runs integration tests via gate-build; the inner-loop catch is earlier, when
-fixer context is fresh.
+If `commands.test:integration` is configured, run the full integration suite (5-minute timeout). Tests may have already run during the task loop via tier-aware delegation — this is the full-suite catch. On fail, delegate to `specwright-build-fixer` (max 2 attempts, check infrastructure health first). If still failing: interactive — present to user; headless — skip. If unconfigured, skip silently.
 
 **Parallel execution — experimental (MEDIUM freedom):**
-- Follow `protocols/parallel-build.md` when all prerequisites are met:
-  `config.experimental.agentTeams.enabled`, `SPECWRIGHT_AGENT_TEAMS` env var, 4+ tasks.
-- If any prerequisite fails: execute tasks sequentially (normal behavior). No error.
-- Do NOT start implementing tasks yourself while teammates are working.
+Follow `protocols/parallel-build.md` when all prerequisites met. Sequential if any prerequisite fails.
 
 **As-built notes (LOW freedom):**
-- After all tasks committed (and after post-build review), append `## As-Built Notes` to `{currentWork.workDir}/plan.md`: plan deviations, implementation decisions, actual file paths.
-- spec.md stays untouched. gate-spec does NOT consume as-built notes. Primary consumer: sw-learn.
-- Follow `protocols/build-quality.md` for content scope.
+After all tasks, append `## As-Built Notes` to `{currentWork.workDir}/plan.md`: deviations, decisions, actual paths. Follow `protocols/build-quality.md` for scope.
 
 **State updates (LOW freedom):**
-- Follow `protocols/state.md` for all workflow.json mutations.
-- Acquire lock before starting. Release after each task commit.
-- Update `tasksCompleted` array after each successful task.
+Follow `protocols/state.md`. Acquire lock before starting, release after each task commit. Update `tasksCompleted` after each successful task.
 
 **Context management (MEDIUM freedom):**
 - Follow `protocols/build-context.md` for continuation snapshots, status cards, and context nudge.

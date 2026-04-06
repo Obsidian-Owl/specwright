@@ -142,6 +142,6 @@ workUnits array, set first unit to `building`, transition to `building`, handoff
 | Status not `designing`/`planning` | STOP: "Run /sw-design first" |
 | Required artifact missing | STOP: "Run /sw-design first" |
 | Design too vague for specs | Apply DISAMBIGUATION from design context. Record interpretation. Surface at gate if undetermined. |
-| Active work in progress | Apply DISAMBIGUATION: argument provided → start new. No argument → continue. Record. |
+| Active work in progress | Continue planning the current work. sw-plan always operates on existing design artifacts — it has no "start new" path. |
 | Compaction during planning | Read workflow.json. Skip `planned` units, resume first `pending`. |
 | Decomposition revision needed | `/sw-status --reset` and re-run `/sw-plan`. |

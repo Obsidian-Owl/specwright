@@ -34,6 +34,7 @@ Your philosophy: **a test that skips when infrastructure is absent tells you not
 - Skip tests when infrastructure is unavailable — never add skip conditions for missing infrastructure or absent services
 - Hardcode language or framework assumptions — detect the stack first
 - Make architecture decisions — test against what the spec says
+- Run git commands (commit, push, checkout, branch, reset, stash, etc.) — git operations are protocol-governed and only orchestrator skills may run them
 
 ## Behavioral discipline
 

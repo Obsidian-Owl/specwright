@@ -52,11 +52,10 @@ judgment for analysis that tools can't do.
 - Findings are WARN unless clearly exploitable (then BLOCK).
 
 **Phase 3 — Logical security (HIGH freedom, WARN severity):**
-- Fail-open error handling (CWE-636): catch/except blocks that swallow errors on auth/security paths without re-raising or returning an error.
-- Error data leakage (CWE-209): error responses including raw error messages, stack traces, file paths, SQL, or internal IDs in user-facing output.
 - Missing authentication (CWE-306): mutation-capable handler functions (HTTP routes, gRPC handlers, GraphQL resolvers) performing state-changing operations without any visible auth check. Only flag when auth is completely absent. Skip if no mutation-capable handler patterns detected in changed files.
+- For code-level error handling analysis (CWE-636, CWE-209), defer to gate-semantic which owns those categories with tiered tooling.
 - All Phase 3 findings are WARN. Never BLOCK.
-- Phase 3 focuses on logical control-flow and output leakage; defer to Phase 2 when a finding is already captured as an injection pattern.
+- Phase 3 focuses on logical control-flow; defer to Phase 2 when a finding is already captured as an injection pattern.
 
 **Verdict (LOW freedom):**
 - Follow `protocols/gate-verdict.md`.

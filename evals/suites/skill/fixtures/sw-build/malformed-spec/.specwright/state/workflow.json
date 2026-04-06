@@ -1,0 +1,11 @@
+{
+  "version": "2.0",
+  "currentWork": {
+    "id": "test-work",
+    "status": "building",
+    "workDir": ".specwright/work/test-work"
+  },
+  "gates": {},
+  "workUnits": null,
+  "lock": null
+}

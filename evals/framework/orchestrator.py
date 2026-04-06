@@ -80,20 +80,23 @@ def _resolve_prompts_layer2(eval_case: Dict) -> Dict[str, str]:
     """Build a dict of skill -> prompt string for a Layer 2/3 eval case."""
     skills = eval_case.get("sequence") or eval_case.get("workflow") or []
     prompt_args = eval_case.get("prompt_args", {})
-    problem_statement = prompt_args.get("problem_statement")
 
     prompts_dict = {}
-    for i, skill_name in enumerate(skills):
+    for skill_name in skills:
         template_name = _skill_to_template_name(skill_name)
         template_fn = getattr(prompts, template_name, None)
         if template_fn is None:
             raise ValueError(f"Unknown prompt template: '{template_name}' for skill '{skill_name}'")
 
-        # Pass problem_statement to the first skill if it is the design skill
-        if i == 0 and problem_statement is not None and template_name == "design":
-            prompts_dict[skill_name] = template_fn(problem_statement=problem_statement)
-        else:
-            prompts_dict[skill_name] = template_fn()
+        # Pass matching prompt_args to each template. Templates accept
+        # only known kwargs with defaults, so filter to params they accept.
+        import inspect
+        sig = inspect.signature(template_fn)
+        filtered_args = {
+            k: v for k, v in prompt_args.items()
+            if k in sig.parameters
+        }
+        prompts_dict[skill_name] = template_fn(**filtered_args)
 
     return prompts_dict
 
@@ -343,6 +346,7 @@ REGISTERED_TYPES = frozenset({
     "file_exists",
     "file_not_exists",
     "file_contains",
+    "file_not_contains",
     "tests_pass",
     "state",
     "state_transition",
@@ -356,6 +360,7 @@ REQUIRED_FIELDS = {
     "file_exists": ["path"],
     "file_not_exists": ["path"],
     "file_contains": ["path", "pattern"],
+    "file_not_contains": ["path", "pattern"],
     "tests_pass": ["command"],
     "state": ["field", "expected"],
     "state_transition": ["expected_sequence"],
