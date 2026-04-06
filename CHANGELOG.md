@@ -34,6 +34,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.27.0] - 2026-04-06
+
+### Changed
+
+- feat: eval quality v2 — fix grading infrastructure, expand coverage, subagent quality (#142)
+- feat: audit remediation — prompt quality, agent scope, eval infrastructure (#141) (#141)
+- feat: add language-aligned building pattern files (#140)
+- feat: add deliverable verification and tier distribution (WU-03) (#139)
+- feat: add tier-aware delegation to sw-build (WU-02) (#138)
+- feat: add testing tier framework (WU-01) (#137)
+
 ## [0.26.2] - 2026-04-02
 
 ### Changed
