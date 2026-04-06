@@ -1,0 +1,7 @@
+{
+  "id": "sw-build-malformed-spec",
+  "description": "Negative eval: sw-build given a spec with no acceptance criteria. Build should not silently proceed.",
+  "setup": { "type": "copy" },
+  "skill": "sw-build",
+  "timeout": 120
+}
