@@ -216,9 +216,10 @@ class TestSwBuildContextEnvelope(unittest.TestCase):
         cmd_pos = self.lower.find("build and test commands")
         lang_pos = self.lower.find("lang-building")
         if const_pos >= 0 and cmd_pos >= 0 and lang_pos >= 0:
-            # lang-building should appear after first constitution ref in envelope
-            # and before build commands
-            self.assertGreater(lang_pos, 0, "lang-building must appear in context")
+            self.assertGreater(lang_pos, const_pos,
+                               "lang-building must appear after constitution in context envelope")
+            self.assertLess(lang_pos, cmd_pos,
+                            "lang-building must appear before build/test commands in context envelope")
         else:
             self.fail("Could not find positioning landmarks in context envelope")
 
@@ -270,10 +271,17 @@ class TestFileNamesMatchConfigValues(unittest.TestCase):
     """AC-9: File names correspond to config.json project.languages values."""
 
     def test_standard_language_names(self):
-        """Files use standard language names that would appear in config.json."""
+        """Files use standard language names that would appear in config.json.
+        Note: This intentionally hardcodes the expected set rather than reading
+        config.json — the test validates that shipped files match the spec'd
+        language set. Config.json coupling is the orchestrator's responsibility."""
         expected = {"go.md", "python.md", "typescript.md", "rust.md", "java.md"}
         actual = set(f for f in os.listdir(_LANG_DIR) if f.endswith(".md"))
-        self.assertEqual(expected, actual, f"Expected {expected}, got {actual}")
+        # Use issubset to allow future language additions without breaking this test
+        self.assertTrue(
+            expected.issubset(actual),
+            f"Required language files missing. Expected at least {expected}, got {actual}"
+        )
 
 
 # ===========================================================================

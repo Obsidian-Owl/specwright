@@ -165,7 +165,8 @@ else
 fi
 
 if [ -d "$CC_DIST/skills" ]; then
-  # Count only directories that should contain SKILL.md (exclude reference doc directories)
+  # Count only directories that should contain SKILL.md (exclude reference doc directories).
+  # Space-delimited list — add new entries separated by spaces (e.g. "lang-building lang-testing").
   REFERENCE_DIRS="lang-building"
   SKILL_DIR_COUNT=0
   for dir in "$CC_DIST"/skills/*/; do

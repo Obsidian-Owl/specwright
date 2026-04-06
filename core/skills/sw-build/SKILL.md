@@ -87,7 +87,8 @@ The sequence is strict: RED → GREEN → INTEGRATION → REGRESSION CHECK → R
    non-unit ACs to `specwright-integration-tester`. Include in the delegation
    prompt: repo map content (same as RED/GREEN), the non-unit ACs and their tier
    tags, relevant file paths, config.json languages field, language patterns from
-   `core/skills/lang-building/{language}.md` if available, and a reference to
+   `core/skills/lang-building/{language}.md` (same detection rule as context
+   envelope: `project.languages[0]` with file-extension override), and a reference to
    TESTING.md for boundary context. If integration tests fail, delegate to
    `specwright-build-fixer` (max 2 attempts) —
    the fixer should check infrastructure health before assuming code is wrong. If
