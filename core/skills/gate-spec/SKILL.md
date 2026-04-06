@@ -39,6 +39,11 @@ that closes the loop.
 **Criteria extraction (LOW freedom):**
 - Parse spec.md for all acceptance criteria (lines matching `- [ ] AC-*`).
 - Number them. Every single one must be mapped. No skipping.
+- On the final work unit of a multi-WU design: also parse behavioral integration
+  criteria (IC-B{n} entries) from `integration-criteria.md` in the design-level
+  directory. IC-B entries are added to the compliance matrix alongside ACs. When
+  not on the final work unit, or when `integration-criteria.md` has no IC-B entries,
+  gate-spec operates exactly as before — no behavioral IC mapping.
 
 **Evidence mapping (HIGH freedom):**
 - For each criterion, search the codebase for implementation evidence.
@@ -54,6 +59,12 @@ that closes the loop.
 - Criterion with implementation but no test = WARN.
 - Criterion with neither = FAIL.
 - Overall: if ANY criterion is FAIL, gate is FAIL.
+- IC-B entries (when present): IC-B with both implementation and test evidence = PASS.
+  IC-B without test evidence = FAIL (gate-spec's standard verdict vocabulary). Note:
+  gate-spec FAIL for IC-Bs and deliverable verification BLOCK for IC-Bs are
+  complementary — gate-spec reports the finding within its standard framework,
+  deliverable verification enforces the action. gate-spec runs first (as part of the
+  6 standard gates); deliverable verification runs after all gates.
 - Reference discovered behaviors at INFO level per `protocols/build-quality.md`. Does not alter PASS/WARN/FAIL verdict.
 
 **Compliance matrix format:**
