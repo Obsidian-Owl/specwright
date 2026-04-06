@@ -50,6 +50,7 @@ test quality, not just pass/fail.
   - **Behavior focus**: Do tests verify behavior or implementation details?
   - **Mutation resistance**: Could a trivially wrong implementation pass? Test against three bypass classes: hardcoded returns, partial implementations, boundary skips.
   - **Boundary test approach**: Validate mock-vs-integration decisions against TESTING.md boundary classifications per `protocols/testing-strategy.md`. WARN if internal boundary is mocked. INFO if TESTING.md absent.
+  - **Tier distribution**: For each AC tagged with `[tier: integration]`, `[tier: contract]`, or `[tier: e2e]`, check whether corresponding tests exist at that tier. Use heuristics: integration tests touch multiple modules and use real infrastructure (Testcontainers, real DB, httptest with real handler); contract tests validate schema or shape at a boundary; E2E tests exercise a full flow. Verdicts: non-unit ACs with matching tier tests that pass → PASS. Non-unit ACs with tier-appropriate tests that fail → BLOCK (forces user decision at gate). Non-unit ACs with only unit-tier tests → BLOCK. Zero non-unit ACs in spec → PASS (nothing to check). When no tier-tagged ACs exist and TESTING.md is absent → INFO (no data to validate, no false positives).
 - Each weakness is a finding with severity and file:line reference.
 
 **Verdict (LOW freedom):**
