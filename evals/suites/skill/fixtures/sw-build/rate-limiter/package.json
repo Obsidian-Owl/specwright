@@ -1,0 +1,13 @@
+{
+  "name": "rate-limiter",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

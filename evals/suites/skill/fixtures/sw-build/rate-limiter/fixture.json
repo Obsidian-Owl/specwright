@@ -1,0 +1,9 @@
+{
+  "id": "sw-build-rate-limiter",
+  "description": "Non-trivial sw-build eval: token bucket rate limiter with 5+ ACs exercising tester and executor quality",
+  "setup": { "type": "copy" },
+  "skill": "sw-build",
+  "prompt_template": "build",
+  "prompt_args": {},
+  "timeout": 300
+}
