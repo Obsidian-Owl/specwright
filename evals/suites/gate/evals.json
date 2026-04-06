@@ -1,0 +1,97 @@
+{
+  "suite": "gate",
+  "version": "1.0",
+  "description": "Gate quality evals. Each eval invokes sw-verify with a single gate on a fixture with planted issues.",
+  "evals": [
+    {
+      "id": "gate-security-planted-vulns",
+      "layer": "skill",
+      "sequence": ["sw-verify"],
+      "prompt_args": { "gate": "security" },
+      "seed": {
+        "type": "fixture",
+        "path": "suites/gate/fixtures/gate-security/planted-vulns"
+      },
+      "expectations": [
+        {
+          "type": "file_exists",
+          "path": ".specwright/work/test-work/evidence/security-report.md",
+          "description": "Security gate evidence file produced"
+        },
+        {
+          "type": "file_contains",
+          "path": ".specwright/work/test-work/evidence/security-report.md",
+          "pattern": "CWE-(?:79|89|22|798|306)",
+          "description": "Evidence references at least one CWE ID"
+        },
+        {
+          "type": "file_not_contains",
+          "path": ".specwright/work/test-work/evidence/security-report.md",
+          "pattern": "CWE-636|CWE-209",
+          "description": "Security gate does not flag CWE-636/CWE-209 (owned by gate-semantic)"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The security gate evidence identifies at least 2 of these 3 planted vulnerabilities: (1) hardcoded API key 'sk-live-...' in server.js, (2) SQL injection via string concatenation in the /users endpoint, (3) path traversal in the /files/:filename endpoint. Each identified vulnerability should have a CWE classification or clear security category. Score 0.8+ if 2+ found with classifications, 0.5-0.7 if 1 found, below 0.5 if none found.",
+          "target": ".specwright/work/test-work/evidence/security-report.md",
+          "description": "Evidence quality: identifies planted vulnerabilities"
+        }
+      ],
+      "tags": ["gate", "security", "planted-vulns"]
+    },
+    {
+      "id": "gate-tests-weak-tests",
+      "layer": "skill",
+      "sequence": ["sw-verify"],
+      "prompt_args": { "gate": "tests" },
+      "seed": {
+        "type": "fixture",
+        "path": "suites/gate/fixtures/gate-tests/weak-tests"
+      },
+      "expectations": [
+        {
+          "type": "file_exists",
+          "path": ".specwright/work/test-work/evidence/tests-report.md",
+          "description": "Tests gate evidence file produced"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The tests gate evidence identifies at least 2 of these 3 weaknesses: (1) truthiness-only assertion (toBeDefined instead of checking actual value), (2) missing error path coverage (division by zero AC-02 has no test), (3) over-mocking (the multiply test mocks the module under test). Score 0.8+ if 2+ identified with specific file/line references, 0.5-0.7 if 1 identified, below 0.5 if none.",
+          "target": ".specwright/work/test-work/evidence/tests-report.md",
+          "description": "Evidence quality: identifies test weaknesses"
+        }
+      ],
+      "tags": ["gate", "tests", "weak-assertions"]
+    },
+    {
+      "id": "gate-semantic-semantic-bugs",
+      "layer": "skill",
+      "sequence": ["sw-verify"],
+      "prompt_args": { "gate": "semantic" },
+      "seed": {
+        "type": "fixture",
+        "path": "suites/gate/fixtures/gate-semantic/semantic-bugs"
+      },
+      "expectations": [
+        {
+          "type": "file_exists",
+          "path": ".specwright/work/test-work/evidence/semantic-report.md",
+          "description": "Semantic gate evidence file produced"
+        },
+        {
+          "type": "file_contains",
+          "path": ".specwright/work/test-work/evidence/semantic-report.md",
+          "pattern": "error-path|fail-open|error-data|resource-lifecycle|unchecked",
+          "description": "Evidence references at least one semantic category"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The semantic gate evidence identifies at least 2 of these 3 bugs: (1) empty catch block in createOrder that silently swallows database errors (CWE-636/fail-open), (2) stack trace and SQL query exposed in getOrder error response (CWE-209/error-data-leakage), (3) database connection not released when createOrder catch fires (resource-lifecycle). Score 0.8+ if 2+ found with category labels, 0.5-0.7 if 1 found, below 0.5 if none.",
+          "target": ".specwright/work/test-work/evidence/semantic-report.md",
+          "description": "Evidence quality: identifies semantic bugs"
+        }
+      ],
+      "tags": ["gate", "semantic", "planted-bugs"]
+    }
+  ]
+}

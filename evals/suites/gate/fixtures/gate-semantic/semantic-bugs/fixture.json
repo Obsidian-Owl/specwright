@@ -1,0 +1,8 @@
+{
+  "id": "gate-semantic-semantic-bugs",
+  "description": "Node.js project with planted semantic bugs for gate-semantic evaluation",
+  "setup": { "type": "copy" },
+  "skill": "sw-verify",
+  "skill_args": "--gate=semantic",
+  "timeout": 120
+}
