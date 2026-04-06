@@ -327,6 +327,77 @@ fi
 
 echo ""
 
+# ── T4: Protocol and skill updates — AC-11, AC-12, AC-13, AC-14 ─────────────
+
+echo "=== T4: Protocol and skill updates ==="
+
+BOUNDARY_MD="$ROOT_DIR/core/protocols/stage-boundary.md"
+GIT_MD="$ROOT_DIR/core/protocols/git.md"
+BUILD_MD="$ROOT_DIR/core/skills/sw-build/SKILL.md"
+
+# AC-11: Blocked operations table in stage-boundary.md
+if grep -qi 'Blocked Operations' "$BOUNDARY_MD"; then
+  pass "AC-11a: Blocked Operations section exists"
+else
+  fail "AC-11a: Blocked Operations section not found"
+fi
+
+if grep -q 'gh pr create' "$BOUNDARY_MD" && grep -q 'building' "$BOUNDARY_MD"; then
+  pass "AC-11b: gh pr create blocked during building"
+else
+  fail "AC-11b: gh pr create not listed as blocked during building"
+fi
+
+if grep -q 'api.github.com' "$BOUNDARY_MD" || grep -q 'gh api.*pulls' "$BOUNDARY_MD"; then
+  pass "AC-11c: API-based PR creation patterns listed"
+else
+  fail "AC-11c: API-based PR creation patterns not listed"
+fi
+
+if grep -q 'verifying' "$BOUNDARY_MD" | head -1 > /dev/null; then
+  # Check that verifying also blocks PR creation (from the table)
+  if grep -A5 'Blocked Operations' "$BOUNDARY_MD" | grep -q 'verifying'; then
+    pass "AC-11d: PR creation also blocked during verifying"
+  else
+    fail "AC-11d: verifying state not in blocked operations table"
+  fi
+else
+  fail "AC-11d: verifying not mentioned in stage-boundary.md"
+fi
+
+# AC-12: git.md state prerequisite for PR creation
+if grep -qi 'shipping' "$GIT_MD" && grep -qi 'Prerequisite\|prerequisite\|status.*shipping' "$GIT_MD"; then
+  pass "AC-12: git.md PR Creation has shipping state prerequisite"
+else
+  fail "AC-12: shipping state prerequisite not found in git.md PR Creation"
+fi
+
+# AC-13: sw-build prohibits PR creation
+if grep -qi 'gh pr create\|PR creation\|pull request' "$BUILD_MD" | head -1 > /dev/null; then
+  if grep -qi 'NOT\|never\|prohibit\|NEVER.*PR\|NEVER.*pr create' "$BUILD_MD"; then
+    pass "AC-13: sw-build prohibits PR creation"
+  else
+    fail "AC-13: sw-build mentions PR but doesn't prohibit it"
+  fi
+else
+  fail "AC-13: sw-build doesn't mention PR creation prohibition"
+fi
+
+# AC-14: Honest limitation updated for hook enforcement
+if grep -qi 'hook\|PreToolUse\|pre-tool' "$BOUNDARY_MD"; then
+  pass "AC-14a: stage-boundary mentions hook enforcement"
+else
+  fail "AC-14a: hook enforcement not mentioned in honest limitation"
+fi
+
+if grep -qi 'Opencode\|protocol-level' "$BOUNDARY_MD"; then
+  pass "AC-14b: stage-boundary mentions Opencode protocol-level enforcement"
+else
+  fail "AC-14b: Opencode enforcement gap not mentioned"
+fi
+
+echo ""
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo "=== Results ==="

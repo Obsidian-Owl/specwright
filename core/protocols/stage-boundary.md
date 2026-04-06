@@ -34,9 +34,22 @@ When the skill's work is complete:
 | sw-ship | `/sw-learn` (optional) | Capture learnings |
 | sw-ship / sw-learn | `/sw-build` (next unit) | Continue queue |
 
+## Blocked Operations by State
+
+| State | Blocked Operations | Why |
+|-------|--------------------|-----|
+| `building` | `gh pr create`, `gh api .*/pulls` (POST), `curl.*api.github.com.*/pulls` | PRs are only created during shipping |
+| `verifying` | `gh pr create`, `gh api .*/pulls` (POST), `curl.*api.github.com.*/pulls` | Ship after gates pass, not during verification |
+
+On Claude Code, these are enforced by a PreToolUse hook on Bash (`pre-ship-guard.mjs`).
+On all platforms, `protocols/state.md` enforces that only the `shipping` state
+permits PR creation via the transition table.
+
 ## Honest Limitation
 
-This is strong guidance backed by state validation, not hard enforcement.
-Claude Code's plugin system does not support per-skill tool restrictions.
+Enforcement is layered: state validation (both platforms) + PreToolUse hook
+(Claude Code only). Claude Code has deterministic hook-level enforcement that
+blocks PR creation commands when workflow status is not `shipping`. Opencode
+has protocol-level enforcement only — no pre-tool hooks are available.
 Skills combine prompt-level boundaries with state checks (workflow.json
 status validation) as the best available mechanism.

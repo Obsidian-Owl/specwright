@@ -139,6 +139,9 @@ This extends the build skill's `config.commands.format` handling (which runs for
 
 ## PR Creation
 
+**Prerequisite:** `currentWork.status` must be `shipping`. If status is anything
+else, STOP with: "PR creation requires shipping state. Run /sw-verify then /sw-ship."
+
 Read `config.git.prTool` (default: `gh`).
 If `config.git.prRequired` is false: ask user preference.
 
