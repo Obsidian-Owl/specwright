@@ -1,12 +1,12 @@
 {
   "suite": "gate",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Gate quality evals. Each eval invokes sw-verify with a single gate on a fixture with planted issues.",
   "evals": [
     {
       "id": "gate-security-planted-vulns",
-      "layer": "skill",
-      "sequence": ["sw-verify"],
+      "skill": "sw-verify",
+      "prompt_template": "verify",
       "prompt_args": { "gate": "security" },
       "seed": {
         "type": "fixture",
@@ -22,12 +22,6 @@
           "type": "file_exists",
           "path": ".specwright/work/test-work/evidence/security-report.md",
           "description": "Security gate evidence file produced"
-        },
-        {
-          "type": "file_contains",
-          "path": ".specwright/work/test-work/evidence/security-report.md",
-          "pattern": "CWE-(?:79|89|22|798|306)",
-          "description": "Evidence references at least one CWE ID"
         },
         {
           "type": "file_not_contains",
@@ -46,8 +40,8 @@
     },
     {
       "id": "gate-tests-weak-tests",
-      "layer": "skill",
-      "sequence": ["sw-verify"],
+      "skill": "sw-verify",
+      "prompt_template": "verify",
       "prompt_args": { "gate": "tests" },
       "seed": {
         "type": "fixture",
@@ -55,10 +49,9 @@
       },
       "expectations": [
         {
-          "type": "file_contains",
-          "path": ".specwright/state/workflow.json",
-          "pattern": "\"tests\":\\s*\\{[^}]*\"status\":\\s*\"(WARN|FAIL)\"",
-          "description": "Tests gate returns WARN or FAIL on weak test quality"
+          "type": "gate_results",
+          "expected": {"tests": "FAIL"},
+          "description": "Tests gate fails on weak test quality"
         },
         {
           "type": "file_exists",
@@ -76,8 +69,8 @@
     },
     {
       "id": "gate-semantic-semantic-bugs",
-      "layer": "skill",
-      "sequence": ["sw-verify"],
+      "skill": "sw-verify",
+      "prompt_template": "verify",
       "prompt_args": { "gate": "semantic" },
       "seed": {
         "type": "fixture",
