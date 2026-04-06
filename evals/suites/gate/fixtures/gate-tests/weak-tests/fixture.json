@@ -1,0 +1,8 @@
+{
+  "id": "gate-tests-weak-tests",
+  "description": "Node.js project with deliberately weak test assertions for gate-tests evaluation",
+  "setup": { "type": "copy" },
+  "skill": "sw-verify",
+  "skill_args": "--gate=tests",
+  "timeout": 120
+}
