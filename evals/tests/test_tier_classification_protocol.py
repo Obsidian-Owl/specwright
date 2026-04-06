@@ -242,36 +242,36 @@ class TestAC2b_BoundaryToTierMapping(unittest.TestCase):
             "External boundary classification must map to contract tier"
         )
 
-    def test_expensive_boundary_maps_to_integration(self):
-        """Expensive boundary must map to integration tier."""
+    def test_expensive_boundary_maps_to_unit_by_default(self):
+        """Expensive boundary must default to unit tier (mocked)."""
         has_mapping = bool(re.search(
-            r"expensive.{0,60}integration",
+            r"expensive.{0,80}unit",
             self.section_lower
         ))
         self.assertTrue(
             has_mapping,
-            "Expensive boundary classification must map to integration tier"
+            "Expensive boundary classification must default to unit tier"
         )
 
-    def test_expensive_mapping_requires_documented_rationale(self):
-        """Expensive -> integration mapping must require documented rationale."""
-        has_rationale_req = bool(re.search(
-            r"expensive.{0,120}(rationale|justif|document|reason|explain)",
+    def test_expensive_can_be_reclassified_to_integration(self):
+        """Expensive boundary must document that user can reclassify to integration."""
+        has_reclassify = bool(re.search(
+            r"expensive.{0,200}(reclassif|override|internal).{0,100}integration",
             self.section_lower
         )) or bool(re.search(
-            r"(rationale|justif|document|reason|explain).{0,120}expensive",
+            r"(reclassif|override).{0,200}expensive",
             self.section_lower
         ))
         self.assertTrue(
-            has_rationale_req,
-            "Expensive boundary mapping must require documented rationale"
+            has_reclassify,
+            "Expensive boundary mapping must document user reclassification path to integration"
         )
 
     def test_all_three_boundary_mappings_present(self):
         """Guard against partial implementation: all three boundary types must be mapped."""
         has_internal = bool(re.search(r"internal.{0,60}integration", self.section_lower))
         has_external = bool(re.search(r"external.{0,60}contract", self.section_lower))
-        has_expensive = bool(re.search(r"expensive.{0,60}integration", self.section_lower))
+        has_expensive = bool(re.search(r"expensive.{0,80}unit", self.section_lower))
         count = sum([has_internal, has_external, has_expensive])
         self.assertEqual(count, 3,
                          f"All three boundary-to-tier mappings must be present; found {count}/3")

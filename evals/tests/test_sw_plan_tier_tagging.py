@@ -272,7 +272,7 @@ class TestAC5_BehavioralICFormatDefined(unittest.TestCase):
         """IC-B{n} must use the checklist format like IC-{n}."""
         # Look for: - [ ] IC-B{n}: ...
         has_checklist = bool(re.search(
-            r"-\s*\[\s*\]\s*IC-B\{?n?\}?\d?:",
+            r"-\s*\[\s*\]\s*IC-B\{n\}:",
             self.ic_block
         ))
         self.assertTrue(

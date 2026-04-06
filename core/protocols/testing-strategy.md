@@ -77,9 +77,9 @@ TESTING.md boundary classifications map to tier tags as follows:
 |----------|------|-------|
 | Internal boundary | `[tier: integration]` | Own code crossing module/layer lines — test with real components |
 | External boundary | `[tier: contract]` | Third-party API or vendor interface — validate contract, mock the live call |
-| Expensive boundary | `[tier: integration]` | Could be tested live but is cost- or resource-prohibitive; rationale must be documented in TESTING.md's Mock Allowances section |
+| Expensive boundary | `[tier: unit]` (default) | Mocked per TESTING.md Mock Allowances. The regular tester handles these with documented mock rationale. If the user reclassifies an expensive boundary as internal in TESTING.md, it becomes `[tier: integration]` and the integration tester takes over — the user accepts the cost/infra requirement explicitly. |
 
-The expensive boundary maps to `integration` rather than `contract` because the dependency is technically accessible — the decision to mock it is a cost/resource judgment, not an ownership boundary. The justification must be documented.
+Expensive boundaries default to `unit` tier (mocked) because the integration tester enforces a strict no-mock, no-skip policy. Routing expensive dependencies to the integration tester would produce guaranteed failures in CI where the service is unavailable. The user can override this by reclassifying a boundary as internal in TESTING.md — a conscious decision to accept the cost.
 
 ### Annotation Format
 
@@ -119,11 +119,11 @@ The architect annotates each AC with a tier tag using the `[tier: X]` format:
 Untagged ACs default to unit tier.
 
 ### sw-build reads strategy
-The tester agent reads TESTING.md alongside the Constitution. For each test:
-- Check if the code under test crosses a boundary
-- Look up the boundary classification in TESTING.md
-- Choose test type accordingly (real component for internal, mock for external/expensive)
-- Report the rationale in test output
+sw-build uses tier-aware delegation: ACs tagged `[tier: unit]` (or untagged) go to
+the tester agent; ACs tagged `[tier: integration]`, `[tier: contract]`, or `[tier: e2e]`
+go to the integration-tester agent. Both agents read TESTING.md for boundary context.
+The tester agent mocks external and expensive boundaries per TESTING.md allowances.
+The integration-tester agent uses real infrastructure with no skip conditions.
 
 ### sw-verify validates approach
 gate-tests checks that the test approach matches TESTING.md:
