@@ -96,7 +96,7 @@ The PR itself is the review surface — reviewers see replies directly.
   fallback so the user can open the PR in a browser.
 - In headless mode, follow `protocols/headless.md`.
 
-**Stateless utility (STRICT):**
+**Stateless utility (LOW freedom):**
 - This skill is stateless with respect to Specwright state. It never writes
   workflow.json, never claims exclusive workflow ownership, and makes no state
   changes to the Specwright workflow. It is a read-only utility skill for
