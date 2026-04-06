@@ -42,8 +42,9 @@ that closes the loop.
 - On the final work unit of a multi-WU design: also parse behavioral integration
   criteria (IC-B{n} entries) from `integration-criteria.md` in the design-level
   directory. IC-B entries are added to the compliance matrix alongside ACs. When
-  not on the final work unit, or when `integration-criteria.md` has no IC-B entries,
-  gate-spec operates exactly as before — no behavioral IC mapping.
+  not on the final work unit, when `integration-criteria.md` does not exist, or
+  when `integration-criteria.md` has no IC-B entries, gate-spec operates exactly
+  as before — no behavioral IC mapping.
 
 **Evidence mapping (HIGH freedom):**
 - For each criterion, search the codebase for implementation evidence.

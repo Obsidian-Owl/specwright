@@ -80,12 +80,17 @@ evidence — gate was not executed."
 
 **Deliverable verification (MEDIUM freedom) — inline phase, not a gate:**
 Activates on the final work unit of a multi-WU design. Activation conditions:
-`workflow.workUnits` has >1 entry, current unit is last in the sequence, and all
-prior units are `shipped`. Runs after the standard six gates complete.
+`workflow.workUnits` has >1 entry, current unit is last in the sequence, all
+prior units are `shipped` or `verified`, and all six standard gates completed
+with PASS or WARN (not FAIL or ERROR �� if gates failed, deliverable verification
+is skipped since evidence cannot exist for broken code). Runs after the standard
+six gates complete.
 
 When activated:
 - Load `integration-criteria.md` from the design-level directory
-  (`.specwright/work/{currentWork.id}/`). Identify behavioral ICs (IC-B{n} entries).
+  (`.specwright/work/{currentWork.id}/`). If the file does not exist → SKIP with
+  INFO note ("No integration-criteria.md found"). Identify behavioral ICs
+  (IC-B{n} entries).
 - For each IC-B, search for test evidence: a test file exercising the described
   behavior, plus a passing gate-tests or gate-build evidence report confirming the
   test passes. IC-Bs with both test file and passing evidence → PASS. IC-Bs without

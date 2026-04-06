@@ -74,7 +74,7 @@ Work one task at a time. Complete before starting the next. After each task comm
 
 **TDD cycle (HIGH freedom for test design, LOW freedom for sequence):**
 
-The sequence is strict: RED → GREEN → REFACTOR. Never skip RED.
+The sequence is strict: RED → GREEN → INTEGRATION → REGRESSION CHECK → REFACTOR. Never skip RED.
 
 1. **RED**: Delegate to `specwright-tester` with the task's unit-tier acceptance criteria,
    context.md, and constitution. The tester writes tests designed to be hard to
@@ -87,8 +87,8 @@ The sequence is strict: RED → GREEN → REFACTOR. Never skip RED.
    non-unit ACs to `specwright-integration-tester`. Include in the delegation
    prompt: repo map content (same as RED/GREEN), the non-unit ACs and their tier
    tags, relevant file paths, config.json languages field, and a reference to
-   TESTING.md for boundary context. If
-   integration tests fail, delegate to `specwright-build-fixer` (max 2 attempts) —
+   TESTING.md for boundary context. If integration tests fail, delegate to
+   `specwright-build-fixer` (max 2 attempts) —
    the fixer should check infrastructure health before assuming code is wrong. If
    still failing: interactive — present to user; headless — abort per headless
    protocol. If no non-unit ACs exist for this task, skip this step entirely —

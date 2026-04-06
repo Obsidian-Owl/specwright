@@ -1,8 +1,5 @@
 """Tests for tier-aware delegation in core/skills/sw-build/SKILL.md.
 
-RED phase: all tests targeting new content must fail because sw-build does not
-yet have tier-aware delegation to specwright-integration-tester.
-
 This test suite covers:
   AC-1: TDD cycle extended with integration tester delegation for non-unit ACs
   AC-2: Existing RED → GREEN → REFACTOR preserved for unit-tier ACs

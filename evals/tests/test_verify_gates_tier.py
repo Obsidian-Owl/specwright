@@ -56,13 +56,24 @@ class TestAC1_DeliverableVerificationExists(unittest.TestCase):
         ))
         self.assertTrue(has_last, "Must activate on last/final unit")
 
-    def test_activation_requires_prior_shipped(self):
-        """All prior units must be shipped."""
+    def test_activation_requires_prior_shipped_or_verified(self):
+        """All prior units must be shipped or verified."""
         has_shipped = bool(re.search(
-            r"prior.{0,40}shipped",
+            r"prior.{0,60}(shipped|verified)",
             self.lower, re.DOTALL
         ))
-        self.assertTrue(has_shipped, "Must require prior units shipped")
+        self.assertTrue(has_shipped, "Must require prior units shipped or verified")
+
+    def test_activation_requires_gates_pass_or_warn(self):
+        """Must only activate when standard gates are PASS or WARN, not FAIL."""
+        has_guard = bool(re.search(
+            r"(pass|warn).{0,60}(not\s+fail|not\s+error)",
+            self.lower, re.DOTALL
+        )) or bool(re.search(
+            r"gate.{0,60}(pass|warn).{0,40}(fail|error)",
+            self.lower, re.DOTALL
+        ))
+        self.assertTrue(has_guard, "Must require gates PASS/WARN before activating")
 
     def test_labeled_as_inline_not_gate(self):
         """Must be labeled as inline phase, not a gate."""
@@ -123,6 +134,14 @@ class TestAC3_NoBehavioralICs(unittest.TestCase):
             self.lower, re.DOTALL
         ))
         self.assertTrue(has_skip, "Must SKIP when no IC-Bs are defined")
+
+    def test_skip_when_file_absent(self):
+        """Must handle missing integration-criteria.md explicitly with SKIP."""
+        has_absent = bool(re.search(
+            r"(does\s+not\s+exist|not\s+found|absent|missing).{0,80}skip",
+            self.lower, re.DOTALL
+        ))
+        self.assertTrue(has_absent, "Must SKIP when integration-criteria.md is absent")
 
 
 class TestAC4_IntegrationTestCommands(unittest.TestCase):
@@ -336,7 +355,7 @@ class TestAC10_ICBComplianceMatrix(unittest.TestCase):
 
 
 class TestAC11_NoChangeWhenNotFinalWU(unittest.TestCase):
-    """AC-11: gate-spec unchanged when not on final WU."""
+    """AC-11: gate-spec unchanged when not on final WU or file absent."""
 
     def setUp(self):
         self.content = _load(_GATE_SPEC_PATH)
@@ -352,6 +371,17 @@ class TestAC11_NoChangeWhenNotFinalWU(unittest.TestCase):
             self.lower, re.DOTALL
         ))
         self.assertTrue(has_condition, "Must operate as before when not on final WU or no IC-Bs")
+
+    def test_handles_file_absent(self):
+        """Must handle integration-criteria.md not existing."""
+        has_absent = bool(re.search(
+            r"(does\s+not\s+exist|not\s+exist).{0,60}(no\s+behavioral|as\s+before|operat)",
+            self.lower, re.DOTALL
+        )) or bool(re.search(
+            r"integration-criteria.{0,40}(does\s+not\s+exist|not\s+exist|absent)",
+            self.lower, re.DOTALL
+        ))
+        self.assertTrue(has_absent, "Must handle missing integration-criteria.md explicitly")
 
 
 # ===========================================================================
