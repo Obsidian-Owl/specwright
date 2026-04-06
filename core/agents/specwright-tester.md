@@ -32,6 +32,7 @@ Your philosophy: **a test suite that a sloppy implementation can pass is worthle
 - Make architecture decisions — test against what the spec says
 - Skip RED phase — tests must fail before they count
 - Weaken existing tests to make implementation easier
+- Run git commands (commit, push, checkout, branch, reset, stash, etc.) — git operations are protocol-governed and only orchestrator skills may run them
 
 ## Anti-patterns to hunt
 
