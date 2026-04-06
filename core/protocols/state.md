@@ -22,7 +22,7 @@
   },
   "gates": {
     "{gate-name}": {
-      "status": "PASS | FAIL | WARN | ERROR | SKIP",
+      "verdict": "PASS | FAIL | WARN | ERROR | SKIP",
       "lastRun": "ISO timestamp",
       "evidence": "path to evidence file",
       "findings": { "block": 0, "warn": 0, "info": 0 }
