@@ -64,6 +64,12 @@
           "type": "file_exists",
           "path": "src/middleware/rate-limiter.ts",
           "description": "Implementation file created by build"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The plan.md contains a clear task breakdown with ordered tasks, a file change map listing specific file paths, and respects dependency ordering between tasks. Tasks are small enough to be individually testable. Score 0.8+ if all three elements present with specific paths, 0.5-0.7 if partial, below 0.5 if missing.",
+          "target": ".specwright/work/test-work/plan.md",
+          "description": "Plan decomposition quality"
         }
       ],
       "tags": ["integration", "plan-build", "handoff"]
@@ -92,6 +98,12 @@
           "type": "gate_results",
           "expected": {"spec": "PASS"},
           "description": "Spec gate passes after verify"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The evidence files demonstrate thorough gate coverage: build evidence shows command output, spec compliance maps each acceptance criterion to implementation and test evidence with file:line references. The verdict includes reasoning, not just pass/fail. Score 0.8+ if all gates have evidence with specifics, 0.5-0.7 if evidence exists but is shallow, below 0.5 if evidence is missing or generic.",
+          "target": ".specwright/work/test-work/evidence/spec-compliance.md",
+          "description": "Evidence completeness and quality"
         }
       ],
       "tags": ["integration", "build-verify", "handoff"]
