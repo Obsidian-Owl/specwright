@@ -1,0 +1,25 @@
+# Specwright pre-commit and pre-push hooks via lefthook
+# Install: brew install lefthook && lefthook install
+
+pre-commit:
+  parallel: true
+  commands:
+    secret-scan:
+      glob: "*.{js,mjs,ts,py,sh,json,yml,yaml,md,env}"
+      run: gitleaks protect --staged --no-banner --verbose
+      fail_text: "Secrets detected in staged files"
+
+    shellcheck:
+      glob: "*.sh"
+      run: shellcheck {staged_files}
+      fail_text: "ShellCheck violations found"
+
+    build-validate:
+      run: bash build/build.sh claude-code
+      fail_text: "Build validation failed"
+
+pre-push:
+  commands:
+    test-suite:
+      run: python -m pytest evals/tests/ -v && bash tests/test-claude-code-build.sh && bash tests/test-hooks.sh
+      fail_text: "Test suite failed"
