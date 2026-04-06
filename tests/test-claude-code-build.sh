@@ -165,14 +165,26 @@ else
 fi
 
 if [ -d "$CC_DIST/skills" ]; then
-  SKILL_DIR_COUNT=$(find "$CC_DIST/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
-  assert_eq "$SKILL_DIR_COUNT" "$EXPECTED_SKILL_COUNT" "skills/ has exactly $EXPECTED_SKILL_COUNT subdirectories"
+  # Count only directories that should contain SKILL.md (exclude reference doc directories)
+  REFERENCE_DIRS="lang-building"
+  SKILL_DIR_COUNT=0
+  for dir in "$CC_DIST"/skills/*/; do
+    dir_name=$(basename "$dir")
+    case " $REFERENCE_DIRS " in
+      *" $dir_name "*) ;; # skip reference doc directories
+      *) SKILL_DIR_COUNT=$((SKILL_DIR_COUNT + 1)) ;;
+    esac
+  done
+  assert_eq "$SKILL_DIR_COUNT" "$EXPECTED_SKILL_COUNT" "skills/ has exactly $EXPECTED_SKILL_COUNT skill subdirectories"
 
-  # Each must have SKILL.md
+  # Each skill directory must have SKILL.md (reference doc directories are excluded)
   SKILL_FILE_COUNT=0
   MISSING_SKILLS=""
   for skill_dir in "$CC_DIST"/skills/*/; do
     skill_name=$(basename "$skill_dir")
+    case " $REFERENCE_DIRS " in
+      *" $skill_name "*) continue ;; # skip reference doc directories
+    esac
     if [ -f "$skill_dir/SKILL.md" ]; then
       SKILL_FILE_COUNT=$((SKILL_FILE_COUNT + 1))
     else
