@@ -667,7 +667,11 @@ def _dispatch_expectation(
                         target_content = f.read()
                 except (FileNotFoundError, OSError):
                     target_content = f"[File not found: {target_path}]"
-            return grade_with_model(rubric, target_content)
+            threshold = expectation.get("threshold")
+            kwargs = {}
+            if threshold is not None:
+                kwargs["threshold"] = threshold
+            return grade_with_model(rubric, target_content, **kwargs)
         except ImportError:
             return CheckResult(
                 type="model_grade",

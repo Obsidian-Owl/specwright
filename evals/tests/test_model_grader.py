@@ -153,6 +153,50 @@ class TestScoreThreshold(unittest.TestCase):
 
 
 # ===========================================================================
+# Custom threshold parameter
+# ===========================================================================
+
+class TestCustomThreshold(unittest.TestCase):
+    """Custom threshold changes pass/fail determination."""
+
+    @patch("evals.framework.model_grader.subprocess.run")
+    def test_default_threshold_unchanged(self, mock_run):
+        """Default behavior (0.7) is preserved when threshold not passed."""
+        mock_run.return_value = _mock_run(
+            stdout=_valid_model_response(score=0.69)
+        )
+        result = grade_with_model("rubric", "content")
+        self.assertFalse(result.passed)
+
+    @patch("evals.framework.model_grader.subprocess.run")
+    def test_custom_threshold_lowers_bar(self, mock_run):
+        """threshold=0.5 passes a 0.6 score that would fail at default 0.7."""
+        mock_run.return_value = _mock_run(
+            stdout=_valid_model_response(score=0.6)
+        )
+        result = grade_with_model("rubric", "content", threshold=0.5)
+        self.assertTrue(result.passed)
+
+    @patch("evals.framework.model_grader.subprocess.run")
+    def test_custom_threshold_raises_bar(self, mock_run):
+        """threshold=1.0 fails a 0.9 score that would pass at default 0.7."""
+        mock_run.return_value = _mock_run(
+            stdout=_valid_model_response(score=0.9)
+        )
+        result = grade_with_model("rubric", "content", threshold=1.0)
+        self.assertFalse(result.passed)
+
+    @patch("evals.framework.model_grader.subprocess.run")
+    def test_exact_threshold_passes(self, mock_run):
+        """Score exactly equal to custom threshold passes."""
+        mock_run.return_value = _mock_run(
+            stdout=_valid_model_response(score=0.5)
+        )
+        result = grade_with_model("rubric", "content", threshold=0.5)
+        self.assertTrue(result.passed)
+
+
+# ===========================================================================
 # AC-6: Evidence extraction from model response
 # ===========================================================================
 

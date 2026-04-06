@@ -61,7 +61,7 @@ def _build_prompt(rubric: str, target_content: str, transcript) -> str:
     return "\n".join(parts)
 
 
-def grade_with_model(rubric: str, target_content: str, transcript=None) -> CheckResult:
+def grade_with_model(rubric: str, target_content: str, transcript=None, threshold: float = _PASS_THRESHOLD) -> CheckResult:
     """Invoke claude -p with rubric prompt, return CheckResult."""
     prompt = _build_prompt(rubric, target_content, transcript)
     cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose", "--max-turns", "1"]
@@ -128,7 +128,7 @@ def grade_with_model(rubric: str, target_content: str, transcript=None) -> Check
             score=0.0,
         )
 
-    passed = score >= _PASS_THRESHOLD
+    passed = score >= threshold
     return CheckResult(
         type="model_grade",
         description="Model grade",
