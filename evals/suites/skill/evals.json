@@ -189,6 +189,31 @@
         }
       ],
       "tags": ["skill", "sw-debug", "off-by-one", "diagnostic-quality"]
+    },
+    {
+      "id": "sw-audit-planted-debt",
+      "skill": "sw-audit",
+      "prompt_template": "audit",
+      "prompt_args": {},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/skill/fixtures/sw-audit/planted-debt"
+      },
+      "expectations": [
+        {
+          "type": "file_exists",
+          "path": ".specwright/AUDIT.md",
+          "description": "Audit produces AUDIT.md findings file"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The AUDIT.md identifies at least 2 of these 3 planted issues: (1) circular dependency between moduleA.ts and moduleB.ts, (2) unused exported function unusedHelper in utils.ts, (3) inconsistent file naming — order_handler.ts uses snake_case violating the constitution's camelCase rule. Each finding should have a severity classification. Score 0.8+ if 2+ found with severity, 0.5-0.7 if 1 found, below 0.5 if none found.",
+          "target": ".specwright/AUDIT.md",
+          "threshold": 0.6,
+          "description": "Audit finding accuracy: identifies planted architectural issues"
+        }
+      ],
+      "tags": ["skill", "sw-audit", "architectural-debt", "planted-issues"]
     }
   ]
 }

@@ -1,0 +1,16 @@
+{
+  "version": "2.0",
+  "project": {
+    "name": "planted-debt",
+    "type": "node",
+    "languages": ["typescript"]
+  },
+  "commands": {
+    "build": "npx tsc --noEmit",
+    "test": null
+  },
+  "git": {
+    "defaultBranch": "main",
+    "strategy": "trunk-based"
+  }
+}
