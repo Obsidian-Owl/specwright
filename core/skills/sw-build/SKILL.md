@@ -76,12 +76,13 @@ The sequence is strict: RED → GREEN → INTEGRATION → REGRESSION CHECK → R
 2. **GREEN**: Delegate to `specwright-executor` with the failing tests, context.md,
    plan.md, and constitution. The executor writes minimal code to pass. Run
    build + tests to confirm they pass.
-3. **INTEGRATION**: After GREEN, if any AC has `[tier: integration]`, `[tier: contract]`,
-   or `[tier: e2e]`, delegate those non-unit ACs to `specwright-integration-tester`
-   (use same context envelope plus TESTING.md for boundary context). On failure,
-   delegate to `specwright-build-fixer` (max 2 attempts, check infrastructure first).
-   If still failing: interactive — present to user; headless — abort. Skip entirely
-   if no non-unit tier tags on this task.
+3. **INTEGRATION**: After GREEN, check ACs for tier tags. If any AC has `[tier: integration]`,
+   `[tier: contract]`, or `[tier: e2e]`, delegate those non-unit ACs to
+   `specwright-integration-tester` (use same context envelope plus TESTING.md for boundary
+   context). On failure, delegate to `specwright-build-fixer` (max 2 attempts — check
+   infrastructure health before assuming code is wrong). If still failing: interactive —
+   present to user; headless — abort. If no non-unit ACs exist, skip this step (zero
+   additional overhead).
 4. **REGRESSION CHECK**: Run the project's configured test commands (`commands.test`
    and `commands.test:integration` if configured) to confirm nothing regressed —
    both unit and integration tests must pass before proceeding.
@@ -127,7 +128,9 @@ Follow `protocols/delegation.md` for context handoff format. Additionally includ
 
 **Inner-loop validation (MEDIUM freedom) — runs after post-build review:**
 If `commands.test:integration` is configured, run the full integration suite (5-minute timeout).
-On fail, delegate to `specwright-build-fixer` (max 2 attempts, check infrastructure first).
+Integration tests may have already run during the task loop via tier-aware delegation to
+specwright-integration-tester; the inner-loop runs the full configured suite. On fail,
+delegate to `specwright-build-fixer` (max 2 attempts, check infrastructure health first).
 If still failing: interactive — present to user; headless — skip and record in headless-result.json.
 If unconfigured, skip silently.
 

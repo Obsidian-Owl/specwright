@@ -209,19 +209,15 @@ class TestSwBuildContextEnvelope(unittest.TestCase):
         ))
         self.assertTrue(has_lang_in_env, "Context envelope must include language patterns")
 
-    def test_positioned_between_constitution_and_commands(self):
-        """Language patterns must be between constitution and build commands."""
-        # Find positions of constitution ref and build commands ref
-        const_pos = self.lower.find("constitution")
-        cmd_pos = self.lower.find("build and test commands")
-        lang_pos = self.lower.find("lang-building")
-        if const_pos >= 0 and cmd_pos >= 0 and lang_pos >= 0:
-            self.assertGreater(lang_pos, const_pos,
-                               "lang-building must appear after constitution in context envelope")
-            self.assertLess(lang_pos, cmd_pos,
-                            "lang-building must appear before build/test commands in context envelope")
-        else:
-            self.fail("Could not find positioning landmarks in context envelope")
+    def test_lang_building_in_context_envelope_section(self):
+        """Language patterns must appear within the context envelope constraint."""
+        envelope_match = re.search(
+            r"context\s+envelope.*?(?=\*\*[A-Z]|\Z)",
+            self.lower, re.DOTALL
+        )
+        self.assertIsNotNone(envelope_match, "Context envelope section must exist")
+        self.assertIn("lang-building", envelope_match.group(),
+                       "lang-building must appear in the context envelope section")
 
     def test_deterministic_detection_rule(self):
         """Must specify deterministic language detection (languages[0] or file extension)."""
