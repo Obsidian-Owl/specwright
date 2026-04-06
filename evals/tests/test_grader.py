@@ -1376,5 +1376,60 @@ class TestCheckResultContract(unittest.TestCase):
         self.assertEqual(r.score, 0.0)
 
 
+# ===========================================================================
+# $TRANSCRIPT dispatch path
+# ===========================================================================
+
+class TestTranscriptDispatch(unittest.TestCase):
+    """model_grade with $TRANSCRIPT target forwards snapshots as transcript."""
+
+    @patch("evals.framework.model_grader.grade_with_model")
+    def test_transcript_target_passes_snapshots(self, mock_grade):
+        """When target is $TRANSCRIPT, snapshots should be forwarded as transcript kwarg."""
+        mock_grade.return_value = CheckResult(
+            type="model_grade", passed=True, evidence="ok", score=0.8
+        )
+        expectation = {
+            "type": "model_grade",
+            "rubric": "Check transcript quality",
+            "target": "$TRANSCRIPT",
+        }
+        snapshots = [{"event": "tool_call", "data": "test data"}]
+        workdir = tempfile.mkdtemp()
+        try:
+            from evals.framework.grader import _dispatch_expectation
+            _dispatch_expectation(expectation, workdir, snapshots)
+            mock_grade.assert_called_once()
+            call_kwargs = mock_grade.call_args
+            self.assertIn("transcript", call_kwargs.kwargs)
+            self.assertEqual(call_kwargs.kwargs["transcript"], snapshots)
+        finally:
+            shutil.rmtree(workdir, ignore_errors=True)
+
+    @patch("evals.framework.model_grader.grade_with_model")
+    def test_non_transcript_target_does_not_pass_snapshots(self, mock_grade):
+        """When target is a file path, snapshots should NOT be forwarded."""
+        mock_grade.return_value = CheckResult(
+            type="model_grade", passed=True, evidence="ok", score=0.8
+        )
+        workdir = tempfile.mkdtemp()
+        target_file = os.path.join(workdir, "report.md")
+        with open(target_file, "w") as f:
+            f.write("test content")
+        try:
+            expectation = {
+                "type": "model_grade",
+                "rubric": "Check quality",
+                "target": "report.md",
+            }
+            snapshots = [{"event": "data"}]
+            from evals.framework.grader import _dispatch_expectation
+            _dispatch_expectation(expectation, workdir, snapshots)
+            call_kwargs = mock_grade.call_args
+            self.assertNotIn("transcript", call_kwargs.kwargs)
+        finally:
+            shutil.rmtree(workdir, ignore_errors=True)
+
+
 if __name__ == "__main__":
     unittest.main()
