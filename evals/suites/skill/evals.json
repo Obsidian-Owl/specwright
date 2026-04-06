@@ -161,6 +161,34 @@
         }
       ],
       "tags": ["skill", "sw-build", "negative", "malformed-spec"]
+    },
+    {
+      "id": "sw-debug-known-bug",
+      "skill": "sw-debug",
+      "prompt_template": "debug",
+      "prompt_args": {
+        "error_output": "Test failure: processor.test.ts\n  FAIL: processes all elements\n    Expected: [2, 4, 6, 8, 10]\n    Received: [2, 4, 6, 8]\n    Last element (5) was not processed."
+      },
+      "seed": {
+        "type": "fixture",
+        "path": "suites/skill/fixtures/sw-debug/known-bug"
+      },
+      "expectations": [
+        {
+          "type": "file_contains",
+          "path": "src/processor.ts",
+          "pattern": "i\\s*<\\s*numbers\\.length\\s*[;)]|i\\s*<=\\s*numbers\\.length\\s*-\\s*1",
+          "description": "Off-by-one bug is fixed (loop includes last element)"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The diagnosis identifies the off-by-one error in processor.ts — specifically that the loop condition `i < numbers.length - 1` skips the last element. The fix changes the loop to include all elements. Score 0.8+ if root cause identified at correct file/line with correct fix. Score 0.5-0.7 if root cause identified but fix is indirect. Below 0.5 if root cause is missed.",
+          "target": "$TRANSCRIPT",
+          "threshold": 0.6,
+          "description": "Diagnosis quality: identifies off-by-one root cause"
+        }
+      ],
+      "tags": ["skill", "sw-debug", "off-by-one", "diagnostic-quality"]
     }
   ]
 }
