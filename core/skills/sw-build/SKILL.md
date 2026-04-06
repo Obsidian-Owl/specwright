@@ -86,7 +86,8 @@ The sequence is strict: RED → GREEN → INTEGRATION → REGRESSION CHECK → R
    `[tier: integration]`, `[tier: contract]`, or `[tier: e2e]`, delegate those
    non-unit ACs to `specwright-integration-tester`. Include in the delegation
    prompt: repo map content (same as RED/GREEN), the non-unit ACs and their tier
-   tags, relevant file paths, config.json languages field, and a reference to
+   tags, relevant file paths, config.json languages field, language patterns from
+   `core/skills/lang-building/{language}.md` if available, and a reference to
    TESTING.md for boundary context. If integration tests fail, delegate to
    `specwright-build-fixer` (max 2 attempts) —
    the fixer should check infrastructure health before assuming code is wrong. If
@@ -105,6 +106,12 @@ When delegating, include in the prompt (in this order):
 - Relevant sections of design.md, plan.md, and context.md
 - File paths the agent needs to read or modify
 - The constitution's relevant practices
+- **Language patterns** from `core/skills/lang-building/{language}.md` if available for
+  the project's primary language (per `config.json` `project.languages[0]`). When the
+  current task modifies files in a different language, load the matching language file
+  instead (detected from file extensions). If no matching language file exists, skip
+  silently. Language patterns provide idiomatic implementation guidance — the agent
+  adapts to the project's conventions but these patterns set a quality baseline.
 - Build and test commands from config.json
 - Behavioral reminder: surface confusion, prefer simplicity, touch only task files
 - For each AC, include one test whose purpose is to find the condition under which this criterion fails silently
