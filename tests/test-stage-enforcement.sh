@@ -199,6 +199,134 @@ fi
 
 echo ""
 
+# ── T3: PreToolUse hook — AC-8, AC-9, AC-10 ─────────────────────────────────
+
+echo "=== T3: PreToolUse hook — pre-ship-guard ==="
+
+HOOK_FILE="$ROOT_DIR/adapters/claude-code/hooks/pre-ship-guard.mjs"
+HOOKS_JSON="$ROOT_DIR/adapters/claude-code/hooks/hooks.json"
+
+# AC-9: Hook registered in hooks.json
+if jq -e '.hooks.PreToolUse' "$HOOKS_JSON" > /dev/null 2>&1; then
+  if jq -r '.hooks.PreToolUse[].hooks[].command // ""' "$HOOKS_JSON" | grep -q 'pre-ship-guard'; then
+    pass "AC-9: PreToolUse hook registered for pre-ship-guard.mjs"
+  else
+    fail "AC-9: PreToolUse entry exists but doesn't reference pre-ship-guard"
+  fi
+else
+  fail "AC-9: No PreToolUse entry in hooks.json"
+fi
+
+# AC-9: Matcher is Bash
+if jq -r '.hooks.PreToolUse[].matcher // ""' "$HOOKS_JSON" | grep -q 'Bash'; then
+  pass "AC-9b: PreToolUse matcher includes Bash"
+else
+  fail "AC-9b: PreToolUse matcher does not include Bash"
+fi
+
+# AC-8: Hook file exists and is valid Node.js
+if [ -f "$HOOK_FILE" ]; then
+  pass "AC-8a: pre-ship-guard.mjs exists"
+else
+  fail "AC-8a: pre-ship-guard.mjs does not exist"
+fi
+
+if [ -f "$HOOK_FILE" ] && node --check "$HOOK_FILE" 2>/dev/null; then
+  pass "AC-8b: pre-ship-guard.mjs passes node --check"
+else
+  fail "AC-8b: pre-ship-guard.mjs fails node --check"
+fi
+
+# AC-8: Hook subprocess tests (a-d from spec)
+# Helper: run hook with given stdin JSON and project dir, check exit code
+run_hook() {
+  local stdin_json="$1"
+  local project_dir="$2"
+  echo "$stdin_json" | node "$HOOK_FILE" "$project_dir" > /dev/null 2>&1
+}
+
+if [ -f "$HOOK_FILE" ]; then
+  TMPDIR_HOOK=$(mktemp -d)
+  trap 'rm -rf "$TMPDIR_HOOK"' EXIT
+
+  # (a) Non-matching command → exit 0
+  if run_hook '{"tool_name":"Bash","tool_input":{"command":"ls -la"}}' "$TMPDIR_HOOK"; then
+    pass "AC-8c: non-matching command exits 0"
+  else
+    fail "AC-8c: non-matching command should exit 0"
+  fi
+
+  # (b) Matching command with building status → exit non-zero
+  mkdir -p "$TMPDIR_HOOK/.specwright/state"
+  cat > "$TMPDIR_HOOK/.specwright/state/workflow.json" <<WEOF
+{"version":"2.0","currentWork":{"id":"test","status":"building","workDir":".specwright/work/test"},"gates":{},"lock":null,"lastUpdated":"2026-01-01T00:00:00Z"}
+WEOF
+  if ! run_hook '{"tool_name":"Bash","tool_input":{"command":"gh pr create --title test"}}' "$TMPDIR_HOOK"; then
+    pass "AC-8d: matching command with building status exits non-zero"
+  else
+    fail "AC-8d: matching command with building status should exit non-zero"
+  fi
+
+  # (c) Matching command with shipping status → exit 0
+  cat > "$TMPDIR_HOOK/.specwright/state/workflow.json" <<WEOF
+{"version":"2.0","currentWork":{"id":"test","status":"shipping","workDir":".specwright/work/test"},"gates":{},"lock":null,"lastUpdated":"2026-01-01T00:00:00Z"}
+WEOF
+  if run_hook '{"tool_name":"Bash","tool_input":{"command":"gh pr create --title test"}}' "$TMPDIR_HOOK"; then
+    pass "AC-8e: matching command with shipping status exits 0"
+  else
+    fail "AC-8e: matching command with shipping status should exit 0"
+  fi
+
+  # (d) Matching command with no workflow.json → exit 0
+  TMPDIR_HOOK2=$(mktemp -d)
+  if run_hook '{"tool_name":"Bash","tool_input":{"command":"gh pr create --title test"}}' "$TMPDIR_HOOK2"; then
+    pass "AC-8f: matching command with no workflow.json exits 0"
+  else
+    fail "AC-8f: matching command with no workflow.json should exit 0"
+  fi
+  rm -rf "$TMPDIR_HOOK2"
+
+  # AC-10: Fast-exit — non-matching command with no workflow.json → exit 0
+  TMPDIR_HOOK3=$(mktemp -d)
+  if run_hook '{"tool_name":"Bash","tool_input":{"command":"npm test"}}' "$TMPDIR_HOOK3"; then
+    pass "AC-10: fast-exit on non-matching command (no workflow.json, no error)"
+  else
+    fail "AC-10: fast-exit failed — hook read workflow.json on non-matching command"
+  fi
+  rm -rf "$TMPDIR_HOOK3"
+
+  # Reset to building for remaining pattern tests
+  cat > "$TMPDIR_HOOK/.specwright/state/workflow.json" <<WEOF
+{"version":"2.0","currentWork":{"id":"test","status":"building","workDir":".specwright/work/test"},"gates":{},"lock":null,"lastUpdated":"2026-01-01T00:00:00Z"}
+WEOF
+
+  # Test gh api /pulls pattern
+  if ! run_hook '{"tool_name":"Bash","tool_input":{"command":"gh api repos/foo/bar/pulls --method POST"}}' "$TMPDIR_HOOK"; then
+    pass "AC-8g: gh api /pulls pattern detected and blocked"
+  else
+    fail "AC-8g: gh api /pulls pattern should be blocked during building"
+  fi
+
+  # Test curl pattern
+  if ! run_hook '{"tool_name":"Bash","tool_input":{"command":"curl -X POST https://api.github.com/repos/foo/bar/pulls"}}' "$TMPDIR_HOOK"; then
+    pass "AC-8h: curl api.github.com/pulls pattern detected and blocked"
+  else
+    fail "AC-8h: curl api.github.com/pulls pattern should be blocked"
+  fi
+
+  rm -rf "$TMPDIR_HOOK"
+else
+  fail "AC-8c: skipped (hook file missing)"
+  fail "AC-8d: skipped (hook file missing)"
+  fail "AC-8e: skipped (hook file missing)"
+  fail "AC-8f: skipped (hook file missing)"
+  fail "AC-10: skipped (hook file missing)"
+  fail "AC-8g: skipped (hook file missing)"
+  fail "AC-8h: skipped (hook file missing)"
+fi
+
+echo ""
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo "=== Results ==="
