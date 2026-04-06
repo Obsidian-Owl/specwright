@@ -54,6 +54,7 @@ relevant to the current task, not the full document.
 |-------|-------|---------|------------|
 | specwright-architect | opus | Design, review, critic | READ-ONLY |
 | specwright-tester | opus | Write brutal tests, audit test quality | Adversarial mindset |
+| specwright-integration-tester | opus | Write integration/contract/E2E tests at boundaries | No skip conditions. No mocking internal boundaries. |
 | specwright-executor | sonnet | Implementation (make tests pass) | No subagents |
 | specwright-reviewer | opus | Code quality, spec compliance | READ-ONLY |
 | specwright-build-fixer | sonnet | Build/test error fixes | Minimal diffs only |

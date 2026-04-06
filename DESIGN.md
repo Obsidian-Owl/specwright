@@ -35,7 +35,7 @@ How the user wants code written. Testing standards, coding conventions, security
 What is this repo? What are we building? Who are the consumers? Architectural invariants. The things that don't change. Referenced by plan to ensure alignment, validated by verify.
 
 **TESTING.md** -- Testing Strategy (optional)
-How the project should be tested. Classifies boundaries as internal (test with real components), external (mock with contracts), or expensive (mock with rationale). Lists test infrastructure and mock allowances. Created by sw-init, consumed by tester agent and gate-tests, updated by sw-learn. Precedence: Constitution > TESTING.md > patterns.md. See `protocols/testing-strategy.md`.
+How the project should be tested. Classifies boundaries as internal (test with real components), external (mock with contracts), or expensive (mock with rationale). Includes testing tier classification rules mapping boundaries to tiers (`[tier: unit/integration/contract/e2e]`). Lists test infrastructure and mock allowances. Created by sw-init, consumed by tester agent, specwright-integration-tester agent, and gate-tests, updated by sw-learn. Precedence: Constitution > TESTING.md > patterns.md. See `protocols/testing-strategy.md`.
 
 ## Reference Documents
 
@@ -57,7 +57,7 @@ Validated, referenced findings about external systems: API documentation, SDK co
 | `sw-init` | Project setup | Ask, detect, configure. Creates constitution + charter |
 | `sw-design` | Interactive solution architecture | Research, design, adversarial critic, assumption surfacing, user approval throughout |
 | `sw-plan` | Decompose + spec | Per-unit specs with individual user approval. Self-contained unit directories |
-| `sw-build` | TDD implementation | Tester → executor delegation. Context doc travels with agents |
+| `sw-build` | TDD implementation | Tester → executor → specwright-integration-tester delegation. Tier-aware: unit ACs to tester, non-unit ACs to specwright-integration-tester. Context doc travels with agents |
 | `sw-verify` | Interactive quality gates | Shows findings, not badges. Orchestrates gate skills in dependency order. Enriched handoff with actionable findings table |
 | `sw-ship` | Strategy-aware merge | PR with evidence-mapped body |
 | `sw-status` | Where am I, what's done, what's next | Supports --reset to abandon work, --cleanup for orphaned work dirs |
@@ -228,7 +228,7 @@ specwright/
 │   │   ├── gate-spec/
 │   │   └── gate-wiring/
 │   ├── protocols/         # Shared protocols (loaded on demand)
-│   └── agents/            # Custom subagent definitions (6 agents)
+│   └── agents/            # Custom subagent definitions (7 agents)
 ├── adapters/              # Platform-specific packaging
 │   ├── claude-code/       # Claude Code adapter
 │   │   ├── .claude-plugin/  # Plugin metadata
