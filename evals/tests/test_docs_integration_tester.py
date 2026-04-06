@@ -108,8 +108,8 @@ class TestDelegationRosterEntry(unittest.TestCase):
 
     def test_roster_has_seven_agent_rows(self):
         """The roster must have exactly 7 agent rows (was 6, +1 for integration tester)."""
-        # Filter out the header row
-        data_rows = [r for r in self.rows if not r.startswith("| Agent")]
+        # Skip the header row (first row returned by _extract_table_rows)
+        data_rows = self.rows[1:] if self.rows else []
         self.assertEqual(
             len(data_rows), 7,
             f"Expected 7 agent rows in roster, found {len(data_rows)}"

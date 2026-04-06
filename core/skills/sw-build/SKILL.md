@@ -76,13 +76,27 @@ Work one task at a time. Complete before starting the next. After each task comm
 
 The sequence is strict: RED → GREEN → REFACTOR. Never skip RED.
 
-1. **RED**: Delegate to `specwright-tester` with the task's acceptance criteria,
+1. **RED**: Delegate to `specwright-tester` with the task's unit-tier acceptance criteria,
    context.md, and constitution. The tester writes tests designed to be hard to
    pass. Run tests to confirm they fail.
 2. **GREEN**: Delegate to `specwright-executor` with the failing tests, context.md,
    plan.md, and constitution. The executor writes minimal code to pass. Run
    build + tests to confirm they pass.
-3. **REFACTOR**: Executor may refactor code written in THIS task only. Tests must still pass. No adjacent code cleanup.
+3. **INTEGRATION**: After GREEN, check the task's ACs for tier tags. If any AC has
+   `[tier: integration]`, `[tier: contract]`, or `[tier: e2e]`, delegate those
+   non-unit ACs to `specwright-integration-tester`. Include in the delegation
+   prompt: repo map content (same as RED/GREEN), the non-unit ACs and their tier
+   tags, relevant file paths, config.json languages field, and a reference to
+   TESTING.md for boundary context. If
+   integration tests fail, delegate to `specwright-build-fixer` (max 2 attempts) —
+   the fixer should check infrastructure health before assuming code is wrong. If
+   still failing: interactive — present to user; headless — abort per headless
+   protocol. If no non-unit ACs exist for this task, skip this step entirely —
+   zero additional overhead for tasks with no non-unit tier tags.
+4. **REGRESSION CHECK**: Run the project's configured test commands (`commands.test`
+   and `commands.test:integration` if configured) to confirm nothing regressed —
+   both unit and integration tests must pass before proceeding.
+5. **REFACTOR**: Executor may refactor code written in THIS task only. Tests must still pass. No adjacent code cleanup.
 
 **Context envelope (LOW freedom):**
 When delegating, include in the prompt (in this order):
@@ -132,9 +146,12 @@ If `commands.test:integration` is configured, run it (5-minute timeout). On pass
 in status card. On fail, delegate to `specwright-build-fixer` (max 2 attempts) — the
 fixer should check infrastructure health before assuming code is wrong. If still failing
 after 2 attempts: interactive — present to user (including abort); headless — skip and
-record in headless-result.json. If unconfigured, skip silently. Note: verify re-runs
-integration tests via gate-build; the inner-loop catch is earlier, when fixer context
-is fresh.
+record in headless-result.json. If unconfigured, skip silently. Note: integration tests
+may have already run during the task loop via tier-aware delegation to
+specwright-integration-tester. The inner-loop validation runs the project's full
+configured integration suite, which may include tests beyond those written for this WU.
+Verify re-runs integration tests via gate-build; the inner-loop catch is earlier, when
+fixer context is fresh.
 
 **Parallel execution — experimental (MEDIUM freedom):**
 - Follow `protocols/parallel-build.md` when all prerequisites are met:
