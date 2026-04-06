@@ -1,0 +1,2 @@
+# Eval fixture: intentionally planted secrets for gate-security testing
+evals/suites/gate/fixtures/gate-security/planted-vulns/src/server.js:generic-api-key:9

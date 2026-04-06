@@ -1,0 +1,8 @@
+{
+  "id": "gate-security-planted-vulns",
+  "description": "Node.js project with 3 planted security vulnerabilities for gate-security evaluation",
+  "setup": { "type": "copy" },
+  "skill": "sw-verify",
+  "skill_args": "--gate=security",
+  "timeout": 120
+}
