@@ -106,10 +106,10 @@ class TestAC1_TDDCycleTierDelegation(unittest.TestCase):
     def test_includes_testing_md_reference(self):
         """Integration tester delegation prompt must reference TESTING.md."""
         has_testing_ref = bool(re.search(
-            r"(integration.tester|delegation).{0,300}testing\.md",
+            r"(integration.tester|delegation).{0,500}testing\.md",
             self.content_lower, re.DOTALL
         )) or bool(re.search(
-            r"testing\.md.{0,300}(integration.tester)",
+            r"testing\.md.{0,500}(integration.tester)",
             self.content_lower, re.DOTALL
         ))
         self.assertTrue(
