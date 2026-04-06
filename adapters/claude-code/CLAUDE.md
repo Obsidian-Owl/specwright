@@ -41,7 +41,7 @@ Constitution and Charter are created during init. TESTING.md is created during i
 
 - `skills/` -- SKILL.md files (goal + constraints, not procedures)
 - `protocols/` -- Shared protocols for fragile operations (loaded on demand)
-- `agents/` -- Agent prompt definitions
+- `agents/` -- Agent prompt definitions (7 agents: architect, tester, integration-tester, executor, reviewer, build-fixer, researcher)
 - `.specwright/` -- Runtime state, config, anchor docs, work artifacts
 
 See `DESIGN.md` for the full architecture document.
