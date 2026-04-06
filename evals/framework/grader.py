@@ -207,6 +207,47 @@ def check_file_contains(path: str, pattern: str, workdir: str) -> CheckResult:
     )
 
 
+def check_file_not_contains(path: str, pattern: str, workdir: str) -> CheckResult:
+    """Return passed=True when pattern does NOT match file content."""
+    full_path = os.path.join(workdir, path)
+    try:
+        with open(full_path, "r") as f:
+            content = f.read()
+    except FileNotFoundError:
+        return CheckResult(
+            type="file_not_contains",
+            description=f"File not contains pattern: {pattern}",
+            passed=False,
+            evidence=f"File not found: {path}",
+            score=0.0,
+        )
+    except OSError as exc:
+        return CheckResult(
+            type="file_not_contains",
+            description=f"File not contains pattern: {pattern}",
+            passed=False,
+            evidence=f"Error reading {path}: {exc}",
+            score=0.0,
+        )
+
+    if re.search(pattern, content):
+        return CheckResult(
+            type="file_not_contains",
+            description=f"File not contains pattern: {pattern}",
+            passed=False,
+            evidence=f"Pattern found in {path} (should be absent)",
+            score=0.0,
+        )
+
+    return CheckResult(
+        type="file_not_contains",
+        description=f"File not contains pattern: {pattern}",
+        passed=True,
+        evidence=f"Pattern confirmed absent in {path}",
+        score=1.0,
+    )
+
+
 def check_tests_pass(command: str, workdir: str) -> CheckResult:
     """Return passed=True when subprocess exits with code 0.
 
@@ -578,6 +619,11 @@ def _dispatch_expectation(
 
     if check_type == "file_contains":
         return check_file_contains(
+            expectation["path"], expectation["pattern"], workdir
+        )
+
+    if check_type == "file_not_contains":
+        return check_file_not_contains(
             expectation["path"], expectation["pattern"], workdir
         )
 

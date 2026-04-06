@@ -36,6 +36,7 @@ from evals.framework.grader import (
     check_file_exists,
     check_file_not_exists,
     check_file_contains,
+    check_file_not_contains,
     check_tests_pass,
     check_state,
     check_state_transition,
@@ -317,6 +318,46 @@ class TestCheckFileContainsBoundary(unittest.TestCase):
         d = _make_workdir_with_file("multi.txt", "line1\nline2\nline3")
         # Pattern that just matches within one line should work
         result = check_file_contains("multi.txt", "line2", d)
+        self.assertTrue(result.passed)
+        shutil.rmtree(d, ignore_errors=True)
+
+
+# ===========================================================================
+# check_file_not_contains
+# ===========================================================================
+
+class TestCheckFileNotContains(unittest.TestCase):
+    """Tests for check_file_not_contains — inverse of check_file_contains."""
+
+    def test_passed_when_pattern_absent(self):
+        d = _make_workdir_with_file("clean.txt", "no secrets here")
+        result = check_file_not_contains("clean.txt", "CWE-636", d)
+        self.assertTrue(result.passed)
+        self.assertEqual(result.score, 1.0)
+        shutil.rmtree(d, ignore_errors=True)
+
+    def test_failed_when_pattern_present(self):
+        d = _make_workdir_with_file("dirty.txt", "Found CWE-636 vulnerability")
+        result = check_file_not_contains("dirty.txt", "CWE-636", d)
+        self.assertFalse(result.passed)
+        self.assertEqual(result.score, 0.0)
+        shutil.rmtree(d, ignore_errors=True)
+
+    def test_failed_when_file_missing(self):
+        d = tempfile.mkdtemp()
+        result = check_file_not_contains("missing.txt", "anything", d)
+        self.assertFalse(result.passed)
+        shutil.rmtree(d, ignore_errors=True)
+
+    def test_type_is_file_not_contains(self):
+        d = _make_workdir_with_file("test.txt", "content")
+        result = check_file_not_contains("test.txt", "missing", d)
+        self.assertEqual(result.type, "file_not_contains")
+        shutil.rmtree(d, ignore_errors=True)
+
+    def test_regex_pattern_support(self):
+        d = _make_workdir_with_file("test.txt", "error code 404")
+        result = check_file_not_contains("test.txt", r"CWE-\d+", d)
         self.assertTrue(result.passed)
         shutil.rmtree(d, ignore_errors=True)
 
