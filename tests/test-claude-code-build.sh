@@ -195,12 +195,12 @@ if [ -d "$CC_DIST/skills" ]; then
   done
 fi
 
-# ─── agents/ directory: exactly 6 .md files ──────────────────────────
+# ─── agents/ directory: exactly 7 .md files ──────────────────────────
 
 echo "--- agents/ directory ---"
 
-EXPECTED_AGENTS="specwright-architect specwright-build-fixer specwright-executor specwright-researcher specwright-reviewer specwright-tester"
-EXPECTED_AGENT_COUNT=6
+EXPECTED_AGENTS="specwright-architect specwright-build-fixer specwright-executor specwright-integration-tester specwright-researcher specwright-reviewer specwright-tester"
+EXPECTED_AGENT_COUNT=7
 
 if [ -d "$CC_DIST/agents" ]; then
   pass "agents/ directory exists"
