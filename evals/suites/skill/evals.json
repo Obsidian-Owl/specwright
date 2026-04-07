@@ -265,6 +265,122 @@
         }
       ],
       "tags": ["skill", "sw-build", "rate-limiter", "subagent-quality", "non-trivial"]
+    },
+    {
+      "id": "sw-design-handoff-format",
+      "layer": "skill",
+      "skill": "sw-design",
+      "prompt_template": "design",
+      "prompt_args": {"topic": "add a hello-world function"},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/skill/fixtures/handoff-format/trivial-task"
+      },
+      "expectations": [
+        {
+          "type": "transcript_final_block",
+          "line_patterns": [
+            "^Done\\.\\s+.+\\.$",
+            "^Artifacts:\\s+.+/$",
+            "^Next:\\s+/sw-[a-z\\-]+$"
+          ],
+          "forbidden_substrings": [
+            "Decision Digest",
+            "Quality Checks",
+            "### Deficiencies",
+            "### Recommendation"
+          ],
+          "description": "sw-design emits the three-line gate handoff format with no four-section template leakage"
+        }
+      ],
+      "tags": ["skill", "sw-design", "handoff-format", "legibility-recovery", "unit-01"]
+    },
+    {
+      "id": "sw-plan-handoff-format",
+      "layer": "skill",
+      "skill": "sw-plan",
+      "prompt_template": "plan",
+      "prompt_args": {},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/skill/fixtures/handoff-format/post-design"
+      },
+      "expectations": [
+        {
+          "type": "transcript_final_block",
+          "line_patterns": [
+            "^Done\\.\\s+.+\\.$",
+            "^Artifacts:\\s+.+/$",
+            "^Next:\\s+/sw-[a-z\\-]+$"
+          ],
+          "forbidden_substrings": [
+            "Decision Digest",
+            "Quality Checks",
+            "### Deficiencies",
+            "### Recommendation"
+          ],
+          "description": "sw-plan emits the three-line gate handoff format"
+        }
+      ],
+      "tags": ["skill", "sw-plan", "handoff-format", "legibility-recovery", "unit-01"]
+    },
+    {
+      "id": "sw-verify-handoff-format",
+      "layer": "skill",
+      "skill": "sw-verify",
+      "prompt_template": "verify",
+      "prompt_args": {},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/skill/fixtures/handoff-format/post-build"
+      },
+      "expectations": [
+        {
+          "type": "transcript_final_block",
+          "line_patterns": [
+            "^Done\\.\\s+.+\\.$",
+            "^Artifacts:\\s+.+/$",
+            "^Next:\\s+/sw-[a-z\\-]+$"
+          ],
+          "forbidden_substrings": [
+            "Decision Digest",
+            "Quality Checks",
+            "### Deficiencies",
+            "### Recommendation"
+          ],
+          "description": "sw-verify emits the three-line gate handoff format"
+        }
+      ],
+      "tags": ["skill", "sw-verify", "handoff-format", "legibility-recovery", "unit-01"]
+    },
+    {
+      "id": "sw-ship-handoff-format",
+      "layer": "skill",
+      "skill": "sw-ship",
+      "prompt_template": "ship",
+      "prompt_args": {},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/skill/fixtures/handoff-format/post-verify"
+      },
+      "expectations": [
+        {
+          "type": "transcript_final_block",
+          "line_patterns": [
+            "^Done\\.\\s+.+\\.$",
+            "^Artifacts:\\s+.+/$",
+            "^Next:\\s+/sw-[a-z\\-]+$"
+          ],
+          "forbidden_substrings": [
+            "Decision Digest",
+            "Quality Checks",
+            "### Deficiencies",
+            "### Recommendation"
+          ],
+          "description": "sw-ship emits the three-line gate handoff format"
+        }
+      ],
+      "tags": ["skill", "sw-ship", "handoff-format", "legibility-recovery", "unit-01"]
     }
   ]
 }
