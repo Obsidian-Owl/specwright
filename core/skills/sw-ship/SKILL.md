@@ -76,6 +76,14 @@ Follow `protocols/state.md`. State lifecycle for shipping:
 If `workUnits` exists: update entry to `shipped`, advance to next `planned` unit
 (set `building`, reset gates), handoff. If no more units: "All work units complete."
 
+**Gate handoff (LOW freedom):**
+On completion, emit the three-line handoff per the `protocols/decision.md`
+Gate Handoff section. The one-line outcome names the PR (e.g.,
+"PR #142 created"). The Artifacts: line points at the work unit directory.
+The Next: line points to `/sw-build` for the next unit if more units are
+queued, or "no more units — consider /sw-learn" if the work is complete.
+sw-learn is optional.
+
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope, termination, and handoff

@@ -115,9 +115,11 @@ plan.md contains structure, not implementation. Allowed: signatures, types, cont
 directory structure, config examples. NOT allowed: function bodies, algorithm logic.
 
 **Gate handoff (LOW freedom):**
-Present the gate using `protocols/decision.md` gate handoff template: artifact (spec.md
-for all units), decision digest, quality checks (spec-review results), deficiencies,
-recommendation. The user reviews and approves before `/sw-build` begins.
+On completion, emit the three-line handoff per the `protocols/decision.md`
+Gate Handoff section. Detail lives in the artifact files (`spec.md` /
+`plan.md` / `context.md` for each unit, `integration-criteria.md` for
+multi-unit work). The user reads the artifacts and runs `/sw-build`
+when ready.
 
 **State mutations (LOW freedom):**
 Follow `protocols/state.md`. Transition `designing` → `planning`. Multi-unit: populate

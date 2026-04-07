@@ -94,28 +94,20 @@ Every autonomous decision is recorded in `{workDir}/decisions.md`:
 
 CCR-reviewed decisions add: `**CCR verdict**: PASS | BLOCK` and `**CCR findings**`.
 
-## Gate Handoff Template
+## Gate Handoff
+
+When a pipeline skill finishes, emit exactly three lines:
 
 ```
-## Gate: {skill} → {next skill}
-
-### Artifact
-{link to design.md, spec.md, branch diff, or aggregate report}
-
-### Decision Digest
-{N} decisions: {X Type 1, Y Type 2} | {categories breakdown}
-**Attention**: {agent-classified Type 1, CCR-reviewed, deficiencies only}
-Full log: decisions.md
-
-### Quality Checks
-{convergence/spec-review/gate results}
-
-### Deficiencies
-{unresolved Type 1 assumptions, persistent BLOCKs, unfixed errors}
-
-### Recommendation
-{"Approve" | "Review D-{n}" | "Redesign — see deficiencies"}
+Done. {one-line outcome}.
+Artifacts: {workDir}/
+Next: /sw-{next-skill}
 ```
+
+The detail lives in the artifact files (`design.md`, `spec.md`, evidence
+reports, decisions.md). The terminal output is the pointer, not the
+report. The user reads the artifacts on their schedule — humans review
+at skill transitions like reviewing a PR, not like pair programming.
 
 ## Precedence
 

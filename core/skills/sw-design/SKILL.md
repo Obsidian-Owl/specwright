@@ -85,9 +85,10 @@ NEVER write specs, decompose, implement, branch, or test. After gate handoff, ST
   implies a change, treat as change request. Otherwise, present status at the gate.
 
 **Gate handoff (LOW freedom):**
-- Present the gate using `protocols/decision.md` gate handoff template: artifact,
-  decision digest, quality checks, deficiencies, recommendation.
-- The user reviews and approves before `/sw-plan` begins.
+On completion, emit the three-line handoff per the `protocols/decision.md`
+Gate Handoff section. Detail lives in the artifact files
+(`design.md`, `decisions.md`, `assumptions.md`, `context.md`). The user
+reads the artifacts and runs `/sw-plan` when ready.
 
 **State mutations (LOW freedom):**
 Follow `protocols/state.md` for read-modify-write mechanics. Postconditions:
