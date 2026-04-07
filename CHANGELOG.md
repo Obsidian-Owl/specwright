@@ -35,6 +35,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.27.1] - 2026-04-07
+
+### Changed
+
+- feat: stage enforcement — shipping state, PreToolUse hook, evidence integrity (#144)
+
 ## [0.27.0] - 2026-04-06
 
 ### Changed
