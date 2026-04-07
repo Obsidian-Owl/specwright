@@ -51,6 +51,14 @@ After all tasks:
 
 ## Constraints
 
+**Execution model (LOW freedom):**
+This skill runs in the foreground, in the same turn the user invoked the slash command.
+There is no `run_in_background` parameter on the `Skill` tool — only `Bash` and `Agent`
+support backgrounding. "Autonomous" in Specwright means *unattended decision-making
+between gates within the current turn*, not *detached background process*. Do not
+attempt to fire-and-forget this skill or report that it is "running in the background."
+To run hands-off across many tasks, the user invokes `/sw-build` and lets it proceed.
+
 **Stage boundary (LOW freedom):**
 Follow `protocols/stage-boundary.md`. This skill implements one work unit via TDD. Handoff to `/sw-verify`.
 NEVER create PRs (`gh pr create`) or invoke `/sw-ship` during building. PR creation
