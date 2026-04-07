@@ -3,6 +3,12 @@
 How skills make decisions without human intervention between gates. Skills consult
 this protocol at decision points — it is reference material, not loaded at start.
 
+> **"Autonomous" means unattended decision-making within a single turn — not detached
+> execution.** Skills cannot be backgrounded or detached. The `Skill` tool has no
+> `run_in_background` parameter (only `Bash` and `Agent` do). To run a skill hands-off,
+> the user invokes the slash command and lets it proceed in the foreground. For true
+> non-interactive (CI/CD) execution see `protocols/headless.md`.
+
 ## Reversibility Classification
 
 Classify every decision by **structural rules first, agent judgment second**.
