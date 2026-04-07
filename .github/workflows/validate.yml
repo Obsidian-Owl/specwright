@@ -114,6 +114,10 @@ jobs:
           python-version: '3.11'
       - name: Install eval dependencies
         run: pip install pytest pyyaml
+      - name: Configure git for tests
+        run: |
+          git config --global user.email "ci@specwright.local"
+          git config --global user.name "CI"
       - name: Run eval framework tests
         run: python -m pytest evals/tests/ -v --ignore=evals/tests/test_aggregator.py
 
