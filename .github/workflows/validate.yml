@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   version-consistency:
     runs-on: ubuntu-latest
@@ -110,7 +113,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install eval dependencies
-        run: pip install pytest
+        run: pip install pytest pyyaml
       - name: Run eval framework tests
         run: python -m pytest evals/tests/ -v --ignore=evals/tests/test_aggregator.py
 
@@ -120,6 +123,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install gitleaks
+        run: |
+          GITLEAKS_VERSION=8.21.2
+          curl -sSL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo mv gitleaks /usr/local/bin/
+          gitleaks version
+      - name: Run gitleaks
+        run: gitleaks detect --no-banner --verbose --redact --source .
