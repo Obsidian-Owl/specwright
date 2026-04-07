@@ -12,7 +12,7 @@
   "currentWork": {
     "id": "string, kebab-case",
     "description": "string",
-    "status": "designing | planning | building | verifying | shipped | abandoned",
+    "status": "designing | planning | building | verifying | shipping | shipped | abandoned",
     "workDir": ".specwright/work/{id}",
     "unitId": "string | null",
     "tasksTotal": "number | null",
@@ -29,7 +29,7 @@
     }
   },
   "workUnits": [
-    { "id": "string", "description": "string", "status": "pending | planned | building | verifying | shipped | abandoned", "order": "number", "workDir": "string" }
+    { "id": "string", "description": "string", "status": "pending | planned | building | verifying | shipping | shipped | abandoned", "order": "number", "workDir": "string" }
   ],
   "lock": {
     "skill": "string",
@@ -46,7 +46,7 @@
 
 `baselineCommit` is the SHA of the base branch HEAD at design start. Set by sw-design when creating `currentWork`. Never mutated after initial set (sw-pivot does not change it). Cleared when `currentWork` is cleared to null by sw-learn. Also recorded in `{workDir}/context.md` by sw-design for historical reference (survives currentWork clearing).
 
-`workUnits` entry statuses: `pending` (not yet planned), `planned` (spec written and approved, waiting to be activated), `building`/`verifying`/`shipped`/`abandoned` (same as currentWork). The `planned` status is set by sw-plan after a unit's spec is individually approved. Each entry's `workDir` is the artifact directory path for that unit (source of truth — skills read this field, never construct paths from id).
+`workUnits` entry statuses: `pending` (not yet planned), `planned` (spec written and approved, waiting to be activated), `building`/`verifying`/`shipping`/`shipped`/`abandoned` (same as currentWork). The `planned` status is set by sw-plan after a unit's spec is individually approved. Each entry's `workDir` is the artifact directory path for that unit (source of truth — skills read this field, never construct paths from id).
 
 ## State Transitions
 
@@ -59,7 +59,9 @@ Valid transitions for `currentWork.status`:
 | `planning` | `building` | sw-plan (all specs approved) or sw-build |
 | `building` | `verifying` | sw-verify |
 | `verifying` | `building` | fix after failed verify |
-| `verifying` | `shipped` | sw-ship |
+| `verifying` | `shipping` | sw-ship (gates pass, evidence exists) |
+| `shipping` | `shipped` | sw-ship (PR created successfully) |
+| `shipping` | `verifying` | sw-ship (push or PR creation failed — rollback) |
 | `shipped` | `building` | sw-ship (next unit advancement) |
 | `shipped` | (none) | sw-learn (clears `currentWork` to null) |
 | any | `abandoned` | sw-status --reset |

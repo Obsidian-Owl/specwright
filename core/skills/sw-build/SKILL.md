@@ -53,6 +53,9 @@ After all tasks:
 
 **Stage boundary (LOW freedom):**
 Follow `protocols/stage-boundary.md`. This skill implements one work unit via TDD. Handoff to `/sw-verify`.
+NEVER create PRs (`gh pr create`) or invoke `/sw-ship` during building. PR creation
+is only permitted in the `shipping` state, which is entered via `/sw-ship` after
+`/sw-verify` gates pass.
 
 **Branch setup (LOW freedom) — FIRST action before any coding:**
 Postcondition: A feature branch is checked out, synced with the base branch per `protocols/git.md` branch lifecycle.

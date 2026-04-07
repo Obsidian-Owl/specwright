@@ -667,7 +667,7 @@ echo "--- No unexpected hook files ---"
 
 if [ -d "$CC_DIST/hooks" ]; then
   HOOK_MJS_COUNT=$(find "$CC_DIST/hooks" -maxdepth 1 -name '*.mjs' -type f | wc -l | tr -d ' ')
-  assert_eq "$HOOK_MJS_COUNT" "5" "hooks/ has exactly 5 .mjs files"
+  assert_eq "$HOOK_MJS_COUNT" "6" "hooks/ has exactly 6 .mjs files"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════

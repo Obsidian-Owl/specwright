@@ -39,25 +39,42 @@ Follow `protocols/stage-boundary.md`. Create PRs and mark shipped. NEVER start n
 work, run builds, or begin next unit. After PR: show URL, suggest `/sw-learn`, handoff.
 
 **Pre-flight checks (LOW freedom):**
-- Verify `currentWork` exists and status is `verifying` or `building`.
-- All enabled gates must have status PASS, WARN, or SKIP. FAIL → STOP.
-- Evidence freshness: results >30 minutes → warning (logged, not blocking).
+- Verify `currentWork` exists and status is `verifying`. Reject `building` with:
+  "Run /sw-verify first." Reject all other statuses with the standard transition error.
+- All enabled gates in `config.gates` must have a verdict in `workflow.json`. Gates
+  without a verdict → STOP: "Gate {name} has no verdict. Run /sw-verify first."
+- No gate verdict may be `FAIL` or `ERROR`. FAIL/ERROR → STOP: "Gate {name} failed.
+  Fix and re-run /sw-verify."
+- Evidence files must exist at `{workDir}/evidence/{gate-name}-report.md` for each
+  gate with a non-SKIP verdict. Missing evidence file → STOP: "Evidence missing for
+  gate {name}. Re-run /sw-verify."
 - Uncommitted changes: commit only files within the work unit's plan.md file-change-map.
   Report out-of-scope uncommitted files in the gate handoff — do not commit them.
-  The PR diff is the review surface.
 
 **PR creation (MEDIUM freedom):**
 - Follow `protocols/git.md` for push and PR operations.
 - Always create PR (both interactive and headless — PRs are the universal review gate).
 - PR title follows `config.git.commitFormat` style.
+- PR body gate results MUST be sourced from `workflow.json` gate verdicts and
+  `{workDir}/evidence/` files. For each enabled gate: read the verdict from
+  `workflow.json`. For non-SKIP gates: read the evidence file. Never infer
+  verdicts from build output — only report what is recorded in `workflow.json`
+  and backed by an evidence file. SKIP gates show "SKIP".
+  (Pre-flight has already verified that all non-SKIP gates have evidence files,
+  so this reading step is guaranteed to succeed.)
 - PR body structure: Summary, Acceptance Criteria (status + evidence per criterion),
-  Blast Radius, Gate Results (with SKIP gates marked), Evidence links.
+  Blast Radius, Gate Results (sourced from evidence), Evidence links.
 - Use HEREDOC for PR body.
 
 **State updates (LOW freedom):**
-Follow `protocols/state.md`. Set `shipped` after PR creation. If `workUnits` exists:
-update entry to `shipped`, advance to next `planned` unit (set `building`, reset gates),
-handoff. If no more units: "All work units complete."
+Follow `protocols/state.md`. State lifecycle for shipping:
+1. After pre-flight passes: set status to `shipping` (write workflow.json).
+2. Push branch, create PR.
+3. After successful PR creation: set status to `shipped`.
+4. If push or PR creation fails: revert status to `verifying` (rollback transition).
+
+If `workUnits` exists: update entry to `shipped`, advance to next `planned` unit
+(set `building`, reset gates), handoff. If no more units: "All work units complete."
 
 ## Protocol References
 
@@ -72,9 +89,13 @@ handoff. If no more units: "All work units complete."
 
 | Condition | Action |
 |-----------|--------|
-| Gates not passed | STOP: "Run /sw-verify first" |
+| Status is `building` | STOP: "Run /sw-verify first." |
+| Gates not passed | STOP: "Gate {name} failed. Fix and re-run /sw-verify." |
+| Gate has no verdict | STOP: "Gate {name} has no verdict. Run /sw-verify first." |
 | No git changes to ship | STOP: "Nothing to ship." |
-| PR creation fails | Show error. Don't update state. |
-| Evidence files missing | WARN in PR body: "Evidence not available for gate X" |
+| Push fails during shipping | Revert status to `verifying`. Show error. |
+| PR creation fails during shipping | Revert status to `verifying`. Show error. |
+| Evidence files missing (pre-flight) | STOP: "Evidence missing for gate {name}. Re-run /sw-verify." |
 | gh CLI not installed | STOP: "Install gh CLI" |
-| Compaction during ship | Read workflow.json, check if PR already created |
+| Stale shipping state on entry | Status is `shipping` from prior failed attempt. Check `gh pr list --head {branch}` — if PR exists: set `shipped`, show URL. If no PR: revert to `verifying`, suggest re-running /sw-ship. |
+| Compaction during shipping | Recovery reads `shipping` status. Check `gh pr list --head {branch}` — if PR exists: set `shipped`. If no PR: revert to `verifying`. |

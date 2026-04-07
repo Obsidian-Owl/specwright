@@ -207,6 +207,10 @@ export default async function (ctx: { directory: string; on: (event: string, han
         }
       }
 
+      const shippingWarning = status === 'shipping'
+        ? '\n  ⚠ Status is "shipping" — PR creation was in progress. Run /sw-ship to check if the PR was created or to retry.'
+        : '';
+
       const summary = [
         'Specwright: Work in progress',
         `  Unit: ${workId} (${status})`,
@@ -215,6 +219,7 @@ export default async function (ctx: { directory: string; on: (event: string, han
         `  Gates: ${gatesSummary}`,
         `  Spec: ${workDir}/spec.md`,
         `  Plan: ${workDir}/plan.md`,
+        shippingWarning || null,
         continuationContent || null,
       ].filter(Boolean).join('\n');
 

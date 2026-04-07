@@ -72,6 +72,10 @@ try {
     const workDir = work.workDir || `.specwright/work/${work.id}`;
     const unitLine = work.unitId ? `  Active Unit: ${work.unitId}\n` : '';
 
+    const shippingWarning = work.status === 'shipping'
+      ? '\n  ⚠ Status is "shipping" — PR creation was in progress. Run /sw-ship to check if the PR was created or to retry.'
+      : '';
+
     const summary = [
       `Specwright: Work in progress`,
       `  Unit: ${work.id} (${work.status})`,
@@ -81,6 +85,7 @@ try {
       `  Spec: ${workDir}/spec.md`,
       `  Plan: ${workDir}/plan.md`,
       lockWarning,
+      shippingWarning,
       continuationContent,
     ].filter(Boolean).join('\n');
 
