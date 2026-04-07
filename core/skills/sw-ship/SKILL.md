@@ -57,10 +57,11 @@ work, run builds, or begin next unit. After PR: show URL, suggest `/sw-learn`, h
 - PR title follows `config.git.commitFormat` style.
 - PR body gate results MUST be sourced from `workflow.json` gate verdicts and
   `{workDir}/evidence/` files. For each enabled gate: read the verdict from
-  `workflow.json`. For non-SKIP gates: read the evidence file. If a gate has no
-  verdict in `workflow.json`, show "NOT RUN" (never infer PASS from build output).
-  If a gate has a verdict but no evidence file, show the verdict with
-  "(no evidence file)". SKIP gates show "SKIP".
+  `workflow.json`. For non-SKIP gates: read the evidence file. Never infer
+  verdicts from build output — only report what is recorded in `workflow.json`
+  and backed by an evidence file. SKIP gates show "SKIP".
+  (Pre-flight has already verified that all non-SKIP gates have evidence files,
+  so this reading step is guaranteed to succeed.)
 - PR body structure: Summary, Acceptance Criteria (status + evidence per criterion),
   Blast Radius, Gate Results (sourced from evidence), Evidence links.
 - Use HEREDOC for PR body.

@@ -44,16 +44,11 @@ else
 fi
 
 # AC-1: shipping in workUnits entry status
-if grep -q 'shipping' "$STATE_MD" | head -1 > /dev/null && \
-   grep -A2 'workUnits' "$STATE_MD" | grep -q 'shipping'; then
+# Check the workUnits schema line contains shipping (the canonical location)
+if grep 'pending.*planned.*building.*verifying.*shipping.*shipped' "$STATE_MD" > /dev/null 2>&1; then
   pass "AC-1b: shipping in workUnits entry status"
 else
-  # Alternative: check that shipping appears in the workUnits schema line
-  if grep 'pending.*planned.*building.*verifying.*shipping.*shipped' "$STATE_MD" > /dev/null 2>&1; then
-    pass "AC-1b: shipping in workUnits entry status"
-  else
-    fail "AC-1b: shipping not found in workUnits entry status"
-  fi
+  fail "AC-1b: shipping not found in workUnits entry status"
 fi
 
 # AC-2: Transition verifying → shipping exists
@@ -152,22 +147,24 @@ else
 fi
 
 # AC-6: Evidence-sourced PR body
-if grep -qi 'NOT RUN' "$SHIP_MD"; then
-  pass "AC-6a: NOT RUN for gates without verdicts"
+# PR body gate results MUST be sourced from workflow.json verdicts and evidence files
+if grep -qi 'workflow.json.*verdict\|verdict.*workflow.json' "$SHIP_MD"; then
+  pass "AC-6a: PR body reads verdicts from workflow.json"
 else
-  fail "AC-6a: 'NOT RUN' text not found"
+  fail "AC-6a: verdict sourcing from workflow.json not specified"
 fi
 
-if grep -qi 'no evidence file' "$SHIP_MD"; then
-  pass "AC-6b: '(no evidence file)' for verdict-without-file"
+if grep -qi 'evidence file' "$SHIP_MD" || grep -q 'evidence/' "$SHIP_MD"; then
+  pass "AC-6b: PR body reads from evidence files"
 else
-  fail "AC-6b: 'no evidence file' text not found"
+  fail "AC-6b: evidence file reading not specified"
 fi
 
-if grep -qi 'workflow.json.*verdict\|verdict.*workflow.json\|source.*evidence' "$SHIP_MD"; then
-  pass "AC-6c: PR body sourced from workflow.json/evidence files"
+# Must prohibit inferring verdicts from build output (the confabulation pattern)
+if grep -qi 'never infer\|do not infer\|Never.*build output' "$SHIP_MD"; then
+  pass "AC-6c: PR body must not infer verdicts from build output"
 else
-  fail "AC-6c: evidence sourcing requirement not specified"
+  fail "AC-6c: no prohibition on inferring verdicts from build output"
 fi
 
 # AC-7: Shipping state recovery in failure modes
@@ -314,6 +311,28 @@ WEOF
     fail "AC-8h: curl api.github.com/pulls pattern should be blocked"
   fi
 
+  # AC-8i: gh api /pulls/123 (read single PR) should be ALLOWED
+  # This is the regex over-blocking fix (PR #144 review comment)
+  if run_hook '{"tool_name":"Bash","tool_input":{"command":"gh api repos/foo/bar/pulls/123"}}' "$TMPDIR_HOOK"; then
+    pass "AC-8i: gh api /pulls/123 (read single PR) is allowed"
+  else
+    fail "AC-8i: gh api /pulls/123 should be allowed (read operation, not create)"
+  fi
+
+  # AC-8j: gh api /pulls/123/reviews should be ALLOWED
+  if run_hook '{"tool_name":"Bash","tool_input":{"command":"gh api repos/foo/bar/pulls/123/reviews"}}' "$TMPDIR_HOOK"; then
+    pass "AC-8j: gh api /pulls/123/reviews is allowed"
+  else
+    fail "AC-8j: gh api /pulls/123/reviews should be allowed (read operation, not create)"
+  fi
+
+  # AC-8k: curl /pulls/123 should be ALLOWED (read single PR)
+  if run_hook '{"tool_name":"Bash","tool_input":{"command":"curl https://api.github.com/repos/foo/bar/pulls/123"}}' "$TMPDIR_HOOK"; then
+    pass "AC-8k: curl /pulls/123 (read single PR) is allowed"
+  else
+    fail "AC-8k: curl /pulls/123 should be allowed (read operation, not create)"
+  fi
+
   rm -rf "$TMPDIR_HOOK"
 else
   fail "AC-8c: skipped (hook file missing)"
@@ -373,14 +392,17 @@ else
 fi
 
 # AC-13: sw-build prohibits PR creation
-if grep -qi 'gh pr create\|PR creation\|pull request' "$BUILD_MD" | head -1 > /dev/null; then
-  if grep -qi 'NOT\|never\|prohibit\|NEVER.*PR\|NEVER.*pr create' "$BUILD_MD"; then
+# Require both: mention of PR creation AND explicit prohibition (NEVER/NOT) in the
+# same stage-boundary constraint. This catches a sw-build that omits PR creation
+# entirely AND one that mentions it without prohibiting it.
+if grep -B1 -A5 'Stage boundary' "$BUILD_MD" | grep -qi 'gh pr create\|PR creation\|pull request'; then
+  if grep -B1 -A5 'Stage boundary' "$BUILD_MD" | grep -qi 'NEVER\|do NOT'; then
     pass "AC-13: sw-build prohibits PR creation"
   else
     fail "AC-13: sw-build mentions PR but doesn't prohibit it"
   fi
 else
-  fail "AC-13: sw-build doesn't mention PR creation prohibition"
+  fail "AC-13: sw-build doesn't mention PR creation prohibition in stage boundary"
 fi
 
 # AC-14: Honest limitation updated for hook enforcement

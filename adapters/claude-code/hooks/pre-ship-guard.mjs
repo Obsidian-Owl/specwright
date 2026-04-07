@@ -13,7 +13,10 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-const PR_PATTERN = /gh\s+pr\s+create|gh\s+api\s+[^\s]*\/pulls|curl\s+.*api\.github\.com.*\/pulls/;
+// Match only PR-creation operations. The `(\s|$)` anchor prevents matching
+// `/pulls/123` or `/pulls/123/reviews` — those are read-only operations that
+// should remain allowed during building/verifying states.
+const PR_PATTERN = /gh\s+pr\s+create|gh\s+api\s+[^\s]*\/pulls(\s|$)|curl\s+.*api\.github\.com[^\s]*\/pulls(\s|$)/;
 
 // Read stdin for tool input
 let input = '';
