@@ -36,6 +36,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.27.2] - 2026-04-07
+
+### Changed
+
+- docs: clarify "autonomous" vs background execution (#146)
+
 ## [0.27.1] - 2026-04-07
 
 ### Changed
