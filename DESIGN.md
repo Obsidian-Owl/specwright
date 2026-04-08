@@ -234,15 +234,25 @@ specwright/
 │   │   ├── .claude-plugin/  # Plugin metadata
 │   │   ├── hooks/           # Session lifecycle hooks
 │   │   └── CLAUDE.md        # Claude Code project instructions
-│   └── opencode/          # Opencode adapter (npm package)
+│   ├── opencode/          # Opencode adapter (npm package)
 │       ├── commands/        # Skill command definitions (16 .md files)
 │       ├── skills/          # Skill overrides (none currently)
 │       ├── plugin.ts        # Plugin entry point
 │       ├── package.json     # npm package manifest
 │       └── README.md
+│   └── codex/             # Codex CLI adapter (plugin + hooks + commands)
+│       ├── .codex-plugin/   # Plugin metadata
+│       ├── commands/        # Slash command definitions (16 .md files)
+│       ├── hooks/           # Lifecycle hook handlers
+│       ├── hooks.json       # Hook wiring
+│       └── README.md
 ├── skills/ → core/skills/          # Symlinks for backward compatibility
 ├── protocols/ → core/protocols/
 ├── agents/ → core/agents/
+├── .agents/
+│   ├── skills/ → core/skills/       # Codex repo-local skills discovery
+│   └── plugins/
+│       └── marketplace.json          # Codex repo-local plugin marketplace
 ├── hooks/ → adapters/claude-code/hooks/
 ├── .claude-plugin/ → adapters/claude-code/.claude-plugin/
 ├── CLAUDE.md → adapters/claude-code/CLAUDE.md
