@@ -84,6 +84,21 @@ def _make_integration_eval_case(eval_id="eval-int-01",
     }
 
 
+def _make_structural_eval_case(
+    eval_id="eval-struct-01",
+    command="python -c \"print('ok')\"",
+    smoke=True,
+):
+    """Build a structural eval case dict for Unit 02d smoke evals."""
+    return {
+        "id": eval_id,
+        "type": "structural",
+        "command": command,
+        "smoke": smoke,
+        "expectations": [],
+    }
+
+
 def _make_fixture_dir(tmpdir):
     """Create a minimal fixture directory with required structure."""
     fixture = os.path.join(tmpdir, "fixture")
@@ -1500,6 +1515,132 @@ class TestBaselineCLI(unittest.TestCase):
         from evals.framework.baseline import validate_baselines_dir
         findings = validate_baselines_dir(os.path.join(self.tmpdir, "nope"))
         self.assertEqual(findings, {})
+
+
+class TestStructuralEvalCases(unittest.TestCase):
+    """AC-1, AC-2, AC-3, AC-11: structural eval validation + execution."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.results_dir = os.path.join(self.tmpdir, "results")
+        os.makedirs(self.results_dir, exist_ok=True)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_validate_suite_accepts_structural_case_with_command(self):
+        from evals.framework.orchestrator import validate_suite
+
+        suite_path = _make_suite_json(self.tmpdir, [_make_structural_eval_case()])
+        errors = validate_suite(suite_path)
+        self.assertEqual(errors, [])
+
+    def test_validate_suite_rejects_structural_case_missing_command(self):
+        from evals.framework.orchestrator import validate_suite
+
+        case = _make_structural_eval_case()
+        del case["command"]
+        suite_path = _make_suite_json(self.tmpdir, [case])
+        errors = validate_suite(suite_path)
+        self.assertTrue(any("command" in err for err in errors), errors)
+
+    def test_validate_suite_rejects_structural_case_with_expectations(self):
+        from evals.framework.orchestrator import validate_suite
+
+        case = _make_structural_eval_case()
+        case["expectations"] = [{"type": "file_exists", "path": "README.md"}]
+        suite_path = _make_suite_json(self.tmpdir, [case])
+        errors = validate_suite(suite_path)
+        self.assertTrue(any("expectations" in err for err in errors), errors)
+
+    def test_validate_suite_rejects_invalid_type_value(self):
+        from evals.framework.orchestrator import validate_suite
+
+        case = _make_skill_eval_case(fixture_path=_make_fixture_dir(self.tmpdir))
+        case["type"] = "not-a-real-type"
+        suite_path = _make_suite_json(self.tmpdir, [case])
+        errors = validate_suite(suite_path)
+        self.assertTrue(any("type" in err for err in errors), errors)
+
+    @patch("subprocess.run")
+    def test_run_single_eval_structural_success_writes_passing_grading_json(
+        self, mock_run
+    ):
+        import evals.framework.orchestrator as orchestrator
+
+        mock_run.return_value = subprocess.CompletedProcess(
+            args=["python", "-c", "print('ok')"],
+            returncode=0,
+            stdout="ok\n",
+            stderr="",
+        )
+        case = _make_structural_eval_case(eval_id="struct-ok")
+        runner = MockRunner()
+
+        run_single_eval(
+            case,
+            trial_num=1,
+            results_dir=self.results_dir,
+            runner=runner,
+        )
+
+        grading = _read_grading_json(self.results_dir, "struct-ok", 1)
+        self.assertEqual(len(runner.calls), 0, "structural evals must not use skill runner")
+        self.assertEqual(grading["pass_rate"], 1.0)
+        self.assertEqual(grading["execution"]["exit_code"], 0)
+        self.assertIn("ok", json.dumps(grading))
+        self.assertEqual(
+            mock_run.call_args.kwargs["cwd"],
+            os.path.dirname(orchestrator._EVALS_BASE_DIR),
+        )
+        self.assertFalse(mock_run.call_args.kwargs.get("shell", False))
+
+    @patch("subprocess.run")
+    def test_run_single_eval_structural_failure_records_exit_detail(self, mock_run):
+        mock_run.return_value = subprocess.CompletedProcess(
+            args=["python", "-c", "raise SystemExit(3)"],
+            returncode=3,
+            stdout="",
+            stderr="boom\n",
+        )
+        case = _make_structural_eval_case(eval_id="struct-fail")
+
+        run_single_eval(
+            case,
+            trial_num=1,
+            results_dir=self.results_dir,
+            runner=MockRunner(),
+        )
+
+        grading = _read_grading_json(self.results_dir, "struct-fail", 1)
+        self.assertEqual(grading["pass_rate"], 0.0)
+        self.assertEqual(grading["execution"]["exit_code"], 3)
+        self.assertIn("boom", json.dumps(grading))
+
+    @patch("subprocess.run")
+    def test_run_single_eval_structural_timeout_records_partial_output(self, mock_run):
+        timeout_exc = subprocess.TimeoutExpired(
+            cmd=["python", "-c", "print('slow')"],
+            timeout=30,
+            output="partial stdout\n",
+            stderr="partial stderr\n",
+        )
+        mock_run.side_effect = timeout_exc
+        case = _make_structural_eval_case(eval_id="struct-timeout")
+
+        run_single_eval(
+            case,
+            trial_num=1,
+            results_dir=self.results_dir,
+            runner=MockRunner(),
+        )
+
+        grading = _read_grading_json(self.results_dir, "struct-timeout", 1)
+        self.assertEqual(grading["pass_rate"], 0.0)
+        self.assertEqual(grading["execution"]["exit_code"], 124)
+        self.assertIn("TimeoutExpired", grading["error"])
+        self.assertEqual(grading["execution"]["stdout"], "partial stdout\n")
+        self.assertEqual(grading["execution"]["stderr"], "partial stderr\n")
 
 
 if __name__ == "__main__":
