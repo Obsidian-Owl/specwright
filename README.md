@@ -149,11 +149,40 @@ Opencode installs the package automatically on next startup — no manual `npm i
 <details>
 <summary><b>Codex CLI</b></summary>
 
-Specwright includes repo-local Codex wiring:
-- `.agents/skills -> core/skills` (skills-only mode)
-- `.agents/plugins/marketplace.json` (plugin entry for `adapters/codex`)
+Install for your user account:
 
-In Codex, install/enable the local `specwright` plugin from the repo marketplace.
+```sh
+curl -fsSL https://raw.githubusercontent.com/Obsidian-Owl/specwright/main/scripts/install-codex.sh | bash -s -- --user
+```
+
+Or install into the current repository:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Obsidian-Owl/specwright/main/scripts/install-codex.sh | bash -s -- --repo
+```
+
+Then open Codex and enable the plugin from the plugin directory:
+
+```text
+/plugins
+```
+
+The installer downloads the latest prebuilt Codex bundle from GitHub Releases,
+installs it into `plugins/specwright` under the selected scope, and updates the
+matching Codex marketplace manifest.
+It requires `curl`, `tar`, and `python3`.
+
+To update later:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Obsidian-Owl/specwright/main/scripts/install-codex.sh | bash -s -- --update --user
+```
+
+Manual install:
+- Download `specwright-codex.tar.gz` from [GitHub Releases](https://github.com/Obsidian-Owl/specwright/releases).
+- Extract it to `~/plugins/specwright` for a user install or `<repo>/plugins/specwright` for a repo install.
+- Add a `specwright` entry to `~/.agents/plugins/marketplace.json` or `<repo>/.agents/plugins/marketplace.json` with `source.path` set to `./plugins/specwright`.
+
 This enables:
 - `/sw-*` slash commands
 - Session hooks (resume context + shipping guard + continuation snapshots)
