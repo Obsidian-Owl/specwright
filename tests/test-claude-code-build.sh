@@ -238,7 +238,7 @@ fi
 
 echo "--- protocols/ directory ---"
 
-EXPECTED_PROTO_COUNT=27
+EXPECTED_PROTO_COUNT=25
 
 if [ -d "$CC_DIST/protocols" ]; then
   pass "protocols/ directory exists"
@@ -251,13 +251,25 @@ if [ -d "$CC_DIST/protocols" ]; then
   assert_eq "$PROTO_COUNT" "$EXPECTED_PROTO_COUNT" "protocols/ has exactly $EXPECTED_PROTO_COUNT .md files"
 
   # Spot-check specific protocol files
-  for proto in state.md git.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md semi-formal-reasoning.md; do
+  for proto in state.md git.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md; do
     if [ -f "$CC_DIST/protocols/$proto" ]; then
       pass "protocols/$proto exists"
     else
       fail "protocols/$proto missing"
     fi
   done
+
+  if [ -f "$CC_DIST/protocols/gate-verdict.md" ]; then
+    fail "protocols/gate-verdict.md should not exist after verdict merge"
+  else
+    pass "protocols/gate-verdict.md removed after verdict merge"
+  fi
+
+  if [ -f "$CC_DIST/protocols/semi-formal-reasoning.md" ]; then
+    fail "protocols/semi-formal-reasoning.md should not exist after protocol deletion"
+  else
+    pass "protocols/semi-formal-reasoning.md removed after protocol deletion"
+  fi
 fi
 
 # ─── hooks/ directory ─────────────────────────────────────────────────
@@ -862,17 +874,22 @@ else
   fail "sw-learn/SKILL.md not found"
 fi
 
-echo "--- (d) gate-verdict mandatory calibration ---"
+echo "--- (d) evidence protocol carries verdict calibration rules ---"
 
-CC_VERDICT="$CC_DIST/protocols/gate-verdict.md"
-if [ -f "$CC_VERDICT" ]; then
-  if grep -q "mandatory" "$CC_VERDICT"; then
-    pass "gate-verdict contains 'mandatory'"
+CC_EVIDENCE="$CC_DIST/protocols/evidence.md"
+if [ -f "$CC_EVIDENCE" ]; then
+  if grep -q "## Verdict Rendering" "$CC_EVIDENCE"; then
+    pass "evidence contains '## Verdict Rendering'"
   else
-    fail "gate-verdict missing 'mandatory'"
+    fail "evidence missing '## Verdict Rendering'"
+  fi
+  if grep -q "mandatory" "$CC_EVIDENCE"; then
+    pass "evidence contains 'mandatory'"
+  else
+    fail "evidence missing 'mandatory'"
   fi
 else
-  fail "gate-verdict.md not found"
+  fail "evidence.md not found"
 fi
 
 echo "--- (e) sw-build discrepancy handling ---"
@@ -904,7 +921,7 @@ if [ -f "$CC_GATE_SEM" ]; then
     fi
   done
 
-  for sem_term in "error-path-cleanup" "unchecked-errors" "WARN" "gate-verdict.md"; do
+  for sem_term in "error-path-cleanup" "unchecked-errors" "WARN" "evidence.md"; do
     if echo "$SEM_BODY" | grep -qi "$sem_term"; then
       pass "gate-semantic body contains '$sem_term'"
     else
@@ -926,6 +943,14 @@ if [ -f "$CC_VERIFY" ]; then
   fi
 else
   fail "sw-verify/SKILL.md not found (AC-12g)"
+fi
+
+echo "--- (h) no semi-formal protocol references remain ---"
+
+if grep -r "semi-formal-reasoning" "$CC_DIST"/skills "$CC_DIST"/agents "$CC_DIST/CLAUDE.md" >/dev/null 2>&1; then
+  fail "dist output still references semi-formal-reasoning"
+else
+  pass "dist output has no semi-formal-reasoning references"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════

@@ -54,8 +54,7 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `state.md` -- Workflow state, work unit queue, and transition validation
 - `git.md` -- Strategy-aware git operations (branch lifecycle, commits, PRs)
 - `recovery.md` -- Compaction recovery
-- `evidence.md` -- Gate evidence format
-- `gate-verdict.md` -- Verdict rendering with self-critique
+- `evidence.md` -- Gate evidence format, freshness, and verdict rendering
 - `context.md` -- Anchor doc and config loading
 - `insights.md` -- External Claude Code insights data access
 - `learning-lifecycle.md` -- Compaction triggers and tiered memory
@@ -75,7 +74,6 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `guardrails-detection.md` -- Three-step stack detection: manifest scan, config file scan, guardrail scan
 - `guardrails-patterns.md` -- Ten-dimension coverage model, four-layer enforcement patterns
 - `repo-map.md` -- Repo map format, generation method, token budget, and truncation rules for build context
-- `semi-formal-reasoning.md` -- Structured PREMISE→CLAIM→CONCLUSION certificates for gate evidence
 
 ## Key Rules
 

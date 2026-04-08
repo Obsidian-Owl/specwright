@@ -50,7 +50,7 @@ can still be wired incorrectly.
 - Fall back to LLM analysis when tools aren't configured.
 
 **Verdict (LOW freedom):**
-- Follow `protocols/gate-verdict.md`.
+- Follow `protocols/evidence.md#verdict-rendering`.
 - WARN severity for most findings (wiring issues rarely block functionality).
 - BLOCK only for circular dependencies in changed files.
 - This gate is advisory — it helps clean up, not block shipping.
@@ -141,7 +141,7 @@ existing working tree.
 
 ## Protocol References
 
-- `protocols/gate-verdict.md` -- verdict rendering
+- `protocols/evidence.md#verdict-rendering` -- verdict rendering
 - `protocols/evidence.md` -- evidence storage
 - `protocols/state.md` -- gate status updates
 - `protocols/delegation.md` -- architect agent delegation

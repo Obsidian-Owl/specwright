@@ -58,14 +58,14 @@ judgment for analysis that tools can't do.
 - Phase 3 focuses on logical control-flow; defer to Phase 2 when a finding is already captured as an injection pattern.
 
 **Verdict (LOW freedom):**
-- Follow `protocols/gate-verdict.md`.
+- Follow `protocols/evidence.md#verdict-rendering`.
 - Any BLOCK finding = gate FAIL.
 - WARN-only findings = gate WARN (passes but flagged).
 - Cite relevant Constitution practices where applicable.
 
 ## Protocol References
 
-- `protocols/gate-verdict.md` -- verdict rendering
+- `protocols/evidence.md#verdict-rendering` -- verdict rendering
 - `protocols/evidence.md` -- evidence storage
 - `protocols/state.md` -- gate status updates
 

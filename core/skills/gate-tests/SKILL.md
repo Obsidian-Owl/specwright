@@ -54,14 +54,14 @@ test quality, not just pass/fail.
 - Each weakness is a finding with severity and file:line reference.
 
 **Verdict (LOW freedom):**
-- Follow `protocols/gate-verdict.md`.
+- Follow `protocols/evidence.md#verdict-rendering`.
 - BLOCK findings: tests that verify nothing (e.g., `expect(result).toBeDefined()` only).
 - WARN findings: missing edge cases, over-mocking, weak assertions.
 - INFO findings: style suggestions, naming improvements.
 
 ## Protocol References
 
-- `protocols/gate-verdict.md` -- verdict rendering
+- `protocols/evidence.md#verdict-rendering` -- verdict rendering
 - `protocols/evidence.md` -- evidence storage
 - `protocols/state.md` -- gate status updates
 - `protocols/delegation.md` -- tester agent delegation

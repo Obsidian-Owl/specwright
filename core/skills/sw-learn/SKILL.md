@@ -57,7 +57,7 @@ work benefits.
 - If `commands.test:integration` is configured in config.json: check gate-build evidence
   for the integration tier. If it was SKIP or absent, surface as a learning candidate
   ("No integration tests ran"). Skip this check when no integration tier is configured.
-- MUST record gateCalibration for every gate that ran, even if all PASS with 0 findings. Populate from evidence files automatically. falsePositives array only populated when user explicitly labels a finding as false positive during presentation (dismissal alone does not count). Format per `protocols/gate-verdict.md`.
+- MUST record gateCalibration for every gate that ran, even if all PASS with 0 findings. Populate from evidence files automatically. falsePositives array only populated when user explicitly labels a finding as false positive during presentation (dismissal alone does not count). Format per `protocols/evidence.md#verdict-rendering`.
 
 **Curation (MEDIUM freedom):**
 - Apply `protocols/decision.md` CURATION criteria autonomously:
@@ -81,7 +81,7 @@ work benefits.
 - When 2+ prior learning files exist, surface recurring patterns across units.
 
 **Persistence (LOW freedom):**
-- Write `.specwright/learnings/{work-id}.json` when any finding is promoted OR when gateCalibration data is available (mandatory per `protocols/gate-verdict.md`). When only calibration is present, write with an empty `findings` array.
+- Write `.specwright/learnings/{work-id}.json` when any finding is promoted OR when gateCalibration data is available (mandatory per `protocols/evidence.md#verdict-rendering`). When only calibration is present, write with an empty `findings` array.
 - Schema: `{ workId, timestamp, findings: [{ category, source, description, proposedRule, disposition }] }`
 
 **Landscape update (MEDIUM freedom):**
@@ -122,7 +122,7 @@ work benefits.
 - `protocols/audit.md` -- codebase health findings format
 - `protocols/backlog.md` -- backlog item format and write targets
 - `protocols/build-quality.md` -- as-built notes and discovered behaviors
-- `protocols/gate-verdict.md` -- gate calibration data recording
+- `protocols/evidence.md#verdict-rendering` -- gate calibration data recording
 
 ## Failure Modes
 

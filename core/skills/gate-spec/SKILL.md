@@ -50,12 +50,13 @@ that closes the loop.
 - For each criterion, search the codebase for implementation evidence.
 - For each criterion, search test files for test evidence.
 - Delegate to `specwright-reviewer` for thorough analysis if needed.
-- For behavioral criteria (execution-path claims, not structural checks), use
-  the verification template from `protocols/semi-formal-reasoning.md`.
+- For behavioral criteria (execution-path claims, not structural checks), trace
+  premises from the spec and code, derive claims from those premises, and draw
+  conclusions without adding uncited evidence.
 - Evidence must be specific: file path and line number, not "somewhere in src/".
 
 **Verdict (LOW freedom):**
-- Follow `protocols/gate-verdict.md`.
+- Follow `protocols/evidence.md#verdict-rendering`.
 - Criterion with both implementation AND test evidence = PASS.
 - Criterion with implementation but no test = WARN.
 - Criterion with neither = FAIL.
@@ -77,8 +78,7 @@ that closes the loop.
 
 ## Protocol References
 
-- `protocols/semi-formal-reasoning.md` -- verification template for behavioral criteria
-- `protocols/gate-verdict.md` -- verdict rendering and self-critique
+- `protocols/evidence.md#verdict-rendering` -- verdict rendering and self-critique
 - `protocols/evidence.md` -- evidence storage
 - `protocols/state.md` -- gate status updates
 - `protocols/delegation.md` -- reviewer agent delegation
