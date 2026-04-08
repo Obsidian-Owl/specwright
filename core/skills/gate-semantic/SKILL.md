@@ -17,8 +17,8 @@ allowed-tools:
 ## Goal
 
 Detect semantic bugs in changed code using symbolic pre-processing when
-available. For each candidate finding, apply the localization template
-from `protocols/semi-formal-reasoning.md`.
+available. For each candidate finding, localize it explicitly with
+premises, claims, and conclusion grounded in file:line evidence.
 
 ## Inputs
 
@@ -80,7 +80,6 @@ each finding with category, file:line, tier/tool, severity, remediation.
 
 ## Protocol References
 
-- `protocols/semi-formal-reasoning.md` -- localization template for findings
 - `protocols/evidence.md#verdict-rendering` -- verdict rendering and calibration
 - `protocols/evidence.md` -- evidence storage
 - `protocols/state.md` -- gate status updates

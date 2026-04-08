@@ -74,7 +74,6 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `guardrails-detection.md` -- Three-step stack detection: manifest scan, config file scan, guardrail scan
 - `guardrails-patterns.md` -- Ten-dimension coverage model, four-layer enforcement patterns
 - `repo-map.md` -- Repo map format, generation method, token budget, and truncation rules for build context
-- `semi-formal-reasoning.md` -- Structured PREMISE→CLAIM→CONCLUSION certificates for gate evidence
 
 ## Key Rules
 

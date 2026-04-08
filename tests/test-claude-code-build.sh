@@ -238,7 +238,7 @@ fi
 
 echo "--- protocols/ directory ---"
 
-EXPECTED_PROTO_COUNT=26
+EXPECTED_PROTO_COUNT=25
 
 if [ -d "$CC_DIST/protocols" ]; then
   pass "protocols/ directory exists"
@@ -251,7 +251,7 @@ if [ -d "$CC_DIST/protocols" ]; then
   assert_eq "$PROTO_COUNT" "$EXPECTED_PROTO_COUNT" "protocols/ has exactly $EXPECTED_PROTO_COUNT .md files"
 
   # Spot-check specific protocol files
-  for proto in state.md git.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md semi-formal-reasoning.md; do
+  for proto in state.md git.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md; do
     if [ -f "$CC_DIST/protocols/$proto" ]; then
       pass "protocols/$proto exists"
     else
@@ -263,6 +263,12 @@ if [ -d "$CC_DIST/protocols" ]; then
     fail "protocols/gate-verdict.md should not exist after verdict merge"
   else
     pass "protocols/gate-verdict.md removed after verdict merge"
+  fi
+
+  if [ -f "$CC_DIST/protocols/semi-formal-reasoning.md" ]; then
+    fail "protocols/semi-formal-reasoning.md should not exist after protocol deletion"
+  else
+    pass "protocols/semi-formal-reasoning.md removed after protocol deletion"
   fi
 fi
 
@@ -937,6 +943,14 @@ if [ -f "$CC_VERIFY" ]; then
   fi
 else
   fail "sw-verify/SKILL.md not found (AC-12g)"
+fi
+
+echo "--- (h) no semi-formal protocol references remain ---"
+
+if rg -n "semi-formal-reasoning" "$CC_DIST"/skills "$CC_DIST"/agents "$CC_DIST/CLAUDE.md" >/dev/null 2>&1; then
+  fail "dist output still references semi-formal-reasoning"
+else
+  pass "dist output has no semi-formal-reasoning references"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
