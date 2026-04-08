@@ -137,16 +137,13 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `git.md` | Strategy-aware branch lifecycle, commit format, PR creation | ~650 |
 | `recovery.md` | Compaction recovery procedure | ~190 |
 | `evidence.md` | Gate evidence format and storage | ~120 |
-| `gate-verdict.md` | Self-critique, baseline check, verdict rendering | ~230 |
 | `context.md` | Config/state/anchor doc loading | ~175 |
 | `insights.md` | External CC insights data access | ~290 |
 | `learning-lifecycle.md` | Promotion targets, auto-memory format, patterns.md maintenance | ~390 |
 | `landscape.md` | Codebase reference doc format, freshness, updates | ~140 |
-| `assumptions.md` | Design assumption format, classification, and lifecycle | ~620 |
 | `audit.md` | Codebase health findings format, IDs, matching, lifecycle | ~125 |
 | `research.md` | External research brief format, confidence scoring, lifecycle | ~200 |
 | `build-quality.md` | Post-build review and as-built notes | ~230 |
-| `convergence.md` | Iterative critic loop with convergence scoring, perspective lenses (Security/Performance/Operability/Simplicity), pre-mortem, charter alignment, dimension rotation | ~600 |
 | `build-context.md` | Continuation snapshots, status cards, context nudge for sw-build | ~125 |
 | `backlog.md` | Backlog item format, BL-{n} IDs, markdown and GitHub Issues targets | ~460 |
 | `spec-review.md` | Spec quality review dimensions (7 including test type appropriateness), finding levels, resolution flow | ~900 |
@@ -156,10 +153,9 @@ Extracted once in `protocols/`, referenced by skills. Loaded on demand.
 | `guardrails-detection.md` | Three-step stack detection: manifest scan, config file scan, guardrail scan | ~340 |
 | `guardrails-patterns.md` | Ten-dimension coverage model, four-layer enforcement patterns, framework options | ~486 |
 | `repo-map.md` | Repo map format, generation method, token budget, truncation rules | ~250 |
-| `semi-formal-reasoning.md` | Certificate templates, task-specific structured reasoning | ~650 |
-| `decision.md` | Autonomous decision framework: reversibility classification, Type 1/2 heuristics, CCR, decision records, gate handoff template | ~610 |
+| `decision.md` | Autonomous decision framework: reversibility classification, heuristics, convergence loop, assumption lifecycle, CCR, decision records, gate handoff template | ~900 |
 
-Total: ~9,242 words across 27 protocols (loaded on demand, not all at once).
+Total: ~7,700 words across 23 protocols (loaded on demand, not all at once).
 
 ## Skill Anatomy
 

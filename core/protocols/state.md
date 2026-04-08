@@ -88,7 +88,7 @@ Two scopes exist for resolving work artifact paths:
 | Scope | How to resolve | Contains |
 |-------|---------------|----------|
 | **Unit-local** | `{currentWork.workDir}/` | `spec.md`, `plan.md`, `context.md`, `evidence/` |
-| **Design-level** | `.specwright/work/{currentWork.id}/` | `design.md`, `assumptions.md`, `decisions.md`, conditional artifacts |
+| **Design-level** | `.specwright/work/{currentWork.id}/` | `design.md`, design assumptions artifact, `decisions.md`, conditional artifacts |
 
 For single-unit work, both scopes resolve to the same directory. For multi-unit work, unit-local points to `units/{unitId}/` while design-level points to the work root.
 

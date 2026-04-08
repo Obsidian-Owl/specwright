@@ -96,11 +96,10 @@ assert_file_not_contains "core/skills/sw-build/SKILL.md" "Gate handoff \(LOW fre
 
 # AC-10: Decision Digest / Quality Checks do not leak elsewhere
 echo ""
-echo "AC-10: no four-section template leaks (excluding deferred cleanup files)"
-LEAK_FILES=$(grep -rEl 'Decision Digest|Quality Checks' core/ 2>/dev/null \
-  | grep -vE 'convergence\.md$|assumptions\.md$|specwright-integration-tester\.md$' || true)
+echo "AC-10: no four-section template leaks"
+LEAK_FILES=$(grep -rEl 'Decision Digest|Quality Checks' core/ 2>/dev/null || true)
 if [ -z "$LEAK_FILES" ]; then
-  pass "no four-section template leaks outside deferred-cleanup files"
+  pass "no four-section template leaks in core/"
 else
   fail "four-section template leaks in: $LEAK_FILES"
 fi

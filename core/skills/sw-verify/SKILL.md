@@ -41,8 +41,9 @@ Follow `protocols/stage-boundary.md`. Run quality gates and show findings. NEVER
 code, create PRs, or ship. After gate handoff, STOP.
 
 **Assumption re-validation (LOW freedom) — before gate execution:**
-Scan `assumptions.md` from design-level directory. Check ACCEPTED/VERIFIED assumptions
-still hold against current code. Invalid → WARN in aggregate report. Runs silently.
+Scan the design assumptions artifact from the design-level directory. Check
+ACCEPTED/VERIFIED assumptions still hold against current code. Invalid → WARN in
+aggregate report. Runs silently.
 
 **Gate execution order (LOW freedom):**
 Determine enabled gates from config. Two formats exist — support both:

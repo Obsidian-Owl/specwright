@@ -106,6 +106,10 @@ if [ ! -x "$BUILD_SCRIPT" ]; then
   exit 1
 fi
 
+# Capture pre-build source state so AC-11 checks for build-introduced mutations,
+# not intentional edits already present on the current branch.
+PRE_BUILD_SOURCE_STATUS=$(git -C "$ROOT_DIR" status --porcelain -- core/ adapters/)
+
 # ─── Clean pre-existing dist to avoid stale state ────────────────────
 
 echo "--- Setup: cleaning dist/ ---"
@@ -234,11 +238,11 @@ if [ -d "$CC_DIST/agents" ]; then
   done
 fi
 
-# ─── protocols/ directory: exactly 24 .md files ──────────────────────
+# ─── protocols/ directory: exactly 23 .md files ──────────────────────
 
 echo "--- protocols/ directory ---"
 
-EXPECTED_PROTO_COUNT=25
+EXPECTED_PROTO_COUNT=23
 
 if [ -d "$CC_DIST/protocols" ]; then
   pass "protocols/ directory exists"
@@ -269,6 +273,18 @@ if [ -d "$CC_DIST/protocols" ]; then
     fail "protocols/semi-formal-reasoning.md should not exist after protocol deletion"
   else
     pass "protocols/semi-formal-reasoning.md removed after protocol deletion"
+  fi
+
+  if [ -f "$CC_DIST/protocols/convergence.md" ]; then
+    fail "protocols/convergence.md should not exist after merge into decision.md"
+  else
+    pass "protocols/convergence.md removed after merge into decision.md"
+  fi
+
+  if [ -f "$CC_DIST/protocols/assumptions.md" ]; then
+    fail "protocols/assumptions.md should not exist after merge into decision.md"
+  else
+    pass "protocols/assumptions.md removed after merge into decision.md"
   fi
 fi
 
@@ -1038,10 +1054,11 @@ fi
 
 echo "--- Core and adapter source integrity (git diff) ---"
 
-if git -C "$ROOT_DIR" diff --exit-code -- core/ adapters/ &>/dev/null; then
-  pass "no core/ or adapters/ source files were modified by the build (git diff clean)"
+POST_BUILD_SOURCE_STATUS=$(git -C "$ROOT_DIR" status --porcelain -- core/ adapters/)
+if [ "$POST_BUILD_SOURCE_STATUS" = "$PRE_BUILD_SOURCE_STATUS" ]; then
+  pass "build left core/ and adapters/ source state unchanged"
 else
-  fail "build modified source files in core/ or adapters/ (run 'git diff -- core/ adapters/' for details)"
+  fail "build changed core/ or adapters/ source state relative to pre-build snapshot"
 fi
 
 # ─── Cleanup ─────────────────────────────────────────────────────────
