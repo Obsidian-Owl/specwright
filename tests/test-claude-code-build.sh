@@ -238,7 +238,7 @@ fi
 
 echo "--- protocols/ directory ---"
 
-EXPECTED_PROTO_COUNT=25
+EXPECTED_PROTO_COUNT=23
 
 if [ -d "$CC_DIST/protocols" ]; then
   pass "protocols/ directory exists"
@@ -269,6 +269,18 @@ if [ -d "$CC_DIST/protocols" ]; then
     fail "protocols/semi-formal-reasoning.md should not exist after protocol deletion"
   else
     pass "protocols/semi-formal-reasoning.md removed after protocol deletion"
+  fi
+
+  if [ -f "$CC_DIST/protocols/convergence.md" ]; then
+    fail "protocols/convergence.md should not exist after merge into decision.md"
+  else
+    pass "protocols/convergence.md removed after merge into decision.md"
+  fi
+
+  if [ -f "$CC_DIST/protocols/assumptions.md" ]; then
+    fail "protocols/assumptions.md should not exist after merge into decision.md"
+  else
+    pass "protocols/assumptions.md removed after merge into decision.md"
   fi
 fi
 

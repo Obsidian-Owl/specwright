@@ -125,7 +125,8 @@ Follow `protocols/delegation.md` for context handoff format. Additionally includ
   not a build-fixer scenario.
 
 **Mid-build checks (MEDIUM freedom):**
-Follow `protocols/assumptions.md` for late discoveries and `protocols/build-quality.md` for behavior capture, at build start and after each task.
+Follow `protocols/decision.md#late-discovery-lifecycle` for late discoveries and
+`protocols/build-quality.md` for behavior capture, at build start and after each task.
 
 **Per-task micro-check (MEDIUM freedom) — after each task commit:**
 When `sg` is on PATH: run ast-grep on changed code files per `protocols/repo-map.md`, check for error-path issues, append to `{currentWork.workDir}/feedback-log.md`. Non-blocking. Skip if `sg` absent or no code files changed.

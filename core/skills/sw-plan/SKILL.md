@@ -93,8 +93,8 @@ Check `currentWork.status` is `designing` or `planning` and `design.md` exists.
 - Write acceptance criteria the tester can turn into brutal tests. Each answers:
   "How will we KNOW this works?" Include boundary conditions and error cases.
 - Check patterns.md for known edge cases.
-- Follow `protocols/assumptions.md` late discovery lifecycle. Auto-resolve per Type 1/2
-  rules in the assumptions protocol.
+- Follow `protocols/decision.md#late-discovery-lifecycle`. Auto-resolve per the
+  Type 1/2 rules in `protocols/decision.md#autonomous-resolution`.
 - Ground criteria in design artifacts.
 - For each AC that crosses a boundary classified in TESTING.md, add a `[tier: X]`
   annotation. Tier classification rules are defined in `protocols/testing-strategy.md`
@@ -133,7 +133,7 @@ workUnits array, set first unit to `building`, transition to `building`, handoff
 - `protocols/state.md` -- workflow state updates and locking
 - `protocols/context.md` -- anchor doc and config loading
 - `protocols/recovery.md` -- compaction recovery
-- `protocols/assumptions.md` -- late assumption capture and autonomous resolution
+- `protocols/decision.md` -- late assumption capture and autonomous resolution
 - `protocols/spec-review.md` -- spec quality review
 - `protocols/testing-strategy.md` -- tier tagging for ACs crossing TESTING.md boundaries
 

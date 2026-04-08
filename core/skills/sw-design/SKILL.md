@@ -38,7 +38,7 @@ When complete, ALL of the following exist in `.specwright/work/{id}/`:
 - `design.md` -- solution overview, approach, integration points, risk assessment
   - Required section: `## Blast Radius` listing: modules/files the design touches, failure propagation scope for each (local/adjacent/systemic), and what the design does NOT change.
 - `context.md` -- research findings, file paths, gotchas (travels with downstream agents)
-- `assumptions.md` -- classified assumptions with resolution status
+- design assumptions artifact -- classified assumptions with resolution status
 - `decisions.md` -- all autonomous decisions recorded per `protocols/decision.md`
 
 When warranted: `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`.
@@ -66,16 +66,19 @@ NEVER write specs, decompose, implement, branch, or test. After gate handoff, ST
 
 **Critic (HIGH freedom):**
 - For non-trivial requests, delegate to `specwright-architect` for adversarial review.
-- Follow `protocols/convergence.md` for iterative critic loop. Convergence at ≥4/5 on
-  all dimensions with no BLOCKs auto-approves (per convergence.md autonomous mode).
+- Follow `protocols/decision.md#convergence-loop` for the iterative critic loop.
+  Convergence at ≥4/5 on all dimensions with no BLOCKs auto-approves per
+  `protocols/decision.md#approval`.
 - Auto-revise BLOCKs (up to 2 iterations). Document WARNs in design.md.
 - If critic rejects the entire approach: apply DISAMBIGUATION to choose the best
   alternative. Record in decisions.md.
 
 **Assumption resolution (MEDIUM freedom):**
-- Follow `protocols/assumptions.md` for format, classification, and autonomous resolution.
-- After critic: auto-resolve per the assumptions protocol's Type 1/2 rules. Clarify+technical
-  → auto-ACCEPT. Reference/external → auto-DEFER to backlog per `protocols/backlog.md`.
+- Follow `protocols/decision.md#assumption-lifecycle` for format, classification,
+  and autonomous resolution.
+- After critic: auto-resolve per `protocols/decision.md#autonomous-resolution`.
+  Clarify+technical → auto-ACCEPT. Reference/external → auto-DEFER to backlog per
+  `protocols/backlog.md`.
 - Assumptions contradicting an AC are Type 1 structural override — always blocking.
   Type 1 deficiencies halt and surface at the gate (do not auto-proceed).
 
@@ -87,7 +90,7 @@ NEVER write specs, decompose, implement, branch, or test. After gate handoff, ST
 **Gate handoff (LOW freedom):**
 On completion, emit the three-line handoff per the `protocols/decision.md`
 Gate Handoff section. Detail lives in the artifact files
-(`design.md`, `decisions.md`, `assumptions.md`, `context.md`). The user
+(`design.md`, `decisions.md`, design assumptions artifact, `context.md`). The user
 reads the artifacts and runs `/sw-plan` when ready.
 
 **State mutations (LOW freedom):**
@@ -119,8 +122,7 @@ Follow `protocols/state.md` for read-modify-write mechanics. Postconditions:
 - `protocols/context.md` -- anchor doc and config loading
 - `protocols/delegation.md` -- agent delegation for research and critic
 - `protocols/recovery.md` -- compaction recovery
-- `protocols/assumptions.md` -- assumption format, classification, autonomous resolution
-- `protocols/convergence.md` -- iterative critic loop with auto-approve threshold
+- `protocols/decision.md` -- autonomous decisions, convergence loop, assumption lifecycle
 - `protocols/landscape.md` -- codebase reference document format
 - `protocols/audit.md` -- codebase health findings format
 - `protocols/backlog.md` -- backlog item format and write targets

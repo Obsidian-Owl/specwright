@@ -133,7 +133,7 @@ Design assumptions are statements treated as true without verification. Untracke
 
 ### Artifact
 
-**File:** `.specwright/work/{id}/assumptions.md`
+**Location:** the design assumptions artifact in `.specwright/work/{id}/`
 
 Produced by `sw-design` during the critic phase. Travels with the design to `sw-plan` and downstream stages.
 
@@ -228,7 +228,7 @@ Assumptions can surface after design approval.
 
 #### Identification
 
-- In `sw-plan`: append newly surfaced assumptions to `assumptions.md` with status `LATE-FLAGGED` and discovery phase `planning`.
+- In `sw-plan`: append newly surfaced assumptions to the design assumptions artifact with status `LATE-FLAGGED` and discovery phase `planning`.
 - In `sw-build` pre-build: scan `spec.md` and `context.md` for stale assumptions.
 - In `sw-build` post-task: check whether tester or executor hit a contradiction or hidden dependency.
 
