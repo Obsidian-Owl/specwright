@@ -282,8 +282,19 @@ def run_eval_suite(
     case_filter: Optional[str] = None,
     dry_run: bool = False,
     results_dir: Optional[str] = None,
+    smoke_only: bool = False,
 ) -> str:
-    """Load evals.json, iterate cases x trials, aggregate, return results_dir."""
+    """Load evals.json, iterate cases x trials, aggregate, return results_dir.
+
+    Args:
+        suite_path: path to evals.json
+        trials: number of trials per case
+        timeout: per-skill timeout in seconds
+        case_filter: optional eval ID filter
+        dry_run: print cases without executing
+        results_dir: override output directory
+        smoke_only: when True, run only cases with `smoke: true` (Unit 02b-1)
+    """
     try:
         validation_errors = validate_suite(suite_path)
     except (json.JSONDecodeError, OSError) as exc:
@@ -303,6 +314,9 @@ def run_eval_suite(
         cases = [c for c in all_cases if c["id"] == case_filter]
     else:
         cases = all_cases
+
+    if smoke_only:
+        cases = [c for c in cases if c.get("smoke") is True]
 
     if dry_run:
         for case in cases:
@@ -454,6 +468,19 @@ def _validate_seed_path(case_id: str, eval_case: dict) -> list[str]:
     return []
 
 
+def _validate_smoke_field(case_id: str, eval_case: dict) -> list[str]:
+    """Validate the optional `smoke` field on an eval case (Unit 02b-1)."""
+    if "smoke" not in eval_case:
+        return []
+    smoke_val = eval_case["smoke"]
+    if not isinstance(smoke_val, bool):
+        return [
+            f"[{case_id}] `smoke` field must be a boolean, got "
+            f"{type(smoke_val).__name__}: {smoke_val!r}"
+        ]
+    return []
+
+
 def validate_suite(suite_path: str) -> list[str]:
     """Validate an eval suite JSON file. Returns list of error strings (empty = valid)."""
     with open(suite_path) as f:
@@ -470,6 +497,7 @@ def validate_suite(suite_path: str) -> list[str]:
         errors.extend(_validate_layer_fields(case_id, eval_case))
         errors.extend(_validate_prompt_template(case_id, eval_case))
         errors.extend(_validate_seed_path(case_id, eval_case))
+        errors.extend(_validate_smoke_field(case_id, eval_case))
 
         for expectation in eval_case.get("expectations", []):
             errors.extend(_validate_expectation(case_id, expectation))

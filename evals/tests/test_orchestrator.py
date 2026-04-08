@@ -1338,5 +1338,169 @@ class TestAntiHardcoding(unittest.TestCase):
         self.assertIn("/sw-build", prompt_build)
 
 
+# ===========================================================================
+# Unit 02b-1: smoke filter and baseline CLI
+# ===========================================================================
+
+class TestSmokeFilter(unittest.TestCase):
+    """AC-4, AC-5: --smoke-only filters to entries with smoke: true.
+
+    Validates the field via validate_suite (AC-4) and the runtime filter
+    via run_eval_suite (AC-5)."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.fixture_dir = _make_fixture_dir(self.tmpdir)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    @patch("evals.framework.orchestrator.setup_fixture")
+    def test_smoke_only_runs_only_smoke_tagged_entries(self, mock_setup):
+        mock_setup.side_effect = lambda src, dst: shutil.copytree(
+            self.fixture_dir, dst
+        )
+        smoke_case = _make_skill_eval_case(
+            eval_id="smoke-yes", fixture_path=self.fixture_dir
+        )
+        smoke_case["smoke"] = True
+        non_smoke_case = _make_skill_eval_case(
+            eval_id="smoke-no", fixture_path=self.fixture_dir
+        )
+        non_smoke_case["smoke"] = False
+        unset_case = _make_skill_eval_case(
+            eval_id="smoke-unset", fixture_path=self.fixture_dir
+        )
+        suite_path = _make_suite_json(
+            self.tmpdir, [smoke_case, non_smoke_case, unset_case]
+        )
+        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
+            MockCCR.return_value = MockRunner()
+            results_dir = run_eval_suite(suite_path, trials=1, smoke_only=True)
+
+        smoke_yes_path = os.path.join(
+            results_dir, "evals", "smoke-yes", "trial-1", "grading.json"
+        )
+        smoke_no_path = os.path.join(
+            results_dir, "evals", "smoke-no", "trial-1", "grading.json"
+        )
+        unset_path = os.path.join(
+            results_dir, "evals", "smoke-unset", "trial-1", "grading.json"
+        )
+        self.assertTrue(os.path.exists(smoke_yes_path))
+        self.assertFalse(os.path.exists(smoke_no_path))
+        self.assertFalse(os.path.exists(unset_path))
+
+    @patch("evals.framework.orchestrator.setup_fixture")
+    def test_smoke_only_false_runs_all_entries(self, mock_setup):
+        """When smoke_only=False (default), all entries run regardless of tag."""
+        mock_setup.side_effect = lambda src, dst: shutil.copytree(
+            self.fixture_dir, dst
+        )
+        smoke_case = _make_skill_eval_case(
+            eval_id="entry-1", fixture_path=self.fixture_dir
+        )
+        smoke_case["smoke"] = True
+        non_smoke_case = _make_skill_eval_case(
+            eval_id="entry-2", fixture_path=self.fixture_dir
+        )
+        suite_path = _make_suite_json(self.tmpdir, [smoke_case, non_smoke_case])
+        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
+            MockCCR.return_value = MockRunner()
+            results_dir = run_eval_suite(suite_path, trials=1, smoke_only=False)
+        for eval_id in ("entry-1", "entry-2"):
+            path = os.path.join(
+                results_dir, "evals", eval_id, "trial-1", "grading.json"
+            )
+            self.assertTrue(os.path.exists(path), f"{eval_id} should have run")
+
+    def test_validate_suite_accepts_boolean_smoke_field(self):
+        from evals.framework.orchestrator import validate_suite
+        case = _make_skill_eval_case(eval_id="ok", fixture_path=self.fixture_dir)
+        case["smoke"] = True
+        suite_path = _make_suite_json(self.tmpdir, [case])
+        errors = validate_suite(suite_path)
+        self.assertEqual(errors, [])
+
+    def test_validate_suite_accepts_missing_smoke_field(self):
+        from evals.framework.orchestrator import validate_suite
+        case = _make_skill_eval_case(eval_id="ok", fixture_path=self.fixture_dir)
+        # No smoke field at all
+        suite_path = _make_suite_json(self.tmpdir, [case])
+        errors = validate_suite(suite_path)
+        self.assertEqual(errors, [])
+
+    def test_validate_suite_rejects_non_boolean_smoke_field(self):
+        from evals.framework.orchestrator import validate_suite
+        case = _make_skill_eval_case(eval_id="bad", fixture_path=self.fixture_dir)
+        case["smoke"] = "true"  # string, not bool
+        suite_path = _make_suite_json(self.tmpdir, [case])
+        errors = validate_suite(suite_path)
+        self.assertTrue(len(errors) >= 1)
+        self.assertTrue(any("smoke" in e for e in errors))
+
+
+class TestBaselineCLI(unittest.TestCase):
+    """AC-3, AC-10, AC-11, AC-12, AC-13: baseline CLI flags."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.baselines_dir = os.path.join(self.tmpdir, "baselines")
+        os.makedirs(self.baselines_dir, exist_ok=True)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _write_valid_baseline(self, suite="skill"):
+        from evals.framework.baseline import BaselineFile, write_baseline
+        b = BaselineFile(
+            suite=suite,
+            generated_at="2026-04-08T12:00:00Z",
+            generated_from_commit="abc1234",
+            tolerances={
+                "pass_rate_delta": 0.0,
+                "duration_multiplier": 1.25,
+                "tokens_multiplier": 1.20,
+            },
+            evals={
+                "eval-01": {
+                    "pass_rate": 1.0,
+                    "duration_ms": 30000,
+                    "tokens": {
+                        "input_tokens": 10000,
+                        "output_tokens": 2000,
+                        "cache_creation_input_tokens": 0,
+                        "cache_read_input_tokens": 0,
+                    },
+                },
+            },
+        )
+        path = os.path.join(self.baselines_dir, f"{suite}.json")
+        write_baseline(b, path)
+        return path
+
+    def test_validate_baselines_dir_returns_empty_findings_for_valid_dir(self):
+        self._write_valid_baseline("skill")
+        from evals.framework.baseline import validate_baselines_dir
+        findings = validate_baselines_dir(self.baselines_dir)
+        self.assertIn("skill.json", findings)
+        self.assertEqual(findings["skill.json"], [])
+
+    def test_validate_baselines_dir_skips_schema_json(self):
+        """schema.json (the JSON Schema document) is NOT a baseline file."""
+        with open(os.path.join(self.baselines_dir, "schema.json"), "w") as f:
+            f.write('{"$schema": "http://json-schema.org/draft-07/schema#"}')
+        self._write_valid_baseline("skill")
+        from evals.framework.baseline import validate_baselines_dir
+        findings = validate_baselines_dir(self.baselines_dir)
+        self.assertNotIn("schema.json", findings)
+        self.assertIn("skill.json", findings)
+
+    def test_validate_baselines_dir_missing_directory_returns_empty(self):
+        from evals.framework.baseline import validate_baselines_dir
+        findings = validate_baselines_dir(os.path.join(self.tmpdir, "nope"))
+        self.assertEqual(findings, {})
+
+
 if __name__ == "__main__":
     unittest.main()

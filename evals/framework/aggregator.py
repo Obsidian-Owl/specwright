@@ -126,12 +126,17 @@ def aggregate_results(results_dir: str) -> dict[str, Any]:
         trial_num = grading.get("trial", _extract_trial_num(grading_path))
         pass_rate = grading.get("pass_rate", 0.0)
         duration_ms = grading.get("duration_ms", 0)
+        # execution.tokens is written by run_single_eval; contains the raw
+        # RunResult.tokens dict (input_tokens, output_tokens, cache_*).
+        # May be missing on older grading files — default to empty dict.
+        tokens = (grading.get("execution") or {}).get("tokens") or {}
 
         run_entry = {
             "eval_id": eval_id,
             "trial": trial_num,
             "pass_rate": pass_rate,
             "duration_ms": duration_ms,
+            "tokens": tokens,
         }
         runs.append(run_entry)
 
@@ -173,6 +178,40 @@ def _extract_trial_num(grading_path: str) -> int:
     return 0
 
 
+def _aggregate_tokens(eval_runs: list[dict]) -> dict[str, float]:
+    """Mean-aggregate the tokens dict across all runs of an eval.
+
+    Each run_entry may have a `tokens` dict (the raw RunResult.tokens
+    from runner.py — keys like input_tokens, output_tokens,
+    cache_creation_input_tokens, cache_read_input_tokens). Some runs
+    may have no tokens at all (older grading files, failures).
+
+    For baseline comparison, we want ONE aggregate value per token key.
+    Strategy: take the mean across runs where the key is present AND
+    numeric. Keys present in some runs but not others still get a mean
+    (of the runs where they are present). Non-numeric values are
+    skipped. Returns empty dict if no tokens data found in any run.
+    """
+    key_values: dict[str, list[float]] = {}
+    for run in eval_runs:
+        tokens = run.get("tokens") or {}
+        if not isinstance(tokens, dict):
+            continue
+        for key, val in tokens.items():
+            # Exclude bool (which is an int subclass) and non-numeric types
+            if isinstance(val, bool):
+                continue
+            if not isinstance(val, (int, float)):
+                continue
+            key_values.setdefault(key, []).append(float(val))
+
+    return {
+        key: sum(values) / len(values)
+        for key, values in key_values.items()
+        if values
+    }
+
+
 def _compute_run_summary(runs: list[dict]) -> dict[str, Any]:
     """Compute per-eval aggregated stats from all run entries."""
     by_eval: dict[str, list[dict]] = {}
@@ -187,10 +226,12 @@ def _compute_run_summary(runs: list[dict]) -> dict[str, Any]:
 
         pass_rate_stats = calculate_stats(pass_rates)
         duration_stats = calculate_stats(durations)
+        tokens_aggregate = _aggregate_tokens(eval_runs)
 
         summary[eval_id] = {
             "pass_rate": pass_rate_stats,
             "duration_ms": duration_stats,
+            "tokens": tokens_aggregate,
             "trial_count": len(eval_runs),
         }
 
