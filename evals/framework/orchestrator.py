@@ -2,7 +2,9 @@
 
 import json
 import os
+import shlex
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -19,6 +21,7 @@ from evals.framework import prompts
 
 # Base directory for resolving fixture/suite paths
 _EVALS_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT_DIR = os.path.dirname(_EVALS_BASE_DIR)
 
 # ---------------------------------------------------------------------------
 # Named constants
@@ -34,6 +37,8 @@ _EVALS_SUBDIR = "evals"
 _TRIAL_PREFIX = "trial-"
 _RESULTS_RUN_PREFIX = "run-"
 _SKILL_NAME_PREFIX = "sw-"
+_STRUCTURAL_TYPE = "structural"
+_STRUCTURAL_OUTPUT_LIMIT = 500
 
 
 # ---------------------------------------------------------------------------
@@ -156,6 +161,125 @@ def _trial_dir(results_dir: str, eval_id: str, trial_num: int) -> str:
     )
 
 
+def _truncate_output(text: str) -> str:
+    """Keep command output payloads bounded for grading.json."""
+    if len(text) <= _STRUCTURAL_OUTPUT_LIMIT:
+        return text
+    return text[:_STRUCTURAL_OUTPUT_LIMIT] + "...<truncated>"
+
+
+def _is_structural_case(eval_case: Dict) -> bool:
+    """Return True when the eval case uses the structural command path."""
+    return eval_case.get("type") == _STRUCTURAL_TYPE
+
+
+def _build_structural_grade_result(
+    command: str,
+    exit_code: int,
+    duration_ms: float,
+    stdout: str,
+    stderr: str,
+    error: Optional[str] = None,
+) -> Dict:
+    """Build a grading payload for a structural eval command."""
+    passed = exit_code == 0 and error is None
+    evidence_parts = [f"exit_code={exit_code}"]
+    if stdout:
+        evidence_parts.append(f"stdout={_truncate_output(stdout)}")
+    if stderr:
+        evidence_parts.append(f"stderr={_truncate_output(stderr)}")
+    if error:
+        evidence_parts.append(f"error={error}")
+    return {
+        "expectations": [
+            {
+                "type": "command_exit_code",
+                "description": f"Command exits 0: {command}",
+                "passed": passed,
+                "evidence": "; ".join(evidence_parts),
+                "score": 1.0 if passed else 0.0,
+            }
+        ],
+        "summary": {
+            "total": 1,
+            "passed": 1 if passed else 0,
+            "failed": 0 if passed else 1,
+            "skipped": 0,
+            "pass_rate": 1.0 if passed else 0.0,
+        },
+        "timing": {"duration_ms": duration_ms},
+        "execution": {
+            "command": command,
+            "exit_code": exit_code,
+            "duration_ms": duration_ms,
+            "stdout": _truncate_output(stdout),
+            "stderr": _truncate_output(stderr),
+            "tokens": {},
+        },
+        **({"error": error} if error else {}),
+    }
+
+
+def _run_structural_eval(
+    eval_case: Dict,
+    trial_dir: str,
+    eval_id: str,
+    trial_num: int,
+    timeout: int,
+) -> None:
+    """Execute a structural eval command from the checked-out repo root."""
+    command = eval_case.get("command", "")
+    start_time = time.time()
+    exit_code = 2
+    stdout = ""
+    stderr = ""
+    error = None
+
+    try:
+        argv = shlex.split(command)
+        if not argv:
+            raise ValueError("Structural eval command must not be empty")
+        completed = subprocess.run(
+            argv,
+            capture_output=True,
+            text=True,
+            cwd=_REPO_ROOT_DIR,
+            timeout=timeout,
+        )
+        exit_code = completed.returncode
+        stdout = completed.stdout or ""
+        stderr = completed.stderr or ""
+    except FileNotFoundError as exc:
+        exit_code = 127
+        error = str(exc)
+    except subprocess.TimeoutExpired as exc:
+        exit_code = 124
+        stdout = exc.stdout or ""
+        stderr = exc.stderr or ""
+        error = f"TimeoutExpired: {exc}"
+    except ValueError as exc:
+        exit_code = 2
+        error = str(exc)
+
+    duration_ms = round((time.time() - start_time) * 1000, 2)
+    grade_result = _build_structural_grade_result(
+        command=command,
+        exit_code=exit_code,
+        duration_ms=duration_ms,
+        stdout=stdout,
+        stderr=stderr,
+        error=error,
+    )
+    _write_grading_json(
+        trial_dir=trial_dir,
+        eval_id=eval_id,
+        trial_num=trial_num,
+        grade_result=grade_result,
+    )
+    pass_rate = grade_result.get("summary", {}).get("pass_rate", 0.0)
+    print(f"  DONE (pass_rate: {pass_rate:.2f})", file=sys.stderr)
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -173,6 +297,16 @@ def run_single_eval(
     trial_dir = _trial_dir(results_dir, eval_id, trial_num)
 
     print(f"Running eval {eval_id} trial {trial_num} ...", file=sys.stderr)
+
+    if _is_structural_case(eval_case):
+        _run_structural_eval(
+            eval_case=eval_case,
+            trial_dir=trial_dir,
+            eval_id=eval_id,
+            trial_num=trial_num,
+            timeout=timeout,
+        )
+        return
 
     start_time = time.time()
 
@@ -423,8 +557,30 @@ def _validate_expectation(case_id: str, expectation: dict) -> list[str]:
     return errors
 
 
+def _validate_case_type(case_id: str, eval_case: dict) -> list[str]:
+    """Validate the optional eval-case type field."""
+    case_type = eval_case.get("type")
+    if case_type is None:
+        return []
+    if case_type != _STRUCTURAL_TYPE:
+        return [f"[{case_id}] Unknown eval case type '{case_type}'"]
+    return []
+
+
+def _validate_structural_case(case_id: str, eval_case: dict) -> list[str]:
+    """Validate structural eval-case specific fields."""
+    if not _is_structural_case(eval_case):
+        return []
+    command = eval_case.get("command")
+    if not isinstance(command, str) or not command.strip():
+        return [f"[{case_id}] Structural eval case requires non-empty string field 'command'"]
+    return []
+
+
 def _validate_layer_fields(case_id: str, eval_case: dict) -> list[str]:
     """Validate exactly one layer field is present. Returns list of error strings."""
+    if _is_structural_case(eval_case):
+        return []
     present = [f for f in _LAYER_FIELDS if f in eval_case]
     if len(present) != 1:
         return [
@@ -436,6 +592,8 @@ def _validate_layer_fields(case_id: str, eval_case: dict) -> list[str]:
 
 def _validate_prompt_template(case_id: str, eval_case: dict) -> list[str]:
     """Validate prompt_template for Layer 1 (skill) cases. Returns list of error strings."""
+    if _is_structural_case(eval_case):
+        return []
     if "skill" not in eval_case:
         return []
 
@@ -452,6 +610,8 @@ def _validate_prompt_template(case_id: str, eval_case: dict) -> list[str]:
 
 def _validate_seed_path(case_id: str, eval_case: dict) -> list[str]:
     """Validate fixture seed path exists on disk. Returns list of error strings."""
+    if _is_structural_case(eval_case):
+        return []
     seed = eval_case.get("seed", {})
     if seed.get("type") != "fixture":
         return []
@@ -494,6 +654,8 @@ def validate_suite(suite_path: str) -> list[str]:
             errors.append(f"[{case_id}] Duplicate case ID")
         seen_ids.add(case_id)
 
+        errors.extend(_validate_case_type(case_id, eval_case))
+        errors.extend(_validate_structural_case(case_id, eval_case))
         errors.extend(_validate_layer_fields(case_id, eval_case))
         errors.extend(_validate_prompt_template(case_id, eval_case))
         errors.extend(_validate_seed_path(case_id, eval_case))
