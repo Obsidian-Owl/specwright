@@ -947,7 +947,7 @@ fi
 
 echo "--- (h) no semi-formal protocol references remain ---"
 
-if rg -n "semi-formal-reasoning" "$CC_DIST"/skills "$CC_DIST"/agents "$CC_DIST/CLAUDE.md" >/dev/null 2>&1; then
+if grep -r "semi-formal-reasoning" "$CC_DIST"/skills "$CC_DIST"/agents "$CC_DIST/CLAUDE.md" >/dev/null 2>&1; then
   fail "dist output still references semi-formal-reasoning"
 else
   pass "dist output has no semi-formal-reasoning references"

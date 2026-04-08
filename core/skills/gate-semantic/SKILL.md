@@ -72,7 +72,7 @@ Per `protocols/evidence.md#verdict-rendering`. All findings WARN by default.
 No findings = PASS. WARN-only = WARN. Any BLOCK = FAIL.
 
 Tier 0 categories: **permanently WARN-only**. Tier 1+ may promote to BLOCK
-when: (1) ≥5 shipped units, (2) FP rate <10% per `evidence.md`
+when: (1) ≥5 shipped units, (2) FP rate <10% per `evidence.md#verdict-rendering`
 calibration, (3) user opt-in via config `{"severity": "block"}`.
 
 **Evidence report:** Tool availability, skipped categories with reason,
