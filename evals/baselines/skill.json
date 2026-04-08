@@ -2,9 +2,10 @@
   "suite": "skill",
   "generated_at": "2026-04-08T10:29:51.582580+00:00",
   "generated_from_commit": "74d7156",
+  "__comment": "Skill smoke is structural-only. Duration is a coarse CI health signal here, so the multiplier is intentionally looser to absorb GitHub runner variance while keeping pass-rate regressions strict.",
   "tolerances": {
     "pass_rate_delta": 0.0,
-    "duration_multiplier": 1.25,
+    "duration_multiplier": 1.5,
     "tokens_multiplier": 1.2
   },
   "evals": {
