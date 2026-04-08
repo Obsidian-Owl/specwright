@@ -36,8 +36,8 @@ WORKFLOW_EXIT="${WORKFLOW_EXIT:-0}"
 INTEGRATION_EXIT="${INTEGRATION_EXIT:-0}"
 
 # GITHUB_REPOSITORY is consumed implicitly by `gh` when running inside
-# CI, so we don't need to pass it as a flag. Set a default for local
-# test runs (gh stub doesn't care).
+# CI, so we do not need to pass it as a flag. Set a default for local
+# test runs (gh stub does not care).
 : "${GITHUB_REPOSITORY:=Obsidian-Owl/specwright}"
 export GITHUB_REPOSITORY
 
@@ -48,13 +48,13 @@ TODAY=$(date -u +%Y-%m-%d)
 # Discovery: the eval framework (evals/framework/orchestrator.py) creates
 # results dirs named run-{timestamp} (one per invocation). eval-full.yml
 # runs three suites in sequence, producing three run-* dirs. Each run dir
-# contains a config.json that records the suite name AND a comparison.json
+# contains a config.json that records the suite name and a comparison.json
 # from the compare-to-baseline step.
 #
 # We walk all run-* dirs, read config.json to identify the suite, and
-# pick the NEWEST run per suite (in case multiple runs exist for the
-# same suite — use the latest). This replaces the original glob `*-run`
-# which incorrectly assumed per-suite directory naming.
+# pick the newest run per suite (in case multiple runs exist for the
+# same suite). This replaces the original glob `*-run`, which
+# incorrectly assumed per-suite directory naming.
 
 ANY_REGRESSION=0
 ANY_IMPROVEMENT=0
@@ -80,7 +80,6 @@ for run_dir in "$EVAL_RESULTS_DIR"/run-*; do
     continue
   fi
 
-  # Track the newest run directory per suite by mtime
   mtime=$(stat -c '%Y' "$run_dir" 2>/dev/null || stat -f '%m' "$run_dir" 2>/dev/null || echo 0)
   if [ "${suite_latest_mtime[$suite_name]:-0}" -lt "$mtime" ]; then
     suite_latest_mtime[$suite_name]=$mtime
@@ -88,7 +87,6 @@ for run_dir in "$EVAL_RESULTS_DIR"/run-*; do
   fi
 done
 
-# Now walk the latest run per suite and aggregate regressions + improvements
 for suite_name in "${!suite_latest_dir[@]}"; do
   run_dir="${suite_latest_dir[$suite_name]}"
   comp="$run_dir/comparison.json"
@@ -117,8 +115,8 @@ done
 
 # Also fold in the explicit exit codes — these are the suite-level
 # verdicts from `--compare-to-baseline` and may indicate failure even
-# when no comparison.json was written (e.g. the suite errored before
-# the comparator ran).
+# when no comparison.json was written (for example if the suite errored
+# before the comparator ran).
 if [ "${SKILL_EXIT}" != "0" ] || [ "${WORKFLOW_EXIT}" != "0" ] || [ "${INTEGRATION_EXIT}" != "0" ]; then
   ANY_REGRESSION=1
 fi
@@ -126,7 +124,6 @@ fi
 # ----- Dispatch -----
 
 if [ "$ANY_REGRESSION" = "1" ]; then
-  # Open regression issue
   if ! command -v gh >/dev/null 2>&1; then
     echo "error: gh CLI not found on PATH" >&2
     exit 1
@@ -152,7 +149,6 @@ EOF
     --title "Eval regression detected — $TODAY" \
     --label "eval-regression,needs-triage" \
     --body "$ISSUE_BODY" || {
-      # Label may not exist on first run — retry without it
       gh issue create \
         --title "Eval regression detected — $TODAY" \
         --body "$ISSUE_BODY"
@@ -161,7 +157,6 @@ EOF
 fi
 
 if [ "$ANY_IMPROVEMENT" = "1" ]; then
-  # Open baseline-refresh PR
   if ! command -v gh >/dev/null 2>&1; then
     echo "error: gh CLI not found on PATH" >&2
     exit 1
@@ -173,14 +168,8 @@ if [ "$ANY_IMPROVEMENT" = "1" ]; then
 
   BRANCH="auto/eval-baseline-refresh-$TODAY"
 
-  # ------------------------------------------------------------
-  # Re-generate fresh baseline files from the downloaded run artifacts.
-  # ------------------------------------------------------------
-  # The dispatcher job downloads the runner's evals/results/ artifact.
-  # Re-running `python -m evals --update-baseline` here would require
-  # the full Claude auth/toolchain again and would drift from the run
-  # that actually detected the improvement. Instead, consume the saved
-  # run-* directories and write evals/baselines/{suite}.json directly.
+  # Rebuild baselines from the downloaded run artifacts rather than
+  # re-running live evals in the dispatcher job.
   if ! command -v python3 >/dev/null 2>&1; then
     echo "error: python3 not found on PATH" >&2
     exit 1
@@ -190,15 +179,11 @@ if [ "$ANY_IMPROVEMENT" = "1" ]; then
     --results-dir "$EVAL_RESULTS_DIR" \
     --baselines-dir "evals/baselines"
 
-  # Check whether the baseline files actually changed. If not, the
-  # "improvement" was within noise — abort the PR creation to avoid
-  # opening an empty PR.
   if git diff --quiet -- evals/baselines/; then
-    echo "::notice::Baseline files unchanged after re-seed; no PR opened."
+    echo "::notice::Baseline files unchanged after refresh; no PR opened."
     exit 0
   fi
 
-  # Create branch, commit, push
   git config user.email "github-actions[bot]@users.noreply.github.com"
   git config user.name "github-actions[bot]"
   git checkout -b "$BRANCH"
@@ -231,7 +216,6 @@ EOF
     --base main \
     --head "$BRANCH" \
     --body "$PR_BODY" || {
-      # Label may not exist on first run — retry without it
       gh pr create \
         --title "chore(evals): refresh baselines for week of $TODAY" \
         --base main \
@@ -241,5 +225,4 @@ EOF
   exit 0
 fi
 
-# Flat run — neither regressed nor improved
 exit 0

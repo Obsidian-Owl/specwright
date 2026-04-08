@@ -8,6 +8,7 @@
   <a href="https://github.com/Obsidian-Owl/specwright/stargazers"><img src="https://img.shields.io/github/stars/Obsidian-Owl/specwright?style=flat-square&color=475569" alt="Stars"></a>
   <a href="https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/plugins"><img src="https://img.shields.io/badge/Claude_Code-cc785c?style=flat-square" alt="Claude Code"></a>
   <a href="https://opencode.ai"><img src="https://img.shields.io/badge/Opencode-3b82f6?style=flat-square" alt="Opencode"></a>
+  <a href="https://developers.openai.com/codex/"><img src="https://img.shields.io/badge/Codex_CLI-10a37f?style=flat-square" alt="Codex CLI"></a>
 </p>
 
 <p align="center">
@@ -41,7 +42,7 @@ Specwright closes the **entire loop** — design, plan, build, verify, ship, lea
 - Codebase knowledge persists across sessions — no re-discovering the same architecture
 - Periodic health checks find systemic debt that per-change gates miss
 - One install, configure once, works with any language or framework
-- Cross-platform: works with Claude Code, Opencode, and any agent that reads [`AGENTS.md`](./AGENTS.md)
+- Cross-platform: works with Claude Code, Opencode, Codex CLI, and any agent that reads [`AGENTS.md`](./AGENTS.md)
 
 ### How It Compares
 
@@ -142,6 +143,20 @@ Add the plugin to your `opencode.json`:
 ```
 
 Opencode installs the package automatically on next startup — no manual `npm install` needed.
+
+</details>
+
+<details>
+<summary><b>Codex CLI</b></summary>
+
+Specwright includes repo-local Codex wiring:
+- `.agents/skills -> core/skills` (skills-only mode)
+- `.agents/plugins/marketplace.json` (plugin entry for `adapters/codex`)
+
+In Codex, install/enable the local `specwright` plugin from the repo marketplace.
+This enables:
+- `/sw-*` slash commands
+- Session hooks (resume context + shipping guard + continuation snapshots)
 
 </details>
 
@@ -321,10 +336,12 @@ specwright/
 │   └── agents/        # 6 custom subagent definitions
 ├── adapters/          # Platform-specific packaging
 │   ├── claude-code/   # Claude Code adapter (hooks, plugin metadata)
-│   └── opencode/      # Opencode adapter (plugin.ts, commands, skill overrides)
+│   ├── opencode/      # Opencode adapter (plugin.ts, commands, skill overrides)
+│   └── codex/         # Codex adapter (.codex-plugin, commands, hooks)
 ├── build/             # Build pipeline
 │   ├── build.sh       # Builds platform packages (core + adapters → dist/)
 │   └── mappings/      # Per-platform transformation configs
+├── .agents/           # Codex repo-local skills + plugin marketplace
 ├── AGENTS.md          # Universal project instructions (Agent Skills standard)
 ├── DESIGN.md          # Full architecture
 └── README.md

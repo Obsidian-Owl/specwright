@@ -44,7 +44,7 @@ Constitution and Charter are created during init. TESTING.md is created during i
 - `core/skills/` -- SKILL.md files (goal + constraints, not procedures)
 - `core/protocols/` -- Shared protocols for fragile operations (loaded on demand)
 - `core/agents/` -- Agent prompt definitions
-- `adapters/` -- Platform-specific packaging (Claude Code, Opencode, etc.)
+- `adapters/` -- Platform-specific packaging (Claude Code, Opencode, Codex CLI, etc.)
 - `.specwright/` -- Runtime state, config, anchor docs, work artifacts
 
 See `DESIGN.md` for the full architecture document.

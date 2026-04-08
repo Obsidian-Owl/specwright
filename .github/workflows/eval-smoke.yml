@@ -46,18 +46,16 @@ jobs:
         # SUPPLY-CHAIN NOTE: this step downloads claude.ai/install.sh and
         # executes it. The same installer is implicitly trusted by
         # anthropics/claude-code-action@v1 which powers claude-code-review.yml
-        # in this repo — so adding it here does not expand the trust surface.
+        # in this repo, so adding it here does not expand the trust surface.
         #
         # Hardening applied:
-        # 1. Download to a local file first (don't pipe to bash)
-        # 2. Verify it's non-empty and starts with a shebang (cheap sanity check)
-        # 3. Log the SHA-256 to the run output so unexpected drift is visible
-        #    in the workflow logs even if no alert fires
+        # 1. Download to a local file first (do not pipe to bash)
+        # 2. Verify it is non-empty and starts with a shebang
+        # 3. Log the SHA-256 so unexpected drift is visible in workflow logs
         # 4. Execute explicitly with bash
         #
-        # Future hardening (tracked as backlog item): pin to a specific
-        # release URL + verify a known SHA-256. The installer doesn't
-        # currently publish a versioned URL or canonical hash.
+        # Future hardening: pin a versioned release URL and validate against a
+        # published canonical SHA-256 when the installer offers one.
         run: |
           set -euo pipefail
           curl -fsSL https://claude.ai/install.sh -o /tmp/claude-install.sh

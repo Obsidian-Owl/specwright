@@ -3,12 +3,12 @@
 # scripts/post-eval-comment.sh
 #
 # Post a sticky eval-smoke comment to the active PR. The comment uses
-# a stable marker so subsequent pushes EDIT rather than DUPLICATE.
+# a stable marker so subsequent pushes edit rather than duplicate.
 #
 # Inputs (env vars):
 #   EVAL_RUN_DIR   — directory containing comparison.json (required)
 #   PR_NUMBER      — PR number to comment on (required, except in CI
-#                    where it's derived from $GITHUB_REF)
+#                    where it is derived from $GITHUB_REF)
 #   GH_TOKEN       — GitHub token (required for gh CLI)
 #
 # Marker: <!-- eval-smoke-comment -->
@@ -37,12 +37,8 @@ if [ ! -f "$COMPARISON_JSON" ]; then
   exit 1
 fi
 
-# Derive PR number from CI env if not explicitly set
-if [ -z "${PR_NUMBER:-}" ]; then
-  if [ -n "${GITHUB_REF:-}" ]; then
-    # GITHUB_REF for pull_request looks like refs/pull/123/merge
-    PR_NUMBER=$(echo "$GITHUB_REF" | sed -nE 's|^refs/pull/([0-9]+)/.*|\1|p')
-  fi
+if [ -z "${PR_NUMBER:-}" ] && [ -n "${GITHUB_REF:-}" ]; then
+  PR_NUMBER=$(echo "$GITHUB_REF" | sed -nE 's|^refs/pull/([0-9]+)/.*|\1|p')
 fi
 
 if [ -z "${PR_NUMBER:-}" ]; then
@@ -57,7 +53,6 @@ fi
 
 # ----- Build comment body -----
 
-# Use jq if available for clean extraction; otherwise fall back to grep.
 if command -v jq >/dev/null 2>&1; then
   REGRESSIONS=$(jq -r '.regressions | length' "$COMPARISON_JSON")
   IMPROVEMENTS=$(jq -r '.improvements | length' "$COMPARISON_JSON")
@@ -92,20 +87,8 @@ EOF
 
 REPO="${GITHUB_REPOSITORY:-Obsidian-Owl/specwright}"
 
-# ----- Find existing sticky comment, extracting the integer REST DB ID -----
-#
-# IMPORTANT: `gh pr view --json comments` returns GraphQL node IDs in the
-# `.id` field (strings like `IC_kwDO...`). The REST PATCH endpoint at
-# `/repos/{owner}/{repo}/issues/comments/{id}` requires the integer
-# database ID, NOT the node ID. Sending the node ID returns 404 and the
-# script would silently print "Edited sticky comment …" while actually
-# doing nothing — subsequent pushes would then create DUPLICATE sticky
-# comments instead of updating the existing one.
-#
-# The fix: query via `gh api` against the REST comments endpoint directly.
-# The REST response exposes the integer ID in the `.id` field of each
-# comment object, which is what PATCH expects.
-
+# Use the REST issue-comments endpoint so the returned `id` is the
+# integer database ID required by the PATCH endpoint below.
 EXISTING_ID=""
 if command -v jq >/dev/null 2>&1; then
   EXISTING_ID=$(gh api "/repos/$REPO/issues/$PR_NUMBER/comments" 2>/dev/null | jq -r --arg marker "$MARKER" '
@@ -116,13 +99,11 @@ fi
 # ----- Post or edit -----
 
 if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
-  # Edit existing sticky comment via REST API (integer ID confirmed above)
   gh api --method PATCH \
     "/repos/$REPO/issues/comments/$EXISTING_ID" \
     -f body="$BODY" >/dev/null
   echo "Edited sticky comment $EXISTING_ID on PR #$PR_NUMBER"
 else
-  # Post new comment
   gh pr comment "$PR_NUMBER" --body "$BODY"
   echo "Posted new sticky comment on PR #$PR_NUMBER"
 fi
