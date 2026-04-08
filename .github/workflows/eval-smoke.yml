@@ -20,10 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check API key
+      - name: Check Claude Code OAuth token
         run: |
-          if [ -z "${{ secrets.CLAUDE_API_KEY }}" ]; then
-            echo "::error::CLAUDE_API_KEY secret is required for eval smoke runs."
+          if [ -z "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN secret is required for eval smoke runs."
+            echo "::error::This is the same token used by .github/workflows/claude-code-review.yml."
             echo "::error::Configure it via Repo Settings → Secrets and variables → Actions."
             exit 1
           fi
@@ -44,9 +45,13 @@ jobs:
       # 02b-1's aggregator mean-aggregates per eval, so 3 trials produce
       # a stable mean. Median would be a strict improvement and is
       # captured as a future optimization.
+      #
+      # Auth: CLAUDE_CODE_OAUTH_TOKEN uses the Claude Code subscription
+      # (Pro/Max) instead of API credits. The `claude` CLI binary reads
+      # this env var natively. Same auth path as claude-code-review.yml.
       - name: Run smoke evals
         env:
-          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           python -m evals --suite skill --smoke-only --trials 3 --compare-to-baseline
 
