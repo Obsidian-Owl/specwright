@@ -1,0 +1,94 @@
+name: Eval Full Weekly
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # Sunday 02:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
+    outputs:
+      skill_exit: ${{ steps.run.outputs.skill_exit }}
+      workflow_exit: ${{ steps.run.outputs.workflow_exit }}
+      integration_exit: ${{ steps.run.outputs.integration_exit }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check API key
+        run: |
+          if [ -z "${{ secrets.CLAUDE_API_KEY }}" ]; then
+            echo "::error::CLAUDE_API_KEY secret is required for eval-full runs."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install eval framework deps
+        run: pip install -r evals/requirements.txt
+
+      - name: Install Claude CLI
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run all suites
+        id: run
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+        run: |
+          set +e
+
+          python -m evals --suite skill --compare-to-baseline
+          echo "skill_exit=$?" >> "$GITHUB_OUTPUT"
+
+          python -m evals --suite workflow --compare-to-baseline
+          echo "workflow_exit=$?" >> "$GITHUB_OUTPUT"
+
+          python -m evals --suite integration --compare-to-baseline
+          echo "integration_exit=$?" >> "$GITHUB_OUTPUT"
+
+          set -e
+
+      - name: Upload eval results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: evals/results/
+          retention-days: 30
+
+  dispatcher:
+    needs: runner
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download eval results
+        uses: actions/download-artifact@v4
+        with:
+          name: eval-results
+          path: evals/results/
+
+      - name: Dispatch PR or issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SKILL_EXIT: ${{ needs.runner.outputs.skill_exit }}
+          WORKFLOW_EXIT: ${{ needs.runner.outputs.workflow_exit }}
+          INTEGRATION_EXIT: ${{ needs.runner.outputs.integration_exit }}
+          EVAL_RESULTS_DIR: evals/results
+        run: bash scripts/eval-weekly-dispatch.sh

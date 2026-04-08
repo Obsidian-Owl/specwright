@@ -1,0 +1,12 @@
+{
+  "__comment": "STUB BASELINE — populated by the first weekly eval-full run that successfully invokes /sw-design → /sw-plan → /sw-build → /sw-verify → /sw-ship sequences. Like skill.json before its first seed, this stub is schema-valid and lets --validate-baselines pass while leaving every workflow-suite eval as missing_from_baseline (a WARN, not a regression). Created in Unit 02b-2; awaiting first real run.",
+  "suite": "workflow",
+  "generated_at": "2026-04-08T14:00:00Z",
+  "generated_from_commit": "e4f19ef",
+  "tolerances": {
+    "pass_rate_delta": 0.0,
+    "duration_multiplier": 1.25,
+    "tokens_multiplier": 1.20
+  },
+  "evals": {}
+}

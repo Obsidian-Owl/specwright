@@ -270,6 +270,7 @@
       "id": "sw-design-handoff-format",
       "layer": "skill",
       "skill": "sw-design",
+      "smoke": true,
       "prompt_template": "design",
       "prompt_args": {"problem_statement": "add a hello-world function"},
       "seed": {
@@ -299,6 +300,7 @@
       "id": "sw-plan-handoff-format",
       "layer": "skill",
       "skill": "sw-plan",
+      "smoke": true,
       "prompt_template": "plan",
       "prompt_args": {},
       "seed": {
@@ -328,6 +330,7 @@
       "id": "sw-verify-handoff-format",
       "layer": "skill",
       "skill": "sw-verify",
+      "smoke": true,
       "prompt_template": "verify",
       "prompt_args": {},
       "seed": {
@@ -357,6 +360,7 @@
       "id": "sw-ship-handoff-format",
       "layer": "skill",
       "skill": "sw-ship",
+      "smoke": true,
       "prompt_template": "ship",
       "prompt_args": {},
       "seed": {
