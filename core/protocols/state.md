@@ -63,9 +63,16 @@ Valid transitions for `currentWork.status`:
 | `shipping` | `shipped` | sw-ship (PR created successfully) |
 | `shipping` | `verifying` | sw-ship (push or PR creation failed — rollback) |
 | `shipped` | `building` | sw-ship (next unit advancement) |
-| `shipped` | (none) | sw-learn (clears `currentWork` to null) |
+| `shipped` | `designing` | sw-design (new-work argument required; clears prior shipped work) |
+| `shipped` | (none) | sw-learn (clears `currentWork` to null — optional) |
 | any | `abandoned` | sw-status --reset |
 | `abandoned` | (none) | sw-status --cleanup or sw-design (clears abandoned work before starting new) |
+
+**sw-learn is an optional capture step.** The state machine permits exit from
+`shipped` directly via sw-design (to start new work) or via sw-ship (to advance
+to the next queued unit). sw-learn remains valid for pattern capture before
+clearing, but it is never required to unblock the next pipeline run. Core
+pipeline skills never enforce sw-learn as a hard prerequisite.
 
 **Enforcement:** Skills MUST check `currentWork.status` before mutating. If the current status is not a valid "from" state for the intended transition, STOP with:
 > "Cannot transition from {current} to {target}. Run /sw-{correct-skill} instead."

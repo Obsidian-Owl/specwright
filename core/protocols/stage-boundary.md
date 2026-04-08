@@ -31,8 +31,8 @@ When the skill's work is complete:
 | sw-build | `/sw-verify` | Run quality gates |
 | sw-verify (PASS) | `/sw-ship` | Create PR and ship |
 | sw-verify (FAIL) | Fix, then `/sw-verify` | Re-validate |
-| sw-ship | `/sw-learn` (optional) | Capture learnings |
-| sw-ship / sw-learn | `/sw-build` (next unit) | Continue queue |
+| sw-ship | `/sw-build` (next unit) or `/sw-design` (new work) | Continue queue or start fresh |
+| sw-ship | `/sw-learn` (optional side path) | Capture learnings before moving on. Never required. |
 
 ## Blocked Operations by State
 

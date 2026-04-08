@@ -93,6 +93,20 @@ reads the artifacts and runs `/sw-plan` when ready.
 **State mutations (LOW freedom):**
 Follow `protocols/state.md` for read-modify-write mechanics. Postconditions:
 - If prior `currentWork` has status `abandoned`: cleared to null, `workUnits` reset to null (prevents stale multi-unit data from triggering cross-unit checks).
+- If prior `currentWork` has status `shipped`:
+  - **With a new-work argument**: clear `currentWork` to null AND reset
+    `workUnits` to null (mirroring the abandoned-path mutation). Before
+    clearing, print exactly one informational notice:
+    `Clearing prior shipped work {unitId}. Run /sw-learn first if pattern capture is desired.`
+    The notice is a print, not a confirmation prompt — the clear proceeds.
+    sw-learn remains optional and may be invoked separately if desired.
+  - **With no argument**: do NOT clear. Shipped work is terminal — the
+    design artifacts are not a change-request surface. Present the shipped
+    status at the gate with the PR URL and the next action (start new
+    work with an argument, or run `/sw-build` for the next queued unit if
+    one exists). Record the interpretation in decisions.md. The Failure
+    Modes "Active work in progress → continue existing" path does NOT
+    apply to shipped work.
 - `currentWork.status` is `designing`. Work directory created at `.specwright/work/{id}/`.
 - `currentWork.baselineCommit` is the SHA of `origin/{config.git.baseBranch}` (default `origin/main`). Captures base branch HEAD before any work begins — used by gate-wiring for cross-unit verification. Never overwritten on re-entry (change request).
 - `baselineCommit` also written to `{workDir}/context.md` for historical reference (persists after sw-learn clears currentWork).
