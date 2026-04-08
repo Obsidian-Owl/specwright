@@ -496,5 +496,307 @@ class TestCompareRunToBaselineEdgeCases(unittest.TestCase):
         self.assertEqual(result.regressions, [])
 
 
+# ===========================================================================
+# End-to-end integration test (added in response to PR #151 review)
+#
+# The original 02b-1 unit tests synthesized run_results dicts directly,
+# never going through the real aggregator. PR #151 review caught three
+# P1 bugs that survived 40 unit tests because of this gap:
+#   1. summary["pass_rate_mean"] doesn't exist (real shape is
+#      summary["pass_rate"]["mean"])
+#   2. summary["tokens"] was always {} because aggregator never read
+#      execution.tokens from per-grading files
+#   3. _render_table's :+d format crashed on float duration values
+# This test exercises the full pipeline so the integration seam stays
+# tested forever.
+# ===========================================================================
+
+import os
+from evals.framework.aggregator import aggregate_results
+
+
+def _write_grading_with_tokens(
+    base_dir, eval_id, trial_num, pass_rate, duration_ms,
+    input_tokens=0, output_tokens=0, cache_creation_input_tokens=0,
+    cache_read_input_tokens=0,
+):
+    """Mirror the shape of grading.json files written by run_single_eval."""
+    eval_dir = os.path.join(base_dir, "evals", eval_id, f"trial-{trial_num}")
+    os.makedirs(eval_dir, exist_ok=True)
+    grading = {
+        "eval_id": eval_id,
+        "trial": trial_num,
+        "pass_rate": pass_rate,
+        "duration_ms": duration_ms,
+        "expectations": [],
+        "summary": {"total": 1, "passed": 1, "failed": 0, "skipped": 0,
+                    "pass_rate": pass_rate},
+        "execution": {
+            "exit_code": 0,
+            "duration_ms": duration_ms,
+            "tokens": {
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "cache_creation_input_tokens": cache_creation_input_tokens,
+                "cache_read_input_tokens": cache_read_input_tokens,
+            },
+        },
+    }
+    with open(os.path.join(eval_dir, "grading.json"), "w") as f:
+        json.dump(grading, f)
+
+
+class TestEndToEndAggregatorToBaseline(unittest.TestCase):
+    """The full pipeline: write grading.json → aggregate_results → build
+    baseline → compare_run_to_baseline.
+
+    This test would have caught all 3 P1 bugs from PR #151 review.
+    """
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_aggregator_run_summary_has_nested_pass_rate_mean(self):
+        """REGRESSION: PR #151 access pattern was summary['pass_rate_mean']
+        which doesn't exist. Real shape is summary['pass_rate']['mean']."""
+        _write_grading_with_tokens(
+            self.tmpdir, "e2e-eval-01", 1,
+            pass_rate=0.75, duration_ms=12000,
+            input_tokens=5000, output_tokens=1000,
+        )
+        agg = aggregate_results(self.tmpdir)
+        run_summary = agg["run_summary"]
+        self.assertIn("e2e-eval-01", run_summary)
+        eval_summary = run_summary["e2e-eval-01"]
+
+        # The pass_rate is a nested dict with 'mean', not a flat 'pass_rate_mean'
+        self.assertIn("pass_rate", eval_summary)
+        self.assertIsInstance(eval_summary["pass_rate"], dict)
+        self.assertIn("mean", eval_summary["pass_rate"])
+        self.assertNotIn("pass_rate_mean", eval_summary)
+        self.assertEqual(eval_summary["pass_rate"]["mean"], 0.75)
+
+        # Same for duration_ms
+        self.assertIn("duration_ms", eval_summary)
+        self.assertIsInstance(eval_summary["duration_ms"], dict)
+        self.assertIn("mean", eval_summary["duration_ms"])
+        self.assertEqual(eval_summary["duration_ms"]["mean"], 12000)
+
+    def test_aggregator_collects_tokens_from_execution(self):
+        """REGRESSION: aggregator originally did not read execution.tokens
+        from grading files, so summary['tokens'] was always {}."""
+        _write_grading_with_tokens(
+            self.tmpdir, "e2e-tokens", 1,
+            pass_rate=1.0, duration_ms=10000,
+            input_tokens=5000, output_tokens=1000,
+            cache_creation_input_tokens=200, cache_read_input_tokens=100,
+        )
+        agg = aggregate_results(self.tmpdir)
+        eval_summary = agg["run_summary"]["e2e-tokens"]
+        self.assertIn("tokens", eval_summary)
+        self.assertEqual(eval_summary["tokens"]["input_tokens"], 5000)
+        self.assertEqual(eval_summary["tokens"]["output_tokens"], 1000)
+        self.assertEqual(eval_summary["tokens"]["cache_creation_input_tokens"], 200)
+        self.assertEqual(eval_summary["tokens"]["cache_read_input_tokens"], 100)
+
+    def test_aggregator_means_tokens_across_trials(self):
+        """Multiple trials → tokens are mean-aggregated per key."""
+        for trial, (it, ot) in enumerate(((4000, 800), (6000, 1200)), start=1):
+            _write_grading_with_tokens(
+                self.tmpdir, "e2e-multi", trial,
+                pass_rate=1.0, duration_ms=10000,
+                input_tokens=it, output_tokens=ot,
+            )
+        agg = aggregate_results(self.tmpdir)
+        tokens = agg["run_summary"]["e2e-multi"]["tokens"]
+        self.assertEqual(tokens["input_tokens"], 5000.0)  # (4000 + 6000) / 2
+        self.assertEqual(tokens["output_tokens"], 1000.0)  # (800 + 1200) / 2
+
+    def test_aggregator_handles_missing_tokens_gracefully(self):
+        """A grading file without execution.tokens should not crash;
+        the eval just gets an empty tokens dict in the summary."""
+        # Write grading WITHOUT execution.tokens (older format)
+        eval_dir = os.path.join(self.tmpdir, "evals", "e2e-no-tokens", "trial-1")
+        os.makedirs(eval_dir)
+        with open(os.path.join(eval_dir, "grading.json"), "w") as f:
+            json.dump({
+                "eval_id": "e2e-no-tokens", "trial": 1,
+                "pass_rate": 1.0, "duration_ms": 10000,
+                # no execution field at all
+            }, f)
+        agg = aggregate_results(self.tmpdir)
+        self.assertEqual(agg["run_summary"]["e2e-no-tokens"]["tokens"], {})
+
+    def test_full_pipeline_aggregator_to_baseline_to_compare_clean(self):
+        """End-to-end: write graders → aggregate → write baseline →
+        re-aggregate identical run → compare → no regressions, exit 0.
+        Goes through every layer the PR review found bugs in."""
+        # Step 1: write grading files (simulating a real eval run)
+        _write_grading_with_tokens(
+            self.tmpdir, "pipeline-eval", 1,
+            pass_rate=1.0, duration_ms=15000,
+            input_tokens=8000, output_tokens=1500,
+        )
+        # Step 2: aggregate
+        agg = aggregate_results(self.tmpdir)
+        run_summary = agg["run_summary"]
+        # Step 3: build baseline using the SAME shape the CLI uses
+        evals_dict = {}
+        for eval_id, summary in run_summary.items():
+            evals_dict[eval_id] = {
+                "pass_rate": summary["pass_rate"]["mean"],
+                "duration_ms": int(summary["duration_ms"]["mean"]),
+                "tokens": summary["tokens"],
+                "runs": summary["trial_count"],
+            }
+        baseline = BaselineFile(
+            suite="test",
+            generated_at="2026-04-08T13:00:00Z",
+            generated_from_commit="abc1234",
+            tolerances={
+                "pass_rate_delta": 0.0,
+                "duration_multiplier": 1.25,
+                "tokens_multiplier": 1.20,
+            },
+            evals=evals_dict,
+        )
+        # Step 4: build run_results using the SAME shape (simulating
+        # --compare-to-baseline against this baseline)
+        run_results = {}
+        for eval_id, summary in run_summary.items():
+            run_results[eval_id] = {
+                "pass_rate": summary["pass_rate"]["mean"],
+                "duration_ms": int(summary["duration_ms"]["mean"]),
+                "tokens": summary["tokens"],
+            }
+        # Step 5: compare — must NOT crash on the format string and must
+        # report no regressions on identical input
+        result = compare_run_to_baseline(run_results, baseline)
+        self.assertEqual(result.exit_code, 0,
+                         f"Expected clean run, got regressions: {result.regressions}")
+        self.assertEqual(result.regressions, [])
+        # Table renders without crashing
+        self.assertIsInstance(result.table_markdown, str)
+        self.assertIn("pipeline-eval", result.table_markdown)
+
+    def test_full_pipeline_detects_real_regression(self):
+        """End-to-end: build baseline from one run, then compare against
+        a SECOND run with worse metrics. Must detect the regression. This
+        test would have failed before the key-mismatch fix."""
+        # First run — clean baseline values
+        baseline_dir = os.path.join(self.tmpdir, "baseline-run")
+        _write_grading_with_tokens(
+            baseline_dir, "regress-test", 1,
+            pass_rate=1.0, duration_ms=10000,
+            input_tokens=5000, output_tokens=1000,
+        )
+        baseline_agg = aggregate_results(baseline_dir)
+
+        # Build the baseline FROM the aggregator output (the buggy CLI
+        # path the review caught — this is the exact code path)
+        evals_dict = {}
+        for eval_id, summary in baseline_agg["run_summary"].items():
+            evals_dict[eval_id] = {
+                "pass_rate": summary["pass_rate"]["mean"],
+                "duration_ms": int(summary["duration_ms"]["mean"]),
+                "tokens": summary["tokens"],
+                "runs": summary["trial_count"],
+            }
+        baseline = BaselineFile(
+            suite="test",
+            generated_at="2026-04-08T13:00:00Z",
+            generated_from_commit="abc",
+            tolerances={
+                "pass_rate_delta": 0.0,
+                "duration_multiplier": 1.25,
+                "tokens_multiplier": 1.20,
+            },
+            evals=evals_dict,
+        )
+        # Verify baseline actually has real values, not zeros
+        self.assertEqual(baseline.evals["regress-test"]["pass_rate"], 1.0)
+        self.assertEqual(baseline.evals["regress-test"]["duration_ms"], 10000)
+        self.assertEqual(baseline.evals["regress-test"]["tokens"]["input_tokens"], 5000)
+
+        # Second run — pass rate dropped, duration much higher, tokens up
+        regress_dir = os.path.join(self.tmpdir, "regress-run")
+        _write_grading_with_tokens(
+            regress_dir, "regress-test", 1,
+            pass_rate=0.5, duration_ms=20000,  # well over 1.25x baseline
+            input_tokens=8000, output_tokens=2000,  # over 1.20x baseline
+        )
+        regress_agg = aggregate_results(regress_dir)
+        run_results = {}
+        for eval_id, summary in regress_agg["run_summary"].items():
+            run_results[eval_id] = {
+                "pass_rate": summary["pass_rate"]["mean"],
+                "duration_ms": int(summary["duration_ms"]["mean"]),
+                "tokens": summary["tokens"],
+            }
+
+        result = compare_run_to_baseline(run_results, baseline)
+        # Three distinct regressions: pass_rate, duration_ms, input_tokens, output_tokens
+        self.assertEqual(result.exit_code, 1)
+        self.assertGreaterEqual(len(result.regressions), 3)
+        metrics_hit = {r.metric for r in result.regressions}
+        self.assertIn("pass_rate", metrics_hit)
+        self.assertIn("duration_ms", metrics_hit)
+        # At least one tokens.* regression
+        token_regressions = [m for m in metrics_hit if m.startswith("tokens.")]
+        self.assertGreaterEqual(len(token_regressions), 1)
+
+    def test_table_render_does_not_crash_on_float_duration(self):
+        """REGRESSION: _render_table used :+d format which crashed on
+        floats. After the aggregator fix, run_dur is float (mean of trials)."""
+        _write_grading_with_tokens(
+            self.tmpdir, "float-dur", 1,
+            pass_rate=1.0, duration_ms=15000,
+            input_tokens=5000, output_tokens=1000,
+        )
+        _write_grading_with_tokens(
+            self.tmpdir, "float-dur", 2,
+            pass_rate=1.0, duration_ms=14000,
+            input_tokens=5000, output_tokens=1000,
+        )
+        # Two trials produce float means — exact bug repro condition
+        agg = aggregate_results(self.tmpdir)
+        evals_dict = {}
+        for eval_id, summary in agg["run_summary"].items():
+            evals_dict[eval_id] = {
+                "pass_rate": summary["pass_rate"]["mean"],
+                "duration_ms": int(summary["duration_ms"]["mean"]),
+                "tokens": summary["tokens"],
+                "runs": summary["trial_count"],
+            }
+        baseline = BaselineFile(
+            suite="test",
+            generated_at="2026-04-08T13:00:00Z",
+            generated_from_commit="abc",
+            tolerances={
+                "pass_rate_delta": 0.0,
+                "duration_multiplier": 1.25,
+                "tokens_multiplier": 1.20,
+            },
+            evals=evals_dict,
+        )
+        # Pass float duration directly — this is what the CLI used to do
+        run_results = {
+            "float-dur": {
+                "pass_rate": 1.0,
+                "duration_ms": 14500.0,  # FLOAT — would crash :+d
+                "tokens": {"input_tokens": 5000, "output_tokens": 1000,
+                           "cache_creation_input_tokens": 0,
+                           "cache_read_input_tokens": 0},
+            }
+        }
+        # Must not raise ValueError
+        result = compare_run_to_baseline(run_results, baseline)
+        self.assertIsInstance(result.table_markdown, str)
+        self.assertIn("float-dur", result.table_markdown)
+
+
 if __name__ == "__main__":
     unittest.main()

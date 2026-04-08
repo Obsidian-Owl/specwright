@@ -10,7 +10,7 @@ NOT a normalized {input, output, total} shape.
 import json
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 # ---------------------------------------------------------------------------
@@ -336,8 +336,8 @@ def _render_table(
         if is_new:
             verdict = "(new — no baseline)"
             pr_cell = f"{run_pr:.2f}"
-            dur_cell = f"{run_dur}ms"
-            tok_cell = f"{run_io}"
+            dur_cell = f"{run_dur:.0f}ms"
+            tok_cell = f"{run_io:.0f}"
         else:
             base_pr = base_entry.get("pass_rate", 0.0)
             base_dur = base_entry.get("duration_ms", 0)
@@ -345,8 +345,11 @@ def _render_table(
             base_io = (base_tokens.get("input_tokens", 0) or 0) + (base_tokens.get("output_tokens", 0) or 0)
             pr_delta = run_pr - base_pr
             pr_cell = f"{run_pr:.2f} ({pr_delta:+.2f})"
-            dur_cell = f"{run_dur}ms ({run_dur - base_dur:+d}ms)"
-            tok_cell = f"{run_io} ({run_io - base_io:+d})"
+            # Use :+.0f (not :+d) so the formatter handles both ints and
+            # floats. Aggregator returns float means; baseline JSON stores
+            # ints; comparator may receive either.
+            dur_cell = f"{run_dur:.0f}ms ({run_dur - base_dur:+.0f}ms)"
+            tok_cell = f"{run_io:.0f} ({run_io - base_io:+.0f})"
             verdict = "ok"
         lines.append(f"| {eval_id} | {pr_cell} | {dur_cell} | {tok_cell} | {verdict} |")
 
@@ -410,7 +413,6 @@ def validate_baselines_dir(baselines_dir: str = "evals/baselines") -> Dict[str, 
     return findings
 
 
-# Suppress unused import warnings for re-exports
 __all__ = [
     "BaselineFile",
     "BaselineFileError",
@@ -423,7 +425,3 @@ __all__ = [
     "write_baseline",
     "compare_run_to_baseline",
 ]
-
-
-# --- Optional re-export to keep linters quiet about Optional imported but unused ---
-_ = Optional  # noqa

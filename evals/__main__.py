@@ -152,11 +152,18 @@ def main(args=None):
         from evals.framework.baseline import validate_baselines_dir
         baselines_dir = parsed.baselines_dir or os.path.join(_EVALS_DIR, "baselines")
         if not os.path.isdir(baselines_dir):
-            print(f"no baseline files found at {baselines_dir}", file=sys.stderr)
+            print(
+                f"baselines directory does not exist: {baselines_dir}",
+                file=sys.stderr,
+            )
             sys.exit(0)
         findings = validate_baselines_dir(baselines_dir)
         if not findings:
-            print(f"no baseline files found at {baselines_dir}", file=sys.stderr)
+            print(
+                f"baselines directory is empty (no *.json files except schema.json): "
+                f"{baselines_dir}",
+                file=sys.stderr,
+            )
             sys.exit(0)
         any_invalid = False
         for filename, errors in findings.items():
@@ -278,14 +285,20 @@ def main(args=None):
         from evals.framework.baseline import BaselineFile, write_baseline
         from evals.framework.aggregator import aggregate_results
         agg = aggregate_results(results_dir)
-        # Build baseline.evals from the run_summary
+        # Build baseline.evals from the run_summary. run_summary shape is
+        # {eval_id: {pass_rate: {mean, stddev, ...}, duration_ms: {mean, ...},
+        #            tokens: {<key>: <mean>, ...}, trial_count: int}}
+        # Tokens come from the aggregator's _aggregate_tokens which mean-averages
+        # across trials. Baseline stores the aggregated value per token key.
         evals_dict = {}
         for eval_id, summary in agg.get("run_summary", {}).items():
+            pass_rate_mean = summary.get("pass_rate", {}).get("mean", 0.0)
+            duration_mean = summary.get("duration_ms", {}).get("mean", 0)
             evals_dict[eval_id] = {
-                "pass_rate": summary.get("pass_rate_mean", 0.0),
-                "duration_ms": int(summary.get("duration_ms_mean", 0)),
+                "pass_rate": pass_rate_mean,
+                "duration_ms": int(duration_mean),
                 "tokens": summary.get("tokens", {}),
-                "runs": summary.get("trials", parsed.trials),
+                "runs": summary.get("trial_count", parsed.trials),
             }
         commit_sha = "unknown"
         try:
@@ -347,11 +360,14 @@ def main(args=None):
             sys.exit(1)
         from evals.framework.aggregator import aggregate_results
         agg = aggregate_results(results_dir)
+        # Same shape as the --update-baseline path. Cast duration to int
+        # for consistency with what baseline.json stores; the comparator
+        # accepts both but matching types prevents render-format crashes.
         run_results = {}
         for eval_id, summary in agg.get("run_summary", {}).items():
             run_results[eval_id] = {
-                "pass_rate": summary.get("pass_rate_mean", 0.0),
-                "duration_ms": summary.get("duration_ms_mean", 0),
+                "pass_rate": summary.get("pass_rate", {}).get("mean", 0.0),
+                "duration_ms": int(summary.get("duration_ms", {}).get("mean", 0)),
                 "tokens": summary.get("tokens", {}),
             }
         comparison = compare_run_to_baseline(run_results, baseline)
