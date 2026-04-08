@@ -28,6 +28,11 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Per-run temp file for AC-5 enforcement grep output. Using mktemp avoids
+# collisions when the suite runs in parallel (e.g., CI shards).
+ENFORCE_TMP=$(mktemp)
+trap 'rm -f "$ENFORCE_TMP"' EXIT
+
 PASS=0
 FAIL=0
 
@@ -87,17 +92,18 @@ echo ""
 echo "AC-5: core pipeline skills do not hard-require optional skills"
 for core_skill in sw-init sw-design sw-plan sw-build sw-verify sw-ship; do
   for optional in sw-learn sw-research sw-audit sw-doctor sw-guard sw-sync sw-review; do
-    # Look for STOP lines or "Run /sw-{optional} first" style failure modes.
-    # Excludes:
-    #   - sw-pivot (handled separately in AC-5a)
-    #   - sw-status (read-only)
-    #   - informational print notices (phrased as suggestions, not STOPs)
-    # A hard enforcement is specifically: a STOP: ... Run /sw-optional, or a
-    # failure-mode table row whose action starts with STOP:.
+    # Hard enforcement is specifically a STOP: ... /sw-{optional} pattern,
+    # typically in a failure-mode table row. The pattern assumes Specwright's
+    # slash-prefixed skill reference convention (`/sw-learn`, `/sw-research`);
+    # bare skill names like `sw-learn must be run first` are NOT caught but
+    # do not currently occur in the codebase. Excludes sw-pivot (AC-5a
+    # handles its self-gating) and sw-status (read-only utility). Informational
+    # print notices like "Run /sw-learn first if pattern capture is desired"
+    # are NOT flagged because they are suggestions, not STOPs.
     if grep -nE "STOP: .*/$optional" "core/skills/$core_skill/SKILL.md" 2>/dev/null \
-       | grep -v '^\s*#' > /tmp/optional-enforce.out; then
-      if [ -s /tmp/optional-enforce.out ]; then
-        fail "core/skills/$core_skill/SKILL.md enforces optional skill $optional as hard precondition: $(cat /tmp/optional-enforce.out)"
+       > "$ENFORCE_TMP"; then
+      if [ -s "$ENFORCE_TMP" ]; then
+        fail "core/skills/$core_skill/SKILL.md enforces optional skill $optional as hard precondition: $(cat "$ENFORCE_TMP")"
         continue
       fi
     fi

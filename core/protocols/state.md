@@ -63,7 +63,7 @@ Valid transitions for `currentWork.status`:
 | `shipping` | `shipped` | sw-ship (PR created successfully) |
 | `shipping` | `verifying` | sw-ship (push or PR creation failed — rollback) |
 | `shipped` | `building` | sw-ship (next unit advancement) |
-| `shipped` | `designing` | sw-design (clears prior shipped work to start new) |
+| `shipped` | `designing` | sw-design (new-work argument required; clears prior shipped work) |
 | `shipped` | (none) | sw-learn (clears `currentWork` to null — optional) |
 | any | `abandoned` | sw-status --reset |
 | `abandoned` | (none) | sw-status --cleanup or sw-design (clears abandoned work before starting new) |
