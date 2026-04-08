@@ -571,10 +571,18 @@ def _validate_structural_case(case_id: str, eval_case: dict) -> list[str]:
     """Validate structural eval-case specific fields."""
     if not _is_structural_case(eval_case):
         return []
+    errors: list[str] = []
     command = eval_case.get("command")
     if not isinstance(command, str) or not command.strip():
-        return [f"[{case_id}] Structural eval case requires non-empty string field 'command'"]
-    return []
+        errors.append(
+            f"[{case_id}] Structural eval case requires non-empty string field 'command'"
+        )
+    expectations = eval_case.get("expectations")
+    if expectations not in (None, []):
+        errors.append(
+            f"[{case_id}] Structural eval cases must have empty 'expectations' list"
+        )
+    return errors
 
 
 def _validate_layer_fields(case_id: str, eval_case: dict) -> list[str]:

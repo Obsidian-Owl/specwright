@@ -1544,6 +1544,15 @@ class TestStructuralEvalCases(unittest.TestCase):
         errors = validate_suite(suite_path)
         self.assertTrue(any("command" in err for err in errors), errors)
 
+    def test_validate_suite_rejects_structural_case_with_expectations(self):
+        from evals.framework.orchestrator import validate_suite
+
+        case = _make_structural_eval_case()
+        case["expectations"] = [{"type": "file_exists", "path": "README.md"}]
+        suite_path = _make_suite_json(self.tmpdir, [case])
+        errors = validate_suite(suite_path)
+        self.assertTrue(any("expectations" in err for err in errors), errors)
+
     def test_validate_suite_rejects_invalid_type_value(self):
         from evals.framework.orchestrator import validate_suite
 
@@ -1607,6 +1616,31 @@ class TestStructuralEvalCases(unittest.TestCase):
         self.assertEqual(grading["pass_rate"], 0.0)
         self.assertEqual(grading["execution"]["exit_code"], 3)
         self.assertIn("boom", json.dumps(grading))
+
+    @patch("subprocess.run")
+    def test_run_single_eval_structural_timeout_records_partial_output(self, mock_run):
+        timeout_exc = subprocess.TimeoutExpired(
+            cmd=["python", "-c", "print('slow')"],
+            timeout=30,
+            output="partial stdout\n",
+            stderr="partial stderr\n",
+        )
+        mock_run.side_effect = timeout_exc
+        case = _make_structural_eval_case(eval_id="struct-timeout")
+
+        run_single_eval(
+            case,
+            trial_num=1,
+            results_dir=self.results_dir,
+            runner=MockRunner(),
+        )
+
+        grading = _read_grading_json(self.results_dir, "struct-timeout", 1)
+        self.assertEqual(grading["pass_rate"], 0.0)
+        self.assertEqual(grading["execution"]["exit_code"], 124)
+        self.assertIn("TimeoutExpired", grading["error"])
+        self.assertEqual(grading["execution"]["stdout"], "partial stdout\n")
+        self.assertEqual(grading["execution"]["stderr"], "partial stderr\n")
 
 
 if __name__ == "__main__":
