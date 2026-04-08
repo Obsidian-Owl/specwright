@@ -5,7 +5,7 @@
 # Builds platform-specific packages from core/ + adapters/.
 #
 # Usage: ./build/build.sh [platform]
-#   platform: claude-code | opencode | all (default: all)
+#   platform: claude-code | opencode | codex | all (default: all)
 #
 # Mapping file schema (build/mappings/{platform}.json):
 #   platform       — platform identifier
@@ -426,6 +426,75 @@ build_opencode() {
   echo "Build complete: $platform → dist/$platform/"
 }
 
+build_codex() {
+  local platform="codex"
+  local mapping_file="$ROOT_DIR/build/mappings/codex.json"
+  local dist="$DIST_DIR/$platform"
+
+  echo "Building: $platform"
+
+  # Clean
+  rm -rf "$dist"
+  mkdir -p "$dist"
+
+  # Copy core content
+  cp -r "$ROOT_DIR/core/skills" "$dist/skills"
+  cp -r "$ROOT_DIR/core/protocols" "$dist/protocols"
+  cp -r "$ROOT_DIR/core/agents" "$dist/agents"
+
+  # Copy adapter content
+  cp -r "$ROOT_DIR/adapters/codex/commands" "$dist/commands"
+  cp -r "$ROOT_DIR/adapters/codex/hooks" "$dist/hooks"
+  cp "$ROOT_DIR/adapters/codex/hooks.json" "$dist/hooks.json"
+  cp -r "$ROOT_DIR/adapters/codex/.codex-plugin" "$dist/.codex-plugin"
+
+  # Copy adapter-specific README
+  cp "$ROOT_DIR/adapters/codex/README.md" "$dist/README.md"
+
+  # Apply skill transformations
+  for skill_file in "$dist"/skills/*/SKILL.md; do
+    transform_frontmatter_tools "$skill_file" "$mapping_file"
+    strip_tools "$skill_file" "$mapping_file"
+    rewrite_protocol_refs "$skill_file" "$mapping_file"
+  done
+
+  # Apply agent transformations
+  for agent_file in "$dist"/agents/*.md; do
+    translate_agent "$agent_file" "$mapping_file"
+  done
+
+  apply_skill_overrides "$platform" "$dist/skills" "$mapping_file"
+
+  # Re-transform overridden skills (they were copied after the initial pass)
+  local override_list
+  override_list=$(jq -r '.skillOverrides[]' "$mapping_file" 2>/dev/null)
+  if [ -n "$override_list" ]; then
+    while IFS= read -r skill_name; do
+      local override_skill="$dist/skills/$skill_name/SKILL.md"
+      [ -f "$override_skill" ] || continue
+      transform_frontmatter_tools "$override_skill" "$mapping_file"
+      strip_tools "$override_skill" "$mapping_file"
+      rewrite_protocol_refs "$override_skill" "$mapping_file"
+    done <<< "$override_list"
+  fi
+
+  # Strip platform-conditional sections
+  for skill_file in "$dist"/skills/*/SKILL.md; do
+    strip_platform_sections "$skill_file" "$platform"
+  done
+
+  # Validate
+  echo "Validating: $platform"
+  if validate_skills "$platform"; then
+    echo "  All skills valid"
+  else
+    echo "  ERROR: Validation failed"
+    return 1
+  fi
+
+  echo "Build complete: $platform → dist/$platform/"
+}
+
 # ─── Main ───────────────────────────────────────────────────────────
 
 main() {
@@ -438,13 +507,17 @@ main() {
     opencode)
       build_opencode
       ;;
+    codex)
+      build_codex
+      ;;
     all)
       build_claude_code
       build_opencode
+      build_codex
       ;;
     *)
       echo "ERROR: Unknown platform '$target'"
-      echo "Usage: $0 [claude-code | opencode | all]"
+      echo "Usage: $0 [claude-code | opencode | codex | all]"
       exit 1
       ;;
   esac

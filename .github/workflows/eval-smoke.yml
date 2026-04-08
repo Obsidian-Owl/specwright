@@ -1,0 +1,82 @@
+name: Eval Smoke
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: eval-smoke-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    if: github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Claude Code OAuth token
+        run: |
+          if [ -z "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN secret is required for eval smoke runs."
+            echo "::error::This is the same token used by .github/workflows/claude-code-review.yml."
+            echo "::error::Configure it via Repo Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install eval framework deps
+        run: pip install -r evals/requirements.txt
+
+      - name: Install Claude CLI
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # --trials 3 implements the architect's multi-run flake mitigation.
+      # 02b-1's aggregator mean-aggregates per eval, so 3 trials produce
+      # a stable mean. Median would be a strict improvement and is
+      # captured as a future optimization.
+      #
+      # Auth: CLAUDE_CODE_OAUTH_TOKEN uses the Claude Code subscription
+      # (Pro/Max) instead of API credits. The `claude` CLI binary reads
+      # this env var natively. Same auth path as claude-code-review.yml.
+      - name: Run smoke evals
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          python -m evals --suite skill --smoke-only --trials 3 --compare-to-baseline
+
+      - name: Find latest results dir
+        id: find-results
+        if: always()
+        run: |
+          # Use find instead of ls -td to handle non-alphanumeric filenames
+          # safely (shellcheck SC2012). Sort by mtime, take last (newest).
+          LATEST=$(find evals/results -maxdepth 1 -type d -name 'run-*' -printf '%T@ %p\n' 2>/dev/null \
+                   | sort -n | tail -1 | cut -d' ' -f2-)
+          echo "results_dir=$LATEST" >> "$GITHUB_OUTPUT"
+
+      - name: Post sticky PR comment
+        if: always() && steps.find-results.outputs.results_dir != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVAL_RUN_DIR: ${{ steps.find-results.outputs.results_dir }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: bash scripts/post-eval-comment.sh
+
+  fork-skip:
+    if: github.event.pull_request.head.repo.fork == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip note
+        run: |
+          echo "::notice::Eval smoke runs require repository secrets; PRs from forks are reviewed manually before merging."

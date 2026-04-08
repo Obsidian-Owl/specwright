@@ -1,0 +1,12 @@
+{
+  "__comment": "STUB BASELINE — populated by the first weekly eval-full run. The integration suite tests cross-skill flows; some entries may never be reliably baselineable due to environmental variance. Determinism rubric (pass_rate stddev > 0.1 OR duration stddev > 30% → exclude) applies on first seeding. Created in Unit 02b-2; awaiting first real run.",
+  "suite": "integration",
+  "generated_at": "2026-04-08T14:00:00Z",
+  "generated_from_commit": "e4f19ef",
+  "tolerances": {
+    "pass_rate_delta": 0.0,
+    "duration_multiplier": 1.25,
+    "tokens_multiplier": 1.20
+  },
+  "evals": {}
+}

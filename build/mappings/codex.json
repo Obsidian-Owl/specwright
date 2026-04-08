@@ -1,0 +1,12 @@
+{
+  "platform": "codex",
+  "tools": {},
+  "strip": ["TaskCreate", "TaskUpdate", "TaskList", "TaskGet"],
+  "events": {},
+  "models": {
+    "opus": "gpt-5.4",
+    "sonnet": "gpt-5.3-codex"
+  },
+  "protocolPrefix": "",
+  "skillOverrides": []
+}
