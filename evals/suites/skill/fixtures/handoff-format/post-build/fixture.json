@@ -1,6 +1,0 @@
-{
-  "specwright_version": "0.27.1",
-  "created_date": "2026-04-07",
-  "language": "markdown",
-  "description": "Post-build Specwright workdir for sw-verify handoff-format eval. The skill is invoked after a completed build (all tasks done, status=building, no open gates) to test that its terminal handoff matches the three-line gate handoff format."
-}

@@ -267,120 +267,44 @@
       "tags": ["skill", "sw-build", "rate-limiter", "subagent-quality", "non-trivial"]
     },
     {
-      "id": "sw-design-handoff-format",
-      "layer": "skill",
-      "skill": "sw-design",
-      "prompt_template": "design",
-      "prompt_args": {"problem_statement": "add a hello-world function"},
-      "seed": {
-        "type": "fixture",
-        "path": "suites/skill/fixtures/handoff-format/trivial-task"
-      },
-      "expectations": [
-        {
-          "type": "transcript_final_block",
-          "line_patterns": [
-            "^Done\\.\\s+.+\\.$",
-            "^Artifacts:\\s+.+/$",
-            "^Next:\\s+/sw-[a-z\\-]+$"
-          ],
-          "forbidden_substrings": [
-            "Decision Digest",
-            "Quality Checks",
-            "### Deficiencies",
-            "### Recommendation"
-          ],
-          "description": "sw-design emits the three-line gate handoff format with no four-section template leakage"
-        }
-      ],
-      "tags": ["skill", "sw-design", "handoff-format", "legibility-recovery", "unit-01"]
+      "id": "structural-skill-validation",
+      "type": "structural",
+      "command": "bash tests/test-claude-code-build.sh",
+      "smoke": true,
+      "expectations": [],
+      "tags": ["skill", "smoke", "structural", "build-validation", "legibility-recovery", "unit-02d"]
     },
     {
-      "id": "sw-plan-handoff-format",
-      "layer": "skill",
-      "skill": "sw-plan",
-      "prompt_template": "plan",
-      "prompt_args": {},
-      "seed": {
-        "type": "fixture",
-        "path": "suites/skill/fixtures/handoff-format/post-design"
-      },
-      "expectations": [
-        {
-          "type": "transcript_final_block",
-          "line_patterns": [
-            "^Done\\.\\s+.+\\.$",
-            "^Artifacts:\\s+.+/$",
-            "^Next:\\s+/sw-[a-z\\-]+$"
-          ],
-          "forbidden_substrings": [
-            "Decision Digest",
-            "Quality Checks",
-            "### Deficiencies",
-            "### Recommendation"
-          ],
-          "description": "sw-plan emits the three-line gate handoff format"
-        }
-      ],
-      "tags": ["skill", "sw-plan", "handoff-format", "legibility-recovery", "unit-01"]
+      "id": "structural-handoff-template",
+      "type": "structural",
+      "command": "bash tests/test-handoff-template.sh",
+      "smoke": true,
+      "expectations": [],
+      "tags": ["skill", "smoke", "structural", "handoff-template", "legibility-recovery", "unit-02d"]
     },
     {
-      "id": "sw-verify-handoff-format",
-      "layer": "skill",
-      "skill": "sw-verify",
-      "prompt_template": "verify",
-      "prompt_args": {},
-      "seed": {
-        "type": "fixture",
-        "path": "suites/skill/fixtures/handoff-format/post-build"
-      },
-      "expectations": [
-        {
-          "type": "transcript_final_block",
-          "line_patterns": [
-            "^Done\\.\\s+.+\\.$",
-            "^Artifacts:\\s+.+/$",
-            "^Next:\\s+/sw-[a-z\\-]+$"
-          ],
-          "forbidden_substrings": [
-            "Decision Digest",
-            "Quality Checks",
-            "### Deficiencies",
-            "### Recommendation"
-          ],
-          "description": "sw-verify emits the three-line gate handoff format"
-        }
-      ],
-      "tags": ["skill", "sw-verify", "handoff-format", "legibility-recovery", "unit-01"]
+      "id": "structural-state-enforcement",
+      "type": "structural",
+      "command": "bash tests/test-optional-stage-enforcement.sh",
+      "smoke": true,
+      "expectations": [],
+      "tags": ["skill", "smoke", "structural", "state-enforcement", "legibility-recovery", "unit-02d"]
     },
     {
-      "id": "sw-ship-handoff-format",
-      "layer": "skill",
-      "skill": "sw-ship",
-      "prompt_template": "ship",
-      "prompt_args": {},
-      "seed": {
-        "type": "fixture",
-        "path": "suites/skill/fixtures/handoff-format/post-verify"
-      },
-      "expectations": [
-        {
-          "type": "transcript_final_block",
-          "line_patterns": [
-            "^Done\\.\\s+.+\\.$",
-            "^Artifacts:\\s+.+/$",
-            "^Next:\\s+/sw-[a-z\\-]+$"
-          ],
-          "forbidden_substrings": [
-            "Decision Digest",
-            "Quality Checks",
-            "### Deficiencies",
-            "### Recommendation"
-          ],
-          "description": "sw-ship emits the three-line gate handoff format"
-        }
-      ],
-      "tags": ["skill", "sw-ship", "handoff-format", "legibility-recovery", "unit-01"]
+      "id": "grader-function-tests",
+      "type": "structural",
+      "command": "python -m pytest evals/tests/test_grader.py -q",
+      "smoke": true,
+      "expectations": [],
+      "tags": ["skill", "smoke", "structural", "grader", "legibility-recovery", "unit-02d"]
+    },
+    {
+      "id": "workflow-yaml-validation",
+      "type": "structural",
+      "command": "bash tests/test-eval-workflows-yaml.sh",
+      "smoke": true,
+      "expectations": [],
+      "tags": ["skill", "smoke", "structural", "workflow-yaml", "legibility-recovery", "unit-02d"]
     }
   ]
 }

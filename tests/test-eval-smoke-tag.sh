@@ -18,19 +18,12 @@ fail() { echo "  FAIL: $1"; FAIL=$((FAIL + 1)); }
 
 cd "$ROOT_DIR" || exit 1
 
-echo "=== Test: smoke tag infrastructure (no entries tagged) ==="
+echo "=== Test: structural smoke eval subset ==="
 
-# REVISED post first-real-baseline-run (2026-04-08): the original test
-# asserted 4 smoke-tagged entries. Running the live baseline revealed
-# that the *-handoff-format eval entries from Unit 01 do NOT actually
-# pass when invoked end-to-end against the trivial-task fixture —
-# Claude shortcircuits with a clarifying question instead of running
-# the multi-minute pipeline skill. Documented in field-findings.md.
-#
-# Until the eval design is fixed in a follow-up unit, Unit 02b-2 ships
-# the smoke filter infrastructure WITHOUT any tagged entries. The
-# workflow runs trivially (zero entries → zero comparison work).
-# This test now asserts the empty state is honest, not the broken state.
+# Unit 02d replaces the broken live `*-handoff-format` placeholders with
+# deterministic structural smoke entries that execute existing repo-local
+# checks. The smoke subset is now real and should stay small, explicit,
+# and deterministic.
 
 # AC-19a: skill suite still validates
 if python -m evals --suite skill --validate 2>&1 | grep -q '^OK$'; then
@@ -39,28 +32,46 @@ else
   fail "skill suite validation failed"
 fi
 
-# AC-19b: zero entries tagged smoke (deferred to follow-up unit)
+# AC-19b: exactly 5 structural entries tagged smoke
 SMOKE_COUNT=$(grep -c '"smoke": true' evals/suites/skill/evals.json || true)
-if [ "$SMOKE_COUNT" = "0" ]; then
-  pass "zero entries tagged smoke: true (eval design fix deferred to follow-up unit)"
+if [ "$SMOKE_COUNT" = "5" ]; then
+  pass "exactly 5 entries are tagged smoke: true"
 else
-  fail "expected 0 smoke-tagged entries, got $SMOKE_COUNT"
+  fail "expected 5 smoke-tagged entries, got $SMOKE_COUNT"
 fi
 
-# AC-19c: --smoke-only --dry-run produces zero cases (filter behaves correctly with empty set)
+# AC-19c: --smoke-only --dry-run emits the 5 structural smoke entries only
 DRY_RUN_OUT=$(python -m evals --suite skill --smoke-only --dry-run 2>&1 || true)
-DRY_RUN_COUNT=$(echo "$DRY_RUN_OUT" | grep -c '^sw-' || true)
-if [ "$DRY_RUN_COUNT" = "0" ]; then
-  pass "--smoke-only --dry-run produces zero cases when nothing is tagged"
+DRY_RUN_COUNT=$(echo "$DRY_RUN_OUT" | grep -Ec '^(structural-|grader-function-tests|workflow-yaml-validation)' || true)
+if [ "$DRY_RUN_COUNT" = "5" ]; then
+  pass "--smoke-only --dry-run emits 5 structural cases"
 else
-  fail "--smoke-only --dry-run produced unexpected case count: $DRY_RUN_COUNT (output: $DRY_RUN_OUT)"
+  fail "--smoke-only --dry-run emitted unexpected case count: $DRY_RUN_COUNT (output: $DRY_RUN_OUT)"
 fi
 
-# AC-19d: smoke filter infrastructure correct — non-smoke cases excluded
-if echo "$DRY_RUN_OUT" | grep -q 'sw-build-simple-function\|sw-init-fresh-ts'; then
-  fail "--smoke-only somehow included a non-smoke case (filter broken)"
+# AC-19d: every required structural ID is present
+if echo "$DRY_RUN_OUT" | grep -q '^structural-skill-validation' \
+  && echo "$DRY_RUN_OUT" | grep -q '^structural-handoff-template' \
+  && echo "$DRY_RUN_OUT" | grep -q '^structural-state-enforcement' \
+  && echo "$DRY_RUN_OUT" | grep -q '^grader-function-tests' \
+  && echo "$DRY_RUN_OUT" | grep -q '^workflow-yaml-validation'; then
+  pass "all 5 structural smoke IDs are present"
 else
-  pass "--smoke-only excludes all non-smoke cases (filter correct)"
+  fail "missing one or more structural smoke IDs (output: $DRY_RUN_OUT)"
+fi
+
+# AC-19e: deleted handoff-format placeholders stay gone
+if echo "$DRY_RUN_OUT" | grep -q 'handoff-format'; then
+  fail "deleted handoff-format evals still appear in smoke output"
+else
+  pass "deleted handoff-format evals are absent from smoke output"
+fi
+
+# AC-19f: smoke filter still excludes ordinary non-smoke cases
+if echo "$DRY_RUN_OUT" | grep -q 'sw-build-simple-function\|sw-init-fresh-ts'; then
+  fail "smoke-only included a non-smoke case"
+else
+  pass "smoke-only excludes ordinary non-smoke cases"
 fi
 
 echo ""
