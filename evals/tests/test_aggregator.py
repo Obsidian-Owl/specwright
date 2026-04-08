@@ -614,5 +614,100 @@ class TestSeedsVerified(unittest.TestCase):
             )
 
 
+class TestAggregatorNonCollision(unittest.TestCase):
+    """Unit 02b-1 AC-9: aggregate_results does NOT pick up top-level
+    files in the results dir. The new comparison.json file added by
+    --compare-to-baseline lives at {results_dir}/comparison.json (or
+    similar) and must NOT be confused with grading.json files."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_top_level_comparison_json_does_not_collide(self):
+        """A top-level comparison.json must not be picked up as a grading file."""
+        # Seed a normal run dir with one eval/trial
+        grading = _make_grading_json(["a"], [], eval_id="eval-01")
+        _write_grading(self.tmpdir, "eval-01", 1, grading)
+
+        # Aggregate without comparison.json
+        baseline_result = aggregate_results(self.tmpdir)
+
+        # Drop a comparison.json at the top level — same dir as the
+        # `evals/` subdirectory the aggregator scans
+        comparison_path = os.path.join(self.tmpdir, "comparison.json")
+        with open(comparison_path, "w") as f:
+            json.dump({
+                "regressions": [],
+                "improvements": [],
+                "exit_code": 0,
+                "table_markdown": "| Eval | Pass Rate |\n",
+            }, f)
+
+        # Aggregate again
+        with_comparison_result = aggregate_results(self.tmpdir)
+
+        # The aggregated runs should be identical
+        self.assertEqual(
+            baseline_result["runs"],
+            with_comparison_result["runs"],
+            "comparison.json was picked up by aggregator — collision detected"
+        )
+        self.assertEqual(
+            baseline_result["metadata"]["evals_run"],
+            with_comparison_result["metadata"]["evals_run"],
+        )
+        self.assertEqual(
+            baseline_result["metadata"]["trials_per_eval"],
+            with_comparison_result["metadata"]["trials_per_eval"],
+        )
+
+    def test_top_level_arbitrary_json_does_not_collide(self):
+        """Defensive: ANY top-level *.json should be ignored, not just
+        comparison.json. The aggregator's contract is `evals/*/trial-*/grading.json`."""
+        grading = _make_grading_json(["a"], [], eval_id="eval-01")
+        _write_grading(self.tmpdir, "eval-01", 1, grading)
+        baseline_result = aggregate_results(self.tmpdir)
+
+        # Add several arbitrary top-level json files
+        for name in ("benchmark.json", "config.json", "summary.json", "stray-grading.json"):
+            with open(os.path.join(self.tmpdir, name), "w") as f:
+                json.dump({"arbitrary": "content", "pass_rate": 0.5}, f)
+
+        with_extras_result = aggregate_results(self.tmpdir)
+        self.assertEqual(baseline_result["runs"], with_extras_result["runs"])
+
+    def test_grading_json_in_wrong_dir_structure_ignored(self):
+        """Even a grading.json file outside the evals/{id}/trial-N/ structure
+        is ignored. Confirms the glob pattern is the only path."""
+        grading = _make_grading_json(["a"], [], eval_id="eval-01")
+        _write_grading(self.tmpdir, "eval-01", 1, grading)
+        baseline_result = aggregate_results(self.tmpdir)
+
+        # Stray grading.json at top level (no evals/ wrapper)
+        stray_path = os.path.join(self.tmpdir, "grading.json")
+        with open(stray_path, "w") as f:
+            json.dump({
+                "eval_id": "stray", "trial": 1, "pass_rate": 1.0,
+            }, f)
+
+        # Stray grading.json one directory deep, but not in evals/
+        os.makedirs(os.path.join(self.tmpdir, "other"), exist_ok=True)
+        with open(os.path.join(self.tmpdir, "other", "grading.json"), "w") as f:
+            json.dump({
+                "eval_id": "stray-2", "trial": 1, "pass_rate": 1.0,
+            }, f)
+
+        with_strays_result = aggregate_results(self.tmpdir)
+        self.assertEqual(baseline_result["runs"], with_strays_result["runs"])
+        self.assertNotIn(
+            "stray",
+            [r["eval_id"] for r in with_strays_result["runs"]],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

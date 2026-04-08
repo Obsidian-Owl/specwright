@@ -1,0 +1,12 @@
+{
+  "__comment": "STUB BASELINE — populated by Unit 02b-2 on first CI run. Unit 02b-1 ships this empty file so the schema is in place and --validate-baselines passes against the directory. Until 02b-2 populates it, --compare-to-baseline against this file will treat every eval in the run as missing_from_baseline (a WARN, not a regression).",
+  "suite": "skill",
+  "generated_at": "2026-04-08T12:00:00Z",
+  "generated_from_commit": "4b60b4c",
+  "tolerances": {
+    "pass_rate_delta": 0.0,
+    "duration_multiplier": 1.25,
+    "tokens_multiplier": 1.20
+  },
+  "evals": {}
+}

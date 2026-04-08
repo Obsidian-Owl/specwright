@@ -103,6 +103,42 @@ def main(args=None):
         metavar="PATH",
         help="Aggregate results directory into benchmark.json",
     )
+    parser.add_argument(
+        "--smoke-only",
+        action="store_true",
+        default=False,
+        help="Run only eval cases tagged with `smoke: true` (Unit 02b-1)",
+    )
+    parser.add_argument(
+        "--compare-to-baseline",
+        action="store_true",
+        default=False,
+        help="After running, compare results against evals/baselines/{suite}.json",
+    )
+    parser.add_argument(
+        "--update-baseline",
+        action="store_true",
+        default=False,
+        help="Run the suite and write a fresh baseline file. Refuses on dirty git tree.",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        default=False,
+        help="With --update-baseline, bypass dirty-tree check (tooling development only)",
+    )
+    parser.add_argument(
+        "--validate-baselines",
+        action="store_true",
+        default=False,
+        help="Validate every *.json file in evals/baselines/ against the schema",
+    )
+    parser.add_argument(
+        "--baselines-dir",
+        metavar="PATH",
+        default=None,
+        help="Override baselines directory (default: evals/baselines)",
+    )
 
     parsed = parser.parse_args(args)
 
@@ -110,6 +146,27 @@ def main(args=None):
         from evals.framework import viewer
         viewer.serve(parsed.view, port=3117)
         return
+
+    # ----- Unit 02b-1: --validate-baselines -----
+    if parsed.validate_baselines:
+        from evals.framework.baseline import validate_baselines_dir
+        baselines_dir = parsed.baselines_dir or os.path.join(_EVALS_DIR, "baselines")
+        if not os.path.isdir(baselines_dir):
+            print(f"no baseline files found at {baselines_dir}", file=sys.stderr)
+            sys.exit(0)
+        findings = validate_baselines_dir(baselines_dir)
+        if not findings:
+            print(f"no baseline files found at {baselines_dir}", file=sys.stderr)
+            sys.exit(0)
+        any_invalid = False
+        for filename, errors in findings.items():
+            if errors:
+                any_invalid = True
+                for err in errors:
+                    print(f"[{filename}] {err}", file=sys.stderr)
+            else:
+                print(f"[{filename}] OK")
+        sys.exit(1 if any_invalid else 0)
 
     if parsed.aggregate:
         if not os.path.isdir(parsed.aggregate):
@@ -188,6 +245,131 @@ def main(args=None):
             )
             sys.exit(1)
 
+    suite_name = os.path.basename(os.path.dirname(suite_path))
+    baselines_dir = parsed.baselines_dir or os.path.join(_EVALS_DIR, "baselines")
+
+    # ----- Unit 02b-1: --update-baseline (refuses on dirty tree) -----
+    if parsed.update_baseline:
+        import subprocess
+        if not parsed.force:
+            git_status = subprocess.run(
+                ["git", "status", "--porcelain"],
+                capture_output=True, text=True,
+            )
+            if git_status.stdout.strip():
+                print(
+                    "Refusing to update baseline with a dirty working tree. "
+                    "Commit or stash first, then retry. Use --force to bypass "
+                    "(tooling development only).",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+        results_dir = orchestrator.run_eval_suite(
+            suite_path,
+            trials=parsed.trials,
+            timeout=parsed.timeout,
+            case_filter=parsed.case,
+            dry_run=parsed.dry_run,
+            results_dir=parsed.results_dir,
+            smoke_only=parsed.smoke_only,
+        )
+        if not results_dir:
+            sys.exit(1)
+        from evals.framework.baseline import BaselineFile, write_baseline
+        from evals.framework.aggregator import aggregate_results
+        agg = aggregate_results(results_dir)
+        # Build baseline.evals from the run_summary
+        evals_dict = {}
+        for eval_id, summary in agg.get("run_summary", {}).items():
+            evals_dict[eval_id] = {
+                "pass_rate": summary.get("pass_rate_mean", 0.0),
+                "duration_ms": int(summary.get("duration_ms_mean", 0)),
+                "tokens": summary.get("tokens", {}),
+                "runs": summary.get("trials", parsed.trials),
+            }
+        commit_sha = "unknown"
+        try:
+            commit_sha = subprocess.run(
+                ["git", "rev-parse", "HEAD"], capture_output=True, text=True
+            ).stdout.strip()[:7]
+        except (FileNotFoundError, subprocess.SubprocessError):
+            pass
+        from datetime import datetime, timezone
+        baseline = BaselineFile(
+            suite=suite_name,
+            generated_at=datetime.now(timezone.utc).isoformat(),
+            generated_from_commit=commit_sha,
+            tolerances={
+                "pass_rate_delta": 0.0,
+                "duration_multiplier": 1.25,
+                "tokens_multiplier": 1.20,
+            },
+            evals=evals_dict,
+        )
+        os.makedirs(baselines_dir, exist_ok=True)
+        baseline_path = os.path.join(baselines_dir, f"{suite_name}.json")
+        write_baseline(baseline, baseline_path)
+        print(f"Baseline written to {baseline_path}")
+        print()
+        print("Preview commit message:")
+        print(f"chore(evals): refresh {suite_name} baseline ({len(evals_dict)} evals, "
+              f"generated from {commit_sha})")
+        return
+
+    # ----- Unit 02b-1: --compare-to-baseline -----
+    if parsed.compare_to_baseline:
+        from evals.framework.baseline import (
+            load_baseline, BaselineFileError, compare_run_to_baseline
+        )
+        baseline_path = os.path.join(baselines_dir, f"{suite_name}.json")
+        if not os.path.isfile(baseline_path):
+            print(
+                f"No baseline file at `{baseline_path}`. Run `--update-baseline` "
+                f"to create one.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        try:
+            baseline = load_baseline(suite_name, baselines_dir=baselines_dir)
+        except BaselineFileError as exc:
+            print(f"Failed to load baseline: {exc}", file=sys.stderr)
+            sys.exit(1)
+        results_dir = orchestrator.run_eval_suite(
+            suite_path,
+            trials=parsed.trials,
+            timeout=parsed.timeout,
+            case_filter=parsed.case,
+            dry_run=parsed.dry_run,
+            results_dir=parsed.results_dir,
+            smoke_only=parsed.smoke_only,
+        )
+        if not results_dir:
+            sys.exit(1)
+        from evals.framework.aggregator import aggregate_results
+        agg = aggregate_results(results_dir)
+        run_results = {}
+        for eval_id, summary in agg.get("run_summary", {}).items():
+            run_results[eval_id] = {
+                "pass_rate": summary.get("pass_rate_mean", 0.0),
+                "duration_ms": summary.get("duration_ms_mean", 0),
+                "tokens": summary.get("tokens", {}),
+            }
+        comparison = compare_run_to_baseline(run_results, baseline)
+        print(comparison.table_markdown)
+        # Write comparison.json at the TOP LEVEL of the run dir (proven
+        # non-collidant by tests/test_aggregator.py::TestAggregatorNonCollision)
+        comparison_path = os.path.join(results_dir, "comparison.json")
+        with open(comparison_path, "w") as f:
+            json.dump({
+                "regressions": [r.__dict__ for r in comparison.regressions],
+                "improvements": [i.__dict__ for i in comparison.improvements],
+                "missing_from_baseline": comparison.missing_from_baseline,
+                "missing_from_run": comparison.missing_from_run,
+                "exit_code": comparison.exit_code,
+                "table_markdown": comparison.table_markdown,
+            }, f, indent=2)
+        sys.exit(comparison.exit_code)
+
     orchestrator.run_eval_suite(
         suite_path,
         trials=parsed.trials,
@@ -195,6 +377,7 @@ def main(args=None):
         case_filter=parsed.case,
         dry_run=parsed.dry_run,
         results_dir=parsed.results_dir,
+        smoke_only=parsed.smoke_only,
     )
 
 

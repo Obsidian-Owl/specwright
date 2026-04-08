@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://specwright.dev/schemas/eval-baseline.json",
+  "title": "Specwright Eval Baseline",
+  "description": "Baseline file for an eval suite. Compared against by `python -m evals --suite {suite} --compare-to-baseline`. Tokens shape mirrors RunResult.tokens from evals/framework/runner.py verbatim — NOT a normalized {input, output, total} shape.",
+  "type": "object",
+  "required": [
+    "suite",
+    "generated_at",
+    "generated_from_commit",
+    "tolerances",
+    "evals"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "suite": {
+      "type": "string",
+      "description": "Name of the eval suite (e.g. 'skill', 'workflow', 'integration')"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when this baseline was seeded"
+    },
+    "generated_from_commit": {
+      "type": "string",
+      "description": "Git commit SHA (full or short) the baseline was seeded from"
+    },
+    "tolerances": {
+      "type": "object",
+      "required": ["pass_rate_delta", "duration_multiplier", "tokens_multiplier"],
+      "properties": {
+        "pass_rate_delta": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Allowed pass-rate decrease before declaring a regression. Default 0.0 (zero tolerance)."
+        },
+        "duration_multiplier": {
+          "type": "number",
+          "minimum": 1,
+          "description": "Run duration may exceed baseline by this factor before declaring a regression. Default 1.25 (25% slack)."
+        },
+        "tokens_multiplier": {
+          "type": "number",
+          "minimum": 1,
+          "description": "Each token field may exceed baseline by this factor before declaring a regression. Default 1.20 (20% slack)."
+        }
+      }
+    },
+    "evals": {
+      "type": "object",
+      "description": "Per-eval baseline metrics, keyed by eval id.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["pass_rate", "duration_ms"],
+        "properties": {
+          "pass_rate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "duration_ms": {
+            "type": "number",
+            "minimum": 0
+          },
+          "tokens": {
+            "type": "object",
+            "description": "Token usage from the Claude CLI's RunResult.tokens dict, verbatim. Optional keys; missing keys are treated as zero by the comparator.",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "runs": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of trials this baseline was seeded from"
+          }
+        }
+      }
+    }
+  }
+}
