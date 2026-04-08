@@ -1,3 +1,10 @@
-# Specwright Eval Framework
-# No external dependencies required — stdlib only.
+# Specwright Eval Framework runtime dependencies.
+#
+# These cover the deterministic structural smoke commands executed by
+# `python -m evals --smoke-only --compare-to-baseline` in CI:
+# - pytest for `python -m pytest evals/tests/test_grader.py -q`
+# - PyYAML for `tests/test-eval-workflows-yaml.sh`
+#
 # Python 3.10+ required.
+pytest>=8,<9
+PyYAML>=6,<7

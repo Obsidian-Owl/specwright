@@ -12,11 +12,16 @@
 #   AC-2        — state.md documents sw-learn as optional
 #   AC-3        — sw-design State mutations handles prior shipped + clobber notice
 #   AC-5, AC-5a — No core pipeline skill hard-requires an optional skill (negative assertions)
-#                 sw-pivot exception captured
+#                 sw-pivot remains self-gated when explicitly invoked
 #   AC-6        — Optional skills may have recommendations in free-text (not enforced)
 #   AC-9 proxy  — stage-boundary handoff table does not force sw-learn between ship and next build
 #
-# AC-4 (audit deliverable) is verified by the presence of audit.md.
+# NOTE: this script is used as a structural smoke check in CI, so it must rely
+# only on committed source. It intentionally does NOT depend on gitignored
+# `.specwright/work/.../audit.md` artifacts.
+#
+# AC-4 (audit deliverable) was verified during Unit 02's original build/verify
+# flow; it is not asserted here because the artifact is intentionally untracked.
 # AC-7 (test-claude-code-build.sh) is run separately by the build gate.
 # AC-8, AC-9, AC-10 are manual/fixture-based — verified during the verify phase.
 #
@@ -115,9 +120,9 @@ done
 echo ""
 echo "AC-5a: sw-pivot self-gating is captured as justified"
 assert_file_contains \
-  ".specwright/work/legibility-recovery/units/02-relax-optional-stage-enforcement/audit.md" \
-  'sw-pivot.*optional to RUN.*state transition' \
-  "audit.md captures sw-pivot justification (optional to invoke, state-gated when invoked)"
+  "core/skills/sw-pivot/SKILL.md" \
+  'Status must be `?building`?|sw-pivot only valid during active sw-build' \
+  "sw-pivot remains self-gated only when explicitly invoked during sw-build"
 
 # AC-6: recommendations in free text are allowed
 echo ""
@@ -132,15 +137,6 @@ echo "AC restatement: stage-boundary table does not force sw-learn between ship 
 assert_file_contains "core/protocols/stage-boundary.md" \
   'sw-ship.*/sw-build.*next unit|sw-learn.*optional' \
   "stage-boundary.md clarifies sw-learn is optional in the ship → next-build path"
-
-# AC-4 proxy: audit deliverable exists
-echo ""
-echo "AC-4: audit.md deliverable exists"
-if [ -f ".specwright/work/legibility-recovery/units/02-relax-optional-stage-enforcement/audit.md" ]; then
-  pass "audit.md exists at the unit work directory"
-else
-  fail "audit.md missing"
-fi
 
 echo ""
 echo "=== Results ==="

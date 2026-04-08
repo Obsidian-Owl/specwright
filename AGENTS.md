@@ -58,7 +58,6 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `git.md` -- Strategy-aware git operations (branch lifecycle, commits, PRs)
 - `recovery.md` -- Compaction recovery
 - `evidence.md` -- Gate evidence format
-- `gate-verdict.md` -- Verdict rendering with self-critique
 - `context.md` -- Anchor doc and config loading
 - `insights.md` -- External Claude Code insights data access
 - `learning-lifecycle.md` -- Compaction triggers and tiered memory

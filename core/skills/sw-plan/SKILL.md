@@ -129,11 +129,10 @@ workUnits array, set first unit to `building`, transition to `building`, handoff
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope, termination, and handoff
-- `protocols/decision.md` -- autonomous decision framework and gate handoff
+- `protocols/decision.md` -- autonomous decision framework, gate handoff, late assumption capture and autonomous resolution
 - `protocols/state.md` -- workflow state updates and locking
 - `protocols/context.md` -- anchor doc and config loading
 - `protocols/recovery.md` -- compaction recovery
-- `protocols/decision.md` -- late assumption capture and autonomous resolution
 - `protocols/spec-review.md` -- spec quality review
 - `protocols/testing-strategy.md` -- tier tagging for ACs crossing TESTING.md boundaries
 

@@ -238,7 +238,7 @@ if [ -d "$CC_DIST/agents" ]; then
   done
 fi
 
-# ─── protocols/ directory: exactly 24 .md files ──────────────────────
+# ─── protocols/ directory: exactly 23 .md files ──────────────────────
 
 echo "--- protocols/ directory ---"
 

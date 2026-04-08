@@ -117,12 +117,11 @@ Follow `protocols/state.md` for read-modify-write mechanics. Postconditions:
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- scope, termination, and handoff
-- `protocols/decision.md` -- autonomous decision framework and gate handoff
+- `protocols/decision.md` -- autonomous decision framework, gate handoff, convergence loop, assumption lifecycle
 - `protocols/state.md` -- workflow state updates and locking
 - `protocols/context.md` -- anchor doc and config loading
 - `protocols/delegation.md` -- agent delegation for research and critic
 - `protocols/recovery.md` -- compaction recovery
-- `protocols/decision.md` -- autonomous decisions, convergence loop, assumption lifecycle
 - `protocols/landscape.md` -- codebase reference document format
 - `protocols/audit.md` -- codebase health findings format
 - `protocols/backlog.md` -- backlog item format and write targets
