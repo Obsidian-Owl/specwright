@@ -44,29 +44,61 @@ export GITHUB_REPOSITORY
 TODAY=$(date -u +%Y-%m-%d)
 
 # ----- Aggregate per-suite signals -----
+#
+# Discovery: the eval framework (evals/framework/orchestrator.py) creates
+# results dirs named run-{timestamp} (one per invocation). eval-full.yml
+# runs three suites in sequence, producing three run-* dirs. Each run dir
+# contains a config.json that records the suite name AND a comparison.json
+# from the compare-to-baseline step.
+#
+# We walk all run-* dirs, read config.json to identify the suite, and
+# pick the NEWEST run per suite (in case multiple runs exist for the
+# same suite — use the latest). This replaces the original glob `*-run`
+# which incorrectly assumed per-suite directory naming.
 
 ANY_REGRESSION=0
 ANY_IMPROVEMENT=0
 ALL_TABLES=""
 
-for suite_run_dir in "$EVAL_RESULTS_DIR"/*-run; do
-  if [ ! -d "$suite_run_dir" ]; then
+declare -A suite_latest_dir
+declare -A suite_latest_mtime
+
+for run_dir in "$EVAL_RESULTS_DIR"/run-*; do
+  if [ ! -d "$run_dir" ]; then
     continue
   fi
-  comp="$suite_run_dir/comparison.json"
+  config="$run_dir/config.json"
+  if [ ! -f "$config" ]; then
+    continue
+  fi
+  if ! command -v jq >/dev/null 2>&1; then
+    continue
+  fi
+
+  suite_name=$(jq -r '.suite // empty' "$config")
+  if [ -z "$suite_name" ]; then
+    continue
+  fi
+
+  # Track the newest run directory per suite by mtime
+  mtime=$(stat -c '%Y' "$run_dir" 2>/dev/null || stat -f '%m' "$run_dir" 2>/dev/null || echo 0)
+  if [ "${suite_latest_mtime[$suite_name]:-0}" -lt "$mtime" ]; then
+    suite_latest_mtime[$suite_name]=$mtime
+    suite_latest_dir[$suite_name]=$run_dir
+  fi
+done
+
+# Now walk the latest run per suite and aggregate regressions + improvements
+for suite_name in "${!suite_latest_dir[@]}"; do
+  run_dir="${suite_latest_dir[$suite_name]}"
+  comp="$run_dir/comparison.json"
   if [ ! -f "$comp" ]; then
     continue
   fi
 
-  if command -v jq >/dev/null 2>&1; then
-    regs=$(jq -r '.regressions | length' "$comp")
-    imps=$(jq -r '.improvements | length' "$comp")
-    table=$(jq -r '.table_markdown' "$comp")
-  else
-    regs=0
-    imps=0
-    table="(jq not available)"
-  fi
+  regs=$(jq -r '.regressions | length' "$comp")
+  imps=$(jq -r '.improvements | length' "$comp")
+  table=$(jq -r '.table_markdown' "$comp")
 
   if [ "${regs:-0}" -gt 0 ]; then
     ANY_REGRESSION=1
@@ -75,7 +107,6 @@ for suite_run_dir in "$EVAL_RESULTS_DIR"/*-run; do
     ANY_IMPROVEMENT=1
   fi
 
-  suite_name=$(basename "$suite_run_dir" | sed 's/-run$//')
   ALL_TABLES="${ALL_TABLES}
 
 ### ${suite_name}
@@ -135,8 +166,46 @@ if [ "$ANY_IMPROVEMENT" = "1" ]; then
     echo "error: gh CLI not found on PATH" >&2
     exit 1
   fi
+  if ! command -v git >/dev/null 2>&1; then
+    echo "error: git not found on PATH" >&2
+    exit 1
+  fi
 
   BRANCH="auto/eval-baseline-refresh-$TODAY"
+
+  # ------------------------------------------------------------
+  # Re-generate fresh baseline files from the downloaded run artifacts.
+  # ------------------------------------------------------------
+  # The dispatcher job downloads the runner's evals/results/ artifact.
+  # Re-running `python -m evals --update-baseline` here would require
+  # the full Claude auth/toolchain again and would drift from the run
+  # that actually detected the improvement. Instead, consume the saved
+  # run-* directories and write evals/baselines/{suite}.json directly.
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "error: python3 not found on PATH" >&2
+    exit 1
+  fi
+
+  python3 scripts/eval-write-baselines-from-results.py \
+    --results-dir "$EVAL_RESULTS_DIR" \
+    --baselines-dir "evals/baselines"
+
+  # Check whether the baseline files actually changed. If not, the
+  # "improvement" was within noise — abort the PR creation to avoid
+  # opening an empty PR.
+  if git diff --quiet -- evals/baselines/; then
+    echo "::notice::Baseline files unchanged after re-seed; no PR opened."
+    exit 0
+  fi
+
+  # Create branch, commit, push
+  git config user.email "github-actions[bot]@users.noreply.github.com"
+  git config user.name "github-actions[bot]"
+  git checkout -b "$BRANCH"
+  git add evals/baselines/
+  git commit -m "chore(evals): refresh baselines for week of $TODAY"
+  git push origin "$BRANCH"
+
   PR_BODY=$(cat <<EOF
 The weekly eval-full run detected strict improvement on $TODAY.
 
@@ -149,7 +218,7 @@ Per-suite exit codes:
 $ALL_TABLES
 
 This PR refreshes the baseline files to lock in the improvement.
-Review and merge to update tolerances.
+Review the delta and merge to update tolerances.
 
 ---
 Posted by \`scripts/eval-weekly-dispatch.sh\` (Specwright eval-full workflow).

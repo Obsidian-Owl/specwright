@@ -90,21 +90,33 @@ EOF
 
 # ----- Find existing sticky comment -----
 
+REPO="${GITHUB_REPOSITORY:-Obsidian-Owl/specwright}"
+
+# ----- Find existing sticky comment, extracting the integer REST DB ID -----
+#
+# IMPORTANT: `gh pr view --json comments` returns GraphQL node IDs in the
+# `.id` field (strings like `IC_kwDO...`). The REST PATCH endpoint at
+# `/repos/{owner}/{repo}/issues/comments/{id}` requires the integer
+# database ID, NOT the node ID. Sending the node ID returns 404 and the
+# script would silently print "Edited sticky comment …" while actually
+# doing nothing — subsequent pushes would then create DUPLICATE sticky
+# comments instead of updating the existing one.
+#
+# The fix: query via `gh api` against the REST comments endpoint directly.
+# The REST response exposes the integer ID in the `.id` field of each
+# comment object, which is what PATCH expects.
+
 EXISTING_ID=""
-if EXISTING_LIST=$(gh pr view "$PR_NUMBER" --json comments 2>/dev/null); then
-  if command -v jq >/dev/null 2>&1; then
-    EXISTING_ID=$(echo "$EXISTING_LIST" | jq -r --arg marker "$MARKER" '
-      .comments[]? | select(.body | startswith($marker)) | .id
+if command -v jq >/dev/null 2>&1; then
+  EXISTING_ID=$(gh api "/repos/$REPO/issues/$PR_NUMBER/comments" 2>/dev/null | jq -r --arg marker "$MARKER" '
+      .[] | select(.body | startswith($marker)) | .id
     ' | head -1)
-  fi
 fi
 
 # ----- Post or edit -----
 
-REPO="${GITHUB_REPOSITORY:-Obsidian-Owl/specwright}"
-
 if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
-  # Edit existing sticky comment via REST API
+  # Edit existing sticky comment via REST API (integer ID confirmed above)
   gh api --method PATCH \
     "/repos/$REPO/issues/comments/$EXISTING_ID" \
     -f body="$BODY" >/dev/null

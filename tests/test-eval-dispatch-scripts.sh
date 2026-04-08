@@ -29,6 +29,7 @@ cd "$ROOT_DIR" || exit 1
 
 # Create a fresh temp dir per test, install a stub gh, run, capture, clean up.
 setup_stub_gh() {
+  ORIG_PATH="$PATH"
   TMPDIR=$(mktemp -d)
   GH_LOG="$TMPDIR/gh-calls.log"
   cat > "$TMPDIR/gh" <<STUB_EOF
@@ -42,13 +43,17 @@ exit 0
 STUB_EOF
   chmod +x "$TMPDIR/gh"
   export PATH="$TMPDIR:$PATH"
-  export ORIG_PATH="$PATH"
+  export GH_LOG
 }
 
 teardown_stub_gh() {
+  PATH="$ORIG_PATH"
+  export PATH
   rm -rf "$TMPDIR"
   unset RESPONSE_FILE
   unset GH_LOG
+  unset TMPDIR
+  unset ORIG_PATH
 }
 
 # ---------- post-eval-comment.sh ----------
@@ -73,7 +78,9 @@ if [ -f scripts/post-eval-comment.sh ]; then
   fi
   teardown_stub_gh
 
-  # T2: posts a new comment when no prior sticky comment exists
+  # T2: posts a new comment when no prior sticky comment exists.
+  # The script now queries /repos/{owner}/{repo}/issues/{n}/comments via
+  # `gh api`, which returns a bare JSON array (not a {comments: [...]} object).
   setup_stub_gh
   RUN_DIR=$(mktemp -d)
   cat > "$RUN_DIR/comparison.json" <<'JSON'
@@ -86,21 +93,24 @@ if [ -f scripts/post-eval-comment.sh ]; then
   "table_markdown": "| Eval | Pass Rate |\n|---|---|\n| eval-01 | 1.00 (=) |\n"
 }
 JSON
-  # gh stub returns empty list for "comments" query
-  echo '{"comments": []}' > "$TMPDIR/response.json"
+  # gh stub returns empty REST array for the issue-comments query
+  echo '[]' > "$TMPDIR/response.json"
   RESPONSE_FILE="$TMPDIR/response.json" \
     EVAL_RUN_DIR="$RUN_DIR" \
     PR_NUMBER="999" \
     bash scripts/post-eval-comment.sh > /dev/null 2>&1 || true
-  if grep -q "pr comment" "$GH_LOG" 2>/dev/null || grep -q "issues/comments" "$GH_LOG" 2>/dev/null; then
-    pass "post-eval-comment.sh issues a comment-creation gh call when no prior sticky exists"
+  if grep -q "pr comment" "$GH_LOG" 2>/dev/null; then
+    pass "post-eval-comment.sh issues a new-comment gh call when no prior sticky exists"
   else
-    fail "post-eval-comment.sh did not issue a gh call (log: $(cat "$GH_LOG" 2>/dev/null))"
+    fail "post-eval-comment.sh did not issue a new-comment gh call (log: $(cat "$GH_LOG" 2>/dev/null))"
   fi
   rm -rf "$RUN_DIR"
   teardown_stub_gh
 
-  # T3: edits an existing sticky comment when one exists
+  # T3: edits an existing sticky comment when one exists, and uses the INTEGER
+  # REST database ID (not a GraphQL node ID). This test would have failed
+  # against the pre-fix code because the original implementation called
+  # `gh pr view --json comments` which returns GraphQL node IDs.
   setup_stub_gh
   RUN_DIR=$(mktemp -d)
   cat > "$RUN_DIR/comparison.json" <<'JSON'
@@ -113,18 +123,53 @@ JSON
   "table_markdown": "| Eval | Pass Rate |\n"
 }
 JSON
-  # gh stub returns one matching sticky comment
+  # gh stub returns one matching sticky comment with INTEGER ID (matches REST)
   cat > "$TMPDIR/response.json" <<'JSON'
-{"comments": [{"id": 12345, "body": "<!-- eval-smoke-comment -->\nold body"}]}
+[{"id": 12345, "body": "<!-- eval-smoke-comment -->\nold body"}]
 JSON
   RESPONSE_FILE="$TMPDIR/response.json" \
     EVAL_RUN_DIR="$RUN_DIR" \
     PR_NUMBER="999" \
     bash scripts/post-eval-comment.sh > /dev/null 2>&1 || true
   if grep -qE "(PATCH.*issues/comments|api.*issues/comments/12345)" "$GH_LOG" 2>/dev/null; then
-    pass "post-eval-comment.sh patches the existing sticky comment by id"
+    pass "post-eval-comment.sh patches the existing sticky comment by integer id"
   else
     fail "post-eval-comment.sh did not patch existing comment (log: $(cat "$GH_LOG" 2>/dev/null))"
+  fi
+  rm -rf "$RUN_DIR"
+  teardown_stub_gh
+
+  # T4: the sticky-comment lookup uses the REST issue-comments endpoint,
+  # not `gh pr view --json comments`.
+  setup_stub_gh
+  RUN_DIR=$(mktemp -d)
+  cat > "$RUN_DIR/comparison.json" <<'JSON'
+{
+  "regressions": [],
+  "improvements": [],
+  "missing_from_baseline": [],
+  "missing_from_run": [],
+  "exit_code": 0,
+  "table_markdown": "| Eval | Pass Rate |\n"
+}
+JSON
+  # Simulate the REST response with a real integer ID.
+  cat > "$TMPDIR/response.json" <<'JSON'
+[{"id": 98765432, "body": "<!-- eval-smoke-comment -->\nold body"}]
+JSON
+  RESPONSE_FILE="$TMPDIR/response.json" \
+    EVAL_RUN_DIR="$RUN_DIR" \
+    PR_NUMBER="999" \
+    bash scripts/post-eval-comment.sh > /dev/null 2>&1 || true
+  if grep -qE "issues/comments/98765432" "$GH_LOG" 2>/dev/null; then
+    pass "post-eval-comment.sh uses the REST endpoint integer id for PATCH"
+  else
+    fail "post-eval-comment.sh did not use the REST integer id (log: $(cat "$GH_LOG" 2>/dev/null))"
+  fi
+  if grep -q "pr view" "$GH_LOG" 2>/dev/null; then
+    fail "post-eval-comment.sh regressed to gh pr view comment lookup (log: $(cat "$GH_LOG" 2>/dev/null))"
+  else
+    pass "post-eval-comment.sh avoids gh pr view for sticky-comment lookup"
   fi
   rm -rf "$RUN_DIR"
   teardown_stub_gh
@@ -143,13 +188,56 @@ fi
 
 if [ -f scripts/eval-weekly-dispatch.sh ]; then
 
-  # Helper: build a results dir with comparison.json files for each suite
+  # Extended stub: the weekly dispatch's improvement path shells out to
+  # python3 + git (for the baseline re-seed + branch push). We need to
+  # stub those too so the test doesn't contaminate the real project.
+  setup_stub_gh_git_python() {
+    setup_stub_gh
+    # Stub git — record all invocations, exit 0 for everything
+    cat > "$TMPDIR/git" <<'STUB_EOF'
+#!/usr/bin/env bash
+echo "git $*" >> "$GH_LOG"
+# Pretend diff finds changes so the "no change, abort" path is NOT hit
+if [ "$1" = "diff" ] && [ "$2" = "--quiet" ]; then
+  exit 1
+fi
+exit 0
+STUB_EOF
+    chmod +x "$TMPDIR/git"
+    # Stub python3 — for the --update-baseline invocation
+    cat > "$TMPDIR/python3" <<'STUB_EOF'
+#!/usr/bin/env bash
+echo "python3 $*" >> "$GH_LOG"
+exit 0
+STUB_EOF
+    chmod +x "$TMPDIR/python3"
+  }
+
+  # Helper: build a realistic results dir mirroring the eval framework's
+  # actual output shape: evals/results/run-{timestamp}/ with config.json
+  # (recording the suite name) and comparison.json. One run dir per suite.
+  # This matches the real framework's naming (per orchestrator.py line 329).
   make_results_dir() {
+    local comparison_src="$1"
     local dir
     dir=$(mktemp -d)
+    local i=1
     for suite in skill workflow integration; do
-      mkdir -p "$dir/$suite-run"
-      cp "$1" "$dir/$suite-run/comparison.json"
+      local run_dir="$dir/run-20260408T14000${i}"
+      mkdir -p "$run_dir"
+      # config.json records the suite name — this is what the dispatcher
+      # reads to identify which run belongs to which suite
+      cat > "$run_dir/config.json" <<CONFIG_EOF
+{
+  "timestamp": "2026-04-08T14:00:0${i}Z",
+  "suite": "$suite",
+  "trials": 1,
+  "timeout": 600,
+  "python_version": "3.11.11"
+}
+CONFIG_EOF
+      cp "$comparison_src" "$run_dir/comparison.json"
+      i=$((i + 1))
     done
     echo "$dir"
   }
@@ -180,8 +268,11 @@ JSON
   rm -rf "$RESULTS"
   teardown_stub_gh
 
-  # T2: strict-improvement path → opens a PR
-  setup_stub_gh
+  # T2: strict-improvement path → re-seeds baselines, creates branch,
+  # commits, pushes, opens a PR. This test would have FAILED against
+  # the pre-fix code because the original script skipped the
+  # git branch/commit/push steps entirely.
+  setup_stub_gh_git_python
   IMPROVEMENT_JSON=$(mktemp)
   cat > "$IMPROVEMENT_JSON" <<'JSON'
 {
@@ -197,6 +288,34 @@ JSON
   SKILL_EXIT=0 WORKFLOW_EXIT=0 INTEGRATION_EXIT=0 \
     EVAL_RESULTS_DIR="$RESULTS" \
     bash scripts/eval-weekly-dispatch.sh > /dev/null 2>&1 || true
+
+  # The script now invokes the helper that writes baselines from the
+  # downloaded run-* artifacts, rather than re-running evals.
+  if grep -q "python3 scripts/eval-write-baselines-from-results.py" "$GH_LOG" 2>/dev/null; then
+    pass "eval-weekly-dispatch.sh invokes the write-baselines helper"
+  else
+    fail "eval-weekly-dispatch.sh did not invoke the write-baselines helper (log: $(cat "$GH_LOG" 2>/dev/null))"
+  fi
+
+  # And creates a branch + commits + pushes
+  if grep -qE "git checkout -b auto/eval-baseline-refresh" "$GH_LOG" 2>/dev/null; then
+    pass "eval-weekly-dispatch.sh creates auto-refresh branch"
+  else
+    fail "eval-weekly-dispatch.sh did not create branch (log: $(cat "$GH_LOG" 2>/dev/null))"
+  fi
+
+  if grep -q "git commit" "$GH_LOG" 2>/dev/null; then
+    pass "eval-weekly-dispatch.sh commits the baseline refresh"
+  else
+    fail "eval-weekly-dispatch.sh did not commit (log: $(cat "$GH_LOG" 2>/dev/null))"
+  fi
+
+  if grep -q "git push origin auto/eval-baseline-refresh" "$GH_LOG" 2>/dev/null; then
+    pass "eval-weekly-dispatch.sh pushes the refresh branch"
+  else
+    fail "eval-weekly-dispatch.sh did not push branch (log: $(cat "$GH_LOG" 2>/dev/null))"
+  fi
+
   if grep -q "pr create" "$GH_LOG" 2>/dev/null; then
     pass "eval-weekly-dispatch.sh opens a PR on strict improvement"
   else
