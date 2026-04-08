@@ -667,7 +667,8 @@ def _final_non_empty_block(text: str) -> List[str]:
             if block:
                 break
             continue
-        block.insert(0, line)
+        block.append(line)
+    block.reverse()
     return block
 
 

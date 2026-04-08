@@ -271,7 +271,7 @@
       "layer": "skill",
       "skill": "sw-design",
       "prompt_template": "design",
-      "prompt_args": {"topic": "add a hello-world function"},
+      "prompt_args": {"problem_statement": "add a hello-world function"},
       "seed": {
         "type": "fixture",
         "path": "suites/skill/fixtures/handoff-format/trivial-task"

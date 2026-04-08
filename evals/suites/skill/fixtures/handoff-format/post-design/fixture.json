@@ -2,5 +2,5 @@
   "specwright_version": "0.27.1",
   "created_date": "2026-04-07",
   "language": "markdown",
-  "description": "Empty Specwright workdir for sw-design handoff-format eval. The skill is invoked from a clean state to test that its terminal handoff matches the three-line gate handoff format. No prior currentWork; no design.md."
+  "description": "Post-design Specwright workdir for sw-plan handoff-format eval. The skill is invoked after a completed design (design.md present, status=designing) to test that its terminal handoff matches the three-line gate handoff format."
 }

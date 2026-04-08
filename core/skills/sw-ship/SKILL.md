@@ -80,9 +80,11 @@ If `workUnits` exists: update entry to `shipped`, advance to next `planned` unit
 On completion, emit the three-line handoff per the `protocols/decision.md`
 Gate Handoff section. The one-line outcome names the PR (e.g.,
 "PR #142 created"). The Artifacts: line points at the work unit directory.
-The Next: line points to `/sw-build` for the next unit if more units are
-queued, or "no more units — consider /sw-learn" if the work is complete.
-sw-learn is optional.
+The Next: line ALWAYS contains a `/sw-...` slash command — never prose.
+When more units are queued, Next points to `/sw-build`. When the work is
+complete, Next points to `/sw-learn` (sw-learn remains optional; the
+user may choose not to invoke it, but the handoff emits it so the line
+stays machine-parseable).
 
 ## Protocol References
 
