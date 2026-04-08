@@ -1,6 +1,6 @@
 {
   "name": "specwright",
-  "version": "0.27.2",
+  "version": "0.28.0",
   "description": "Spec-driven development with quality gates. Ensures you get what you asked for.",
   "author": {
     "name": "ObsidianOwl",
@@ -24,7 +24,11 @@
     "longDescription": "Bring Specwright's design, planning, build, verify, and ship workflow into Codex with slash commands and lifecycle hooks.",
     "developerName": "ObsidianOwl",
     "category": "Coding",
-    "capabilities": ["Interactive", "Read", "Write"],
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
     "websiteURL": "https://github.com/Obsidian-Owl/specwright",
     "privacyPolicyURL": "https://github.com/Obsidian-Owl/specwright",
     "termsOfServiceURL": "https://github.com/Obsidian-Owl/specwright",
