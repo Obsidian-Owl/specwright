@@ -22,8 +22,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Check Claude Code OAuth token
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
-          if [ -z "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
+          # Secret bound via env: block (not interpolated into shell) to avoid
+          # the expression-injection pattern that GitHub Actions hardening
+          # guide flags.
+          if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
             echo "::error::CLAUDE_CODE_OAUTH_TOKEN secret is required for eval-full runs."
             echo "::error::This is the same token used by .github/workflows/claude-code-review.yml."
             exit 1
@@ -37,8 +42,18 @@ jobs:
         run: pip install -r evals/requirements.txt
 
       - name: Install Claude CLI
+        # See eval-smoke.yml for the supply-chain hardening rationale.
         run: |
-          curl -fsSL https://claude.ai/install.sh | bash
+          set -euo pipefail
+          curl -fsSL https://claude.ai/install.sh -o /tmp/claude-install.sh
+          test -s /tmp/claude-install.sh
+          head -1 /tmp/claude-install.sh | grep -qE '^#!' || {
+            echo "::error::claude install.sh does not start with a shebang"
+            exit 1
+          }
+          echo "claude install.sh SHA-256: $(shasum -a 256 /tmp/claude-install.sh | cut -d' ' -f1)"
+          bash /tmp/claude-install.sh
+          rm -f /tmp/claude-install.sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       # Auth: CLAUDE_CODE_OAUTH_TOKEN uses the Claude Code subscription
@@ -76,11 +91,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
+      # contents: write is required because eval-weekly-dispatch.sh's
+      # improvement path creates a new branch, commits the refreshed
+      # baseline files, and pushes the branch to the remote before
+      # opening the PR. Without write access, `git push origin "$BRANCH"`
+      # fails. See scripts/eval-weekly-dispatch.sh lines ~140-175.
       contents: write
       pull-requests: write
       issues: write
     steps:
       - uses: actions/checkout@v4
+        # Fetch history so git diff/commit operations have a real base
+        with:
+          fetch-depth: 0
 
       - name: Download eval results
         uses: actions/download-artifact@v4

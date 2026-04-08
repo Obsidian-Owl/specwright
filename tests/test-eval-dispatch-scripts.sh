@@ -27,31 +27,32 @@ cd "$ROOT_DIR" || exit 1
 
 # ---------- Test harness ----------
 
-# Create a fresh temp dir per test, install a stub gh, run, capture, clean up.
 setup_stub_gh() {
+  ORIG_PATH="$PATH"
   TMPDIR=$(mktemp -d)
   GH_LOG="$TMPDIR/gh-calls.log"
-  cat > "$TMPDIR/gh" <<STUB_EOF
+  cat > "$TMPDIR/gh" <<'STUB_EOF'
 #!/usr/bin/env bash
-# stub gh — records args, returns canned output if RESPONSE_FILE is set
-echo "\$@" >> "$GH_LOG"
-if [ -n "\${RESPONSE_FILE:-}" ] && [ -f "\$RESPONSE_FILE" ]; then
-  cat "\$RESPONSE_FILE"
+echo "$@" >> "$GH_LOG"
+if [ -n "${RESPONSE_FILE:-}" ] && [ -f "$RESPONSE_FILE" ]; then
+  cat "$RESPONSE_FILE"
 fi
 exit 0
 STUB_EOF
   chmod +x "$TMPDIR/gh"
   export PATH="$TMPDIR:$PATH"
-  export ORIG_PATH="$PATH"
+  export GH_LOG
 }
 
 teardown_stub_gh() {
+  PATH="$ORIG_PATH"
+  export PATH
   rm -rf "$TMPDIR"
   unset RESPONSE_FILE
   unset GH_LOG
+  unset TMPDIR
+  unset ORIG_PATH
 }
-
-# ---------- post-eval-comment.sh ----------
 
 echo ""
 echo "=== Test: post-eval-comment.sh ==="
@@ -63,8 +64,6 @@ else
 fi
 
 if [ -f scripts/post-eval-comment.sh ]; then
-
-  # T1: stable marker present in script body
   setup_stub_gh
   if grep -q '<!-- eval-smoke-comment -->' scripts/post-eval-comment.sh; then
     pass "post-eval-comment.sh contains stable marker '<!-- eval-smoke-comment -->'"
@@ -73,7 +72,6 @@ if [ -f scripts/post-eval-comment.sh ]; then
   fi
   teardown_stub_gh
 
-  # T2: posts a new comment when no prior sticky comment exists
   setup_stub_gh
   RUN_DIR=$(mktemp -d)
   cat > "$RUN_DIR/comparison.json" <<'JSON'
@@ -86,21 +84,19 @@ if [ -f scripts/post-eval-comment.sh ]; then
   "table_markdown": "| Eval | Pass Rate |\n|---|---|\n| eval-01 | 1.00 (=) |\n"
 }
 JSON
-  # gh stub returns empty list for "comments" query
-  echo '{"comments": []}' > "$TMPDIR/response.json"
+  echo '[]' > "$TMPDIR/response.json"
   RESPONSE_FILE="$TMPDIR/response.json" \
     EVAL_RUN_DIR="$RUN_DIR" \
     PR_NUMBER="999" \
     bash scripts/post-eval-comment.sh > /dev/null 2>&1 || true
-  if grep -q "pr comment" "$GH_LOG" 2>/dev/null || grep -q "issues/comments" "$GH_LOG" 2>/dev/null; then
-    pass "post-eval-comment.sh issues a comment-creation gh call when no prior sticky exists"
+  if grep -q "pr comment" "$GH_LOG" 2>/dev/null; then
+    pass "post-eval-comment.sh issues a new-comment gh call when no prior sticky exists"
   else
-    fail "post-eval-comment.sh did not issue a gh call (log: $(cat "$GH_LOG" 2>/dev/null))"
+    fail "post-eval-comment.sh did not issue a new-comment gh call (log: $(cat "$GH_LOG" 2>/dev/null))"
   fi
   rm -rf "$RUN_DIR"
   teardown_stub_gh
 
-  # T3: edits an existing sticky comment when one exists
   setup_stub_gh
   RUN_DIR=$(mktemp -d)
   cat > "$RUN_DIR/comparison.json" <<'JSON'
@@ -113,24 +109,53 @@ JSON
   "table_markdown": "| Eval | Pass Rate |\n"
 }
 JSON
-  # gh stub returns one matching sticky comment
   cat > "$TMPDIR/response.json" <<'JSON'
-{"comments": [{"id": 12345, "body": "<!-- eval-smoke-comment -->\nold body"}]}
+[{"id": 12345, "body": "<!-- eval-smoke-comment -->\nold body"}]
 JSON
   RESPONSE_FILE="$TMPDIR/response.json" \
     EVAL_RUN_DIR="$RUN_DIR" \
     PR_NUMBER="999" \
     bash scripts/post-eval-comment.sh > /dev/null 2>&1 || true
   if grep -qE "(PATCH.*issues/comments|api.*issues/comments/12345)" "$GH_LOG" 2>/dev/null; then
-    pass "post-eval-comment.sh patches the existing sticky comment by id"
+    pass "post-eval-comment.sh patches the existing sticky comment by integer id"
   else
     fail "post-eval-comment.sh did not patch existing comment (log: $(cat "$GH_LOG" 2>/dev/null))"
   fi
   rm -rf "$RUN_DIR"
   teardown_stub_gh
-fi
 
-# ---------- eval-weekly-dispatch.sh ----------
+  setup_stub_gh
+  RUN_DIR=$(mktemp -d)
+  cat > "$RUN_DIR/comparison.json" <<'JSON'
+{
+  "regressions": [],
+  "improvements": [],
+  "missing_from_baseline": [],
+  "missing_from_run": [],
+  "exit_code": 0,
+  "table_markdown": "| Eval | Pass Rate |\n"
+}
+JSON
+  cat > "$TMPDIR/response.json" <<'JSON'
+[{"id": 98765432, "body": "<!-- eval-smoke-comment -->\nold body"}]
+JSON
+  RESPONSE_FILE="$TMPDIR/response.json" \
+    EVAL_RUN_DIR="$RUN_DIR" \
+    PR_NUMBER="999" \
+    bash scripts/post-eval-comment.sh > /dev/null 2>&1 || true
+  if grep -qE "issues/comments/98765432" "$GH_LOG" 2>/dev/null; then
+    pass "post-eval-comment.sh uses the REST endpoint integer id for PATCH"
+  else
+    fail "post-eval-comment.sh did not use the REST integer id (log: $(cat "$GH_LOG" 2>/dev/null))"
+  fi
+  if grep -q "pr view" "$GH_LOG" 2>/dev/null; then
+    fail "post-eval-comment.sh regressed to gh pr view comment lookup (log: $(cat "$GH_LOG" 2>/dev/null))"
+  else
+    pass "post-eval-comment.sh avoids gh pr view for sticky-comment lookup"
+  fi
+  rm -rf "$RUN_DIR"
+  teardown_stub_gh
+fi
 
 echo ""
 echo "=== Test: eval-weekly-dispatch.sh ==="
@@ -142,19 +167,48 @@ else
 fi
 
 if [ -f scripts/eval-weekly-dispatch.sh ]; then
+  setup_stub_gh_git_python() {
+    setup_stub_gh
+    cat > "$TMPDIR/git" <<'STUB_EOF'
+#!/usr/bin/env bash
+echo "git $*" >> "$GH_LOG"
+if [ "$1" = "diff" ] && [ "$2" = "--quiet" ]; then
+  exit 1
+fi
+exit 0
+STUB_EOF
+    chmod +x "$TMPDIR/git"
+    cat > "$TMPDIR/python3" <<'STUB_EOF'
+#!/usr/bin/env bash
+echo "python3 $*" >> "$GH_LOG"
+exit 0
+STUB_EOF
+    chmod +x "$TMPDIR/python3"
+  }
 
-  # Helper: build a results dir with comparison.json files for each suite
   make_results_dir() {
+    local comparison_src="$1"
     local dir
     dir=$(mktemp -d)
+    local i=1
     for suite in skill workflow integration; do
-      mkdir -p "$dir/$suite-run"
-      cp "$1" "$dir/$suite-run/comparison.json"
+      local run_dir="$dir/run-20260408T14000${i}"
+      mkdir -p "$run_dir"
+      cat > "$run_dir/config.json" <<CONFIG_EOF
+{
+  "timestamp": "2026-04-08T14:00:0${i}Z",
+  "suite": "$suite",
+  "trials": 1,
+  "timeout": 600,
+  "python_version": "3.11.11"
+}
+CONFIG_EOF
+      cp "$comparison_src" "$run_dir/comparison.json"
+      i=$((i + 1))
     done
     echo "$dir"
   }
 
-  # T1: regression path → opens an issue
   setup_stub_gh
   REGRESSION_JSON=$(mktemp)
   cat > "$REGRESSION_JSON" <<'JSON'
@@ -180,8 +234,7 @@ JSON
   rm -rf "$RESULTS"
   teardown_stub_gh
 
-  # T2: strict-improvement path → opens a PR
-  setup_stub_gh
+  setup_stub_gh_git_python
   IMPROVEMENT_JSON=$(mktemp)
   cat > "$IMPROVEMENT_JSON" <<'JSON'
 {
@@ -197,6 +250,26 @@ JSON
   SKILL_EXIT=0 WORKFLOW_EXIT=0 INTEGRATION_EXIT=0 \
     EVAL_RESULTS_DIR="$RESULTS" \
     bash scripts/eval-weekly-dispatch.sh > /dev/null 2>&1 || true
+  if grep -q "python3 scripts/eval-write-baselines-from-results.py" "$GH_LOG" 2>/dev/null; then
+    pass "eval-weekly-dispatch.sh invokes the write-baselines helper"
+  else
+    fail "eval-weekly-dispatch.sh did not invoke the write-baselines helper (log: $(cat "$GH_LOG" 2>/dev/null))"
+  fi
+  if grep -qE "git checkout -b auto/eval-baseline-refresh" "$GH_LOG" 2>/dev/null; then
+    pass "eval-weekly-dispatch.sh creates auto-refresh branch"
+  else
+    fail "eval-weekly-dispatch.sh did not create branch (log: $(cat "$GH_LOG" 2>/dev/null))"
+  fi
+  if grep -q "git commit" "$GH_LOG" 2>/dev/null; then
+    pass "eval-weekly-dispatch.sh commits the baseline refresh"
+  else
+    fail "eval-weekly-dispatch.sh did not commit (log: $(cat "$GH_LOG" 2>/dev/null))"
+  fi
+  if grep -q "git push origin auto/eval-baseline-refresh" "$GH_LOG" 2>/dev/null; then
+    pass "eval-weekly-dispatch.sh pushes the refresh branch"
+  else
+    fail "eval-weekly-dispatch.sh did not push branch (log: $(cat "$GH_LOG" 2>/dev/null))"
+  fi
   if grep -q "pr create" "$GH_LOG" 2>/dev/null; then
     pass "eval-weekly-dispatch.sh opens a PR on strict improvement"
   else
@@ -206,7 +279,6 @@ JSON
   rm -rf "$RESULTS"
   teardown_stub_gh
 
-  # T3: flat path (no improvement, no regression) → exits silently
   setup_stub_gh
   FLAT_JSON=$(mktemp)
   cat > "$FLAT_JSON" <<'JSON'
@@ -232,7 +304,6 @@ JSON
   rm -rf "$RESULTS"
   teardown_stub_gh
 
-  # T4: mixed path (one regression + one improvement) → opens issue (regression takes precedence)
   setup_stub_gh
   MIXED_JSON=$(mktemp)
   cat > "$MIXED_JSON" <<'JSON'

@@ -3,12 +3,12 @@
 # scripts/post-eval-comment.sh
 #
 # Post a sticky eval-smoke comment to the active PR. The comment uses
-# a stable marker so subsequent pushes EDIT rather than DUPLICATE.
+# a stable marker so subsequent pushes edit rather than duplicate.
 #
 # Inputs (env vars):
 #   EVAL_RUN_DIR   — directory containing comparison.json (required)
 #   PR_NUMBER      — PR number to comment on (required, except in CI
-#                    where it's derived from $GITHUB_REF)
+#                    where it is derived from $GITHUB_REF)
 #   GH_TOKEN       — GitHub token (required for gh CLI)
 #
 # Marker: <!-- eval-smoke-comment -->
@@ -37,12 +37,8 @@ if [ ! -f "$COMPARISON_JSON" ]; then
   exit 1
 fi
 
-# Derive PR number from CI env if not explicitly set
-if [ -z "${PR_NUMBER:-}" ]; then
-  if [ -n "${GITHUB_REF:-}" ]; then
-    # GITHUB_REF for pull_request looks like refs/pull/123/merge
-    PR_NUMBER=$(echo "$GITHUB_REF" | sed -nE 's|^refs/pull/([0-9]+)/.*|\1|p')
-  fi
+if [ -z "${PR_NUMBER:-}" ] && [ -n "${GITHUB_REF:-}" ]; then
+  PR_NUMBER=$(echo "$GITHUB_REF" | sed -nE 's|^refs/pull/([0-9]+)/.*|\1|p')
 fi
 
 if [ -z "${PR_NUMBER:-}" ]; then
@@ -57,7 +53,6 @@ fi
 
 # ----- Build comment body -----
 
-# Use jq if available for clean extraction; otherwise fall back to grep.
 if command -v jq >/dev/null 2>&1; then
   REGRESSIONS=$(jq -r '.regressions | length' "$COMPARISON_JSON")
   IMPROVEMENTS=$(jq -r '.improvements | length' "$COMPARISON_JSON")
@@ -90,27 +85,25 @@ EOF
 
 # ----- Find existing sticky comment -----
 
+REPO="${GITHUB_REPOSITORY:-Obsidian-Owl/specwright}"
+
+# Use the REST issue-comments endpoint so the returned `id` is the
+# integer database ID required by the PATCH endpoint below.
 EXISTING_ID=""
-if EXISTING_LIST=$(gh pr view "$PR_NUMBER" --json comments 2>/dev/null); then
-  if command -v jq >/dev/null 2>&1; then
-    EXISTING_ID=$(echo "$EXISTING_LIST" | jq -r --arg marker "$MARKER" '
-      .comments[]? | select(.body | startswith($marker)) | .id
+if command -v jq >/dev/null 2>&1; then
+  EXISTING_ID=$(gh api "/repos/$REPO/issues/$PR_NUMBER/comments" 2>/dev/null | jq -r --arg marker "$MARKER" '
+      .[] | select(.body | startswith($marker)) | .id
     ' | head -1)
-  fi
 fi
 
 # ----- Post or edit -----
 
-REPO="${GITHUB_REPOSITORY:-Obsidian-Owl/specwright}"
-
 if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
-  # Edit existing sticky comment via REST API
   gh api --method PATCH \
     "/repos/$REPO/issues/comments/$EXISTING_ID" \
     -f body="$BODY" >/dev/null
   echo "Edited sticky comment $EXISTING_ID on PR #$PR_NUMBER"
 else
-  # Post new comment
   gh pr comment "$PR_NUMBER" --body "$BODY"
   echo "Posted new sticky comment on PR #$PR_NUMBER"
 fi

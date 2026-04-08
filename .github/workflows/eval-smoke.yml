@@ -21,8 +21,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Check Claude Code OAuth token
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
-          if [ -z "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
+          # Secret bound via env: block (not interpolated into shell) to avoid
+          # the expression-injection pattern that GitHub Actions hardening
+          # guide flags. Also safer if the secret ever contains shell
+          # metacharacters.
+          if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
             echo "::error::CLAUDE_CODE_OAUTH_TOKEN secret is required for eval smoke runs."
             echo "::error::This is the same token used by .github/workflows/claude-code-review.yml."
             echo "::error::Configure it via Repo Settings → Secrets and variables → Actions."
@@ -37,8 +43,30 @@ jobs:
         run: pip install -r evals/requirements.txt
 
       - name: Install Claude CLI
+        # SUPPLY-CHAIN NOTE: this step downloads claude.ai/install.sh and
+        # executes it. The same installer is implicitly trusted by
+        # anthropics/claude-code-action@v1 which powers claude-code-review.yml
+        # in this repo, so adding it here does not expand the trust surface.
+        #
+        # Hardening applied:
+        # 1. Download to a local file first (do not pipe to bash)
+        # 2. Verify it is non-empty and starts with a shebang
+        # 3. Log the SHA-256 so unexpected drift is visible in workflow logs
+        # 4. Execute explicitly with bash
+        #
+        # Future hardening: pin a versioned release URL and validate against a
+        # published canonical SHA-256 when the installer offers one.
         run: |
-          curl -fsSL https://claude.ai/install.sh | bash
+          set -euo pipefail
+          curl -fsSL https://claude.ai/install.sh -o /tmp/claude-install.sh
+          test -s /tmp/claude-install.sh
+          head -1 /tmp/claude-install.sh | grep -qE '^#!' || {
+            echo "::error::claude install.sh does not start with a shebang"
+            exit 1
+          }
+          echo "claude install.sh SHA-256: $(shasum -a 256 /tmp/claude-install.sh | cut -d' ' -f1)"
+          bash /tmp/claude-install.sh
+          rm -f /tmp/claude-install.sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       # --trials 3 implements the architect's multi-run flake mitigation.
