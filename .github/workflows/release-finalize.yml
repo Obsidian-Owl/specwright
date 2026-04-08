@@ -92,3 +92,35 @@ jobs:
       - name: Publish to npm
         if: env.SKIP_PUBLISH != 'true'
         run: cd dist/opencode && npm publish --provenance --access public
+
+  publish-codex-bundle:
+    needs: tag-and-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.tag-and-release.outputs.version }}
+
+      - name: Build Codex adapter
+        run: ./build/build.sh codex
+
+      - name: Create Codex release asset
+        run: tar -czf specwright-codex.tar.gz -C dist codex
+
+      - name: Validate Codex bundle manifest
+        run: |
+          tar -tzf specwright-codex.tar.gz | grep -q 'codex/.codex-plugin/plugin.json' || {
+            echo "::error::Codex bundle is missing plugin manifest"
+            exit 1
+          }
+
+      - name: Upload Codex release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "v${{ needs.tag-and-release.outputs.version }}" \
+            specwright-codex.tar.gz \
+            --clobber

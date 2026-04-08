@@ -1,20 +1,40 @@
 # Specwright for Codex CLI
 
-Specwright adapter for Codex CLI.
+This directory is the Codex adapter source.
 
-This adapter provides:
-- Slash commands for all user-facing `sw-*` skills
-- Session lifecycle hooks (resume context, shipping guard, continuation snapshot)
-- A plugin manifest for Codex plugin installation
+End users should install the packaged Codex bundle from GitHub Releases, not
+point Codex directly at `adapters/codex`. The distributable bundle is built to
+`dist/codex` and includes:
+- transformed `skills/`
+- packaged `protocols/` and `agents/`
+- `commands/`, `hooks/`, `hooks.json`
+- `.codex-plugin/plugin.json`
 
-## Repo-Local Setup (Specwright Dogfooding)
+## User Install
 
-1. Ensure Codex can discover repository skills via `.agents/skills`.
-2. Ensure plugin marketplace entry exists at `.agents/plugins/marketplace.json`.
-3. In Codex, install/enable the `specwright` plugin from the repo marketplace.
+```sh
+curl -fsSL https://raw.githubusercontent.com/Obsidian-Owl/specwright/main/scripts/install-codex.sh | bash -s -- --user
+```
 
-## Skills-Only Mode
+Requires `curl`, `tar`, and `python3`.
 
-If you do not want to install the plugin, Codex can still run Specwright skills
-directly from `.agents/skills`.
+## Repo Install
 
+Run from the target repository root:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Obsidian-Owl/specwright/main/scripts/install-codex.sh | bash -s -- --repo
+```
+
+Then open Codex and enable `specwright` from:
+
+```text
+/plugins
+```
+
+## Local Development
+
+If you are working on Specwright itself:
+1. Build the distributable with `./build/build.sh codex`.
+2. Install the resulting `dist/codex` bundle into a user or repo marketplace.
+3. Use `.agents/skills` directly if you only need skills-only mode.

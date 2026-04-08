@@ -18,6 +18,7 @@ jobs:
           MARKETPLACE_VERSION=$(jq -r '.plugins[0].version' adapters/claude-code/.claude-plugin/marketplace.json)
 
           OPENCODE_VERSION=$(jq -r '.version' adapters/opencode/package.json)
+          CODEX_VERSION=$(jq -r '.version' adapters/codex/.codex-plugin/plugin.json)
 
           if [ "$PLUGIN_VERSION" != "$MARKETPLACE_VERSION" ]; then
             echo "::error::Version mismatch: plugin.json ($PLUGIN_VERSION) != marketplace.json ($MARKETPLACE_VERSION)"
@@ -26,6 +27,11 @@ jobs:
 
           if [ "$PLUGIN_VERSION" != "$OPENCODE_VERSION" ]; then
             echo "::error::Version mismatch: plugin.json ($PLUGIN_VERSION) != opencode package.json ($OPENCODE_VERSION)"
+            exit 1
+          fi
+
+          if [ "$PLUGIN_VERSION" != "$CODEX_VERSION" ]; then
+            echo "::error::Version mismatch: plugin.json ($PLUGIN_VERSION) != codex plugin.json ($CODEX_VERSION)"
             exit 1
           fi
 
@@ -104,6 +110,20 @@ jobs:
         run: tests/test-hooks.sh
       - name: Run stage enforcement tests
         run: tests/test-stage-enforcement.sh
+
+  test-codex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run Codex build tests
+        run: tests/test-codex-build.sh
+      - name: Run Codex hook tests
+        run: tests/test-codex-hooks.sh
+      - name: Run Codex installer tests
+        run: tests/test-codex-install.sh
 
   test-evals:
     runs-on: ubuntu-latest
