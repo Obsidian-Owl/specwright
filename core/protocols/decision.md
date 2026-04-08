@@ -290,13 +290,34 @@ Every autonomous decision is recorded in `{workDir}/decisions.md`:
 
 CCR-reviewed decisions also add `**CCR verdict**` and `**CCR findings**`.
 
+## Stage Report
+
+Every pipeline skill handoff writes `{workDir}/stage-report.md` before emitting
+the terminal three-line handoff.
+
+**Top line:** `Attention required: {single-sentence summary}`
+
+**Cap:** hard limit of ~40 lines. This artifact is a pointer-sized digest, not
+the full report.
+
+**Required sections:**
+- `Precondition State`
+- `What I did`
+- `Decisions digest`
+- `Quality Checks` (omit only when genuinely inapplicable)
+- `Postcondition State`
+- `Recommendation`
+
+The "Attention required" line stays at the top of the file so the next stage
+can see the risk signal without scrolling.
+
 ## Gate Handoff
 
 When a pipeline skill finishes, emit exactly three lines:
 
 ```text
 Done. {one-line outcome}.
-Artifacts: {workDir}/
+Artifacts: {workDir}/stage-report.md
 Next: /sw-{next-skill}
 ```
 

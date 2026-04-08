@@ -44,10 +44,12 @@ After each task:
 - Tests written and passing
 - Implementation committed (one commit per task)
 - `workflow.json` updated with task progress
+- `{currentWork.workDir}/stage-report.md` refreshed with the latest build handoff digest
 
 After all tasks:
 - `workflow.json` status set to `building` → ready for verify
 - All acceptance criteria have corresponding tests and implementation
+- Final handoff points at `Artifacts: {workDir}/stage-report.md`
 
 ## Constraints
 
@@ -63,7 +65,10 @@ To run hands-off across many tasks, the user invokes `/sw-build` and lets it pro
 Follow `protocols/stage-boundary.md`. This skill implements one work unit via TDD. Handoff to `/sw-verify`.
 NEVER create PRs (`gh pr create`) or invoke `/sw-ship` during building. PR creation
 is only permitted in the `shipping` state, which is entered via `/sw-ship` after
-`/sw-verify` gates pass.
+`/sw-verify` gates pass. Before the terminal handoff, write
+`{workDir}/stage-report.md`; the Artifacts line points at
+`Artifacts: {workDir}/stage-report.md`, and the Next line remains
+machine-parseable: `Next: /sw-verify`.
 
 **Branch setup (LOW freedom) — FIRST action before any coding:**
 Postcondition: A feature branch is checked out, synced with the base branch per `protocols/git.md` branch lifecycle.

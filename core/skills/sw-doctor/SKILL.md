@@ -1,11 +1,13 @@
 ---
 name: sw-doctor
 description: >-
-  Read-only Specwright health check. Validates that configuration, anchor docs,
-  commands, gates, and hooks are correctly set up. Produces a PASS/WARN/FAIL table.
+  Specwright health check. Validates that configuration, anchor docs,
+  commands, gates, hooks, and workflow integrity are correctly set up.
+  Produces a PASS/WARN/FAIL table and may backfill shipped PR metadata.
 argument-hint: ""
 allowed-tools:
   - Read
+  - Write
   - Bash
   - Glob
   - Grep
@@ -17,7 +19,7 @@ allowed-tools:
 
 Validate that a Specwright installation is correctly configured. Produces a
 health table with ✓/⚠/✗ per check and repair hints for any issues found.
-Makes NO state mutations.
+Also repairs missing shipped-PR metadata when it can prove the mapping safely.
 
 ## Inputs
 
@@ -31,7 +33,8 @@ Makes NO state mutations.
 ## Outputs
 
 - Health table printed to conversation (no file written)
-- No state mutations
+- Optional workflow.json backfill of `workUnits[{n}].prNumber` and `prMergedAt`
+  only. `status` is never modified.
 
 ## Constraints
 
@@ -39,7 +42,7 @@ Makes NO state mutations.
 - If `.specwright/` directory does not exist: STOP immediately.
   "Specwright not initialized. Run /sw-init first."
 
-**Checks (LOW freedom — run all 12 in order):**
+**Checks (LOW freedom — run all 13 in order):**
 1. **Anchor docs** — `.specwright/CONSTITUTION.md` and `.specwright/CHARTER.md` exist and are non-empty
 2. **Config** — `.specwright/config.json` is valid JSON with `gates` and `git` fields present
 3. **State** — `.specwright/state/workflow.json` is valid JSON; `lock` is null or held < 1 hour
@@ -58,6 +61,23 @@ Makes NO state mutations.
     - Only `cli-lsp-client` on PATH: INFO `ℹ Standalone LSP daemon available`
     - `cli-lsp-client` + platform LSP both detected: WARN `⚠ cli-lsp-client may conflict with platform LSP — duplicate servers cause resource doubling`
     - Neither: INFO `ℹ No LSP available (optional — enables type-aware analysis)`
+13. **STATE_DRIFT** — scan `workflow.workUnits` for `status=shipped` and
+    `prNumber=null`. For each finding, print the inline remediation command:
+    `→ run: sw-status --repair {unitId}`.
+
+**STATE_DRIFT backfill (MEDIUM freedom):**
+- On the first sw-doctor invocation against a project, attempt a one-time backfill
+  before printing the final table.
+- Candidate set: `workUnits` entries with `status=shipped` and `prNumber=null`.
+- Detection order is strict:
+  1. `gh` lookup by branch/title/PR search
+  2. `git log` / merge-commit confirmation against the shipped branch history
+  3. If neither proves the mapping, leave `prNumber` null and emit STATE_DRIFT WARN
+- Backfill scope is locked: it may write only `prNumber` and `prMergedAt`; it
+  never modifies `status`, `order`, `workDir`, or any gate result.
+- `prMergedAt` remains null when only the PR number is confirmed and merge time
+  cannot be proven.
+- If `gh` is unavailable or unauthenticated, degrade to the `git log` path, then WARN.
 
 **Output format (MEDIUM freedom):**
 ```
@@ -86,9 +106,11 @@ Specwright Health Check
 - Repair hints: use `→ Run /sw-guard` for hooks/guardrail issues; `→ Run /sw-init` for config/anchor issues; `→ Run gh auth login` for GitHub auth issues
 - If all checks pass: add "All checks passed." after the summary line
 
-**No mutations (LOW freedom):**
-- Read only. Do not write or edit any file. Do not update workflow.json. Do not
-  acquire or release the state lock.
+**Workflow mutation scope (LOW freedom):**
+- The only allowed mutation is the one-time STATE_DRIFT backfill above.
+- When mutating workflow.json, follow `protocols/state.md` read-modify-write.
+- only `prNumber` and `prMergedAt` may change; backfill never modifies `status`.
+- No other file writes. No lock acquisition unless workflow.json is being written.
 
 ## Protocol References
 

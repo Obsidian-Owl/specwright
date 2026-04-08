@@ -2,9 +2,10 @@
 name: sw-status
 description: >-
   Shows current Specwright state — active work unit, task progress, gate
-  results, and lock status. Supports --reset to abandon work and --cleanup
-  to remove orphaned work directories.
-argument-hint: "[--reset | --cleanup]"
+  results, and lock status. Supports --reset to abandon work, --cleanup
+  to remove orphaned work directories, and --repair {unitId} to repair
+  shipped-unit PR metadata drift.
+argument-hint: "[--reset | --cleanup | --repair {unitId}]"
 allowed-tools:
   - Read
   - Write
@@ -34,6 +35,8 @@ next. If they're stuck, give them a way out with `--reset`.
   - Gate results: status per gate, freshness
   - Lock status: who holds it, how long
   - Next action recommendation
+- In `--repair` mode: remediation outcome (`repaired`, `report-only`, or
+  user-selected fallback) for the target unit
 
 ## Constraints
 
@@ -59,6 +62,9 @@ next. If they're stuck, give them a way out with `--reset`.
   Write `headless-result.json` with `status: "aborted"`, `error: "reset requires confirmation"`.
 - `--cleanup`: **report-only** — list orphaned directories but do not delete any.
   Output the list so the calling system can process it.
+- `--repair`: **report-only** — inspect the target unit, print what interactive
+  repair would do, suggest rerunning `sw-status --repair {unitId}` interactively,
+  and never mutate workflow.json.
 - Default display mode (no flags): already headless-safe — reads state and formats output.
 - Write `headless-result.json` with `status: "completed"`, `pass_rate: null`.
 
@@ -82,6 +88,26 @@ next. If they're stuck, give them a way out with `--reset`.
   - Before deleting, use `realpath` to canonicalize each selected path, then verify the canonical path is a direct child of the canonical `.specwright/work/` path. If canonicalization fails or the resolved path escapes `.specwright/work/`, skip it with a warning.
   - Delete only the verified, user-selected directories (`rm -rf` each selected path).
   - Report which directories were deleted and the count.
+
+**Repair mode (MEDIUM freedom):**
+- If `--repair {unitId}` argument is given:
+  - Locate the matching `workUnits[{n}]` entry. If absent: report "Unknown unitId".
+  - Repair applies only to `status=shipped` and `prNumber=null`.
+  - If `gh` confirms a merged PR for that unit: populate `prNumber` and
+    `prMergedAt` (when known), report `repaired`, and leave `status=shipped`.
+    In short: merged PR confirmed → repaired.
+  - If no PR can be proven, ask the user to choose one of exactly three options:
+    1. `revert-to-building`
+    2. `mark-abandoned`
+    3. `force-shipped-with-note`
+  - `revert-to-building`: set the unit and `currentWork` back to `building`
+    when the repaired unit is the active one.
+  - `mark-abandoned`: set the unit status to `abandoned` and record that no PR
+    was confirmed.
+  - `force-shipped-with-note`: keep `status=shipped`, keep `prNumber=null`, and
+    append a note to `{workDir}/decisions.md` recording the user's assertion that
+    the work shipped via an out-of-band path.
+  - All workflow.json mutations follow `protocols/state.md`.
 
 ## Protocol References
 
