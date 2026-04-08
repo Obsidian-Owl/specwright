@@ -123,16 +123,18 @@ safe_replace_bundle() {
 }
 
 update_marketplace() {
-  python3 - "$MARKETPLACE_PATH" "$PLUGIN_NAME" <<'PY'
+  python3 - "$MARKETPLACE_PATH" "$PLUGIN_NAME" "$VERSION" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 marketplace_path = Path(sys.argv[1])
 plugin_name = sys.argv[2]
+plugin_version = sys.argv[3]
 
 entry = {
     "name": plugin_name,
+    "version": plugin_version,
     "source": {
         "source": "local",
         "path": f"./plugins/{plugin_name}",
@@ -256,6 +258,14 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 
 ARCHIVE_URL="$(resolve_asset_url)"
 BUNDLE_SOURCE="$(extract_bundle "$ARCHIVE_URL")"
+
+if [ "$MODE" = "install" ] && [ -d "$BUNDLE_PATH" ]; then
+  die "plugin already installed at $BUNDLE_PATH - use --update to replace it"
+fi
+
+if [ "$MODE" = "update" ] && [ ! -d "$BUNDLE_PATH" ]; then
+  die "no existing installation found at $BUNDLE_PATH - run without --update to install"
+fi
 
 safe_replace_bundle "$BUNDLE_SOURCE"
 update_marketplace

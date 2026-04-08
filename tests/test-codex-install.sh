@@ -128,6 +128,7 @@ pass "user install command exits successfully"
 assert_file "$HOME_DIR/plugins/specwright/.codex-plugin/plugin.json" "user install writes plugin bundle"
 assert_file "$HOME_DIR/.agents/plugins/marketplace.json" "user install writes marketplace manifest"
 assert_eq "$(jq -r '.plugins[] | select(.name == "specwright") | .source.path' "$HOME_DIR/.agents/plugins/marketplace.json")" "./plugins/specwright" "user marketplace path points at bundled plugin"
+assert_eq "$(jq -r '.plugins[] | select(.name == "specwright") | .version' "$HOME_DIR/.agents/plugins/marketplace.json")" "latest" "user marketplace records installed version"
 assert_eq "$(jq '[.plugins[] | select(.name == "specwright")] | length' "$HOME_DIR/.agents/plugins/marketplace.json")" "1" "user install adds one specwright marketplace entry"
 assert_eq "$(jq '[.plugins[] | select(.name == "existing-plugin")] | length' "$HOME_DIR/.agents/plugins/marketplace.json")" "1" "user install preserves existing marketplace entries"
 
@@ -137,6 +138,18 @@ bash "$INSTALLER" --update --user >/dev/null 2>&1
 pass "user update command exits successfully"
 
 assert_eq "$(jq '[.plugins[] | select(.name == "specwright")] | length' "$HOME_DIR/.agents/plugins/marketplace.json")" "1" "user update stays idempotent"
+
+if HOME="$HOME_DIR" SPECWRIGHT_CODEX_ASSET_URL="file://$ASSET_PATH" bash "$INSTALLER" --user >/dev/null 2>&1; then
+  fail "user install without --update must fail when bundle already exists"
+else
+  pass "user install without --update fails when bundle already exists"
+fi
+
+if HOME="$HOME_DIR" SPECWRIGHT_CODEX_ASSET_URL="file://$ASSET_PATH" bash "$INSTALLER" --update --repo --repo-root "$TMP_DIR/missing-repo" >/dev/null 2>&1; then
+  fail "repo update must fail when no prior install exists"
+else
+  pass "repo update fails when no prior install exists"
+fi
 
 echo "--- Repo install ---"
 mkdir -p "$REPO_DIR/.agents/plugins"
@@ -161,6 +174,7 @@ pass "repo install command exits successfully"
 assert_file "$REPO_DIR/plugins/specwright/.codex-plugin/plugin.json" "repo install writes plugin bundle"
 assert_file "$REPO_DIR/.agents/plugins/marketplace.json" "repo install writes marketplace manifest"
 assert_eq "$(jq -r '.plugins[] | select(.name == "specwright") | .source.path' "$REPO_DIR/.agents/plugins/marketplace.json")" "./plugins/specwright" "repo marketplace path points at bundled plugin"
+assert_eq "$(jq -r '.plugins[] | select(.name == "specwright") | .version' "$REPO_DIR/.agents/plugins/marketplace.json")" "latest" "repo marketplace records installed version"
 assert_eq "$(jq '[.plugins[] | select(.name == "specwright")] | length' "$REPO_DIR/.agents/plugins/marketplace.json")" "1" "repo install adds one specwright marketplace entry"
 
 echo ""

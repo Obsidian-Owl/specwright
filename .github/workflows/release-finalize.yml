@@ -110,6 +110,13 @@ jobs:
       - name: Create Codex release asset
         run: tar -czf specwright-codex.tar.gz -C dist codex
 
+      - name: Validate Codex bundle manifest
+        run: |
+          tar -tzf specwright-codex.tar.gz | grep -q 'codex/.codex-plugin/plugin.json' || {
+            echo "::error::Codex bundle is missing plugin manifest"
+            exit 1
+          }
+
       - name: Upload Codex release asset
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
