@@ -68,11 +68,11 @@ Categories requiring an unavailable tier are skipped with an INFO note.
 Sole owner of CWE-636 and CWE-209 analysis (transferred from gate-security to avoid duplicate findings).
 
 **Verdict (LOW freedom):**
-Per `protocols/gate-verdict.md`. All findings WARN by default.
+Per `protocols/evidence.md#verdict-rendering`. All findings WARN by default.
 No findings = PASS. WARN-only = WARN. Any BLOCK = FAIL.
 
 Tier 0 categories: **permanently WARN-only**. Tier 1+ may promote to BLOCK
-when: (1) ≥5 shipped units, (2) FP rate <10% per `gate-verdict.md`
+when: (1) ≥5 shipped units, (2) FP rate <10% per `evidence.md`
 calibration, (3) user opt-in via config `{"severity": "block"}`.
 
 **Evidence report:** Tool availability, skipped categories with reason,
@@ -81,7 +81,7 @@ each finding with category, file:line, tier/tool, severity, remediation.
 ## Protocol References
 
 - `protocols/semi-formal-reasoning.md` -- localization template for findings
-- `protocols/gate-verdict.md` -- verdict rendering and calibration
+- `protocols/evidence.md#verdict-rendering` -- verdict rendering and calibration
 - `protocols/evidence.md` -- evidence storage
 - `protocols/state.md` -- gate status updates
 - `protocols/context.md` -- config and anchor doc loading

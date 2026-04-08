@@ -64,12 +64,12 @@ evidence section containing: command executed (capture command run), exit code,
 stdout/stderr output, and duration (elapsed wall time). Per-tier sections are
 written regardless of tier outcome.
 
-- Follow `protocols/gate-verdict.md` for verdict rendering.
+- Follow `protocols/evidence.md#verdict-rendering` for verdict rendering.
 - Update `workflow.json` gates section per `protocols/state.md`.
 
 ## Protocol References
 
-- `protocols/gate-verdict.md` -- default-FAIL, self-critique, visibility
+- `protocols/evidence.md#verdict-rendering` -- default-FAIL, self-critique, visibility
 - `protocols/evidence.md` -- evidence storage and freshness
 - `protocols/state.md` -- gate status updates
 

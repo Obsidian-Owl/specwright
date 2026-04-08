@@ -53,7 +53,7 @@ All six gates are eligible: build, tests, security, wiring, semantic, spec.
 Execute enabled gates in dependency order: gate-build → gate-tests →
 gate-security, gate-wiring → gate-semantic → gate-spec.
 If `--gate=<name>` argument, run only that gate.
-Load calibration notes per `protocols/gate-verdict.md`.
+Load calibration notes per `protocols/evidence.md#verdict-rendering`.
 
 **Gate invocation (MEDIUM freedom):**
 Gates are internal skills — load SKILL.md and execute inline. Pass work unit context.
@@ -70,7 +70,7 @@ Headless: write `headless-result.json`.
 After all gates, present: (1) per-finding detail grouped by gate, (2) summary table
 `| Gate | Status | Findings (B/W/I) |`, (3) actionable findings table (WARN → fix
 suggestion, BLOCK → "manual review"). SKIP gates prominently marked. Check escalation
-heuristics per `protocols/gate-verdict.md`.
+heuristics per `protocols/evidence.md#verdict-rendering`.
 
 **Evidence completeness (LOW freedom):**
 Skip when `--gate=<name>` was used (partial run — only the targeted gate is expected).
@@ -124,7 +124,7 @@ after each gate completes. Do NOT set `shipped`.
 - `protocols/decision.md` -- autonomous decision framework and gate handoff
 - `protocols/state.md` -- workflow state and locking
 - `protocols/evidence.md` -- evidence freshness and storage
-- `protocols/gate-verdict.md` -- verdict rendering and escalation
+- `protocols/evidence.md#verdict-rendering` -- verdict rendering and escalation
 - `protocols/headless.md` -- non-interactive execution defaults
 - `protocols/context.md` -- config and anchor doc loading
 

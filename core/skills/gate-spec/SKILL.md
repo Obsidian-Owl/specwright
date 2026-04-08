@@ -55,7 +55,7 @@ that closes the loop.
 - Evidence must be specific: file path and line number, not "somewhere in src/".
 
 **Verdict (LOW freedom):**
-- Follow `protocols/gate-verdict.md`.
+- Follow `protocols/evidence.md#verdict-rendering`.
 - Criterion with both implementation AND test evidence = PASS.
 - Criterion with implementation but no test = WARN.
 - Criterion with neither = FAIL.
@@ -78,7 +78,7 @@ that closes the loop.
 ## Protocol References
 
 - `protocols/semi-formal-reasoning.md` -- verification template for behavioral criteria
-- `protocols/gate-verdict.md` -- verdict rendering and self-critique
+- `protocols/evidence.md#verdict-rendering` -- verdict rendering and self-critique
 - `protocols/evidence.md` -- evidence storage
 - `protocols/state.md` -- gate status updates
 - `protocols/delegation.md` -- reviewer agent delegation

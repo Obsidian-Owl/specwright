@@ -238,7 +238,7 @@ fi
 
 echo "--- protocols/ directory ---"
 
-EXPECTED_PROTO_COUNT=27
+EXPECTED_PROTO_COUNT=26
 
 if [ -d "$CC_DIST/protocols" ]; then
   pass "protocols/ directory exists"
@@ -258,6 +258,12 @@ if [ -d "$CC_DIST/protocols" ]; then
       fail "protocols/$proto missing"
     fi
   done
+
+  if [ -f "$CC_DIST/protocols/gate-verdict.md" ]; then
+    fail "protocols/gate-verdict.md should not exist after verdict merge"
+  else
+    pass "protocols/gate-verdict.md removed after verdict merge"
+  fi
 fi
 
 # ─── hooks/ directory ─────────────────────────────────────────────────
@@ -862,17 +868,22 @@ else
   fail "sw-learn/SKILL.md not found"
 fi
 
-echo "--- (d) gate-verdict mandatory calibration ---"
+echo "--- (d) evidence protocol carries verdict calibration rules ---"
 
-CC_VERDICT="$CC_DIST/protocols/gate-verdict.md"
-if [ -f "$CC_VERDICT" ]; then
-  if grep -q "mandatory" "$CC_VERDICT"; then
-    pass "gate-verdict contains 'mandatory'"
+CC_EVIDENCE="$CC_DIST/protocols/evidence.md"
+if [ -f "$CC_EVIDENCE" ]; then
+  if grep -q "## Verdict Rendering" "$CC_EVIDENCE"; then
+    pass "evidence contains '## Verdict Rendering'"
   else
-    fail "gate-verdict missing 'mandatory'"
+    fail "evidence missing '## Verdict Rendering'"
+  fi
+  if grep -q "mandatory" "$CC_EVIDENCE"; then
+    pass "evidence contains 'mandatory'"
+  else
+    fail "evidence missing 'mandatory'"
   fi
 else
-  fail "gate-verdict.md not found"
+  fail "evidence.md not found"
 fi
 
 echo "--- (e) sw-build discrepancy handling ---"
@@ -904,7 +915,7 @@ if [ -f "$CC_GATE_SEM" ]; then
     fi
   done
 
-  for sem_term in "error-path-cleanup" "unchecked-errors" "WARN" "gate-verdict.md"; do
+  for sem_term in "error-path-cleanup" "unchecked-errors" "WARN" "evidence.md"; do
     if echo "$SEM_BODY" | grep -qi "$sem_term"; then
       pass "gate-semantic body contains '$sem_term'"
     else
