@@ -43,6 +43,7 @@ from evals.framework.grader import (
     check_artifact_reference,
     check_git,
     check_gate_results,
+    check_transcript_final_block,
     grade_eval,
 )
 
@@ -1429,6 +1430,279 @@ class TestTranscriptDispatch(unittest.TestCase):
             self.assertNotIn("transcript", call_kwargs.kwargs)
         finally:
             shutil.rmtree(workdir, ignore_errors=True)
+
+
+# ===========================================================================
+# AC-24: check_transcript_final_block — structural assertion on final output
+#
+# Used by Unit 01 of the legibility recovery to verify pipeline skills emit
+# the three-line gate handoff format. Replaces the deferred AC-8 with a real
+# automated check.
+# ===========================================================================
+
+def _make_result_event(text: str) -> dict:
+    """Build a stream-json 'result' event with the given final text."""
+    return {"type": "result", "result": text, "subtype": "success"}
+
+
+def _make_assistant_text_event(text: str) -> dict:
+    """Build a stream-json 'assistant' event with text-type content."""
+    return {
+        "type": "assistant",
+        "message": {"content": [{"type": "text", "text": text}]},
+    }
+
+
+HANDOFF_PATTERNS = [
+    r"^Done\.\s+.+\.$",
+    r"^Artifacts:\s+.+/$",
+    r"^Next:\s+/sw-[a-z\-]+$",
+]
+
+HANDOFF_FORBIDDEN = [
+    "Decision Digest",
+    "Quality Checks",
+    "Deficiencies",
+    "### Recommendation",
+]
+
+
+class TestExtractFinalAssistantText(unittest.TestCase):
+    """The transcript-walking helper picks the right text source."""
+
+    def test_returns_result_event_text_when_present(self):
+        from evals.framework.grader import _extract_final_assistant_text
+        transcript = [
+            _make_assistant_text_event("intermediate work"),
+            _make_result_event("final outcome\nArtifacts: x/\nNext: /sw-foo"),
+        ]
+        text = _extract_final_assistant_text(transcript)
+        self.assertEqual(text, "final outcome\nArtifacts: x/\nNext: /sw-foo")
+
+    def test_falls_back_to_last_assistant_text_when_no_result_event(self):
+        from evals.framework.grader import _extract_final_assistant_text
+        transcript = [
+            _make_assistant_text_event("first"),
+            _make_assistant_text_event("last"),
+        ]
+        self.assertEqual(_extract_final_assistant_text(transcript), "last")
+
+    def test_returns_empty_string_for_empty_transcript(self):
+        from evals.framework.grader import _extract_final_assistant_text
+        self.assertEqual(_extract_final_assistant_text([]), "")
+
+    def test_skips_result_event_with_empty_result_field(self):
+        from evals.framework.grader import _extract_final_assistant_text
+        transcript = [
+            _make_assistant_text_event("the assistant message"),
+            {"type": "result", "result": "", "subtype": "success"},
+        ]
+        self.assertEqual(_extract_final_assistant_text(transcript), "the assistant message")
+
+
+class TestFinalNonEmptyBlock(unittest.TestCase):
+    """The block-extraction helper isolates the trailing non-empty lines."""
+
+    def test_simple_three_line_block(self):
+        from evals.framework.grader import _final_non_empty_block
+        text = "preamble\n\nDone. yes.\nArtifacts: x/\nNext: /sw-foo"
+        self.assertEqual(
+            _final_non_empty_block(text),
+            ["Done. yes.", "Artifacts: x/", "Next: /sw-foo"],
+        )
+
+    def test_strips_trailing_whitespace(self):
+        from evals.framework.grader import _final_non_empty_block
+        text = "Done. yes.\nArtifacts: x/\nNext: /sw-foo\n\n  \n"
+        self.assertEqual(
+            _final_non_empty_block(text),
+            ["Done. yes.", "Artifacts: x/", "Next: /sw-foo"],
+        )
+
+    def test_returns_empty_list_for_empty_text(self):
+        from evals.framework.grader import _final_non_empty_block
+        self.assertEqual(_final_non_empty_block(""), [])
+        self.assertEqual(_final_non_empty_block("\n\n  \n"), [])
+
+    def test_single_line_block(self):
+        from evals.framework.grader import _final_non_empty_block
+        self.assertEqual(_final_non_empty_block("only one line"), ["only one line"])
+
+    def test_separates_blocks_by_blank_line(self):
+        from evals.framework.grader import _final_non_empty_block
+        text = "block one\nblock one continued\n\nblock two\n"
+        self.assertEqual(_final_non_empty_block(text), ["block two"])
+
+
+class TestCheckTranscriptFinalBlockHappyPath(unittest.TestCase):
+    """Three-line handoff format is recognised cleanly."""
+
+    def test_canonical_three_line_handoff_passes(self):
+        transcript = [
+            _make_result_event(
+                "Some prose explaining the work...\n\n"
+                "Done. Unit 01 verified.\n"
+                "Artifacts: .specwright/work/foo/\n"
+                "Next: /sw-ship"
+            ),
+        ]
+        result = check_transcript_final_block(
+            HANDOFF_PATTERNS, transcript, forbidden_substrings=HANDOFF_FORBIDDEN
+        )
+        _assert_check_result(self, result, expected_passed=True,
+                             expected_type="transcript_final_block")
+        self.assertEqual(result.score, 1.0)
+
+    def test_handoff_in_assistant_event_when_no_result_event(self):
+        transcript = [
+            _make_assistant_text_event(
+                "Done. shipped.\n"
+                "Artifacts: .specwright/work/bar/\n"
+                "Next: /sw-learn"
+            ),
+        ]
+        result = check_transcript_final_block(HANDOFF_PATTERNS, transcript)
+        self.assertTrue(result.passed)
+
+    def test_passes_when_no_forbidden_substrings_specified(self):
+        transcript = [
+            _make_result_event(
+                "Done. ok.\nArtifacts: x/\nNext: /sw-plan"
+            )
+        ]
+        result = check_transcript_final_block(HANDOFF_PATTERNS, transcript)
+        self.assertTrue(result.passed)
+
+
+class TestCheckTranscriptFinalBlockFailure(unittest.TestCase):
+    """Failure modes — every way the handoff can be wrong is caught."""
+
+    def test_none_transcript_fails(self):
+        result = check_transcript_final_block(HANDOFF_PATTERNS, None)
+        self.assertFalse(result.passed)
+        self.assertIn("None", result.evidence)
+
+    def test_empty_transcript_fails(self):
+        result = check_transcript_final_block(HANDOFF_PATTERNS, [])
+        self.assertFalse(result.passed)
+        self.assertIn("no extractable", result.evidence)
+
+    def test_too_few_lines_fails(self):
+        transcript = [
+            _make_result_event("Done. yes.\nArtifacts: x/")
+        ]
+        result = check_transcript_final_block(HANDOFF_PATTERNS, transcript)
+        self.assertFalse(result.passed)
+        self.assertIn("Expected 3 lines", result.evidence)
+        self.assertIn("got 2", result.evidence)
+
+    def test_too_many_lines_fails(self):
+        transcript = [
+            _make_result_event(
+                "Done. yes.\nArtifacts: x/\nNext: /sw-foo\nExtra rambling line."
+            )
+        ]
+        result = check_transcript_final_block(HANDOFF_PATTERNS, transcript)
+        self.assertFalse(result.passed)
+        self.assertIn("got 4", result.evidence)
+
+    def test_pattern_mismatch_on_first_line_fails(self):
+        transcript = [
+            _make_result_event(
+                "Completed.\nArtifacts: x/\nNext: /sw-plan"
+            )
+        ]
+        result = check_transcript_final_block(HANDOFF_PATTERNS, transcript)
+        self.assertFalse(result.passed)
+        self.assertIn("Line 1 does not match", result.evidence)
+
+    def test_pattern_mismatch_on_artifacts_line_fails(self):
+        transcript = [
+            _make_result_event(
+                "Done. ok.\nArtifacts: x\nNext: /sw-plan"  # missing trailing slash
+            )
+        ]
+        result = check_transcript_final_block(HANDOFF_PATTERNS, transcript)
+        self.assertFalse(result.passed)
+        self.assertIn("Line 2", result.evidence)
+
+    def test_forbidden_substring_anywhere_in_text_fails_even_if_block_matches(self):
+        # The block IS the three-line format. But the preamble leaks
+        # 'Decision Digest'. The check must catch this.
+        transcript = [
+            _make_result_event(
+                "## Gate handoff\n"
+                "### Decision Digest\n"
+                "8 decisions\n\n"
+                "Done. yes.\n"
+                "Artifacts: x/\n"
+                "Next: /sw-plan"
+            )
+        ]
+        result = check_transcript_final_block(
+            HANDOFF_PATTERNS, transcript, forbidden_substrings=HANDOFF_FORBIDDEN
+        )
+        self.assertFalse(result.passed)
+        self.assertIn("Decision Digest", result.evidence)
+
+    def test_multiple_forbidden_substrings_all_reported(self):
+        transcript = [
+            _make_result_event(
+                "Quality Checks: ok\n"
+                "### Recommendation: ship\n"
+                "Done. ok.\nArtifacts: x/\nNext: /sw-plan"
+            )
+        ]
+        result = check_transcript_final_block(
+            HANDOFF_PATTERNS, transcript, forbidden_substrings=HANDOFF_FORBIDDEN
+        )
+        self.assertFalse(result.passed)
+        self.assertIn("Quality Checks", result.evidence)
+        self.assertIn("Recommendation", result.evidence)
+
+
+class TestGradeEvalWithTranscript(unittest.TestCase):
+    """grade_eval threads transcript through to transcript_final_block checks."""
+
+    def setUp(self):
+        self.workdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.workdir, ignore_errors=True)
+
+    def test_dispatch_passes_transcript_to_check(self):
+        transcript = [
+            _make_result_event(
+                "Done. unit complete.\n"
+                "Artifacts: .specwright/work/x/\n"
+                "Next: /sw-verify"
+            )
+        ]
+        eval_case = {
+            "expectations": [
+                {
+                    "type": "transcript_final_block",
+                    "line_patterns": HANDOFF_PATTERNS,
+                    "forbidden_substrings": HANDOFF_FORBIDDEN,
+                }
+            ]
+        }
+        result = grade_eval(eval_case, self.workdir, transcript=transcript)
+        self.assertEqual(result["summary"]["passed"], 1)
+        self.assertEqual(result["summary"]["failed"], 0)
+        self.assertTrue(result["expectations"][0]["passed"])
+
+    def test_no_transcript_provided_fails_check(self):
+        eval_case = {
+            "expectations": [
+                {
+                    "type": "transcript_final_block",
+                    "line_patterns": HANDOFF_PATTERNS,
+                }
+            ]
+        }
+        result = grade_eval(eval_case, self.workdir)
+        self.assertEqual(result["summary"]["failed"], 1)
 
 
 if __name__ == "__main__":

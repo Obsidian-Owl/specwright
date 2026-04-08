@@ -240,7 +240,16 @@ def run_single_eval(
         except Exception as exc:
             exec_error = f"{type(exc).__name__}: {exc}"
 
-        grade_result = grade_eval(eval_case, workdir, snapshots)
+        # Skill-layer evals: pass the runner's transcript to checks that
+        # consume it (e.g. transcript_final_block). Chain evals already
+        # capture per-step transcripts in run_result objects, but we still
+        # forward the final step's transcript for any final-block check.
+        transcript_for_grader = (
+            run_result.transcript if run_result is not None else None
+        )
+        grade_result = grade_eval(
+            eval_case, workdir, snapshots, transcript=transcript_for_grader
+        )
         if exec_error:
             grade_result["error"] = exec_error
 
@@ -354,6 +363,7 @@ REGISTERED_TYPES = frozenset({
     "git",
     "gate_results",
     "model_grade",
+    "transcript_final_block",
 })
 
 REQUIRED_FIELDS = {
@@ -368,6 +378,7 @@ REQUIRED_FIELDS = {
     "git": [],
     "gate_results": ["expected"],
     "model_grade": ["rubric"],
+    "transcript_final_block": ["line_patterns"],
 }
 
 REGISTERED_PROMPT_TEMPLATES = frozenset({

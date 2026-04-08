@@ -107,9 +107,12 @@ Include deliverable verification findings (BLOCKs, WARNs) in the aggregate repor
 and gate handoff recommendation.
 
 **Gate handoff (LOW freedom):**
-Present using `protocols/decision.md` gate handoff template. Auto-generate recommendation:
-BLOCKs → "Fix and re-run `/sw-verify`." WARNs only → "Review, then `/sw-ship`."
-All PASS → "Ready for `/sw-ship`." Human reviews and decides.
+On completion, emit the three-line handoff per the `protocols/decision.md`
+Gate Handoff section. The one-line outcome reflects the aggregate gate
+verdict (e.g., "all gates PASS", "2 WARN, 0 BLOCK", "gate-spec FAIL").
+Detail lives in the per-gate evidence files under `{workDir}/evidence/`.
+The Next: line points to `/sw-build` (on BLOCK) or `/sw-ship` (on PASS
+or WARN).
 
 **State updates (LOW freedom):**
 Follow `protocols/state.md`. Set status to `verifying` at start. Update `gates` section

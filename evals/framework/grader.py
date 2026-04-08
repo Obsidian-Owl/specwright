@@ -606,14 +606,188 @@ def check_gate_results(expected: Dict[str, str], workdir: str) -> CheckResult:
 
 
 # ---------------------------------------------------------------------------
+# Transcript final block check
+# ---------------------------------------------------------------------------
+
+def _extract_final_assistant_text(transcript: List[Dict]) -> str:
+    """Walk a stream-json transcript and return the final user-visible text.
+
+    Preference order:
+    1. The 'result' field of the final 'result' event (canonical Claude Code
+       final-output channel).
+    2. The concatenated text content of the LAST 'assistant' event with
+       text-type content blocks.
+
+    Returns empty string if neither source has content.
+    """
+    if not transcript:
+        return ""
+
+    # Prefer the canonical result event
+    for event in reversed(transcript):
+        if event.get("type") == "result":
+            result_text = event.get("result")
+            if isinstance(result_text, str) and result_text.strip():
+                return result_text
+
+    # Fall back to last assistant text content
+    for event in reversed(transcript):
+        if event.get("type") != "assistant":
+            continue
+        message = event.get("message") or {}
+        content = message.get("content") or []
+        if not isinstance(content, list):
+            continue
+        text_parts = [
+            block.get("text", "")
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+        text = "".join(text_parts).strip()
+        if text:
+            return text
+
+    return ""
+
+
+def _final_non_empty_block(text: str) -> List[str]:
+    """Return the final non-empty block of lines from a text body.
+
+    A block is a run of consecutive non-empty lines, separated from prior
+    content by one or more blank lines. Trailing whitespace on the text is
+    stripped before splitting.
+    """
+    if not text:
+        return []
+    stripped = text.rstrip()
+    lines = stripped.split("\n")
+    block: List[str] = []
+    for line in reversed(lines):
+        if line.strip() == "":
+            if block:
+                break
+            continue
+        block.append(line)
+    block.reverse()
+    return block
+
+
+def check_transcript_final_block(
+    line_patterns: List[str],
+    transcript: Optional[List[Dict]],
+    forbidden_substrings: Optional[List[str]] = None,
+) -> CheckResult:
+    """Assert the transcript's final non-empty block matches per-line regex patterns.
+
+    Args:
+        line_patterns: list of regex patterns, one per expected line. The
+            block must contain exactly len(line_patterns) lines, each
+            matching the corresponding pattern (re.search semantics).
+        transcript: stream-json events from RunResult.transcript.
+        forbidden_substrings: optional list of literal substrings that must
+            NOT appear anywhere in the final assistant text.
+
+    Returns CheckResult.passed=True iff:
+        - the final non-empty block has exactly the expected number of lines
+        - every line matches its corresponding regex
+        - none of the forbidden substrings appear anywhere in the final text
+    """
+    if transcript is None:
+        return CheckResult(
+            type="transcript_final_block",
+            description="Transcript final block matches",
+            passed=False,
+            evidence="No transcript available (transcript is None)",
+            score=0.0,
+        )
+
+    final_text = _extract_final_assistant_text(transcript)
+    if not final_text:
+        return CheckResult(
+            type="transcript_final_block",
+            description="Transcript final block matches",
+            passed=False,
+            evidence="Transcript contains no extractable assistant text",
+            score=0.0,
+        )
+
+    # Forbidden substring check (run before block extraction so we can report
+    # leakage even if the structural assertion would pass)
+    forbidden_substrings = forbidden_substrings or []
+    found_forbidden = [s for s in forbidden_substrings if s in final_text]
+    if found_forbidden:
+        return CheckResult(
+            type="transcript_final_block",
+            description="Transcript final block matches",
+            passed=False,
+            evidence=(
+                f"Forbidden substring(s) present in final text: "
+                f"{', '.join(repr(s) for s in found_forbidden)}"
+            ),
+            score=0.0,
+        )
+
+    block = _final_non_empty_block(final_text)
+    if len(block) != len(line_patterns):
+        return CheckResult(
+            type="transcript_final_block",
+            description="Transcript final block matches",
+            passed=False,
+            evidence=(
+                f"Expected {len(line_patterns)} lines in final block, "
+                f"got {len(block)}: {block!r}"
+            ),
+            score=0.0,
+        )
+
+    for idx, (line, pattern) in enumerate(zip(block, line_patterns), start=1):
+        if not re.search(pattern, line):
+            return CheckResult(
+                type="transcript_final_block",
+                description="Transcript final block matches",
+                passed=False,
+                evidence=(
+                    f"Line {idx} does not match pattern. "
+                    f"Pattern: {pattern!r}. Line: {line!r}"
+                ),
+                score=0.0,
+            )
+
+    return CheckResult(
+        type="transcript_final_block",
+        description="Transcript final block matches",
+        passed=True,
+        evidence=(
+            f"Final block matches {len(line_patterns)}-line template"
+            + (
+                f"; no forbidden substrings present ({len(forbidden_substrings)} checked)"
+                if forbidden_substrings
+                else ""
+            )
+        ),
+        score=1.0,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Grading orchestration
 # ---------------------------------------------------------------------------
 
 def _dispatch_expectation(
-    expectation: Dict, workdir: str, snapshots: Optional[List[Dict]]
+    expectation: Dict,
+    workdir: str,
+    snapshots: Optional[List[Dict]],
+    transcript: Optional[List[Dict]] = None,
 ) -> CheckResult:
     """Dispatch a single expectation dict to the appropriate check function."""
     check_type = expectation.get("type", "")
+
+    if check_type == "transcript_final_block":
+        return check_transcript_final_block(
+            expectation.get("line_patterns", []),
+            transcript,
+            forbidden_substrings=expectation.get("forbidden_substrings"),
+        )
 
     if check_type == "file_exists":
         return check_file_exists(expectation["path"], workdir)
@@ -697,9 +871,19 @@ def _dispatch_expectation(
 
 
 def grade_eval(
-    eval_case: Dict, workdir: str, snapshots: Optional[List[Dict]] = None
+    eval_case: Dict,
+    workdir: str,
+    snapshots: Optional[List[Dict]] = None,
+    transcript: Optional[List[Dict]] = None,
 ) -> Dict:
-    """Grade an eval case against a workdir. Return grading results dict."""
+    """Grade an eval case against a workdir. Return grading results dict.
+
+    Args:
+        eval_case: parsed eval entry from a suite file.
+        workdir: directory in which the skill ran.
+        snapshots: workdir state snapshots from the chainer (multi-skill evals).
+        transcript: stream-json events from RunResult.transcript (single-skill).
+    """
     start_time = time.time()
 
     expectations_input = eval_case.get("expectations", [])
@@ -709,7 +893,7 @@ def grade_eval(
     skipped_count = 0
 
     for expectation in expectations_input:
-        result = _dispatch_expectation(expectation, workdir, snapshots)
+        result = _dispatch_expectation(expectation, workdir, snapshots, transcript)
         result_dict = {
             "type": result.type,
             "description": result.description,
