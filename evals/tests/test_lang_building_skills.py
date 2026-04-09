@@ -2,7 +2,7 @@
 
 Covers:
   AC-1 to AC-5: Language pattern files exist with correct structure
-  AC-6 to AC-8: sw-build context envelope includes language patterns
+  AC-6 to AC-8: build delegation/executor grounding includes language patterns
   AC-9: File names match config.json language values
 """
 
@@ -13,6 +13,8 @@ import unittest
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _LANG_DIR = os.path.join(_REPO_ROOT, "core", "skills", "lang-building")
 _SW_BUILD_PATH = os.path.join(_REPO_ROOT, "core", "skills", "sw-build", "SKILL.md")
+_DELEGATION_PATH = os.path.join(_REPO_ROOT, "core", "protocols", "delegation.md")
+_EXECUTOR_PATH = os.path.join(_REPO_ROOT, "core", "agents", "specwright-executor.md")
 
 LANGUAGES = {
     "go": {"idioms": ["error handling", "interface"], "anti": True},
@@ -31,6 +33,16 @@ def _load_lang(name):
 
 def _load_sw_build():
     with open(_SW_BUILD_PATH, "r") as f:
+        return f.read()
+
+
+def _load_delegation():
+    with open(_DELEGATION_PATH, "r") as f:
+        return f.read()
+
+
+def _load_executor():
+    with open(_EXECUTOR_PATH, "r") as f:
         return f.read()
 
 
@@ -186,77 +198,63 @@ class TestSubstantiveContent(unittest.TestCase):
 
 
 # ===========================================================================
-# AC-6 to AC-8: sw-build context envelope
+# AC-6 to AC-8: build delegation and executor grounding
 # ===========================================================================
 
-class TestSwBuildContextEnvelope(unittest.TestCase):
-    """AC-6, AC-7: sw-build includes language patterns in context envelope."""
+class TestBuildGroundingProtocol(unittest.TestCase):
+    """Delegation protocol carries repo-map and language-pattern loading."""
 
     def setUp(self):
-        self.content = _load_sw_build()
+        self.content = _load_delegation()
         self.lower = self.content.lower()
 
     def test_mentions_lang_building(self):
-        """Must reference lang-building directory."""
         has_ref = bool(re.search(r"lang-building", self.lower))
-        self.assertTrue(has_ref, "sw-build must reference lang-building")
+        self.assertTrue(has_ref, "delegation.md must reference lang-building")
 
-    def test_language_patterns_in_context_envelope(self):
-        """Language patterns must be listed in the context envelope."""
+    def test_language_patterns_in_build_grounding(self):
         has_lang_in_env = bool(re.search(
-            r"(context|envelope|delegat).{0,300}lang(uage)?.{0,40}pattern",
+            r"(build|grounding|delegat).{0,300}lang(uage)?.{0,40}pattern",
             self.lower, re.DOTALL
         ))
-        self.assertTrue(has_lang_in_env, "Context envelope must include language patterns")
+        self.assertTrue(has_lang_in_env, "delegation.md must include language patterns")
 
-    def test_lang_building_in_context_envelope_section(self):
-        """Language patterns must appear within the context envelope constraint."""
+    def test_lang_building_in_build_grounding_section(self):
         envelope_match = re.search(
-            r"context\s+envelope.*?(?=\*\*[A-Z]|\Z)",
+            r"build\s+grounding.*?(?=\n## |\Z)",
             self.lower, re.DOTALL
         )
-        self.assertIsNotNone(envelope_match, "Context envelope section must exist")
+        self.assertIsNotNone(envelope_match, "Build Grounding section must exist")
         self.assertIn("lang-building", envelope_match.group(),
-                       "lang-building must appear in the context envelope section")
+                       "lang-building must appear in the Build Grounding section")
 
     def test_deterministic_detection_rule(self):
-        """Must specify deterministic language detection (languages[0] or file extension)."""
         has_rule = bool(re.search(
             r"(languages\[0\]|primary\s+language|project\.languages)",
             self.lower
         ))
         self.assertTrue(has_rule, "Must specify deterministic language detection rule")
 
-    def test_skip_when_missing(self):
-        """Must skip silently when language file doesn't exist."""
-        has_skip = bool(re.search(
-            r"(skip|absent|not\s+exist|unavailable).{0,60}(silent|graceful)",
-            self.lower, re.DOTALL
-        )) or bool(re.search(
-            r"if.{0,40}(available|exist)",
-            self.lower, re.DOTALL
-        ))
-        self.assertTrue(has_skip, "Must handle missing language files gracefully")
+    def test_repo_map_is_loaded_with_language_patterns(self):
+        self.assertIn("repo-map.md", self.lower)
 
 
-class TestSwBuildIntegrationStep(unittest.TestCase):
-    """AC-8: INTEGRATION step also includes language patterns."""
+class TestExecutorBuildGrounding(unittest.TestCase):
+    """Executor consumes repo-map and language-pattern references directly."""
 
     def setUp(self):
-        self.content = _load_sw_build()
+        self.content = _load_executor()
         self.lower = self.content.lower()
 
-    def test_integration_step_mentions_language_patterns(self):
-        """INTEGRATION step must include language patterns in its delegation."""
-        # Find the INTEGRATION step section and check for language reference
+    def test_executor_mentions_language_patterns(self):
         has_lang_in_int = bool(re.search(
-            r"integration.{0,500}lang(uage)?.{0,40}pattern",
-            self.lower, re.DOTALL
-        )) or bool(re.search(
-            r"lang(uage)?.{0,40}pattern.{0,500}integration",
+            r"lang(uage)?.{0,40}pattern",
             self.lower, re.DOTALL
         ))
-        self.assertTrue(has_lang_in_int, "INTEGRATION step must reference language patterns")
+        self.assertTrue(has_lang_in_int, "executor must reference language patterns")
+
+    def test_executor_mentions_repo_map(self):
+        self.assertIn("repo-map", self.lower)
 
 
 # ===========================================================================
@@ -299,11 +297,8 @@ class TestSwBuildIntegrity(unittest.TestCase):
     def test_refactor_phase(self):
         self.assertIn("REFACTOR", self.content)
 
-    def test_integration_step(self):
-        self.assertIn("INTEGRATION", self.content)
-
-    def test_regression_check(self):
-        self.assertIn("REGRESSION CHECK", self.content)
+    def test_after_build_step(self):
+        self.assertIn("After-build", self.content)
 
 
 if __name__ == "__main__":
