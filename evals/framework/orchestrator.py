@@ -18,6 +18,7 @@ from evals.framework.chainer import run_sequence
 from evals.framework.grader import grade_eval
 from evals.framework.setup import (
     init_git_repo,
+    resolve_fixture_relative_paths,
     run_setup_commands,
     setup_fixture,
     setup_repo_overlay_fixture,
@@ -386,6 +387,14 @@ def run_single_eval(
                         for key, value in raw_env.items()
                         if isinstance(key, str) and value is not None
                     }
+                path_prepend = setup_cfg.get("path_prepend", [])
+                if isinstance(path_prepend, list) and path_prepend:
+                    existing_path = runner_env.get("PATH", os.environ.get("PATH", ""))
+                    resolved_paths = resolve_fixture_relative_paths(workdir, path_prepend)
+                    if resolved_paths:
+                        runner_env["PATH"] = os.pathsep.join(
+                            resolved_paths + ([existing_path] if existing_path else [])
+                        )
                 if setup_cfg.get("git") is True:
                     default_branch = setup_cfg.get("default_branch", "main")
                     init_git_repo(workdir, default_branch=default_branch)

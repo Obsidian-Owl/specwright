@@ -305,6 +305,90 @@ class TestRunSingleEvalFixtureSetupMetadata(unittest.TestCase):
         self.assertEqual(observed["skip"], "build-validate")
         self.assertEqual(os.environ.get("SKIP"), previous)
 
+    @patch("evals.framework.orchestrator.grade_eval")
+    @patch("evals.framework.orchestrator.setup_fixture")
+    @patch("evals.framework.orchestrator._load_fixture_metadata")
+    def test_path_prepend_resolves_against_temp_workdir_and_is_scoped(
+        self,
+        mock_load_metadata,
+        mock_setup_fixture,
+        mock_grade_eval,
+    ):
+        observed = {}
+
+        class PathAwareRunner(ToolRunner):
+            def run_skill(self, skill, prompt, workdir=None, timeout=300):
+                del skill, prompt, timeout
+                observed["workdir"] = workdir
+                observed["path"] = os.environ.get("PATH", "")
+                return _make_run_result()
+
+        mock_load_metadata.return_value = {
+            "setup": {
+                "path_prepend": ["bin", ".tools/shims"],
+            }
+        }
+        mock_setup_fixture.side_effect = lambda src, dst: shutil.copytree(self.fixture_dir, dst)
+        mock_grade_eval.return_value = {
+            "expectations": [],
+            "summary": {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "pass_rate": 0.0},
+            "timing": {"duration_ms": 0},
+        }
+
+        previous = os.environ.get("PATH", "")
+        case = _make_skill_eval_case(fixture_path=self.fixture_dir)
+        run_single_eval(case, trial_num=1, results_dir=self.results_dir, runner=PathAwareRunner())
+
+        expected_prefix = os.pathsep.join(
+            [
+                os.path.join(observed["workdir"], "bin"),
+                os.path.join(observed["workdir"], ".tools/shims"),
+            ]
+        )
+        self.assertTrue(
+            observed["path"].startswith(expected_prefix + os.pathsep),
+            observed["path"],
+        )
+        self.assertEqual(os.environ.get("PATH", ""), previous)
+
+    @patch("evals.framework.orchestrator.grade_eval")
+    @patch("evals.framework.orchestrator.setup_fixture")
+    @patch("evals.framework.orchestrator._load_fixture_metadata")
+    def test_path_prepend_preserves_existing_fixture_env_overrides(
+        self,
+        mock_load_metadata,
+        mock_setup_fixture,
+        mock_grade_eval,
+    ):
+        observed = {}
+
+        class PathAwareRunner(ToolRunner):
+            def run_skill(self, skill, prompt, workdir=None, timeout=300):
+                del skill, prompt, workdir, timeout
+                observed["path"] = os.environ.get("PATH", "")
+                return _make_run_result()
+
+        mock_load_metadata.return_value = {
+            "setup": {
+                "env": {"PATH": "/custom/base/path"},
+                "path_prepend": ["bin"],
+            }
+        }
+        mock_setup_fixture.side_effect = lambda src, dst: shutil.copytree(self.fixture_dir, dst)
+        mock_grade_eval.return_value = {
+            "expectations": [],
+            "summary": {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "pass_rate": 0.0},
+            "timing": {"duration_ms": 0},
+        }
+
+        case = _make_skill_eval_case(fixture_path=self.fixture_dir)
+        run_single_eval(case, trial_num=1, results_dir=self.results_dir, runner=PathAwareRunner())
+
+        self.assertTrue(
+            observed["path"].endswith(os.pathsep + "/custom/base/path"),
+            observed["path"],
+        )
+
 
 # ===========================================================================
 # AC-9: run_single_eval() Layer 2 — integration/chain execution

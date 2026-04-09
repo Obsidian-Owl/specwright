@@ -75,6 +75,22 @@ def run_setup_commands(workdir: str, commands: List[str]) -> None:
         _run_checked(shlex.split(command), cwd=workdir)
 
 
+def resolve_fixture_relative_paths(workdir: str, paths: List[str]) -> List[str]:
+    """Resolve fixture-relative PATH entries against the temporary workdir."""
+    resolved: List[str] = []
+    for entry in paths:
+        if not isinstance(entry, str):
+            continue
+        stripped = entry.strip()
+        if not stripped:
+            continue
+        if os.path.isabs(stripped):
+            resolved.append(stripped)
+            continue
+        resolved.append(os.path.join(workdir, stripped))
+    return resolved
+
+
 def setup_repo(
     repo: str,
     base_commit: str,
