@@ -533,6 +533,39 @@ class TestGradingInvocation(unittest.TestCase):
         self.assertEqual(snapshots[0]["workflow_state"]["currentWork"]["status"],
                          "designing")
 
+    @patch("evals.framework.orchestrator.run_sequence")
+    @patch("evals.framework.orchestrator.grade_eval")
+    @patch("evals.framework.orchestrator.setup_fixture")
+    def test_grade_eval_receives_step_transcripts_for_layer2(self, mock_setup,
+                                                             mock_grade, mock_chain):
+        """Layer 2 passes intermediate step transcripts to grade_eval."""
+        mock_setup.side_effect = lambda src, dst: shutil.copytree(
+            self.fixture_dir, dst
+        )
+        from evals.framework.chainer import ChainResult
+        steps = [
+            _make_run_result(stdout="a", duration_ms=1),
+            _make_run_result(stdout="b", duration_ms=2),
+        ]
+        steps[0].transcript = [{"type": "result", "result": "first"}]
+        steps[1].transcript = [{"type": "result", "result": "second"}]
+        mock_chain.return_value = ChainResult(
+            steps=steps,
+            snapshots=[{"workflow_state": {"currentWork": {"status": "designing"}}}],
+        )
+        mock_grade.return_value = {
+            "expectations": [], "summary": {"total": 0, "passed": 0,
+            "failed": 0, "skipped": 0, "pass_rate": 0.0},
+            "timing": {"duration_ms": 10},
+        }
+        case = _make_integration_eval_case(fixture_path=self.fixture_dir)
+        run_single_eval(case, trial_num=1, results_dir=self.results_dir,
+                        runner=self.runner)
+        self.assertEqual(
+            mock_grade.call_args.kwargs["step_transcripts"],
+            [steps[0].transcript, steps[1].transcript],
+        )
+
 
 # ===========================================================================
 # AC-14: Writes grading.json with flattened fields
@@ -1561,6 +1594,20 @@ class TestStructuralEvalCases(unittest.TestCase):
         suite_path = _make_suite_json(self.tmpdir, [case])
         errors = validate_suite(suite_path)
         self.assertTrue(any("type" in err for err in errors), errors)
+
+    def test_validate_suite_accepts_doctor_prompt_template(self):
+        from evals.framework.orchestrator import validate_suite
+
+        fixture_dir = _make_fixture_dir(self.tmpdir)
+        case = _make_skill_eval_case(
+            eval_id="doctor-skill",
+            skill="sw-doctor",
+            fixture_path=fixture_dir,
+        )
+        case["prompt_template"] = "doctor"
+        suite_path = _make_suite_json(self.tmpdir, [case])
+        errors = validate_suite(suite_path)
+        self.assertEqual(errors, [])
 
     @patch("subprocess.run")
     def test_run_single_eval_structural_success_writes_passing_grading_json(

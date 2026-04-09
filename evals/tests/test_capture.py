@@ -68,6 +68,11 @@ class TestCaptureSnapshotBasic(unittest.TestCase):
         self.assertIn("timestamp", manifest)
         self.assertIsInstance(manifest["timestamp"], str)
 
+    def test_returns_dict_with_snapshot_dir(self):
+        manifest = capture_snapshot(self.workdir, self.output_dir)
+        self.assertIn("snapshot_dir", manifest)
+        self.assertEqual(manifest["snapshot_dir"], self.output_dir)
+
     def test_copies_specwright_dir_to_output(self):
         capture_snapshot(self.workdir, self.output_dir)
         copied = os.path.join(self.output_dir, ".specwright")
@@ -97,6 +102,10 @@ class TestCaptureSnapshotMissingSpecwright(unittest.TestCase):
     def test_error_field_present(self):
         manifest = capture_snapshot(self.workdir, self.output_dir)
         self.assertIn("error", manifest)
+
+    def test_snapshot_dir_present_when_specwright_missing(self):
+        manifest = capture_snapshot(self.workdir, self.output_dir)
+        self.assertEqual(manifest["snapshot_dir"], self.output_dir)
 
 
 class TestCaptureTimingBasic(unittest.TestCase):

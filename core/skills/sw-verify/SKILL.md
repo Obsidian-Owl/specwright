@@ -30,6 +30,7 @@ gate handoff using `protocols/decision.md` template.
 
 ## Outputs
 
+- `{currentWork.workDir}/stage-report.md` -- verify handoff digest with attention-at-top
 - Evidence files in `{currentWork.workDir}/evidence/`, one per gate
 - `workflow.json` gates section updated; status set to `verifying` during run
 - Aggregate report presented at gate handoff
@@ -112,8 +113,10 @@ On completion, emit the three-line handoff per the `protocols/decision.md`
 Gate Handoff section. The one-line outcome reflects the aggregate gate
 verdict (e.g., "all gates PASS", "2 WARN, 0 BLOCK", "gate-spec FAIL").
 Detail lives in the per-gate evidence files under `{workDir}/evidence/`.
+Write `{workDir}/stage-report.md` before the handoff, and point the
+Artifacts line at `Artifacts: {workDir}/stage-report.md`.
 The Next: line points to `/sw-build` (on BLOCK) or `/sw-ship` (on PASS
-or WARN).
+or WARN). Example: `Next: /sw-ship`.
 
 **State updates (LOW freedom):**
 Follow `protocols/state.md`. Set status to `verifying` at start. Update `gates` section
