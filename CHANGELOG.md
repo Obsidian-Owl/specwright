@@ -37,6 +37,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.28.0] - 2026-04-08
+
+### Changed
+
+- refactor(protocols): merge decision protocols (#157)
+- refactor(protocols): delete orphan protocols (#156)
+- feat(evals): add structural smoke evals and seed smoke baseline (#155)
+- feat(codex): add release bundle installer (#154)
+- feat(evals): CI integration for baseline comparison + weekly full runs (unit 02b-2 of legibility recovery) (#152)
+- feat(codex): add Codex CLI adapter (#153)
+- feat(evals): baseline schema, loader, comparison logic + smoke filter (unit 02b-1 of legibility recovery) (#151)
+- fix(state): relax enforcement of optional skills in core pipeline (unit 02 of legibility recovery) (#150)
+- refactor(protocols): strip gate handoff template to three lines (unit 01 of legibility recovery) (#149)
+
 ## [0.27.2] - 2026-04-07
 
 ### Changed
