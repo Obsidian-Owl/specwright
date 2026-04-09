@@ -583,7 +583,13 @@ class TestAutoRunner(unittest.TestCase):
             exit_code=0,
             stdout="",
             stderr="",
-            transcript=[{"type": "result", "result": "Not logged in · Please run /login"}],
+            transcript=[
+                {
+                    "type": "result",
+                    "result": "Not logged in · Please run /login",
+                    "is_error": True,
+                }
+            ],
             provider="claude",
         )
         mock_codex.return_value = RunResult(
@@ -608,6 +614,7 @@ class TestAutoRunner(unittest.TestCase):
                 {
                     "type": "result",
                     "result": "git push requires your tool permission",
+                    "is_error": True,
                 }
             ],
             provider="claude",
@@ -655,6 +662,7 @@ class TestAutoRunner(unittest.TestCase):
                 {
                     "type": "result",
                     "result": "I need write permission to modify the workflow state file. Please grant write access to proceed.",
+                    "is_error": True,
                 }
             ],
             provider="claude",
@@ -669,6 +677,38 @@ class TestAutoRunner(unittest.TestCase):
         runner = AutoRunner()
         result = runner.run_skill("sw-build", "test")
         self.assertEqual(result.provider, "codex")
+
+    @patch("evals.framework.runner.CodexRunner.run_skill")
+    @patch("evals.framework.runner.ClaudeCodeRunner.run_skill")
+    def test_auto_runner_does_not_fallback_on_successful_assistant_text(self, mock_claude, mock_codex):
+        mock_claude.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Please document the billing workflow and write permission policy.",
+                            }
+                        ]
+                    },
+                },
+                {
+                    "type": "result",
+                    "result": "Completed successfully",
+                    "is_error": False,
+                },
+            ],
+            provider="claude",
+        )
+        runner = AutoRunner()
+        result = runner.run_skill("sw-build", "test")
+        self.assertEqual(result.provider, "claude")
+        mock_codex.assert_not_called()
 
     def test_create_runner_supports_codex(self):
         self.assertIsInstance(create_runner("codex"), CodexRunner)

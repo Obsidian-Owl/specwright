@@ -150,6 +150,8 @@ def _normalize_claude_events(events: List[Dict]) -> List[Dict]:
             result_event = {"type": _RESULT_EVENT_TYPE}
             if isinstance(event.get("result"), str):
                 result_event["result"] = event["result"]
+            if isinstance(event.get("is_error"), bool):
+                result_event["is_error"] = event["is_error"]
             if isinstance(event.get(_RESULT_DURATION_FIELD), (int, float)):
                 result_event[_RESULT_DURATION_FIELD] = int(event[_RESULT_DURATION_FIELD])
             if isinstance(event.get(_RESULT_USAGE_FIELD), dict):
@@ -382,8 +384,22 @@ def _fallback_text(run_result: RunResult) -> str:
     return "\n".join(part for part in parts if part).lower()
 
 
+def _has_explicit_failure_signal(run_result: RunResult) -> bool:
+    """Return True when Claude reported an actual execution failure."""
+    if run_result.exit_code != 0:
+        return True
+
+    result_event = _extract_result_event(run_result.transcript)
+    if isinstance(result_event, dict) and result_event.get("is_error") is True:
+        return True
+
+    return False
+
+
 def should_fallback_from_claude(run_result: RunResult) -> bool:
     """Return True when Claude failed for environment/auth/quota reasons."""
+    if not _has_explicit_failure_signal(run_result):
+        return False
     text = _fallback_text(run_result)
     return any(pattern in text for pattern in _CLAUDE_FALLBACK_PATTERNS)
 

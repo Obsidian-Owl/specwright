@@ -40,7 +40,7 @@ Implement the current work unit with TDD. The per-task loop is RED → GREEN →
 
 **Execution model (LOW freedom):** Run in the foreground in the current turn. "Autonomous" means unattended decisions inside this build, not background execution.
 
-**Stage boundary (LOW freedom):** Follow `protocols/stage-boundary.md`. Implement only the active unit; never create PRs or invoke `/sw-ship`. Before the terminal handoff, write `{workDir}/stage-report.md`; the handoff points at it and the Next line is `Next: /sw-verify`.
+**Stage boundary (LOW freedom):** Follow `protocols/stage-boundary.md`. Implement only the active unit; never create pull requests, run `gh pr create`, or invoke `/sw-ship`. Before the terminal handoff, write `{workDir}/stage-report.md`; the handoff points at it and the Next line is `Next: /sw-verify`.
 
 **Branch setup (LOW freedom):** First action before coding: check out the feature branch from `config.git.branchPrefix` and sync it per `protocols/git.md`. Use `{git.branchPrefix}{currentWork.unitId}` for multi-unit work and never commit to the base branch.
 

@@ -1,6 +1,7 @@
 """Eval framework orchestrator — runs eval suites, grades results, writes outputs."""
 
 from contextlib import contextmanager
+import inspect
 import json
 import os
 import shlex
@@ -104,8 +105,11 @@ def _load_fixture_metadata(fixture_path: str) -> Dict:
     metadata_path = os.path.join(fixture_path, _FIXTURE_METADATA_FILENAME)
     if not os.path.isfile(metadata_path):
         return {}
-    with open(metadata_path) as f:
-        data = json.load(f)
+    try:
+        with open(metadata_path) as f:
+            data = json.load(f)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Invalid fixture metadata in {metadata_path}: {exc}") from exc
     return data if isinstance(data, dict) else {}
 
 
@@ -149,7 +153,6 @@ def _resolve_prompts_layer2(eval_case: Dict) -> Dict[str, str]:
 
         # Pass matching prompt_args to each template. Templates accept
         # only known kwargs with defaults, so filter to params they accept.
-        import inspect
         sig = inspect.signature(template_fn)
         filtered_args = {
             k: v for k, v in prompt_args.items()

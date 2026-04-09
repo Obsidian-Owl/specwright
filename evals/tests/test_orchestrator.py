@@ -405,6 +405,23 @@ class TestRunSingleEvalFixtureSetupMetadata(unittest.TestCase):
             observed["path"],
         )
 
+    @patch("evals.framework.orchestrator.setup_fixture")
+    def test_invalid_fixture_metadata_writes_error_grading_and_continues(self, mock_setup_fixture):
+        with open(os.path.join(self.fixture_dir, "fixture.json"), "w") as f:
+            f.write("{ invalid json")
+
+        mock_setup_fixture.side_effect = lambda src, dst: shutil.copytree(self.fixture_dir, dst)
+        case = _make_skill_eval_case(fixture_path=self.fixture_dir)
+
+        result = run_single_eval(case, trial_num=1, results_dir=self.results_dir, runner=self.runner)
+
+        self.assertIsNone(result)
+        self.assertEqual(len(self.runner.calls), 0)
+        grading = _read_grading_json(self.results_dir, case["id"], 1)
+        self.assertEqual(grading["pass_rate"], 0.0)
+        self.assertIn("Invalid fixture metadata", grading["error"])
+        self.assertIn("fixture.json", grading["error"])
+
 
 # ===========================================================================
 # AC-9: run_single_eval() Layer 2 — integration/chain execution
