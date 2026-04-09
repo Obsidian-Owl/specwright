@@ -1,0 +1,12 @@
+{
+  "name": "after-build-integration-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "npx vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

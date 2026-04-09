@@ -34,6 +34,7 @@ class BaselineFile:
     generated_from_commit: str
     tolerances: Dict[str, float]
     evals: Dict[str, Dict[str, Any]]
+    provider: str = "claude"
 
 
 @dataclass
@@ -91,6 +92,9 @@ def _validate_dict(data: Dict[str, Any]) -> List[str]:
     for fld in _REQUIRED_TOP_FIELDS:
         if fld not in data:
             errors.append(f"missing required top-level field: {fld!r}")
+
+    if "provider" in data and not isinstance(data["provider"], str):
+        errors.append("provider must be a string")
 
     if "tolerances" in data:
         tols = data["tolerances"]
@@ -160,9 +164,37 @@ def validate_baseline_file(path: str) -> List[str]:
 # Loader / writer
 # ---------------------------------------------------------------------------
 
-def load_baseline(suite: str, baselines_dir: str = "evals/baselines") -> BaselineFile:
+def baseline_filename(suite: str, provider: str) -> str:
+    """Return the provider-specific filename for a suite baseline."""
+    return f"{suite}.{provider}.json"
+
+
+def resolve_baseline_path(
+    suite: str,
+    provider: str = "claude",
+    baselines_dir: str = "evals/baselines",
+) -> str:
+    """Resolve the on-disk path for a suite baseline.
+
+    Claude keeps a compatibility fallback to the legacy `{suite}.json`.
+    """
+    provider_path = os.path.join(baselines_dir, baseline_filename(suite, provider))
+    if os.path.isfile(provider_path):
+        return provider_path
+    if provider == "claude":
+        legacy_path = os.path.join(baselines_dir, f"{suite}.json")
+        if os.path.isfile(legacy_path):
+            return legacy_path
+    return provider_path
+
+
+def load_baseline(
+    suite: str,
+    baselines_dir: str = "evals/baselines",
+    provider: str = "claude",
+) -> BaselineFile:
     """Load a baseline file by suite name. Raises BaselineFileError on failure."""
-    path = os.path.join(baselines_dir, f"{suite}.json")
+    path = resolve_baseline_path(suite, provider=provider, baselines_dir=baselines_dir)
     if not os.path.isfile(path):
         raise BaselineFileError(f"baseline file not found: {path}")
 
@@ -183,8 +215,16 @@ def load_baseline(suite: str, baselines_dir: str = "evals/baselines") -> Baselin
     # Strip __comment-style ignored fields before constructing the dataclass
     stripped = {k: v for k, v in data.items() if not k.startswith(_OPTIONAL_FIELD_PREFIX)}
 
+    file_provider = stripped.get("provider", provider)
+    if file_provider != provider:
+        raise BaselineFileError(
+            f"baseline file {path} has provider {file_provider!r}, "
+            f"expected {provider!r}"
+        )
+
     return BaselineFile(
         suite=stripped["suite"],
+        provider=file_provider,
         generated_at=stripped["generated_at"],
         generated_from_commit=stripped["generated_from_commit"],
         tolerances=dict(stripped["tolerances"]),
@@ -196,6 +236,7 @@ def write_baseline(baseline: BaselineFile, path: str) -> None:
     """Write a BaselineFile to disk as JSON."""
     out = {
         "suite": baseline.suite,
+        "provider": baseline.provider,
         "generated_at": baseline.generated_at,
         "generated_from_commit": baseline.generated_from_commit,
         "tolerances": baseline.tolerances,
@@ -419,6 +460,8 @@ __all__ = [
     "Regression",
     "Improvement",
     "ComparisonResult",
+    "baseline_filename",
+    "resolve_baseline_path",
     "load_baseline",
     "validate_baseline_file",
     "validate_baselines_dir",

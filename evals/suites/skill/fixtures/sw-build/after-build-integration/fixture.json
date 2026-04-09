@@ -1,0 +1,18 @@
+{
+  "specwright_version": "0.28.0",
+  "created_date": "2026-04-09",
+  "language": "typescript",
+  "description": "Two-task TypeScript fixture proving sw-build runs commands.test:integration once at end-of-unit.",
+  "setup": {
+    "base_repo_root": true,
+    "git": true,
+    "env": {
+      "LEFTHOOK": "0",
+      "SKIP": "build-validate,secret-scan,shellcheck"
+    },
+    "commands": [
+      "git config core.hooksPath /dev/null",
+      "npm install --package-lock=false"
+    ]
+  }
+}

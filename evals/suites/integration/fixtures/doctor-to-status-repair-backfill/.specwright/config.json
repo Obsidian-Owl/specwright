@@ -1,0 +1,13 @@
+{
+  "gates": {
+    "build": {"enabled": true},
+    "spec": {"enabled": true}
+  },
+  "git": {
+    "defaultBranch": "main"
+  },
+  "commands": {
+    "build": "bash build/build.sh",
+    "test": "python -m pytest evals/tests/ -q"
+  }
+}

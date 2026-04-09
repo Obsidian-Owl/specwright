@@ -1,4 +1,4 @@
-"""Tests for evals.framework.runner — ClaudeCodeRunner and RunResult.
+"""Tests for evals.framework.runner — Claude/Codex runners and RunResult.
 
 RED phase: all tests must fail because the implementation is stubbed.
 
@@ -16,7 +16,14 @@ import subprocess
 import unittest
 from unittest.mock import MagicMock, patch, ANY
 
-from evals.framework.runner import ClaudeCodeRunner, RunResult, ToolRunner
+from evals.framework.runner import (
+    AutoRunner,
+    ClaudeCodeRunner,
+    CodexRunner,
+    RunResult,
+    ToolRunner,
+    create_runner,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -46,6 +53,13 @@ STDOUT_WITHOUT_USAGE = _make_stream_json_stdout(
     {"type": "result"},
 )
 
+CODEX_STDOUT = _make_stream_json_stdout(
+    {"type": "thread.started", "thread_id": "t-1"},
+    {"type": "turn.started"},
+    {"type": "item.completed", "item": {"id": "item_0", "type": "agent_message", "text": "hello from codex"}},
+    {"type": "turn.completed", "usage": {"input_tokens": 120, "cached_input_tokens": 30, "output_tokens": 40}},
+)
+
 
 def _mock_popen(stdout="", stderr="", returncode=0, pid=12345):
     """Return a MagicMock configured to behave like subprocess.Popen."""
@@ -57,6 +71,15 @@ def _mock_popen(stdout="", stderr="", returncode=0, pid=12345):
     proc.kill = MagicMock()
     proc.terminate = MagicMock()
     return proc
+
+
+def _mock_run(stdout="", stderr="", returncode=0):
+    """Return a MagicMock configured like subprocess.CompletedProcess."""
+    result = MagicMock(spec=subprocess.CompletedProcess)
+    result.stdout = stdout
+    result.stderr = stderr
+    result.returncode = returncode
+    return result
 
 
 # ===========================================================================
@@ -130,6 +153,7 @@ class TestRunSkillInvocation(unittest.TestCase):
         self.assertIn("--output-format", cmd)
         fmt_idx = cmd.index("--output-format")
         self.assertEqual(cmd[fmt_idx + 1], "stream-json")
+        self.assertIs(mock_popen_cls.call_args[1]["stdin"], subprocess.DEVNULL)
 
     @patch("evals.framework.runner.subprocess.Popen")
     def test_invokes_claude_with_prompt_via_dash_p(self, mock_popen_cls):
@@ -442,6 +466,9 @@ class TestToolRunnerContract(unittest.TestCase):
             "ToolRunner must define a run_skill method",
         )
 
+    def test_codex_runner_is_tool_runner_subclass(self):
+        self.assertTrue(issubclass(CodexRunner, ToolRunner))
+
 
 # ===========================================================================
 # RunResult data integrity
@@ -476,8 +503,14 @@ class TestRunResultDataIntegrity(unittest.TestCase):
         result = runner.run_skill("sw-init", prompt="test")
 
         self.assertEqual(len(result.transcript), 3)
-        self.assertEqual(result.transcript[0]["content"], "line1")
-        self.assertEqual(result.transcript[1]["content"], "line2")
+        self.assertEqual(
+            result.transcript[0]["message"]["content"][0]["text"],
+            "line1",
+        )
+        self.assertEqual(
+            result.transcript[1]["message"]["content"][0]["text"],
+            "line2",
+        )
         self.assertEqual(result.transcript[2]["type"], "result")
 
     @patch("evals.framework.runner.subprocess.Popen")
@@ -496,6 +529,189 @@ class TestRunResultDataIntegrity(unittest.TestCase):
         result = runner.run_skill("sw-init", prompt="test")
         self.assertIsInstance(result.exit_code, int)
         self.assertEqual(result.exit_code, 42)
+
+
+class TestCodexRunner(unittest.TestCase):
+    """Codex output is normalized into the same transcript contract."""
+
+    @patch("evals.framework.runner.subprocess.run")
+    def test_codex_runner_normalizes_agent_message(self, mock_run):
+        mock_run.return_value = _mock_run(stdout=CODEX_STDOUT)
+        runner = CodexRunner()
+        result = runner.run_skill("sw-build", prompt="test")
+        self.assertEqual(result.provider, "codex")
+        self.assertEqual(
+            result.transcript[0]["message"]["content"][0]["text"],
+            "hello from codex",
+        )
+
+    @patch("evals.framework.runner.subprocess.run")
+    def test_codex_runner_extracts_usage(self, mock_run):
+        mock_run.return_value = _mock_run(stdout=CODEX_STDOUT)
+        runner = CodexRunner()
+        result = runner.run_skill("sw-build", prompt="test")
+        self.assertEqual(result.tokens["input_tokens"], 120)
+        self.assertEqual(result.tokens["cached_input_tokens"], 30)
+        self.assertEqual(result.tokens["output_tokens"], 40)
+
+    @patch("evals.framework.runner.subprocess.run")
+    def test_codex_runner_uses_danger_full_access_and_tempdir(self, mock_run):
+        mock_run.return_value = _mock_run(stdout=CODEX_STDOUT)
+        runner = CodexRunner()
+        result = runner.run_skill("sw-build", prompt="test", workdir="/tmp/eval-fixture")
+        self.assertEqual(result.provider, "codex")
+
+        cmd = mock_run.call_args[0][0]
+        self.assertIn("--sandbox", cmd)
+        sandbox_index = cmd.index("--sandbox")
+        self.assertEqual(cmd[sandbox_index + 1], "danger-full-access")
+
+        env = mock_run.call_args[1]["env"]
+        self.assertEqual(env["TMPDIR"], "/tmp/eval-fixture/.tmp")
+        self.assertEqual(env["TMP"], "/tmp/eval-fixture/.tmp")
+        self.assertEqual(env["TEMP"], "/tmp/eval-fixture/.tmp")
+        self.assertIs(mock_run.call_args[1]["stdin"], subprocess.DEVNULL)
+
+
+class TestAutoRunner(unittest.TestCase):
+    """Auto runner falls back only for Claude availability failures."""
+
+    @patch("evals.framework.runner.CodexRunner.run_skill")
+    @patch("evals.framework.runner.ClaudeCodeRunner.run_skill")
+    def test_auto_runner_falls_back_on_login_failure(self, mock_claude, mock_codex):
+        mock_claude.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[
+                {
+                    "type": "result",
+                    "result": "Not logged in · Please run /login",
+                    "is_error": True,
+                }
+            ],
+            provider="claude",
+        )
+        mock_codex.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[],
+            provider="codex",
+        )
+        runner = AutoRunner()
+        result = runner.run_skill("sw-build", "test")
+        self.assertEqual(result.provider, "codex")
+
+    @patch("evals.framework.runner.CodexRunner.run_skill")
+    @patch("evals.framework.runner.ClaudeCodeRunner.run_skill")
+    def test_auto_runner_falls_back_on_tool_permission_block(self, mock_claude, mock_codex):
+        mock_claude.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[
+                {
+                    "type": "result",
+                    "result": "git push requires your tool permission",
+                    "is_error": True,
+                }
+            ],
+            provider="claude",
+        )
+        mock_codex.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[],
+            provider="codex",
+        )
+        runner = AutoRunner()
+        result = runner.run_skill("sw-build", "test")
+        self.assertEqual(result.provider, "codex")
+
+    @patch("evals.framework.runner.CodexRunner.run_skill")
+    @patch("evals.framework.runner.ClaudeCodeRunner.run_skill")
+    def test_auto_runner_falls_back_on_permission_text_in_stderr(self, mock_claude, mock_codex):
+        mock_claude.return_value = RunResult(
+            exit_code=1,
+            stdout="",
+            stderr="Error: command blocked because tool permission is required",
+            transcript=[],
+            provider="claude",
+        )
+        mock_codex.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[],
+            provider="codex",
+        )
+        runner = AutoRunner()
+        result = runner.run_skill("sw-build", "test")
+        self.assertEqual(result.provider, "codex")
+
+    @patch("evals.framework.runner.CodexRunner.run_skill")
+    @patch("evals.framework.runner.ClaudeCodeRunner.run_skill")
+    def test_auto_runner_falls_back_on_write_permission_request(self, mock_claude, mock_codex):
+        mock_claude.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[
+                {
+                    "type": "result",
+                    "result": "I need write permission to modify the workflow state file. Please grant write access to proceed.",
+                    "is_error": True,
+                }
+            ],
+            provider="claude",
+        )
+        mock_codex.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[],
+            provider="codex",
+        )
+        runner = AutoRunner()
+        result = runner.run_skill("sw-build", "test")
+        self.assertEqual(result.provider, "codex")
+
+    @patch("evals.framework.runner.CodexRunner.run_skill")
+    @patch("evals.framework.runner.ClaudeCodeRunner.run_skill")
+    def test_auto_runner_does_not_fallback_on_successful_assistant_text(self, mock_claude, mock_codex):
+        mock_claude.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Please document the billing workflow and write permission policy.",
+                            }
+                        ]
+                    },
+                },
+                {
+                    "type": "result",
+                    "result": "Completed successfully",
+                    "is_error": False,
+                },
+            ],
+            provider="claude",
+        )
+        runner = AutoRunner()
+        result = runner.run_skill("sw-build", "test")
+        self.assertEqual(result.provider, "claude")
+        mock_codex.assert_not_called()
+
+    def test_create_runner_supports_codex(self):
+        self.assertIsInstance(create_runner("codex"), CodexRunner)
 
 
 if __name__ == "__main__":

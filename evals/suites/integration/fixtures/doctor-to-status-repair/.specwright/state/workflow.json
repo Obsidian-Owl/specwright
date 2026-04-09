@@ -3,11 +3,11 @@
   "currentWork": null,
   "workUnits": [
     {
-      "id": "02d-structural-smoke-evals",
-      "description": "Structural smoke eval stabilization",
+      "id": "zz-unconfirmed-shipped-fixture",
+      "description": "Synthetic shipped fixture with no resolvable PR mapping",
       "status": "shipped",
       "order": 4,
-      "workDir": ".specwright/work/legibility-recovery/units/02d-structural-smoke-evals",
+      "workDir": ".specwright/work/synthetic/units/zz-unconfirmed-shipped-fixture",
       "prNumber": null,
       "prMergedAt": null
     }

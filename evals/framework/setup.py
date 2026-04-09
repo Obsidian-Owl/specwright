@@ -1,10 +1,32 @@
-"""Eval framework setup — fixture copying, repo cloning, and baseline verification."""
+"""Eval framework setup — fixture copying, repo cloning, and eval bootstrap helpers."""
 
 import os
 import shlex
 import shutil
 import subprocess
-from typing import List, Optional
+from typing import Callable, List, Optional, Set
+
+
+_REPO_OVERLAY_IGNORES = {
+    ".git",
+    ".env",
+    ".DS_Store",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "venv",
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+}
+_REPO_OVERLAY_RELATIVE_IGNORES = {
+    os.path.join("evals", "results"),
+    os.path.join(".specwright", "state"),
+    os.path.join(".specwright", "work"),
+}
 
 
 def setup_fixture(fixture_path: str, workdir: str) -> None:
@@ -17,6 +39,56 @@ def setup_fixture(fixture_path: str, workdir: str) -> None:
             f"Fixture directory not found: {fixture_path}"
         )
     shutil.copytree(fixture_path, workdir)
+
+
+def setup_repo_overlay_fixture(
+    repo_root: str,
+    fixture_path: str,
+    workdir: str,
+) -> None:
+    """Copy repo_root into workdir, then overlay fixture contents on top."""
+    if not os.path.isdir(repo_root):
+        raise FileNotFoundError(f"Repository root not found: {repo_root}")
+    if not os.path.isdir(fixture_path):
+        raise FileNotFoundError(
+            f"Fixture directory not found: {fixture_path}"
+        )
+    shutil.copytree(repo_root, workdir, ignore=_repo_overlay_ignore(repo_root))
+    shutil.copytree(fixture_path, workdir, dirs_exist_ok=True)
+
+
+def init_git_repo(workdir: str, default_branch: str = "main") -> None:
+    """Initialize a disposable git repo with one initial commit."""
+    _run_checked(["git", "init", "-b", default_branch], cwd=workdir)
+    _run_checked(["git", "config", "user.name", "Specwright Eval"], cwd=workdir)
+    _run_checked(
+        ["git", "config", "user.email", "specwright-evals@example.com"],
+        cwd=workdir,
+    )
+    _run_checked(["git", "add", "."], cwd=workdir)
+    _run_checked(["git", "commit", "-m", "chore(eval): seed fixture"], cwd=workdir)
+
+
+def run_setup_commands(workdir: str, commands: List[str]) -> None:
+    """Run shell-split setup commands in workdir."""
+    for command in commands:
+        _run_checked(shlex.split(command), cwd=workdir)
+
+
+def resolve_fixture_relative_paths(workdir: str, paths: List[str]) -> List[str]:
+    """Resolve fixture-relative PATH entries against the temporary workdir."""
+    resolved: List[str] = []
+    for entry in paths:
+        if not isinstance(entry, str):
+            continue
+        stripped = entry.strip()
+        if not stripped:
+            continue
+        if os.path.isabs(stripped):
+            resolved.append(stripped)
+            continue
+        resolved.append(os.path.join(workdir, stripped))
+    return resolved
 
 
 def setup_repo(
@@ -48,6 +120,28 @@ def _run_checked(cmd: List[str], cwd: Optional[str] = None) -> None:
     except subprocess.CalledProcessError as exc:
         stderr_msg = exc.stderr or str(exc)
         raise RuntimeError(stderr_msg) from exc
+
+
+def _repo_overlay_ignore(repo_root: str) -> Callable[[str, List[str]], Set[str]]:
+    """Return an ignore callable for copying the current repo into eval fixtures."""
+    repo_root_abs = os.path.abspath(repo_root)
+
+    def ignore(current_dir: str, names: List[str]) -> Set[str]:
+        rel_dir = os.path.relpath(os.path.abspath(current_dir), repo_root_abs)
+        if rel_dir == ".":
+            rel_dir = ""
+
+        ignored: Set[str] = set()
+        for name in names:
+            rel_path = os.path.normpath(os.path.join(rel_dir, name))
+            if name in _REPO_OVERLAY_IGNORES:
+                ignored.add(name)
+                continue
+            if rel_path in _REPO_OVERLAY_RELATIVE_IGNORES:
+                ignored.add(name)
+        return ignored
+
+    return ignore
 
 
 def verify_baseline(

@@ -1,0 +1,19 @@
+{
+  "suite": "skill",
+  "provider": "codex",
+  "generated_at": "2026-03-23T06:07:52.841475+00:00",
+  "generated_from_commit": "0f914027f36667f0793ef21e287b814dc5bb847a",
+  "tolerances": {
+    "pass_rate_delta": 0.0,
+    "duration_multiplier": 1.0,
+    "tokens_multiplier": 1.0
+  },
+  "evals": {
+    "sw-build-simple-function": {
+      "pass_rate": 0.6,
+      "duration_ms": 36490.455,
+      "tokens": {},
+      "runs": 2
+    }
+  }
+}

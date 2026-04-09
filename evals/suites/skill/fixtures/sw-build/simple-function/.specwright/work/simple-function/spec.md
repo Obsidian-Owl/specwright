@@ -2,8 +2,8 @@
 
 ## Acceptance Criteria
 
-**AC-1**: `add(2, 3)` returns `5`. The function correctly adds two positive integers.
+**AC-1**: `add(2, 3)` returns `5`.
 
-**AC-2**: `add(-1, 1)` returns `0`. The function handles negative numbers correctly.
+**AC-2**: `add(-2, 3)` returns `1`.
 
-**AC-3**: `add(0, 0)` returns `0`. The function handles zero inputs.
+**AC-3**: `add(0, 0)` returns `0`.

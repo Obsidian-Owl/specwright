@@ -23,159 +23,59 @@ allowed-tools:
 
 ## Goal
 
-Implement the current work unit using test-driven development. Each task
-goes through RED (tester writes failing tests) → GREEN (executor makes
-them pass) → REFACTOR. The user sees progress after every task and the
-codebase stays green between tasks.
+Implement the current work unit with TDD. The per-task loop is RED → GREEN → REFACTOR; end-of-unit integration and regression checks live in one optional after-build phase.
 
 ## Inputs
 
-- `.specwright/state/workflow.json` -- current work unit and task progress
-- `{currentWork.workDir}/spec.md` -- acceptance criteria to implement
-- `{currentWork.workDir}/plan.md` -- architecture decisions
-- `.specwright/work/{currentWork.id}/design.md` -- solution design from sw-design (design-level)
-- `{currentWork.workDir}/context.md` -- research findings, file paths, gotchas
-- `.specwright/CONSTITUTION.md` -- coding standards to follow
-- `.specwright/config.json` -- build/test commands, agent config
+- `.specwright/state/workflow.json`, `{currentWork.workDir}/spec.md`, `{currentWork.workDir}/plan.md`
+- `.specwright/work/{currentWork.id}/design.md`, `{currentWork.workDir}/context.md`
+- `.specwright/CONSTITUTION.md`, `.specwright/config.json`
 
 ## Outputs
 
-After each task:
-- Tests written and passing
-- Implementation committed (one commit per task)
-- `workflow.json` updated with task progress
-- `{currentWork.workDir}/stage-report.md` refreshed with the latest build handoff digest
-
-After all tasks:
-- `workflow.json` status set to `building` → ready for verify
-- All acceptance criteria have corresponding tests and implementation
-- Final handoff points at `Artifacts: {workDir}/stage-report.md`
+- After each task: failing tests, passing implementation, task commit, workflow progress, refreshed `{workDir}/stage-report.md`
+- After all tasks: as-built notes in `plan.md`, three-line handoff to `/sw-verify`, ready-to-verify build state; the handoff points at `Artifacts: {workDir}/stage-report.md`
 
 ## Constraints
 
-**Execution model (LOW freedom):**
-This skill runs in the foreground, in the same turn the user invoked the slash command.
-There is no `run_in_background` parameter on the `Skill` tool — only `Bash` and `Agent`
-support backgrounding. "Autonomous" in Specwright means *unattended decision-making
-between gates within the current turn*, not *detached background process*. Do not
-attempt to fire-and-forget this skill or report that it is "running in the background."
-To run hands-off across many tasks, the user invokes `/sw-build` and lets it proceed.
+**Execution model (LOW freedom):** Run in the foreground in the current turn. "Autonomous" means unattended decisions inside this build, not background execution.
 
-**Stage boundary (LOW freedom):**
-Follow `protocols/stage-boundary.md`. This skill implements one work unit via TDD. Handoff to `/sw-verify`.
-NEVER create PRs (`gh pr create`) or invoke `/sw-ship` during building. PR creation
-is only permitted in the `shipping` state, which is entered via `/sw-ship` after
-`/sw-verify` gates pass. Before the terminal handoff, write
-`{workDir}/stage-report.md`; the Artifacts line points at
-`Artifacts: {workDir}/stage-report.md`, and the Next line remains
-machine-parseable: `Next: /sw-verify`.
+**Stage boundary (LOW freedom):** Follow `protocols/stage-boundary.md`. Implement only the active unit; never create pull requests, run `gh pr create`, or invoke `/sw-ship`. Before the terminal handoff, write `{workDir}/stage-report.md`; the handoff points at it and the Next line is `Next: /sw-verify`.
 
-**Branch setup (LOW freedom) — FIRST action before any coding:**
-Postcondition: A feature branch is checked out, synced with the base branch per `protocols/git.md` branch lifecycle.
-- Branch name: `{git.branchPrefix}{currentWork.unitId}` (multi-unit) or `{git.branchPrefix}{currentWork.id}` (single-unit).
-- If `git.branchPerWorkUnit` is false: stay on current branch.
-- All task commits happen on the feature branch. NEVER commit to baseBranch.
+**Branch setup (LOW freedom):** First action before coding: check out the feature branch from `config.git.branchPrefix` and sync it per `protocols/git.md`. Use `{git.branchPrefix}{currentWork.unitId}` for multi-unit work and never commit to the base branch.
 
-**Repo map generation (MEDIUM freedom) — after branch setup, before first task:**
-Generate repo map per `protocols/repo-map.md` before the first task.
+**Task loop (MEDIUM freedom):** Work one task at a time. Finish it before starting the next and emit a status card after each task commit.
 
-**Task loop (MEDIUM freedom):**
-Work one task at a time. Complete before starting the next. After each task commit, emit a status card.
+**TDD cycle (LOW freedom for sequence):**
+1. **RED:** delegate to `specwright-tester`, write hard-to-pass tests, and confirm they fail.
+2. **GREEN:** delegate to `specwright-executor`, pass the failing tests, and stop on any plan mismatch or pre-existing type/signature discrepancy.
+3. **REFACTOR:** simplify only code written for the current task; keep behavior unchanged.
+Per-task integration and regression runs do not happen inside this loop.
 
-**TDD cycle (HIGH freedom for test design, LOW freedom for sequence):**
+**Mid-build checks (MEDIUM freedom):** Follow `protocols/decision.md#late-discovery-lifecycle` and `protocols/build-quality.md` for late discoveries, behavior capture, and as-built notes.
 
-The sequence is strict: RED → GREEN → INTEGRATION → REGRESSION CHECK → REFACTOR. Never skip RED.
+**Build failures (MEDIUM freedom):** If RED tests pass, the tests are wrong. If GREEN or after-build checks fail, delegate to `specwright-build-fixer` for at most 2 attempts and follow `protocols/headless.md` for persistent failures. Treat executor-reported signature/type mismatches as a plan mismatch, not a build-fixer case.
 
-1. **RED**: Delegate to `specwright-tester` with the task's unit-tier acceptance criteria,
-   context.md, and constitution. The tester writes tests designed to be hard to
-   pass. Run tests to confirm they fail.
-2. **GREEN**: Delegate to `specwright-executor` with the failing tests, context.md,
-   plan.md, and constitution. The executor writes minimal code to pass. Run
-   build + tests to confirm they pass.
-3. **INTEGRATION**: After GREEN, check ACs for tier tags. If any AC has `[tier: integration]`,
-   `[tier: contract]`, or `[tier: e2e]`, delegate those non-unit ACs to
-   `specwright-integration-tester` (use same context envelope plus TESTING.md for boundary
-   context). On failure, delegate to `specwright-build-fixer` (max 2 attempts — check
-   infrastructure health before assuming code is wrong). If still failing: interactive —
-   present to user; headless — abort. If no non-unit ACs exist, skip this step (zero
-   additional overhead).
-4. **REGRESSION CHECK**: Run the project's configured test commands (`commands.test`
-   and `commands.test:integration` if configured) to confirm nothing regressed —
-   both unit and integration tests must pass before proceeding.
-5. **REFACTOR**: Executor may refactor code written in THIS task only. Tests must still pass. No adjacent code cleanup.
+**Commits (LOW freedom):** One commit per completed task. Stage only the files for that task, never use `git add -A`, and run configured format/lint commands before committing when present.
 
-**Context envelope (LOW freedom):**
-Follow `protocols/delegation.md` for context handoff format. Additionally include:
-- **Repo map content** at the TOP (from `{currentWork.workDir}/repo-map.md`; skip if absent)
-- **Language patterns** from `core/skills/lang-building/{language}.md` if available (per `config.json` `project.languages[0]`, with file-extension override for cross-language tasks)
-- For each AC, include one test whose purpose is to find the condition under which this criterion fails silently
-- Build agents MAY read parent `.specwright/work/{currentWork.id}/context.md` as a fallback
+**After-build (MEDIUM freedom):** Optional end-of-unit phase only. Delegate post-build review, then run `commands.test` and `commands.test:integration` when configured; integration now runs here once per unit, not per task. On failure, use `specwright-build-fixer` (max 2 attempts); if it still fails, surface it to the user in interactive mode and skip with a recorded note in headless mode.
 
-**Build failures (MEDIUM freedom):**
-- If tests fail after GREEN: delegate to `specwright-build-fixer` (max 2 attempts).
-  If still failing: apply `protocols/decision.md` ERROR_HANDLING — document failure,
-  proceed to next task unless cascading. Headless: abort per `protocols/headless.md`.
-- If RED phase tests don't fail: the tests are wrong. Tell the tester to fix them.
-- If executor reports a discrepancy (type/interface mismatch): this is a **plan mismatch**
-  (Type 1 structural override). Do NOT invoke build-fixer. Present to user and halt.
+**Task tracking (LOW freedom):** When Claude Code task tools are available, create and update task records, but keep `workflow.json` as the source of truth. Tracking failures never block the build.
 
-**Commits (LOW freedom):**
-- One commit per completed task. Follow `protocols/git.md`.
-- Commit message references the work unit ID and task.
-- Stage only files changed for this task. Never `git add -A`.
-- Before committing: if `config.commands.format` is configured, run it. If
-  `config.commands.lint` is configured, run it. If formatting changes files,
-  restage them. If lint fails, fix inline (orchestrator self-heals trivial
-  issues; re-delegate to executor for non-trivial). This is task hygiene,
-  not a build-fixer scenario.
+**State updates (LOW freedom):** Follow `protocols/state.md`: acquire the lock before mutations, update `tasksCompleted` after each committed task, and append as-built notes before handoff.
 
-**Mid-build checks (MEDIUM freedom):**
-Follow `protocols/decision.md#late-discovery-lifecycle` for late discoveries and
-`protocols/build-quality.md` for behavior capture, at build start and after each task.
-
-**Per-task micro-check (MEDIUM freedom) — after each task commit:**
-When `sg` is on PATH: run ast-grep on changed code files per `protocols/repo-map.md`, check for error-path issues, append to `{currentWork.workDir}/feedback-log.md`. Non-blocking. Skip if `sg` absent or no code files changed.
-
-**Post-build review (MEDIUM freedom):**
-After all tasks committed, delegate to `specwright-reviewer` per `protocols/build-quality.md`.
-
-**Inner-loop validation (MEDIUM freedom) — runs after post-build review:**
-If `commands.test:integration` is configured, run the full integration suite (5-minute timeout). Tests may have already run during the task loop via tier-aware delegation — this is the full-suite catch. On fail, delegate to `specwright-build-fixer` (max 2 attempts, check infrastructure health first). If still failing: interactive — present to user; headless — skip. If unconfigured, skip silently.
-
-**Parallel execution — experimental (MEDIUM freedom):**
-Follow `protocols/parallel-build.md` when all prerequisites met. Sequential if any prerequisite fails.
-
-**As-built notes (LOW freedom):**
-After all tasks, append `## As-Built Notes` to `{currentWork.workDir}/plan.md`: deviations, decisions, actual paths. Follow `protocols/build-quality.md` for scope.
-
-**State updates (LOW freedom):**
-Follow `protocols/state.md`. Acquire lock before starting, release after each task commit. Update `tasksCompleted` after each successful task.
-
-**Context management (MEDIUM freedom):**
-- Follow `protocols/build-context.md` for continuation snapshots, status cards, and context nudge.
-
-<!-- platform:claude-code -->
-**Task tracking (LOW freedom):**
-- At build start, create Claude Code tasks from spec/plan (subject = task name, description = AC summary, activeForm = present-continuous).
-- Update workflow.json FIRST; TaskUpdate is best-effort. Tracking failures never halt the build.
-- Orchestrator-only: delegated agents do not update task status.
-- Disambiguation: `Task` tool = agent delegation. `TaskCreate`/`TaskUpdate`/`TaskList`/`TaskGet` = visual tracking. Never conflate.
-- On compaction recovery: create fresh tasks from spec/plan, sync from workflow.json.
-<!-- /platform -->
+**Parallel execution (MEDIUM freedom):** Only use `protocols/parallel-build.md` when the experimental config flag enables it; otherwise ignore it and stay sequential.
 
 ## Protocol References
 
-- `protocols/stage-boundary.md` -- scope, termination, and handoff
-- `protocols/state.md` -- workflow state and locking
-- `protocols/git.md` -- commit discipline
-- `protocols/delegation.md` -- agent delegation with fallback
-- `protocols/recovery.md` -- compaction recovery
+- `protocols/stage-boundary.md` -- scope and final handoff
+- `protocols/git.md` -- branch lifecycle and commit discipline
+- `protocols/delegation.md` -- tester/executor/build-fixer context handoff
 - `protocols/build-quality.md` -- post-build review and as-built notes
-- `protocols/build-context.md` -- continuation snapshots, status cards, context nudge, repo map injection
-- `protocols/repo-map.md` -- repo map format, generation, token budget, truncation
-- `protocols/decision.md` -- autonomous decision framework (ERROR_HANDLING for build failures)
-- `protocols/headless.md` -- non-interactive execution defaults
-- `protocols/parallel-build.md` -- parallel task execution with agent teams
+- `protocols/decision.md` -- late discoveries and error handling
+- `protocols/headless.md` -- non-interactive failure handling
+- `protocols/parallel-build.md` -- config-gated parallel mode
+- `protocols/state.md` -- workflow locking and task progress
 
 ## Failure Modes
 
@@ -183,11 +83,7 @@ Follow `protocols/state.md`. Acquire lock before starting, release after each ta
 |-----------|--------|
 | No active work unit | STOP: "Run /sw-design and /sw-plan first" |
 | Build/test command not configured | STOP: "Configure commands in config.json or run /sw-init" |
-| Tester writes tests that pass immediately | Tests are wrong. Re-delegate with instruction to write tests that FAIL first. |
-| Executor can't pass tests after 2 build-fixer attempts | STOP. Show error to user. Don't loop forever. |
-| Compaction during build | Read workflow.json, find last completed task, resume next task. |
-| Compaction during parallel execution | Read workflow.json, check `.specwright/worktrees/` for orphans, clean up, resume sequential. |
-<!-- platform:claude-code -->
-| Task tracking tools unavailable | Continue with workflow.json-only tracking. Best-effort. |
-<!-- /platform -->
-| Lock held by another skill | STOP with lock info. Don't force-clear. |
+| Tester writes tests that pass immediately | Re-delegate RED with stronger failing cases |
+| Executor reports a pre-existing type/signature mismatch | STOP and surface the plan mismatch |
+| Build-fixer exhausts 2 attempts | STOP and show the failure |
+| Lock held by another skill | STOP with lock info |

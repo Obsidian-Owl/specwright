@@ -1,0 +1,31 @@
+{
+  "version": "2.0",
+  "currentWork": {
+    "id": "ship-failure",
+    "unitId": "ship-failure",
+    "description": "Attempt to ship the verified fixture branch",
+    "status": "verifying",
+    "workDir": ".specwright/work/ship-failure",
+    "tasksTotal": 1,
+    "tasksCompleted": ["task-1"],
+    "currentTask": null,
+    "intensity": "quick"
+  },
+  "workUnits": [
+    {
+      "id": "ship-failure",
+      "description": "Attempt to ship the verified fixture branch",
+      "status": "verifying",
+      "order": 1,
+      "workDir": ".specwright/work/ship-failure",
+      "prNumber": null,
+      "prMergedAt": null
+    }
+  ],
+  "gates": {
+    "tests": {"status": "PASS"},
+    "spec": {"status": "PASS"}
+  },
+  "lock": null,
+  "lastUpdated": "2026-04-09T00:00:00.000Z"
+}

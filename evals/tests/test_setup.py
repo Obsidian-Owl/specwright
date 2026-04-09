@@ -15,7 +15,12 @@ import subprocess
 import unittest
 from unittest.mock import patch, call, MagicMock
 
-from evals.framework.setup import setup_fixture, setup_repo, verify_baseline
+from evals.framework.setup import (
+    setup_fixture,
+    setup_repo,
+    setup_repo_overlay_fixture,
+    verify_baseline,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -112,6 +117,27 @@ class TestSetupFixtureFileNotFound(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             setup_fixture("/nonexistent/path", "/tmp/workdir")
         mock_copytree.assert_not_called()
+
+
+class TestSetupRepoOverlayFixture(unittest.TestCase):
+    """Repo-overlay fixtures copy repo context first, then overlay the fixture."""
+
+    @patch("evals.framework.setup.shutil.copytree")
+    @patch("evals.framework.setup.os.path.isdir", return_value=True)
+    def test_copies_repo_root_then_fixture_overlay(self, mock_isdir, mock_copytree):
+        setup_repo_overlay_fixture("/repo/root", "/fixtures/basic", "/tmp/workdir")
+        self.assertEqual(mock_copytree.call_count, 2)
+        first_call = mock_copytree.call_args_list[0]
+        second_call = mock_copytree.call_args_list[1]
+        self.assertEqual(first_call[0][:2], ("/repo/root", "/tmp/workdir"))
+        self.assertEqual(second_call[0][:2], ("/fixtures/basic", "/tmp/workdir"))
+        self.assertTrue(second_call[1].get("dirs_exist_ok"))
+
+    @patch("evals.framework.setup.os.path.isdir")
+    def test_raises_when_repo_root_missing(self, mock_isdir):
+        mock_isdir.side_effect = [False]
+        with self.assertRaises(FileNotFoundError):
+            setup_repo_overlay_fixture("/missing/repo", "/fixtures/basic", "/tmp/workdir")
 
 
 # ===========================================================================

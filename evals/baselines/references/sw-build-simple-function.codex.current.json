@@ -1,0 +1,23 @@
+{
+  "provider": "codex",
+  "source_benchmark": "evals/results/run-20260409T023110/benchmark.json",
+  "source_grading": "evals/results/run-20260409T023110/evals/sw-build-simple-function/trial-1/grading.json",
+  "run_results": {
+    "sw-build-simple-function": {
+      "pass_rate": 1.0,
+      "duration_ms": 8165.27,
+      "tokens": {
+        "input_tokens": 1180790,
+        "output_tokens": 11174,
+        "cached_input_tokens": 1097600
+      }
+    }
+  },
+  "order_expectations": {
+    "branch_exists": true,
+    "commit_count": true,
+    "no_uncommitted_changes": true,
+    "stage_report_written": true,
+    "three_line_handoff": true
+  }
+}

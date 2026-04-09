@@ -235,6 +235,193 @@ class TestRunSingleEvalLayer1Invocation(unittest.TestCase):
                         runner=self.runner, timeout=600)
         self.assertEqual(self.runner.calls[0]["timeout"], 600)
 
+    @patch("evals.framework.orchestrator.create_runner")
+    @patch("evals.framework.orchestrator.setup_fixture")
+    def test_runner_override_uses_case_specific_runner(self, mock_setup, mock_create_runner):
+        mock_setup.side_effect = lambda src, dst: shutil.copytree(
+            self.fixture_dir, dst
+        )
+        override_runner = MockRunner()
+        mock_create_runner.return_value = override_runner
+        case = _make_skill_eval_case(fixture_path=self.fixture_dir)
+        case["runner"] = "codex"
+        run_single_eval(case, trial_num=1, results_dir=self.results_dir,
+                        runner=self.runner)
+        self.assertEqual(len(self.runner.calls), 0)
+        self.assertEqual(len(override_runner.calls), 1)
+        mock_create_runner.assert_called_once_with("codex")
+
+
+class TestRunSingleEvalFixtureSetupMetadata(unittest.TestCase):
+    """Fixture metadata can request repo-root overlay bootstrap."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.fixture_dir = _make_fixture_dir(self.tmpdir)
+        self.results_dir = os.path.join(self.tmpdir, "results")
+        os.makedirs(self.results_dir, exist_ok=True)
+        self.runner = MockRunner()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    @patch("evals.framework.orchestrator.grade_eval")
+    @patch("evals.framework.orchestrator.setup_repo_overlay_fixture")
+    @patch("evals.framework.orchestrator.setup_fixture")
+    @patch("evals.framework.orchestrator._load_fixture_metadata")
+    def test_base_repo_root_uses_overlay_setup(
+        self,
+        mock_load_metadata,
+        mock_setup_fixture,
+        mock_overlay_fixture,
+        mock_grade_eval,
+    ):
+        mock_load_metadata.return_value = {"setup": {"base_repo_root": True}}
+        mock_grade_eval.return_value = {
+            "expectations": [],
+            "summary": {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "pass_rate": 0.0},
+            "timing": {"duration_ms": 0},
+        }
+        case = _make_skill_eval_case(fixture_path=self.fixture_dir)
+
+        run_single_eval(case, trial_num=1, results_dir=self.results_dir, runner=self.runner)
+
+        mock_overlay_fixture.assert_called_once()
+        mock_setup_fixture.assert_not_called()
+
+    @patch("evals.framework.orchestrator.grade_eval")
+    @patch("evals.framework.orchestrator.setup_fixture")
+    @patch("evals.framework.orchestrator._load_fixture_metadata")
+    def test_setup_env_applies_only_during_runner_execution(
+        self,
+        mock_load_metadata,
+        mock_setup_fixture,
+        mock_grade_eval,
+    ):
+        observed = {}
+
+        class EnvAwareRunner(ToolRunner):
+            def run_skill(self, skill, prompt, workdir=None, timeout=300):
+                del skill, prompt, workdir, timeout
+                observed["skip"] = os.environ.get("SKIP")
+                return _make_run_result()
+
+        mock_load_metadata.return_value = {"setup": {"env": {"SKIP": "build-validate"}}}
+        mock_setup_fixture.side_effect = lambda src, dst: shutil.copytree(self.fixture_dir, dst)
+        mock_grade_eval.return_value = {
+            "expectations": [],
+            "summary": {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "pass_rate": 0.0},
+            "timing": {"duration_ms": 0},
+        }
+
+        previous = os.environ.get("SKIP")
+        case = _make_skill_eval_case(fixture_path=self.fixture_dir)
+        run_single_eval(case, trial_num=1, results_dir=self.results_dir, runner=EnvAwareRunner())
+
+        self.assertEqual(observed["skip"], "build-validate")
+        self.assertEqual(os.environ.get("SKIP"), previous)
+
+    @patch("evals.framework.orchestrator.grade_eval")
+    @patch("evals.framework.orchestrator.setup_fixture")
+    @patch("evals.framework.orchestrator._load_fixture_metadata")
+    def test_path_prepend_resolves_against_temp_workdir_and_is_scoped(
+        self,
+        mock_load_metadata,
+        mock_setup_fixture,
+        mock_grade_eval,
+    ):
+        observed = {}
+
+        class PathAwareRunner(ToolRunner):
+            def run_skill(self, skill, prompt, workdir=None, timeout=300):
+                del skill, prompt, timeout
+                observed["workdir"] = workdir
+                observed["path"] = os.environ.get("PATH", "")
+                return _make_run_result()
+
+        mock_load_metadata.return_value = {
+            "setup": {
+                "path_prepend": ["bin", ".tools/shims"],
+            }
+        }
+        mock_setup_fixture.side_effect = lambda src, dst: shutil.copytree(self.fixture_dir, dst)
+        mock_grade_eval.return_value = {
+            "expectations": [],
+            "summary": {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "pass_rate": 0.0},
+            "timing": {"duration_ms": 0},
+        }
+
+        previous = os.environ.get("PATH", "")
+        case = _make_skill_eval_case(fixture_path=self.fixture_dir)
+        run_single_eval(case, trial_num=1, results_dir=self.results_dir, runner=PathAwareRunner())
+
+        expected_prefix = os.pathsep.join(
+            [
+                os.path.join(observed["workdir"], "bin"),
+                os.path.join(observed["workdir"], ".tools/shims"),
+            ]
+        )
+        self.assertTrue(
+            observed["path"].startswith(expected_prefix + os.pathsep),
+            observed["path"],
+        )
+        self.assertEqual(os.environ.get("PATH", ""), previous)
+
+    @patch("evals.framework.orchestrator.grade_eval")
+    @patch("evals.framework.orchestrator.setup_fixture")
+    @patch("evals.framework.orchestrator._load_fixture_metadata")
+    def test_path_prepend_preserves_existing_fixture_env_overrides(
+        self,
+        mock_load_metadata,
+        mock_setup_fixture,
+        mock_grade_eval,
+    ):
+        observed = {}
+
+        class PathAwareRunner(ToolRunner):
+            def run_skill(self, skill, prompt, workdir=None, timeout=300):
+                del skill, prompt, workdir, timeout
+                observed["path"] = os.environ.get("PATH", "")
+                return _make_run_result()
+
+        mock_load_metadata.return_value = {
+            "setup": {
+                "env": {"PATH": "/custom/base/path"},
+                "path_prepend": ["bin"],
+            }
+        }
+        mock_setup_fixture.side_effect = lambda src, dst: shutil.copytree(self.fixture_dir, dst)
+        mock_grade_eval.return_value = {
+            "expectations": [],
+            "summary": {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "pass_rate": 0.0},
+            "timing": {"duration_ms": 0},
+        }
+
+        case = _make_skill_eval_case(fixture_path=self.fixture_dir)
+        run_single_eval(case, trial_num=1, results_dir=self.results_dir, runner=PathAwareRunner())
+
+        self.assertTrue(
+            observed["path"].endswith(os.pathsep + "/custom/base/path"),
+            observed["path"],
+        )
+
+    @patch("evals.framework.orchestrator.setup_fixture")
+    def test_invalid_fixture_metadata_writes_error_grading_and_continues(self, mock_setup_fixture):
+        with open(os.path.join(self.fixture_dir, "fixture.json"), "w") as f:
+            f.write("{ invalid json")
+
+        mock_setup_fixture.side_effect = lambda src, dst: shutil.copytree(self.fixture_dir, dst)
+        case = _make_skill_eval_case(fixture_path=self.fixture_dir)
+
+        result = run_single_eval(case, trial_num=1, results_dir=self.results_dir, runner=self.runner)
+
+        self.assertIsNone(result)
+        self.assertEqual(len(self.runner.calls), 0)
+        grading = _read_grading_json(self.results_dir, case["id"], 1)
+        self.assertEqual(grading["pass_rate"], 0.0)
+        self.assertIn("Invalid fixture metadata", grading["error"])
+        self.assertIn("fixture.json", grading["error"])
+
 
 # ===========================================================================
 # AC-9: run_single_eval() Layer 2 — integration/chain execution
@@ -315,6 +502,24 @@ class TestRunSingleEvalLayer2Invocation(unittest.TestCase):
             self.assertIsInstance(prompt, str)
             self.assertGreater(len(prompt), 10,
                                f"Prompt for {skill} too short to be real template")
+
+    @patch("evals.framework.orchestrator.create_runner")
+    @patch("evals.framework.orchestrator.run_sequence")
+    @patch("evals.framework.orchestrator.setup_fixture")
+    def test_runner_override_applies_to_sequence_case(self, mock_setup, mock_chain, mock_create_runner):
+        mock_setup.side_effect = lambda src, dst: shutil.copytree(
+            self.fixture_dir, dst
+        )
+        from evals.framework.chainer import ChainResult
+        override_runner = MockRunner()
+        mock_create_runner.return_value = override_runner
+        mock_chain.return_value = ChainResult(steps=[], snapshots=[])
+        case = _make_integration_eval_case(fixture_path=self.fixture_dir)
+        case["runner"] = "codex"
+        run_single_eval(case, trial_num=1, results_dir=self.results_dir,
+                        runner=self.runner)
+        self.assertIs(mock_chain.call_args.kwargs["runner"], override_runner)
+        mock_create_runner.assert_called_once_with("codex")
 
     @patch("evals.framework.orchestrator.run_sequence")
     @patch("evals.framework.orchestrator.setup_fixture")
@@ -731,8 +936,8 @@ class TestAggregation(unittest.TestCase):
         case = _make_skill_eval_case(eval_id="bench-test",
                                       fixture_path=self.fixture_dir)
         suite_path = _make_suite_json(self.tmpdir, [case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             results_dir = run_eval_suite(suite_path, trials=1)
         benchmark_path = os.path.join(results_dir, "benchmark.json")
         self.assertTrue(os.path.exists(benchmark_path),
@@ -747,13 +952,28 @@ class TestAggregation(unittest.TestCase):
         case = _make_skill_eval_case(eval_id="bench-valid",
                                       fixture_path=self.fixture_dir)
         suite_path = _make_suite_json(self.tmpdir, [case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             results_dir = run_eval_suite(suite_path, trials=1)
         benchmark_path = os.path.join(results_dir, "benchmark.json")
         with open(benchmark_path) as f:
             data = json.load(f)
         self.assertIsInstance(data, dict)
+
+    @patch("evals.framework.orchestrator.aggregate_results")
+    @patch("evals.framework.orchestrator.run_single_eval")
+    def test_run_eval_suite_records_provider_from_runner_override(self, mock_run_single_eval, mock_aggregate):
+        case = _make_integration_eval_case(eval_id="provider-override", fixture_path=self.fixture_dir)
+        case["runner"] = "codex"
+        suite_path = _make_suite_json(self.tmpdir, [case])
+        mock_run_single_eval.return_value = "codex"
+        mock_aggregate.return_value = {"metadata": {}, "run_summary": {}}
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
+            results_dir = run_eval_suite(suite_path, trials=1)
+        with open(os.path.join(results_dir, "config.json")) as f:
+            config = json.load(f)
+        self.assertEqual(config["provider"], "codex")
 
     @patch("evals.framework.orchestrator.setup_fixture")
     def test_benchmark_json_has_metadata(self, mock_setup):
@@ -764,8 +984,8 @@ class TestAggregation(unittest.TestCase):
         case = _make_skill_eval_case(eval_id="bench-meta",
                                       fixture_path=self.fixture_dir)
         suite_path = _make_suite_json(self.tmpdir, [case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             results_dir = run_eval_suite(suite_path, trials=1)
         benchmark_path = os.path.join(results_dir, "benchmark.json")
         with open(benchmark_path) as f:
@@ -781,8 +1001,8 @@ class TestAggregation(unittest.TestCase):
         )
         case = _make_skill_eval_case(fixture_path=self.fixture_dir)
         suite_path = _make_suite_json(self.tmpdir, [case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             results_dir = run_eval_suite(suite_path, trials=1)
         self.assertIsInstance(results_dir, str)
         self.assertTrue(os.path.isdir(results_dir))
@@ -798,8 +1018,8 @@ class TestAggregation(unittest.TestCase):
             _make_skill_eval_case(eval_id="eval-B", fixture_path=self.fixture_dir),
         ]
         suite_path = _make_suite_json(self.tmpdir, cases)
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             results_dir = run_eval_suite(suite_path, trials=1)
         benchmark_path = os.path.join(results_dir, "benchmark.json")
         with open(benchmark_path) as f:
@@ -910,7 +1130,7 @@ class TestSetupFailureErrorGrading(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
-    @patch("evals.framework.orchestrator.setup_fixture")
+    @patch("evals.framework.orchestrator.setup_repo_overlay_fixture")
     def test_setup_failure_writes_grading_json(self, mock_setup):
         """If setup_fixture raises, grading.json is still written."""
         mock_setup.side_effect = FileNotFoundError("Fixture not found")
@@ -922,7 +1142,7 @@ class TestSetupFailureErrorGrading(unittest.TestCase):
         )
         self.assertTrue(os.path.exists(path))
 
-    @patch("evals.framework.orchestrator.setup_fixture")
+    @patch("evals.framework.orchestrator.setup_repo_overlay_fixture")
     def test_setup_failure_pass_rate_zero(self, mock_setup):
         """Setup failure grading must have pass_rate: 0.0."""
         mock_setup.side_effect = FileNotFoundError("Fixture not found")
@@ -932,7 +1152,7 @@ class TestSetupFailureErrorGrading(unittest.TestCase):
         grading = _read_grading_json(self.results_dir, "setup-zero", 1)
         self.assertEqual(grading["pass_rate"], 0.0)
 
-    @patch("evals.framework.orchestrator.setup_fixture")
+    @patch("evals.framework.orchestrator.setup_repo_overlay_fixture")
     def test_setup_failure_has_eval_id(self, mock_setup):
         """Error grading.json must still include eval_id."""
         mock_setup.side_effect = FileNotFoundError("Bad fixture")
@@ -942,7 +1162,7 @@ class TestSetupFailureErrorGrading(unittest.TestCase):
         grading = _read_grading_json(self.results_dir, "setup-id", 1)
         self.assertEqual(grading["eval_id"], "setup-id")
 
-    @patch("evals.framework.orchestrator.setup_fixture")
+    @patch("evals.framework.orchestrator.setup_repo_overlay_fixture")
     def test_setup_failure_has_trial(self, mock_setup):
         """Error grading.json must include trial number."""
         mock_setup.side_effect = RuntimeError("Clone failed")
@@ -952,7 +1172,7 @@ class TestSetupFailureErrorGrading(unittest.TestCase):
         grading = _read_grading_json(self.results_dir, "setup-trial", 2)
         self.assertEqual(grading["trial"], 2)
 
-    @patch("evals.framework.orchestrator.setup_fixture")
+    @patch("evals.framework.orchestrator.setup_repo_overlay_fixture")
     def test_setup_failure_does_not_call_runner(self, mock_setup):
         """If setup fails, runner should never be called."""
         mock_setup.side_effect = FileNotFoundError("Missing")
@@ -961,7 +1181,7 @@ class TestSetupFailureErrorGrading(unittest.TestCase):
                         runner=self.runner)
         self.assertEqual(len(self.runner.calls), 0)
 
-    @patch("evals.framework.orchestrator.setup_fixture")
+    @patch("evals.framework.orchestrator.setup_repo_overlay_fixture")
     def test_setup_failure_has_duration_ms(self, mock_setup):
         """Error grading must still have a duration_ms field."""
         mock_setup.side_effect = FileNotFoundError("Missing")
@@ -1044,8 +1264,8 @@ class TestRunEvalSuiteLoading(unittest.TestCase):
         case = _make_skill_eval_case(eval_id="load-test",
                                       fixture_path=self.fixture_dir)
         suite_path = _make_suite_json(self.tmpdir, [case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             results_dir = run_eval_suite(suite_path, trials=1)
         # Should have created grading for the eval
         grading_path = os.path.join(
@@ -1062,8 +1282,8 @@ class TestRunEvalSuiteLoading(unittest.TestCase):
         case = _make_skill_eval_case(eval_id="trials-test",
                                       fixture_path=self.fixture_dir)
         suite_path = _make_suite_json(self.tmpdir, [case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             results_dir = run_eval_suite(suite_path, trials=3)
         for t in [1, 2, 3]:
             path = os.path.join(
@@ -1088,8 +1308,8 @@ class TestRunEvalSuiteLoading(unittest.TestCase):
             _make_skill_eval_case(eval_id="skip-me", fixture_path=self.fixture_dir),
         ]
         suite_path = _make_suite_json(self.tmpdir, cases)
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             results_dir = run_eval_suite(suite_path, trials=1,
                                           case_filter="run-me")
         run_path = os.path.join(
@@ -1107,8 +1327,8 @@ class TestRunEvalSuiteLoading(unittest.TestCase):
         case = _make_skill_eval_case(eval_id="dry-run-test",
                                       fixture_path=self.fixture_dir)
         suite_path = _make_suite_json(self.tmpdir, [case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             run_eval_suite(suite_path, trials=1, dry_run=True)
         mock_setup.assert_not_called()
 
@@ -1121,8 +1341,8 @@ class TestRunEvalSuiteLoading(unittest.TestCase):
             _make_skill_eval_case(eval_id="dry-B", fixture_path=self.fixture_dir),
         ]
         suite_path = _make_suite_json(self.tmpdir, cases)
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             run_eval_suite(suite_path, trials=1, dry_run=True)
         all_writes = "".join(str(c) for c in mock_stderr.write.call_args_list)
         self.assertIn("dry-A", all_writes)
@@ -1152,8 +1372,8 @@ class TestCLISuiteFlag(unittest.TestCase):
         case = _make_skill_eval_case(eval_id="cli-suite",
                                       fixture_path=self.fixture_dir)
         suite_path = _make_suite_json(self.tmpdir, [case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             with patch("evals.framework.orchestrator.run_eval_suite",
                         wraps=run_eval_suite) as mock_run:
                 with patch("sys.argv", ["evals", "--suite", suite_path]):
@@ -1179,8 +1399,8 @@ class TestCLICaseFilter(unittest.TestCase):
         case = _make_skill_eval_case(eval_id="real-case",
                                       fixture_path=self.fixture_dir)
         suite_path = _make_suite_json(self.tmpdir, [case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             with patch("sys.argv", ["evals", "--suite", suite_path,
                                      "--case", "nonexistent-id"]):
                 from evals.__main__ import main
@@ -1197,19 +1417,17 @@ class TestCLICaseFilter(unittest.TestCase):
         case = _make_skill_eval_case(eval_id="filter-me",
                                       fixture_path=self.fixture_dir)
         suite_path = _make_suite_json(self.tmpdir, [case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
-            with patch("evals.framework.orchestrator.run_eval_suite") as mock_run:
-                mock_run.return_value = self.tmpdir
-                with patch("sys.argv", ["evals", "--suite", suite_path,
-                                         "--case", "filter-me"]):
-                    from evals.__main__ import main
-                    main()
-                call_kwargs = mock_run.call_args[1] if mock_run.call_args[1] else {}
-                call_args = mock_run.call_args[0] if mock_run.call_args[0] else ()
-                # case_filter should be "filter-me" — check args or kwargs
-                all_values = list(call_args) + list(call_kwargs.values())
-                self.assertIn("filter-me", all_values)
+        with patch("evals.framework.orchestrator.run_eval_suite") as mock_run:
+            mock_run.return_value = self.tmpdir
+            with patch("sys.argv", ["evals", "--suite", suite_path,
+                                     "--case", "filter-me"]):
+                from evals.__main__ import main
+                main()
+            call_kwargs = mock_run.call_args[1] if mock_run.call_args[1] else {}
+            call_args = mock_run.call_args[0] if mock_run.call_args[0] else ()
+            # case_filter should be "filter-me" — check args or kwargs
+            all_values = list(call_args) + list(call_kwargs.values())
+            self.assertIn("filter-me", all_values)
 
 
 class TestCLITrials(unittest.TestCase):
@@ -1227,18 +1445,16 @@ class TestCLITrials(unittest.TestCase):
         case = _make_skill_eval_case(eval_id="trial-cli",
                                       fixture_path=self.fixture_dir)
         suite_path = _make_suite_json(self.tmpdir, [case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
-            with patch("evals.framework.orchestrator.run_eval_suite") as mock_run:
-                mock_run.return_value = self.tmpdir
-                with patch("sys.argv", ["evals", "--suite", suite_path,
-                                         "--trials", "5"]):
-                    from evals.__main__ import main
-                    main()
-                call_kwargs = mock_run.call_args[1] if mock_run.call_args[1] else {}
-                call_args = mock_run.call_args[0] if mock_run.call_args[0] else ()
-                all_values = list(call_args) + list(call_kwargs.values())
-                self.assertIn(5, all_values)
+        with patch("evals.framework.orchestrator.run_eval_suite") as mock_run:
+            mock_run.return_value = self.tmpdir
+            with patch("sys.argv", ["evals", "--suite", suite_path,
+                                     "--trials", "5"]):
+                from evals.__main__ import main
+                main()
+            call_kwargs = mock_run.call_args[1] if mock_run.call_args[1] else {}
+            call_args = mock_run.call_args[0] if mock_run.call_args[0] else ()
+            all_values = list(call_args) + list(call_kwargs.values())
+            self.assertIn(5, all_values)
 
 
 class TestCLIDryRun(unittest.TestCase):
@@ -1256,21 +1472,19 @@ class TestCLIDryRun(unittest.TestCase):
         case = _make_skill_eval_case(eval_id="dry-cli",
                                       fixture_path=self.fixture_dir)
         suite_path = _make_suite_json(self.tmpdir, [case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
-            with patch("evals.framework.orchestrator.run_eval_suite") as mock_run:
-                mock_run.return_value = self.tmpdir
-                with patch("sys.argv", ["evals", "--suite", suite_path,
-                                         "--dry-run"]):
-                    from evals.__main__ import main
-                    main()
-                call_kwargs = mock_run.call_args[1] if mock_run.call_args[1] else {}
-                self.assertTrue(
-                    call_kwargs.get("dry_run", False) is True
-                    or (len(mock_run.call_args[0]) > 3 and
-                        mock_run.call_args[0][3] is True),
-                    "dry_run=True must be passed to run_eval_suite"
-                )
+        with patch("evals.framework.orchestrator.run_eval_suite") as mock_run:
+            mock_run.return_value = self.tmpdir
+            with patch("sys.argv", ["evals", "--suite", suite_path,
+                                     "--dry-run"]):
+                from evals.__main__ import main
+                main()
+            call_kwargs = mock_run.call_args[1] if mock_run.call_args[1] else {}
+            self.assertTrue(
+                call_kwargs.get("dry_run", False) is True
+                or (len(mock_run.call_args[0]) > 3 and
+                    mock_run.call_args[0][3] is True),
+                "dry_run=True must be passed to run_eval_suite"
+            )
 
 
 class TestCLITimeout(unittest.TestCase):
@@ -1288,18 +1502,16 @@ class TestCLITimeout(unittest.TestCase):
         case = _make_skill_eval_case(eval_id="timeout-cli",
                                       fixture_path=self.fixture_dir)
         suite_path = _make_suite_json(self.tmpdir, [case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
-            with patch("evals.framework.orchestrator.run_eval_suite") as mock_run:
-                mock_run.return_value = self.tmpdir
-                with patch("sys.argv", ["evals", "--suite", suite_path,
-                                         "--timeout", "600"]):
-                    from evals.__main__ import main
-                    main()
-                call_kwargs = mock_run.call_args[1] if mock_run.call_args[1] else {}
-                call_args = mock_run.call_args[0] if mock_run.call_args[0] else ()
-                all_values = list(call_args) + list(call_kwargs.values())
-                self.assertIn(600, all_values)
+        with patch("evals.framework.orchestrator.run_eval_suite") as mock_run:
+            mock_run.return_value = self.tmpdir
+            with patch("sys.argv", ["evals", "--suite", suite_path,
+                                     "--timeout", "600"]):
+                from evals.__main__ import main
+                main()
+            call_kwargs = mock_run.call_args[1] if mock_run.call_args[1] else {}
+            call_args = mock_run.call_args[0] if mock_run.call_args[0] else ()
+            all_values = list(call_args) + list(call_kwargs.values())
+            self.assertIn(600, all_values)
 
 
 # ===========================================================================
@@ -1422,8 +1634,8 @@ class TestSmokeFilter(unittest.TestCase):
         suite_path = _make_suite_json(
             self.tmpdir, [smoke_case, non_smoke_case, unset_case]
         )
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             results_dir = run_eval_suite(suite_path, trials=1, smoke_only=True)
 
         smoke_yes_path = os.path.join(
@@ -1453,8 +1665,8 @@ class TestSmokeFilter(unittest.TestCase):
             eval_id="entry-2", fixture_path=self.fixture_dir
         )
         suite_path = _make_suite_json(self.tmpdir, [smoke_case, non_smoke_case])
-        with patch("evals.framework.orchestrator.ClaudeCodeRunner") as MockCCR:
-            MockCCR.return_value = MockRunner()
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
             results_dir = run_eval_suite(suite_path, trials=1, smoke_only=False)
         for eval_id in ("entry-1", "entry-2"):
             path = os.path.join(
@@ -1503,6 +1715,7 @@ class TestBaselineCLI(unittest.TestCase):
         from evals.framework.baseline import BaselineFile, write_baseline
         b = BaselineFile(
             suite=suite,
+            provider="claude",
             generated_at="2026-04-08T12:00:00Z",
             generated_from_commit="abc1234",
             tolerances={
@@ -1523,7 +1736,7 @@ class TestBaselineCLI(unittest.TestCase):
                 },
             },
         )
-        path = os.path.join(self.baselines_dir, f"{suite}.json")
+        path = os.path.join(self.baselines_dir, f"{suite}.claude.json")
         write_baseline(b, path)
         return path
 
@@ -1531,8 +1744,8 @@ class TestBaselineCLI(unittest.TestCase):
         self._write_valid_baseline("skill")
         from evals.framework.baseline import validate_baselines_dir
         findings = validate_baselines_dir(self.baselines_dir)
-        self.assertIn("skill.json", findings)
-        self.assertEqual(findings["skill.json"], [])
+        self.assertIn("skill.claude.json", findings)
+        self.assertEqual(findings["skill.claude.json"], [])
 
     def test_validate_baselines_dir_skips_schema_json(self):
         """schema.json (the JSON Schema document) is NOT a baseline file."""
@@ -1542,7 +1755,7 @@ class TestBaselineCLI(unittest.TestCase):
         from evals.framework.baseline import validate_baselines_dir
         findings = validate_baselines_dir(self.baselines_dir)
         self.assertNotIn("schema.json", findings)
-        self.assertIn("skill.json", findings)
+        self.assertIn("skill.claude.json", findings)
 
     def test_validate_baselines_dir_missing_directory_returns_empty(self):
         from evals.framework.baseline import validate_baselines_dir

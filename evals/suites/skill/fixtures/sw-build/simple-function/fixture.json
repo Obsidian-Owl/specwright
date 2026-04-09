@@ -2,5 +2,17 @@
   "specwright_version": "0.16.0",
   "created_date": "2026-03-18",
   "language": "typescript",
-  "description": "Minimal TypeScript project for testing sw-build on a simple function implementation"
+  "description": "Minimal TypeScript project for testing sw-build on a simple function implementation",
+  "setup": {
+    "base_repo_root": true,
+    "git": true,
+    "env": {
+      "LEFTHOOK": "0",
+      "SKIP": "build-validate,secret-scan,shellcheck"
+    },
+    "commands": [
+      "git config core.hooksPath /dev/null",
+      "npm install --package-lock=false"
+    ]
+  }
 }

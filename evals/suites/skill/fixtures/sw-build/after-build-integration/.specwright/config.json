@@ -1,0 +1,33 @@
+{
+  "version": "2.0",
+  "project": {
+    "name": "after-build-integration-fixture",
+    "type": "typescript",
+    "languages": ["typescript"],
+    "framework": null,
+    "packageManager": "npm",
+    "testRunner": "vitest",
+    "linter": null,
+    "formatter": null
+  },
+  "commands": {
+    "build": null,
+    "test": "npx vitest run --dir ./tests tests/name.test.ts tests/greeting.test.ts",
+    "test:integration": "bash tests/integration.sh",
+    "lint": null,
+    "format": null
+  },
+  "git": {
+    "defaultBranch": "main",
+    "strategy": "trunk-based",
+    "conventionalCommits": true,
+    "branchPrefix": "work/"
+  },
+  "gates": {
+    "build": { "enabled": false },
+    "tests": { "enabled": true, "philosophy": "tdd-strict" },
+    "security": { "enabled": false },
+    "spec": { "enabled": true, "requireEvidence": true },
+    "wiring": { "enabled": false }
+  }
+}

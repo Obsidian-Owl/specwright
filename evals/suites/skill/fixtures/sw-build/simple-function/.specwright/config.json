@@ -12,7 +12,7 @@
   },
   "commands": {
     "build": null,
-    "test": "npx vitest run",
+    "test": "npx vitest run --dir ./src src/math.test.ts",
     "lint": null,
     "format": null
   },

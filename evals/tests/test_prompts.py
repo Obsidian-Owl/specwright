@@ -113,6 +113,20 @@ class TestPromptTemplatesContainPreScriptedDecisions(unittest.TestCase):
             "Build template should reference implementation approach"
         )
 
+    def test_build_handoff_matches_recovery_contract(self):
+        result = build()
+        self.assertIn("Attention required:", result)
+        self.assertIn("Done. <one-line outcome>.", result)
+        self.assertIn("Artifacts: <path to stage-report.md>", result)
+        self.assertIn("Next: /sw-verify", result)
+
+    def test_verify_handoff_points_to_stage_report_file(self):
+        result = verify()
+        self.assertIn("Attention required:", result)
+        self.assertIn("Done. <one-line outcome>.", result)
+        self.assertIn("Artifacts: <path to stage-report.md>", result)
+        self.assertIn("Next: /sw-build or /sw-ship", result)
+
 
 class TestNewPromptTemplates(unittest.TestCase):
     """New templates return non-empty strings with default args."""
@@ -161,6 +175,21 @@ class TestNewPromptTemplates(unittest.TestCase):
         result = status(repair_unit_id="02d-structural-smoke-evals", headless=True)
         self.assertIn("non-interactive", result)
         self.assertIn("report-only", result)
+
+    def test_ship_handoff_matches_recovery_contract(self):
+        result = ship()
+        self.assertIn("Attention required:", result)
+        self.assertIn("Done. <one-line outcome>.", result)
+        self.assertIn("Artifacts: <path to stage-report.md>", result)
+        self.assertIn("Use the documented `gh` command path directly.", result)
+        self.assertIn("Do not reopen `core/skills/sw-ship/SKILL.md`", result)
+        self.assertIn("run exactly one", result)
+
+    def test_doctor_prompt_treats_path_shims_as_stock_tools(self):
+        result = doctor()
+        self.assertIn("Assume PATH-provided CLI shims behave like their stock tools.", result)
+        self.assertIn("Never modify `status`", result)
+        self.assertIn("Do not reopen `core/skills/sw-doctor/SKILL.md`", result)
 
     def test_sync_returns_string(self):
         self.assertIsInstance(sync(), str)

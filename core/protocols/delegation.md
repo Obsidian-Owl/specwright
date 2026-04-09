@@ -48,6 +48,17 @@ task should still be included inline — agents have no conversation history.
 For large context documents (context.md, design.md): include only sections
 relevant to the current task, not the full document.
 
+## Build Grounding
+
+For build-time delegation, pass file paths for grounding docs instead of
+describing them inline:
+- `{currentWork.workDir}/repo-map.md` when it exists
+- `core/skills/lang-building/{language}.md` for the task's language-pattern doc
+
+Build agents read those files directly when the prompt includes the paths.
+Language selection is deterministic: use `config.json project.languages[0]`
+unless the task is clearly in a different language by file extension.
+
 ## Agent Roster
 
 | Agent | Model | Use for | Constraint |

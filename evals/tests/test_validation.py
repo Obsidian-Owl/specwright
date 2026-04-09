@@ -123,6 +123,14 @@ class TestAC1ValidSuiteReturnsEmptyList(unittest.TestCase):
             errors = validate_suite(path)
             self.assertEqual(errors, [])
 
+    def test_valid_runner_override_returns_empty_list(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            case = _valid_sequence_case()
+            case["runner"] = "codex"
+            path = _write_suite(tmpdir, _valid_suite(case))
+            errors = validate_suite(path)
+            self.assertEqual(errors, [])
+
     def test_valid_workflow_case_returns_empty_list(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = _write_suite(tmpdir, _valid_suite(_valid_workflow_case()))
@@ -602,12 +610,14 @@ class TestAC7RunEvalSuiteCallsValidation(unittest.TestCase):
                        f"Stderr should contain error text, got: {output}")
 
     @patch("evals.framework.orchestrator.validate_suite")
-    @patch("evals.framework.orchestrator.ClaudeCodeRunner")
-    def test_valid_suite_proceeds_to_execution(self, mock_runner_cls, mock_validate):
+    @patch("evals.framework.orchestrator.create_runner")
+    def test_valid_suite_proceeds_to_execution(self, mock_create_runner, mock_validate):
         """When validate_suite returns [], execution should proceed (validate was called)."""
         mock_validate.return_value = []
         mock_runner = MagicMock()
-        mock_runner_cls.return_value = mock_runner
+        mock_runner._active_provider = "claude"
+        mock_runner.provider = "claude"
+        mock_create_runner.return_value = mock_runner
         with tempfile.TemporaryDirectory() as tmpdir:
             suite = _valid_suite(_valid_skill_case())
             path = _write_suite(tmpdir, suite)
@@ -741,6 +751,14 @@ class TestCompoundValidation(unittest.TestCase):
             path = _write_suite(tmpdir, suite)
             errors = validate_suite(path)
             self.assertEqual(errors, [])
+
+    def test_invalid_runner_override_is_reported(self):
+        case = _valid_sequence_case(case_id="bad-runner")
+        case["runner"] = "llama"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = _write_suite(tmpdir, _valid_suite(case))
+            errors = validate_suite(path)
+            self.assertTrue(any("Unsupported runner" in error for error in errors))
 
 
 if __name__ == "__main__":
