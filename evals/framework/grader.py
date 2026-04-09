@@ -119,7 +119,11 @@ def _snapshot_file_path(snapshot: Dict, path: str) -> Optional[str]:
     root = _snapshot_root(snapshot)
     if root is None:
         return None
-    return os.path.join(root, path)
+    real_root = os.path.realpath(root)
+    full_path = os.path.realpath(os.path.join(real_root, path))
+    if full_path != real_root and not full_path.startswith(real_root + os.sep):
+        return None
+    return full_path
 
 
 def _extract_all_assistant_text(transcript: List[Dict]) -> str:
@@ -594,12 +598,15 @@ def check_snapshot_file_contains(
             type="snapshot_file_contains",
             description=f"Snapshot file contains pattern: {pattern}",
             passed=False,
-            evidence=f"Snapshot {snapshot_index} has no snapshot_dir",
+            evidence=(
+                f"Snapshot {snapshot_index} has no snapshot_dir or path escaped "
+                f"snapshot root: {path}"
+            ),
             score=0.0,
         )
 
     try:
-        with open(full_path, "r") as f:
+        with open(full_path, "r", encoding="utf-8", errors="replace") as f:
             content = f.read()
     except FileNotFoundError:
         return CheckResult(
@@ -664,12 +671,15 @@ def check_snapshot_file_line_count_lte(
             type="snapshot_file_line_count_lte",
             description=f"Snapshot file line count <= {max_lines}: {path}",
             passed=False,
-            evidence=f"Snapshot {snapshot_index} has no snapshot_dir",
+            evidence=(
+                f"Snapshot {snapshot_index} has no snapshot_dir or path escaped "
+                f"snapshot root: {path}"
+            ),
             score=0.0,
         )
 
     try:
-        with open(full_path, "r") as f:
+        with open(full_path, "r", encoding="utf-8", errors="replace") as f:
             line_count = len(f.read().splitlines())
     except FileNotFoundError:
         return CheckResult(
@@ -1305,10 +1315,10 @@ def _dispatch_expectation(
             if threshold is not None:
                 kwargs["threshold"] = threshold
             if target_path == "$TRANSCRIPT":
-                if transcript is not None:
-                    kwargs["transcript"] = transcript
-                elif step_transcripts is not None:
+                if step_transcripts is not None:
                     kwargs["transcript"] = step_transcripts
+                elif transcript is not None:
+                    kwargs["transcript"] = transcript
             return grade_with_model(rubric, target_content, **kwargs)
         except ImportError:
             return CheckResult(

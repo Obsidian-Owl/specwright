@@ -1435,6 +1435,37 @@ class TestTranscriptDispatch(unittest.TestCase):
             shutil.rmtree(workdir, ignore_errors=True)
 
     @patch("evals.framework.model_grader.grade_with_model")
+    def test_transcript_target_prefers_step_transcripts_when_both_exist(self, mock_grade):
+        """Chain evals should send the full step list even when final transcript exists."""
+        mock_grade.return_value = CheckResult(
+            type="model_grade", passed=True, evidence="ok", score=0.8
+        )
+        expectation = {
+            "type": "model_grade",
+            "rubric": "Check transcript quality",
+            "target": "$TRANSCRIPT",
+        }
+        transcript = [{"type": "assistant", "content": "final"}]
+        step_transcripts = [
+            [{"type": "assistant", "content": "first"}],
+            [{"type": "assistant", "content": "second"}],
+        ]
+        workdir = tempfile.mkdtemp()
+        try:
+            from evals.framework.grader import _dispatch_expectation
+            _dispatch_expectation(
+                expectation,
+                workdir,
+                None,
+                transcript=transcript,
+                step_transcripts=step_transcripts,
+            )
+            call_kwargs = mock_grade.call_args
+            self.assertEqual(call_kwargs.kwargs["transcript"], step_transcripts)
+        finally:
+            shutil.rmtree(workdir, ignore_errors=True)
+
+    @patch("evals.framework.model_grader.grade_with_model")
     def test_non_transcript_target_does_not_pass_snapshots(self, mock_grade):
         """When target is a file path, snapshots should NOT be forwarded."""
         mock_grade.return_value = CheckResult(
@@ -1803,6 +1834,46 @@ class TestSnapshotExpectations(unittest.TestCase):
             self.snapshots,
         )
         self.assertTrue(result.passed)
+
+    def test_snapshot_file_contains_rejects_path_traversal(self):
+        from evals.framework.grader import check_snapshot_file_contains
+        escaped_path = os.path.join(self.tmpdir, "escaped.txt")
+        with open(escaped_path, "w") as f:
+            f.write("outside\n")
+        result = check_snapshot_file_contains("../escaped.txt", r"outside", 0, self.snapshots)
+        self.assertFalse(result.passed)
+        self.assertIn("escaped snapshot root", result.evidence)
+
+    def test_snapshot_file_helpers_read_utf8_with_replacement(self):
+        from evals.framework.grader import (
+            check_snapshot_file_contains,
+            check_snapshot_file_line_count_lte,
+        )
+        binary_path = os.path.join(
+            self.snapshot_dir,
+            ".specwright",
+            "work",
+            "test-work",
+            "non-utf8.txt",
+        )
+        with open(binary_path, "wb") as f:
+            f.write(b"alpha\xff\nbeta\n")
+
+        contains_result = check_snapshot_file_contains(
+            ".specwright/work/test-work/non-utf8.txt",
+            r"alpha",
+            0,
+            self.snapshots,
+        )
+        line_count_result = check_snapshot_file_line_count_lte(
+            ".specwright/work/test-work/non-utf8.txt",
+            2,
+            0,
+            self.snapshots,
+        )
+
+        self.assertTrue(contains_result.passed)
+        self.assertTrue(line_count_result.passed)
 
 
 class TestStepTranscriptExpectations(unittest.TestCase):

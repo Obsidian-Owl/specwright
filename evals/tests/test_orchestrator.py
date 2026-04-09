@@ -1595,6 +1595,20 @@ class TestStructuralEvalCases(unittest.TestCase):
         errors = validate_suite(suite_path)
         self.assertTrue(any("type" in err for err in errors), errors)
 
+    def test_validate_suite_accepts_doctor_prompt_template(self):
+        from evals.framework.orchestrator import validate_suite
+
+        fixture_dir = _make_fixture_dir(self.tmpdir)
+        case = _make_skill_eval_case(
+            eval_id="doctor-skill",
+            skill="sw-doctor",
+            fixture_path=fixture_dir,
+        )
+        case["prompt_template"] = "doctor"
+        suite_path = _make_suite_json(self.tmpdir, [case])
+        errors = validate_suite(suite_path)
+        self.assertEqual(errors, [])
+
     @patch("subprocess.run")
     def test_run_single_eval_structural_success_writes_passing_grading_json(
         self, mock_run
