@@ -8,7 +8,7 @@ import unittest
 
 from evals.framework.prompts import (
     init, design, plan, build, verify, ship,
-    debug, research, learn, pivot, status, sync, guard, audit,
+    doctor, debug, research, learn, pivot, status, sync, guard, audit,
 )
 
 
@@ -54,6 +54,9 @@ class TestPromptTemplatesContainSkillInvocation(unittest.TestCase):
 
     def test_ship_contains_sw_ship(self):
         self.assertIn("/sw-ship", ship())
+
+    def test_doctor_contains_sw_doctor(self):
+        self.assertIn("/sw-doctor", doctor())
 
 
 class TestDesignTemplateEmbedsArgs(unittest.TestCase):
@@ -126,6 +129,10 @@ class TestNewPromptTemplates(unittest.TestCase):
         self.assertIsInstance(research(), str)
         self.assertTrue(len(research()) > 0)
 
+    def test_doctor_returns_string(self):
+        self.assertIsInstance(doctor(), str)
+        self.assertTrue(len(doctor()) > 0)
+
     def test_research_with_topic(self):
         result = research(topic="GraphQL pagination patterns")
         self.assertIn("GraphQL", result)
@@ -145,6 +152,15 @@ class TestNewPromptTemplates(unittest.TestCase):
     def test_status_returns_string(self):
         self.assertIsInstance(status(), str)
         self.assertTrue(len(status()) > 0)
+
+    def test_status_repair_embeds_unit_id(self):
+        result = status(repair_unit_id="02d-structural-smoke-evals")
+        self.assertIn("--repair 02d-structural-smoke-evals", result)
+
+    def test_status_repair_headless_mentions_report_only(self):
+        result = status(repair_unit_id="02d-structural-smoke-evals", headless=True)
+        self.assertIn("non-interactive", result)
+        self.assertIn("report-only", result)
 
     def test_sync_returns_string(self):
         self.assertIsInstance(sync(), str)

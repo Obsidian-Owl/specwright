@@ -1382,11 +1382,11 @@ class TestCheckResultContract(unittest.TestCase):
 # ===========================================================================
 
 class TestTranscriptDispatch(unittest.TestCase):
-    """model_grade with $TRANSCRIPT target forwards snapshots as transcript."""
+    """model_grade with $TRANSCRIPT target forwards transcript data correctly."""
 
     @patch("evals.framework.model_grader.grade_with_model")
-    def test_transcript_target_passes_snapshots(self, mock_grade):
-        """When target is $TRANSCRIPT, snapshots should be forwarded as transcript kwarg."""
+    def test_transcript_target_passes_transcript(self, mock_grade):
+        """When target is $TRANSCRIPT, the actual transcript should be forwarded."""
         mock_grade.return_value = CheckResult(
             type="model_grade", passed=True, evidence="ok", score=0.8
         )
@@ -1395,15 +1395,42 @@ class TestTranscriptDispatch(unittest.TestCase):
             "rubric": "Check transcript quality",
             "target": "$TRANSCRIPT",
         }
-        snapshots = [{"event": "tool_call", "data": "test data"}]
+        transcript = [{"type": "assistant", "content": "test data"}]
         workdir = tempfile.mkdtemp()
         try:
             from evals.framework.grader import _dispatch_expectation
-            _dispatch_expectation(expectation, workdir, snapshots)
+            _dispatch_expectation(expectation, workdir, None, transcript=transcript)
             mock_grade.assert_called_once()
             call_kwargs = mock_grade.call_args
             self.assertIn("transcript", call_kwargs.kwargs)
-            self.assertEqual(call_kwargs.kwargs["transcript"], snapshots)
+            self.assertEqual(call_kwargs.kwargs["transcript"], transcript)
+        finally:
+            shutil.rmtree(workdir, ignore_errors=True)
+
+    @patch("evals.framework.model_grader.grade_with_model")
+    def test_transcript_target_falls_back_to_step_transcripts(self, mock_grade):
+        """Chain evals should forward step transcripts when no final transcript is provided."""
+        mock_grade.return_value = CheckResult(
+            type="model_grade", passed=True, evidence="ok", score=0.8
+        )
+        expectation = {
+            "type": "model_grade",
+            "rubric": "Check transcript quality",
+            "target": "$TRANSCRIPT",
+        }
+        step_transcripts = [[{"type": "assistant", "content": "step one"}]]
+        workdir = tempfile.mkdtemp()
+        try:
+            from evals.framework.grader import _dispatch_expectation
+            _dispatch_expectation(
+                expectation,
+                workdir,
+                None,
+                transcript=None,
+                step_transcripts=step_transcripts,
+            )
+            call_kwargs = mock_grade.call_args
+            self.assertEqual(call_kwargs.kwargs["transcript"], step_transcripts)
         finally:
             shutil.rmtree(workdir, ignore_errors=True)
 
@@ -1703,6 +1730,104 @@ class TestGradeEvalWithTranscript(unittest.TestCase):
         }
         result = grade_eval(eval_case, self.workdir)
         self.assertEqual(result["summary"]["failed"], 1)
+
+
+class TestSnapshotExpectations(unittest.TestCase):
+    """Snapshot-aware expectations support per-step behavioral assertions."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.snapshot_dir = os.path.join(self.tmpdir, "snapshot-0")
+        os.makedirs(os.path.join(self.snapshot_dir, ".specwright", "work", "test-work"), exist_ok=True)
+        with open(
+            os.path.join(self.snapshot_dir, ".specwright", "work", "test-work", "stage-report.md"),
+            "w",
+        ) as f:
+            f.write("Attention required: none\n\n## Recommendation\n- Next\n")
+        self.snapshots = [
+            {
+                "workflow_state": {"currentWork": {"status": "verifying"}},
+                "snapshot_dir": self.snapshot_dir,
+            }
+        ]
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_snapshot_state_passes(self):
+        from evals.framework.grader import check_snapshot_state
+        result = check_snapshot_state("currentWork.status", "verifying", 0, self.snapshots)
+        self.assertTrue(result.passed)
+
+    def test_snapshot_state_supports_list_indexes(self):
+        from evals.framework.grader import check_snapshot_state
+        self.snapshots[0]["workflow_state"]["workUnits"] = [
+            {"id": "u1", "status": "shipped", "prNumber": None},
+            {"id": "u2", "status": "building", "prNumber": 157},
+        ]
+        result = check_snapshot_state("workUnits.0.status", "shipped", 0, self.snapshots)
+        self.assertTrue(result.passed)
+
+    def test_snapshot_state_reports_invalid_list_index(self):
+        from evals.framework.grader import check_snapshot_state
+        self.snapshots[0]["workflow_state"]["workUnits"] = [{"status": "shipped"}]
+        result = check_snapshot_state("workUnits.4.status", "shipped", 0, self.snapshots)
+        self.assertFalse(result.passed)
+        self.assertIn("List index out of range", result.evidence)
+
+    def test_snapshot_file_exists_passes(self):
+        from evals.framework.grader import check_snapshot_file_exists
+        result = check_snapshot_file_exists(
+            ".specwright/work/test-work/stage-report.md",
+            0,
+            self.snapshots,
+        )
+        self.assertTrue(result.passed)
+
+    def test_snapshot_file_contains_passes(self):
+        from evals.framework.grader import check_snapshot_file_contains
+        result = check_snapshot_file_contains(
+            ".specwright/work/test-work/stage-report.md",
+            r"^Attention required:",
+            0,
+            self.snapshots,
+        )
+        self.assertTrue(result.passed)
+
+    def test_snapshot_file_line_count_lte_passes(self):
+        from evals.framework.grader import check_snapshot_file_line_count_lte
+        result = check_snapshot_file_line_count_lte(
+            ".specwright/work/test-work/stage-report.md",
+            10,
+            0,
+            self.snapshots,
+        )
+        self.assertTrue(result.passed)
+
+
+class TestStepTranscriptExpectations(unittest.TestCase):
+    """Chain-step transcript expectations inspect intermediate skill behavior."""
+
+    def test_step_transcript_contains_passes(self):
+        from evals.framework.grader import check_step_transcript_contains
+        transcripts = [[_make_result_event("Run /sw-status --repair 05-state-drift-and-stage-report")]]
+        result = check_step_transcript_contains(0, r"sw-status --repair", transcripts)
+        self.assertTrue(result.passed)
+
+    def test_step_transcript_final_block_passes(self):
+        from evals.framework.grader import check_step_transcript_final_block
+        transcripts = [[
+            _make_result_event(
+                "Done. verified.\nArtifacts: .specwright/work/test/\nNext: /sw-ship"
+            )
+        ]]
+        result = check_step_transcript_final_block(
+            0,
+            HANDOFF_PATTERNS,
+            transcripts,
+            forbidden_substrings=HANDOFF_FORBIDDEN,
+        )
+        self.assertTrue(result.passed)
 
 
 if __name__ == "__main__":

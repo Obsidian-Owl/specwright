@@ -23,6 +23,7 @@ def capture_snapshot(workdir: str, output_dir: str) -> Dict[str, Any]:
             "artifacts": [],
             "git_status": _get_git_status(workdir),
             "timestamp": timestamp,
+            "snapshot_dir": output_dir,
             "error": ".specwright/ directory not found",
         }
 
@@ -43,6 +44,7 @@ def capture_snapshot(workdir: str, output_dir: str) -> Dict[str, Any]:
         "artifacts": artifacts,
         "git_status": _get_git_status(workdir),
         "timestamp": timestamp,
+        "snapshot_dir": output_dir,
     }
 
 

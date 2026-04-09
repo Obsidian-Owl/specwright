@@ -1,0 +1,18 @@
+{
+  "version": "2.0",
+  "currentWork": null,
+  "workUnits": [
+    {
+      "id": "02d-structural-smoke-evals",
+      "description": "Structural smoke eval stabilization",
+      "status": "shipped",
+      "order": 4,
+      "workDir": ".specwright/work/legibility-recovery/units/02d-structural-smoke-evals",
+      "prNumber": null,
+      "prMergedAt": null
+    }
+  ],
+  "gates": {},
+  "lock": null,
+  "lastUpdated": "2026-04-09T00:00:00.000Z"
+}

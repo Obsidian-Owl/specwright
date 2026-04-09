@@ -74,6 +74,15 @@ Create a PR with evidence-mapped body. Use the default branch strategy.
 Do not ask for confirmation — proceed with shipping."""
 
 
+def doctor() -> str:
+    """Prompt template for /sw-doctor."""
+    return """Run /sw-doctor.
+
+Perform the full Specwright health check, including STATE_DRIFT detection.
+If backfill is safe and provable, apply it. Otherwise print the exact
+remediation command for each affected unit."""
+
+
 def debug(error_output: str = "") -> str:
     """Prompt template for /sw-debug."""
     if error_output:
@@ -130,8 +139,24 @@ Review the current build state and apply course corrections
 based on the most recent feedback or change request."""
 
 
-def status() -> str:
+def status(repair_unit_id: str = "", headless: bool = False) -> str:
     """Prompt template for /sw-status."""
+    if repair_unit_id:
+        prompt = f"""Run /sw-status --repair {repair_unit_id}.
+
+Inspect the target unit and follow the documented repair flow."""
+        if headless:
+            prompt += """
+
+Treat this as a non-interactive run. If AskUserQuestion would be required,
+stay report-only and explain the next interactive step."""
+        else:
+            prompt += """
+
+If interaction is available, continue through the documented repair options
+without asking clarifying questions."""
+        return prompt
+
     return """Run /sw-status.
 
 Show current Specwright state — active work unit, task progress,
