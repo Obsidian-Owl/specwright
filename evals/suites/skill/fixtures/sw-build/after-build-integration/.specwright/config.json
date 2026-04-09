@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "project": {
-    "name": "simple-function-fixture",
+    "name": "after-build-integration-fixture",
     "type": "typescript",
     "languages": ["typescript"],
     "framework": null,
@@ -12,7 +12,8 @@
   },
   "commands": {
     "build": null,
-    "test": "npx vitest run --dir ./src src/math.test.ts",
+    "test": "npx vitest run --dir ./tests tests/name.test.ts tests/greeting.test.ts",
+    "test:integration": "bash tests/integration.sh",
     "lint": null,
     "format": null
   },

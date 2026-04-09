@@ -1,10 +1,9 @@
 # Simple Function Plan
 
-## Task 1: Implement add function and tests
+## Task 1: Implement numeric addition
 
-Write tests for the add function covering AC-1 through AC-3, then implement
-the function to make them pass.
+Implement `add()` in `src/math.ts` and cover it with unit tests.
 
 **File changes:**
-- Create: `src/math.test.ts`
-- Edit: `src/math.ts` (replace stub with implementation)
+- Edit: `src/math.ts`
+- Create or edit: `src/math.test.ts`

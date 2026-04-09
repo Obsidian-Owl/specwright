@@ -26,7 +26,7 @@
         },
         {
           "type": "tests_pass",
-          "command": "npx vitest run",
+          "command": "npx vitest run --dir ./src src/math.test.ts",
           "description": "All tests pass after implementation"
         },
         {
@@ -36,27 +36,98 @@
           "description": "Workflow state is building"
         },
         {
+          "type": "git",
+          "check_type": "branch_exists",
+          "branch": "work/simple-function",
+          "description": "sw-build creates the feature branch"
+        },
+        {
+          "type": "git",
+          "check_type": "commit_count",
+          "expected": 2,
+          "description": "sw-build commits the completed task"
+        },
+        {
+          "type": "git",
+          "check_type": "no_uncommitted_changes",
+          "description": "sw-build leaves the fixture repo clean"
+        },
+        {
+          "type": "file_exists",
+          "path": ".specwright/work/simple-function/stage-report.md",
+          "description": "sw-build writes the stage report artifact"
+        },
+        {
+          "type": "transcript_final_block",
+          "line_patterns": [
+            "^Done\\.",
+            "^Artifacts: .+stage-report\\.md$",
+            "^Next: /sw-verify$"
+          ],
+          "description": "sw-build emits the three-line handoff"
+        },
+        {
           "type": "model_grade",
           "rubric": "Tests assert behavior (input/output), not implementation details. At least one edge case (negative numbers or zero) is tested.",
           "target": "src/math.test.ts",
           "description": "Test quality meets constitution standards"
-        },
-        {
-          "type": "model_grade",
-          "rubric": "The tester agent's test suite includes boundary condition tests (zero, negative numbers, large numbers) and at least one assertion designed to catch a hardcoded return value. Tests assert on specific expected values, not truthiness checks like toBeDefined(). Score 0.8+ if boundary tests and anti-hardcode test present, 0.5-0.7 if only basic assertions, below 0.5 if tests are weak.",
-          "target": "$TRANSCRIPT",
-          "threshold": 0.6,
-          "description": "Subagent quality: tester adversarial test design"
-        },
-        {
-          "type": "model_grade",
-          "rubric": "The executor agent's implementation is minimal — it solves the spec requirements without unnecessary abstractions, unused parameters, or speculative features. Error handling matches what the spec requires, nothing more. The code follows the project's TypeScript conventions. Score 0.8+ if implementation is minimal and correct, 0.5-0.7 if correct but includes unnecessary code, below 0.5 if incorrect or significantly over-engineered.",
-          "target": "$TRANSCRIPT",
-          "threshold": 0.6,
-          "description": "Subagent quality: executor implementation discipline"
         }
       ],
       "tags": ["skill", "sw-build", "typescript", "simple"]
+    },
+    {
+      "id": "sw-build-after-build-integration",
+      "layer": "skill",
+      "skill": "sw-build",
+      "prompt_template": "build",
+      "prompt_args": {},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/skill/fixtures/sw-build/after-build-integration"
+      },
+      "expectations": [
+        {
+          "type": "file_exists",
+          "path": "src/name.ts",
+          "description": "Name normalization file exists"
+        },
+        {
+          "type": "file_exists",
+          "path": "src/greeting.ts",
+          "description": "Greeting file exists"
+        },
+        {
+          "type": "tests_pass",
+          "command": "npx vitest run --dir ./tests tests/name.test.ts tests/greeting.test.ts",
+          "description": "All unit tests pass after implementation"
+        },
+        {
+          "type": "file_contains",
+          "path": ".integration-count",
+          "pattern": "^1\\s*$",
+          "description": "Integration suite ran exactly once"
+        },
+        {
+          "type": "git",
+          "check_type": "no_uncommitted_changes",
+          "description": "sw-build leaves the fixture repo clean"
+        },
+        {
+          "type": "file_exists",
+          "path": ".specwright/work/after-build-integration/stage-report.md",
+          "description": "sw-build writes the stage report artifact"
+        },
+        {
+          "type": "transcript_final_block",
+          "line_patterns": [
+            "^Done\\.",
+            "^Artifacts: .+stage-report\\.md$",
+            "^Next: /sw-verify$"
+          ],
+          "description": "sw-build emits the three-line handoff"
+        }
+      ],
+      "tags": ["skill", "sw-build", "typescript", "integration-after-build"]
     },
     {
       "id": "sw-init-fresh-ts",

@@ -1,27 +1,24 @@
-"""Eval framework model grader — grade eval outputs using claude as a judge."""
+"""Eval framework model grader with Claude and Codex judge support."""
 
 import json
 import re
 import subprocess
 
 from evals.framework.grader import CheckResult
+from evals.framework.runner import (
+    CLAUDE_PROVIDER,
+    CODEX_PROVIDER,
+    extract_assistant_text,
+    normalize_transcript,
+)
 
 _PASS_THRESHOLD = 0.7
 
 
 def _extract_json(text: str) -> dict | None:
-    """Extract a JSON object from text that may contain fences, preamble, or trailing content.
-
-    Tries three strategies in order:
-    1. Direct parse (text is valid JSON)
-    2. Strip markdown code fences and parse
-    3. Regex-extract the first {...} block and parse
-
-    Returns the parsed dict, or None if no valid JSON object found.
-    """
+    """Extract a JSON object from text that may contain fences, preamble, or trailing content."""
     text = text.strip()
 
-    # Strategy 1: direct parse
     try:
         data = json.loads(text)
         if isinstance(data, dict):
@@ -29,7 +26,6 @@ def _extract_json(text: str) -> dict | None:
     except (json.JSONDecodeError, ValueError):
         pass
 
-    # Strategy 2: strip markdown fences
     stripped = re.sub(r'^```(?:json)?\s*\n?', '', text)
     stripped = re.sub(r'\n?```\s*$', '', stripped).strip()
     if stripped != text:
@@ -40,7 +36,6 @@ def _extract_json(text: str) -> dict | None:
         except (json.JSONDecodeError, ValueError):
             pass
 
-    # Strategy 3: find first JSON object via string-aware brace matching
     start = text.find('{')
     if start >= 0:
         depth = 0
@@ -76,38 +71,6 @@ def _extract_json(text: str) -> dict | None:
     return None
 
 
-def _extract_assistant_text(raw_stdout: str) -> str | None:
-    """Extract the assistant's text response from NDJSON stream-json output.
-
-    Parses each line as JSON, finds assistant messages, and extracts text content.
-    Returns the concatenated text, or None if no text found.
-    """
-    texts = []
-    for line in raw_stdout.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if event.get("type") != "assistant":
-            continue
-        message = event.get("message", {})
-        if not isinstance(message, dict):
-            continue
-        content = message.get("content", [])
-        if isinstance(content, list):
-            for block in content:
-                if isinstance(block, dict) and block.get("type") == "text":
-                    text = block.get("text", "").strip()
-                    if text:
-                        texts.append(text)
-        elif isinstance(content, str) and content.strip():
-            texts.append(content.strip())
-    return "\n".join(texts) if texts else None
-
-
 def _build_prompt(rubric: str, target_content: str, transcript) -> str:
     parts = []
     parts.append("You are an evaluator. Grade the following content against the rubric below.")
@@ -129,19 +92,58 @@ def _build_prompt(rubric: str, target_content: str, transcript) -> str:
     return "\n".join(parts)
 
 
-def grade_with_model(rubric: str, target_content: str, transcript=None, threshold: float = _PASS_THRESHOLD) -> CheckResult:
-    """Invoke claude -p with rubric prompt, return CheckResult."""
+def _build_command(provider: str, prompt: str) -> list[str]:
+    if provider == CLAUDE_PROVIDER:
+        return [
+            "claude",
+            "-p",
+            prompt,
+            "--output-format",
+            "stream-json",
+            "--verbose",
+            "--max-turns",
+            "1",
+        ]
+    if provider == CODEX_PROVIDER:
+        return [
+            "codex",
+            "exec",
+            "--json",
+            "--ephemeral",
+            "--skip-git-repo-check",
+            prompt,
+        ]
+    raise ValueError(f"Unsupported model grader provider: {provider}")
+
+
+def _run_model_command(provider: str, prompt: str):
+    cmd = _build_command(provider, prompt)
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+
+
+def _extract_assistant_text(provider: str, raw_stdout: str) -> str | None:
+    transcript = normalize_transcript(provider, raw_stdout)
+    return extract_assistant_text(transcript)
+
+
+def grade_with_model(
+    rubric: str,
+    target_content: str,
+    transcript=None,
+    threshold: float = _PASS_THRESHOLD,
+    provider: str = CLAUDE_PROVIDER,
+) -> CheckResult:
+    """Invoke the selected judge provider and return a CheckResult."""
     prompt = _build_prompt(rubric, target_content, transcript)
-    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose", "--max-turns", "1"]
 
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        proc = _run_model_command(provider, prompt)
     except subprocess.TimeoutExpired as exc:
         return CheckResult(
             type="model_grade",
             description="Model grade",
             passed=False,
-            evidence=f"claude timed out after {exc.timeout}s",
+            evidence=f"{provider} timed out after {exc.timeout}s",
             score=0.0,
         )
     except FileNotFoundError as exc:
@@ -149,7 +151,7 @@ def grade_with_model(rubric: str, target_content: str, transcript=None, threshol
             type="model_grade",
             description="Model grade",
             passed=False,
-            evidence=f"claude binary not found: {exc}",
+            evidence=f"{provider} binary not found: {exc}",
             score=0.0,
         )
 
@@ -159,20 +161,21 @@ def grade_with_model(rubric: str, target_content: str, transcript=None, threshol
             type="model_grade",
             description="Model grade",
             passed=False,
-            evidence=f"claude exited with code {proc.returncode}: {stderr}".strip(": "),
+            evidence=f"{provider} exited with code {proc.returncode}: {stderr}".strip(": "),
             score=0.0,
         )
 
     raw = proc.stdout or ""
-
-    # Parse NDJSON stream to extract the assistant's text response
-    assistant_text = _extract_assistant_text(raw)
+    assistant_text = _extract_assistant_text(provider, raw)
     if assistant_text is None:
         return CheckResult(
             type="model_grade",
             description="Model grade",
             passed=False,
-            evidence=f"Model grader returned no assistant text in stream. Raw (first 500 chars): {raw[:500]}",
+            evidence=(
+                f"Model grader returned no assistant text in {provider} stream. "
+                f"Raw (first 500 chars): {raw[:500]}"
+            ),
             score=0.0,
         )
 
@@ -203,11 +206,13 @@ def grade_with_model(rubric: str, target_content: str, transcript=None, threshol
             score=0.0,
         )
 
-    passed = score >= threshold
     return CheckResult(
         type="model_grade",
         description="Model grade",
-        passed=passed,
+        passed=score >= threshold,
         evidence=evidence,
         score=score,
     )
+
+
+__all__ = ["grade_with_model", "_extract_json"]

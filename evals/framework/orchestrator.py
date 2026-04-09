@@ -1,5 +1,6 @@
 """Eval framework orchestrator — runs eval suites, grades results, writes outputs."""
 
+from contextlib import contextmanager
 import json
 import os
 import shlex
@@ -12,10 +13,16 @@ import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-from evals.framework.runner import ClaudeCodeRunner
+from evals.framework.runner import create_runner
 from evals.framework.chainer import run_sequence
 from evals.framework.grader import grade_eval
-from evals.framework.setup import setup_fixture, setup_repo
+from evals.framework.setup import (
+    init_git_repo,
+    run_setup_commands,
+    setup_fixture,
+    setup_repo_overlay_fixture,
+    setup_repo,
+)
 from evals.framework.aggregator import aggregate_results
 from evals.framework import prompts
 
@@ -39,6 +46,33 @@ _RESULTS_RUN_PREFIX = "run-"
 _SKILL_NAME_PREFIX = "sw-"
 _STRUCTURAL_TYPE = "structural"
 _STRUCTURAL_OUTPUT_LIMIT = 500
+_FIXTURE_METADATA_FILENAME = "fixture.json"
+
+
+def _runner_actual_provider(runner) -> str:
+    """Return the concrete provider used by a runner after execution."""
+    return getattr(runner, "_active_provider", getattr(runner, "provider", "claude"))
+
+
+@contextmanager
+def _temporary_env(overrides: Dict[str, str]):
+    """Temporarily apply env var overrides for runner execution."""
+    if not overrides:
+        yield
+        return
+
+    original: Dict[str, Optional[str]] = {}
+    try:
+        for key, value in overrides.items():
+            original[key] = os.environ.get(key)
+            os.environ[key] = value
+        yield
+    finally:
+        for key, previous in original.items():
+            if previous is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = previous
 
 
 # ---------------------------------------------------------------------------
@@ -53,6 +87,16 @@ def _resolve_seed(suite_path: str, seed_id: str) -> Dict:
         if seed.get("id") == seed_id:
             return seed
     raise FileNotFoundError(f"Seed '{seed_id}' not found in {suite_path}")
+
+
+def _load_fixture_metadata(fixture_path: str) -> Dict:
+    """Load optional fixture.json metadata from a fixture directory."""
+    metadata_path = os.path.join(fixture_path, _FIXTURE_METADATA_FILENAME)
+    if not os.path.isfile(metadata_path):
+        return {}
+    with open(metadata_path) as f:
+        data = json.load(f)
+    return data if isinstance(data, dict) else {}
 
 
 def _determine_layer(eval_case: Dict) -> str:
@@ -316,6 +360,7 @@ def run_single_eval(
     workdir = os.path.join(tempfile.gettempdir(), f"eval-workdir-{uuid.uuid4().hex}")
 
     try:
+        runner_env: Dict[str, str] = {}
         if seed_type == "repo":
             seed_id = seed.get("seed_id", "")
             seeds_path = os.path.join(suite_dir or _EVALS_BASE_DIR, "seeds.json")
@@ -327,7 +372,29 @@ def run_single_eval(
         else:
             raw_path = seed.get("path", "")
             fixture_path = os.path.join(_EVALS_BASE_DIR, raw_path) if raw_path else ""
-            setup_fixture(fixture_path, workdir)
+            fixture_metadata = _load_fixture_metadata(fixture_path)
+            setup_cfg = fixture_metadata.get("setup", {})
+            if isinstance(setup_cfg, dict) and setup_cfg.get("base_repo_root") is True:
+                setup_repo_overlay_fixture(_REPO_ROOT_DIR, fixture_path, workdir)
+            else:
+                setup_fixture(fixture_path, workdir)
+            if isinstance(setup_cfg, dict):
+                raw_env = setup_cfg.get("env", {})
+                if isinstance(raw_env, dict):
+                    runner_env = {
+                        key: str(value)
+                        for key, value in raw_env.items()
+                        if isinstance(key, str) and value is not None
+                    }
+                if setup_cfg.get("git") is True:
+                    default_branch = setup_cfg.get("default_branch", "main")
+                    init_git_repo(workdir, default_branch=default_branch)
+                commands = setup_cfg.get("commands", [])
+                if isinstance(commands, list) and commands:
+                    run_setup_commands(
+                        workdir,
+                        [cmd for cmd in commands if isinstance(cmd, str) and cmd.strip()],
+                    )
     except (FileNotFoundError, RuntimeError) as exc:
         elapsed_ms = round((time.time() - start_time) * 1000, 2)
         print(f"  ERROR: {exc}", file=sys.stderr)
@@ -349,27 +416,28 @@ def run_single_eval(
 
     try:
         try:
-            if layer == _LAYER_SKILL:
-                resolved_prompt = _resolve_prompt_layer1(eval_case)
-                run_result = runner.run_skill(
-                    skill=eval_case["skill"],
-                    prompt=resolved_prompt,
-                    workdir=workdir,
-                    timeout=timeout,
-                )
-            else:
-                skills = eval_case.get("sequence") or eval_case.get("workflow") or []
-                prompts_dict = _resolve_prompts_layer2(eval_case)
-                chain_result = run_sequence(
-                    runner=runner,
-                    skills=skills,
-                    prompts=prompts_dict,
-                    workdir=workdir,
-                    timeout_per_skill=timeout,
-                )
-                snapshots = chain_result.snapshots
-                if chain_result.steps:
-                    run_result = chain_result.steps[-1]
+            with _temporary_env(runner_env):
+                if layer == _LAYER_SKILL:
+                    resolved_prompt = _resolve_prompt_layer1(eval_case)
+                    run_result = runner.run_skill(
+                        skill=eval_case["skill"],
+                        prompt=resolved_prompt,
+                        workdir=workdir,
+                        timeout=timeout,
+                    )
+                else:
+                    skills = eval_case.get("sequence") or eval_case.get("workflow") or []
+                    prompts_dict = _resolve_prompts_layer2(eval_case)
+                    chain_result = run_sequence(
+                        runner=runner,
+                        skills=skills,
+                        prompts=prompts_dict,
+                        workdir=workdir,
+                        timeout_per_skill=timeout,
+                    )
+                    snapshots = chain_result.snapshots
+                    if chain_result.steps:
+                        run_result = chain_result.steps[-1]
 
         except Exception as exc:
             exec_error = f"{type(exc).__name__}: {exc}"
@@ -382,7 +450,11 @@ def run_single_eval(
             run_result.transcript if run_result is not None else None
         )
         grade_result = grade_eval(
-            eval_case, workdir, snapshots, transcript=transcript_for_grader
+            eval_case,
+            workdir,
+            snapshots,
+            transcript=transcript_for_grader,
+            provider=(run_result.provider if run_result is not None else "claude"),
         )
         if exec_error:
             grade_result["error"] = exec_error
@@ -393,6 +465,7 @@ def run_single_eval(
                 "exit_code": run_result.exit_code,
                 "duration_ms": run_result.duration_ms,
                 "tokens": run_result.tokens,
+                "provider": run_result.provider,
             }
 
         _write_grading_json(
@@ -417,6 +490,7 @@ def run_eval_suite(
     dry_run: bool = False,
     results_dir: Optional[str] = None,
     smoke_only: bool = False,
+    runner_name: Optional[str] = None,
 ) -> str:
     """Load evals.json, iterate cases x trials, aggregate, return results_dir.
 
@@ -469,17 +543,19 @@ def run_eval_suite(
     os.makedirs(results_dir, exist_ok=True)
 
     # Write config.json
+    requested_runner = runner_name or os.environ.get("EVALS_RUNNER", "auto")
     config = {
         "timestamp": timestamp,
         "suite": os.path.basename(os.path.dirname(suite_path)),
         "trials": trials,
         "timeout": timeout,
         "python_version": sys.version,
+        "runner": requested_runner,
     }
     with open(os.path.join(results_dir, _CONFIG_FILENAME), "w") as f:
         json.dump(config, f, indent=2)
 
-    runner = ClaudeCodeRunner()
+    runner = create_runner(runner_name)
 
     for case in cases:
         for trial_num in range(1, trials + 1):
@@ -492,7 +568,14 @@ def run_eval_suite(
                 suite_dir=os.path.dirname(os.path.abspath(suite_path)),
             )
 
+    config["provider"] = _runner_actual_provider(runner)
+    with open(os.path.join(results_dir, _CONFIG_FILENAME), "w") as f:
+        json.dump(config, f, indent=2)
+
     benchmark = aggregate_results(results_dir)
+    benchmark.setdefault("metadata", {})
+    benchmark["metadata"]["runner"] = config["runner"]
+    benchmark["metadata"]["provider"] = config["provider"]
     with open(os.path.join(results_dir, _BENCHMARK_FILENAME), "w") as f:
         json.dump(benchmark, f, indent=2)
 

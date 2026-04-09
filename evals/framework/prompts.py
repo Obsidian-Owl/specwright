@@ -46,7 +46,12 @@ def build() -> str:
 
 Implement per the spec and plan in .specwright/work/.
 Follow TDD strictly. Commit after each completed task.
-Do not ask for confirmation — proceed through all tasks."""
+Do not ask for confirmation — proceed through all tasks.
+
+End with exactly these three lines:
+Done.
+Artifacts: <path to stage-report.md>
+Next: /sw-verify"""
 
 
 def verify(gate: str = "") -> str:

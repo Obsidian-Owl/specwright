@@ -1,8 +1,8 @@
 {
-  "specwright_version": "0.16.0",
-  "created_date": "2026-03-18",
+  "specwright_version": "0.28.0",
+  "created_date": "2026-04-09",
   "language": "typescript",
-  "description": "Minimal TypeScript project for testing sw-build on a simple function implementation",
+  "description": "Two-task TypeScript fixture proving sw-build runs commands.test:integration once at end-of-unit.",
   "setup": {
     "base_repo_root": true,
     "git": true,

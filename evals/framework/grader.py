@@ -778,6 +778,7 @@ def _dispatch_expectation(
     workdir: str,
     snapshots: Optional[List[Dict]],
     transcript: Optional[List[Dict]] = None,
+    provider: str = "claude",
 ) -> CheckResult:
     """Dispatch a single expectation dict to the appropriate check function."""
     check_type = expectation.get("type", "")
@@ -849,6 +850,7 @@ def _dispatch_expectation(
             kwargs = {}
             if threshold is not None:
                 kwargs["threshold"] = threshold
+            kwargs["provider"] = provider
             if target_path == "$TRANSCRIPT" and snapshots is not None:
                 kwargs["transcript"] = snapshots
             return grade_with_model(rubric, target_content, **kwargs)
@@ -875,6 +877,7 @@ def grade_eval(
     workdir: str,
     snapshots: Optional[List[Dict]] = None,
     transcript: Optional[List[Dict]] = None,
+    provider: str = "claude",
 ) -> Dict:
     """Grade an eval case against a workdir. Return grading results dict.
 
@@ -893,7 +896,13 @@ def grade_eval(
     skipped_count = 0
 
     for expectation in expectations_input:
-        result = _dispatch_expectation(expectation, workdir, snapshots, transcript)
+        result = _dispatch_expectation(
+            expectation,
+            workdir,
+            snapshots,
+            transcript,
+            provider=provider,
+        )
         result_dict = {
             "type": result.type,
             "description": result.description,

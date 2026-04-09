@@ -1,0 +1,17 @@
+{
+  "version": "2.0",
+  "currentWork": {
+    "id": "after-build-integration",
+    "description": "Implement name normalization and greeting rendering",
+    "status": "building",
+    "workDir": ".specwright/work/after-build-integration",
+    "unitId": null,
+    "tasksTotal": 2,
+    "tasksCompleted": [],
+    "currentTask": null,
+    "intensity": "quick"
+  },
+  "gates": {},
+  "lock": null,
+  "lastUpdated": "2026-04-09T00:00:00.000Z"
+}

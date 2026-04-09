@@ -38,6 +38,12 @@ def main(args=None):
         description="Run Specwright eval suites",
     )
     parser.add_argument(
+        "--runner",
+        choices=["claude", "codex", "auto"],
+        default=None,
+        help="Skill runner to use (default: EVALS_RUNNER or auto)",
+    )
+    parser.add_argument(
         "--suite",
         metavar="PATH",
         help="Path to evals.json file",
@@ -255,6 +261,18 @@ def main(args=None):
     suite_name = os.path.basename(os.path.dirname(suite_path))
     baselines_dir = parsed.baselines_dir or os.path.join(_EVALS_DIR, "baselines")
 
+    def _results_provider(results_path: str) -> str:
+        config_path = os.path.join(results_path, "config.json")
+        if os.path.isfile(config_path):
+            with open(config_path) as f:
+                config = json.load(f)
+            provider = config.get("provider")
+            if isinstance(provider, str) and provider:
+                return provider
+        if parsed.runner:
+            return parsed.runner if parsed.runner != "auto" else "claude"
+        return os.environ.get("EVALS_RUNNER", "auto")
+
     # ----- Unit 02b-1: --update-baseline (refuses on dirty tree) -----
     if parsed.update_baseline:
         import subprocess
@@ -279,12 +297,14 @@ def main(args=None):
             dry_run=parsed.dry_run,
             results_dir=parsed.results_dir,
             smoke_only=parsed.smoke_only,
+            runner_name=parsed.runner,
         )
         if not results_dir:
             sys.exit(1)
-        from evals.framework.baseline import BaselineFile, write_baseline
+        from evals.framework.baseline import BaselineFile, baseline_filename, write_baseline
         from evals.framework.aggregator import aggregate_results
         agg = aggregate_results(results_dir)
+        provider = _results_provider(results_dir)
         # Build baseline.evals from the run_summary. run_summary shape is
         # {eval_id: {pass_rate: {mean, stddev, ...}, duration_ms: {mean, ...},
         #            tokens: {<key>: <mean>, ...}, trial_count: int}}
@@ -310,6 +330,7 @@ def main(args=None):
         from datetime import datetime, timezone
         baseline = BaselineFile(
             suite=suite_name,
+            provider=provider,
             generated_at=datetime.now(timezone.utc).isoformat(),
             generated_from_commit=commit_sha,
             tolerances={
@@ -320,7 +341,10 @@ def main(args=None):
             evals=evals_dict,
         )
         os.makedirs(baselines_dir, exist_ok=True)
-        baseline_path = os.path.join(baselines_dir, f"{suite_name}.json")
+        baseline_path = os.path.join(
+            baselines_dir,
+            baseline_filename(suite_name, provider),
+        )
         write_baseline(baseline, baseline_path)
         print(f"Baseline written to {baseline_path}")
         print()
@@ -332,21 +356,8 @@ def main(args=None):
     # ----- Unit 02b-1: --compare-to-baseline -----
     if parsed.compare_to_baseline:
         from evals.framework.baseline import (
-            load_baseline, BaselineFileError, compare_run_to_baseline
+            BaselineFileError, compare_run_to_baseline, load_baseline, resolve_baseline_path
         )
-        baseline_path = os.path.join(baselines_dir, f"{suite_name}.json")
-        if not os.path.isfile(baseline_path):
-            print(
-                f"No baseline file at `{baseline_path}`. Run `--update-baseline` "
-                f"to create one.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        try:
-            baseline = load_baseline(suite_name, baselines_dir=baselines_dir)
-        except BaselineFileError as exc:
-            print(f"Failed to load baseline: {exc}", file=sys.stderr)
-            sys.exit(1)
         results_dir = orchestrator.run_eval_suite(
             suite_path,
             trials=parsed.trials,
@@ -355,8 +366,31 @@ def main(args=None):
             dry_run=parsed.dry_run,
             results_dir=parsed.results_dir,
             smoke_only=parsed.smoke_only,
+            runner_name=parsed.runner,
         )
         if not results_dir:
+            sys.exit(1)
+        baseline_provider = _results_provider(results_dir)
+        baseline_path = resolve_baseline_path(
+            suite_name,
+            provider=baseline_provider,
+            baselines_dir=baselines_dir,
+        )
+        if not os.path.isfile(baseline_path):
+            print(
+                f"No baseline file at `{baseline_path}`. Run `--update-baseline` "
+                f"to create one.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        try:
+            baseline = load_baseline(
+                suite_name,
+                baselines_dir=baselines_dir,
+                provider=baseline_provider,
+            )
+        except BaselineFileError as exc:
+            print(f"Failed to load baseline: {exc}", file=sys.stderr)
             sys.exit(1)
         from evals.framework.aggregator import aggregate_results
         agg = aggregate_results(results_dir)
@@ -394,6 +428,7 @@ def main(args=None):
         dry_run=parsed.dry_run,
         results_dir=parsed.results_dir,
         smoke_only=parsed.smoke_only,
+        runner_name=parsed.runner,
     )
 
 
