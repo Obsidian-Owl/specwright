@@ -34,8 +34,10 @@ _EVALS_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # The 10 registered expectation types per AC-2
 REGISTERED_TYPES = [
     "file_exists", "file_not_exists", "file_contains", "tests_pass",
-    "state", "state_transition", "artifact_reference", "git",
-    "gate_results", "model_grade",
+    "state", "state_transition", "snapshot_state", "snapshot_file_exists",
+    "snapshot_file_contains", "snapshot_file_line_count_lte",
+    "artifact_reference", "git", "gate_results", "model_grade",
+    "step_transcript_contains", "step_transcript_final_block",
 ]
 
 # The 6 registered prompt templates per AC-5
@@ -161,11 +163,17 @@ class TestAC1ValidSuiteReturnsEmptyList(unittest.TestCase):
             {"type": "tests_pass", "command": "npm test", "description": "d"},
             {"type": "state", "field": "status", "expected": "done", "description": "d"},
             {"type": "state_transition", "expected_sequence": ["a", "b"], "description": "d"},
+            {"type": "snapshot_state", "field": "currentWork.status", "expected": "building", "snapshot_index": 0, "description": "d"},
+            {"type": "snapshot_file_exists", "path": ".specwright/work/test/stage-report.md", "snapshot_index": 0, "description": "d"},
+            {"type": "snapshot_file_contains", "path": ".specwright/work/test/stage-report.md", "pattern": "Attention required", "snapshot_index": 0, "description": "d"},
+            {"type": "snapshot_file_line_count_lte", "path": ".specwright/work/test/stage-report.md", "max_lines": 40, "snapshot_index": 0, "description": "d"},
             {"type": "artifact_reference", "source": "a.md", "target": "b.md",
              "check": "headings_referenced", "description": "d"},
             {"type": "git", "check_type": "branch_exists", "description": "d"},
             {"type": "gate_results", "expected": {"test": "pass"}, "description": "d"},
             {"type": "model_grade", "rubric": "Is it good?", "description": "d"},
+            {"type": "step_transcript_contains", "step_index": 0, "pattern": "Done\\.", "description": "d"},
+            {"type": "step_transcript_final_block", "step_index": 0, "line_patterns": ["Done\\.", "Artifacts:", "Next:"], "description": "d"},
         ]
         case = _valid_skill_case(expectations=expectations)
         with tempfile.TemporaryDirectory() as tmpdir:

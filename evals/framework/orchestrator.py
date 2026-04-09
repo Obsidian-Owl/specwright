@@ -410,6 +410,7 @@ def run_single_eval(
 
     layer = _determine_layer(eval_case)
     snapshots: List[Dict] = []
+    step_transcripts: List[List[Dict]] = []
     exec_error: Optional[str] = None
 
     run_result = None
@@ -436,6 +437,7 @@ def run_single_eval(
                         timeout_per_skill=timeout,
                     )
                     snapshots = chain_result.snapshots
+                    step_transcripts = [step.transcript for step in chain_result.steps]
                     if chain_result.steps:
                         run_result = chain_result.steps[-1]
 
@@ -455,6 +457,7 @@ def run_single_eval(
             snapshots,
             transcript=transcript_for_grader,
             provider=(run_result.provider if run_result is not None else "claude"),
+            step_transcripts=step_transcripts or None,
         )
         if exec_error:
             grade_result["error"] = exec_error
@@ -590,11 +593,17 @@ REGISTERED_TYPES = frozenset({
     "tests_pass",
     "state",
     "state_transition",
+    "snapshot_state",
+    "snapshot_file_exists",
+    "snapshot_file_contains",
+    "snapshot_file_line_count_lte",
     "artifact_reference",
     "git",
     "gate_results",
     "model_grade",
     "transcript_final_block",
+    "step_transcript_contains",
+    "step_transcript_final_block",
 })
 
 REQUIRED_FIELDS = {
@@ -605,16 +614,23 @@ REQUIRED_FIELDS = {
     "tests_pass": ["command"],
     "state": ["field", "expected"],
     "state_transition": ["expected_sequence"],
+    "snapshot_state": ["field", "expected", "snapshot_index"],
+    "snapshot_file_exists": ["path", "snapshot_index"],
+    "snapshot_file_contains": ["path", "pattern", "snapshot_index"],
+    "snapshot_file_line_count_lte": ["path", "max_lines", "snapshot_index"],
     "artifact_reference": ["source", "target", "check"],
     "git": [],
     "gate_results": ["expected"],
     "model_grade": ["rubric"],
     "transcript_final_block": ["line_patterns"],
+    "step_transcript_contains": ["step_index", "pattern"],
+    "step_transcript_final_block": ["step_index", "line_patterns"],
 }
 
 REGISTERED_PROMPT_TEMPLATES = frozenset({
     "init", "design", "plan", "build", "verify", "ship",
-    "debug", "research", "learn", "pivot", "status", "sync", "guard", "audit",
+    "doctor", "debug", "research", "learn", "pivot", "status", "sync", "guard",
+    "audit",
 })
 
 _LAYER_FIELDS = ("skill", "sequence", "workflow")

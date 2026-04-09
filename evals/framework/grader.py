@@ -70,15 +70,28 @@ def _load_workflow_json(workdir: str) -> Dict:
 
 
 def _traverse_dotted_path(data: Any, field: str) -> Any:
-    """Traverse a dotted key path in a nested dict. Raises KeyError on missing."""
+    """Traverse a dotted key path in nested dict/list data.
+
+    Numeric path segments are treated as list indexes, which lets behavioral
+    evals assert against fields like `workUnits.0.status`.
+    """
     parts = field.split(".")
     current = data
     for part in parts:
-        if not isinstance(current, dict):
-            raise KeyError(f"Cannot traverse into non-dict at key '{part}'")
-        if part not in current:
-            raise KeyError(f"Key '{part}' not found")
-        current = current[part]
+        if isinstance(current, dict):
+            if part not in current:
+                raise KeyError(f"Key '{part}' not found")
+            current = current[part]
+            continue
+        if isinstance(current, list):
+            if not part.isdigit():
+                raise KeyError(f"List index required, got '{part}'")
+            index = int(part)
+            if index < 0 or index >= len(current):
+                raise KeyError(f"List index out of range: {index}")
+            current = current[index]
+            continue
+        raise KeyError(f"Cannot traverse into scalar value at key '{part}'")
     return current
 
 
@@ -91,6 +104,62 @@ def _snapshot_status(snapshot: Dict) -> Optional[str]:
     if current_work is None:
         return None
     return current_work.get("status")
+
+
+def _snapshot_root(snapshot: Dict) -> Optional[str]:
+    """Return the filesystem root for a captured snapshot, if available."""
+    root = snapshot.get("snapshot_dir")
+    if isinstance(root, str) and root:
+        return root
+    return None
+
+
+def _snapshot_file_path(snapshot: Dict, path: str) -> Optional[str]:
+    """Resolve a file path against a captured snapshot root."""
+    root = _snapshot_root(snapshot)
+    if root is None:
+        return None
+    real_root = os.path.realpath(root)
+    full_path = os.path.realpath(os.path.join(real_root, path))
+    if full_path != real_root and not full_path.startswith(real_root + os.sep):
+        return None
+    return full_path
+
+
+def _extract_all_assistant_text(transcript: List[Dict]) -> str:
+    """Return all assistant/result visible text from a transcript."""
+    blocks: List[str] = []
+    if not transcript:
+        return ""
+
+    for event in transcript:
+        event_type = event.get("type")
+        if event_type == "result":
+            result_text = event.get("result")
+            if isinstance(result_text, str) and result_text.strip():
+                blocks.append(result_text.strip())
+            continue
+        if event_type != "assistant":
+            continue
+
+        message = event.get("message", {})
+        if isinstance(message, dict):
+            content = message.get("content", [])
+            if isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict) and item.get("type") == "text":
+                        text = item.get("text", "")
+                        if isinstance(text, str) and text.strip():
+                            blocks.append(text.strip())
+            elif isinstance(content, str) and content.strip():
+                blocks.append(content.strip())
+            continue
+
+        content = event.get("content")
+        if isinstance(content, str) and content.strip():
+            blocks.append(content.strip())
+
+    return "\n\n".join(blocks)
 
 
 def _check_passed(passed: bool) -> float:
@@ -395,6 +464,261 @@ def check_state_transition(
         passed=True,
         evidence=f"All {len(actual_statuses) - 1} transitions valid",
         score=1.0,
+    )
+
+
+def check_snapshot_state(
+    field: str,
+    expected: Any,
+    snapshot_index: int,
+    snapshots: List[Dict],
+) -> CheckResult:
+    """Return passed=True when a dotted workflow_state field matches expected."""
+    if snapshot_index < 0 or snapshot_index >= len(snapshots):
+        return CheckResult(
+            type="snapshot_state",
+            description=f"Snapshot state field: {field}",
+            passed=False,
+            evidence=(
+                f"Snapshot index {snapshot_index} out of range for "
+                f"{len(snapshots)} snapshots"
+            ),
+            score=0.0,
+        )
+
+    workflow_state = snapshots[snapshot_index].get("workflow_state")
+    if workflow_state is None:
+        return CheckResult(
+            type="snapshot_state",
+            description=f"Snapshot state field: {field}",
+            passed=False,
+            evidence=f"Snapshot {snapshot_index} has no workflow_state",
+            score=0.0,
+        )
+
+    try:
+        actual = _traverse_dotted_path(workflow_state, field)
+    except KeyError as exc:
+        return CheckResult(
+            type="snapshot_state",
+            description=f"Snapshot state field: {field}",
+            passed=False,
+            evidence=f"Snapshot path not found: {exc}",
+            score=0.0,
+        )
+
+    if actual == expected:
+        return CheckResult(
+            type="snapshot_state",
+            description=f"Snapshot state field: {field}",
+            passed=True,
+            evidence=f"Snapshot {snapshot_index}: {field} = {actual!r}",
+            score=1.0,
+        )
+
+    return CheckResult(
+        type="snapshot_state",
+        description=f"Snapshot state field: {field}",
+        passed=False,
+        evidence=(
+            f"Snapshot {snapshot_index}: expected {expected!r}, got {actual!r}"
+        ),
+        score=0.0,
+    )
+
+
+def check_snapshot_file_exists(
+    path: str,
+    snapshot_index: int,
+    snapshots: List[Dict],
+) -> CheckResult:
+    """Return passed=True when a file exists in the selected snapshot."""
+    if snapshot_index < 0 or snapshot_index >= len(snapshots):
+        return CheckResult(
+            type="snapshot_file_exists",
+            description=f"Snapshot file exists: {path}",
+            passed=False,
+            evidence=(
+                f"Snapshot index {snapshot_index} out of range for "
+                f"{len(snapshots)} snapshots"
+            ),
+            score=0.0,
+        )
+
+    full_path = _snapshot_file_path(snapshots[snapshot_index], path)
+    if full_path is None:
+        return CheckResult(
+            type="snapshot_file_exists",
+            description=f"Snapshot file exists: {path}",
+            passed=False,
+            evidence=f"Snapshot {snapshot_index} has no snapshot_dir",
+            score=0.0,
+        )
+
+    if os.path.exists(full_path):
+        return CheckResult(
+            type="snapshot_file_exists",
+            description=f"Snapshot file exists: {path}",
+            passed=True,
+            evidence=f"Found in snapshot {snapshot_index}: {full_path}",
+            score=1.0,
+        )
+
+    return CheckResult(
+        type="snapshot_file_exists",
+        description=f"Snapshot file exists: {path}",
+        passed=False,
+        evidence=f"Not found in snapshot {snapshot_index}: {path}",
+        score=0.0,
+    )
+
+
+def check_snapshot_file_contains(
+    path: str,
+    pattern: str,
+    snapshot_index: int,
+    snapshots: List[Dict],
+) -> CheckResult:
+    """Return passed=True when pattern matches a snapshot file."""
+    if snapshot_index < 0 or snapshot_index >= len(snapshots):
+        return CheckResult(
+            type="snapshot_file_contains",
+            description=f"Snapshot file contains pattern: {pattern}",
+            passed=False,
+            evidence=(
+                f"Snapshot index {snapshot_index} out of range for "
+                f"{len(snapshots)} snapshots"
+            ),
+            score=0.0,
+        )
+
+    full_path = _snapshot_file_path(snapshots[snapshot_index], path)
+    if full_path is None:
+        return CheckResult(
+            type="snapshot_file_contains",
+            description=f"Snapshot file contains pattern: {pattern}",
+            passed=False,
+            evidence=(
+                f"Snapshot {snapshot_index} has no snapshot_dir or path escaped "
+                f"snapshot root: {path}"
+            ),
+            score=0.0,
+        )
+
+    try:
+        with open(full_path, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+    except FileNotFoundError:
+        return CheckResult(
+            type="snapshot_file_contains",
+            description=f"Snapshot file contains pattern: {pattern}",
+            passed=False,
+            evidence=f"File not found in snapshot {snapshot_index}: {path}",
+            score=0.0,
+        )
+    except OSError as exc:
+        return CheckResult(
+            type="snapshot_file_contains",
+            description=f"Snapshot file contains pattern: {pattern}",
+            passed=False,
+            evidence=f"Error reading snapshot file {path}: {exc}",
+            score=0.0,
+        )
+
+    if re.search(pattern, content):
+        return CheckResult(
+            type="snapshot_file_contains",
+            description=f"Snapshot file contains pattern: {pattern}",
+            passed=True,
+            evidence=f"Pattern matched in snapshot {snapshot_index}: {path}",
+            score=1.0,
+        )
+
+    return CheckResult(
+        type="snapshot_file_contains",
+        description=f"Snapshot file contains pattern: {pattern}",
+        passed=False,
+        evidence=(
+            f"Pattern not found in snapshot {snapshot_index}: {path}. "
+            f"Content: {content[:FILE_CONTENT_EVIDENCE_LIMIT]}"
+        ),
+        score=0.0,
+    )
+
+
+def check_snapshot_file_line_count_lte(
+    path: str,
+    max_lines: int,
+    snapshot_index: int,
+    snapshots: List[Dict],
+) -> CheckResult:
+    """Return passed=True when a snapshot file has at most max_lines lines."""
+    if snapshot_index < 0 or snapshot_index >= len(snapshots):
+        return CheckResult(
+            type="snapshot_file_line_count_lte",
+            description=f"Snapshot file line count <= {max_lines}: {path}",
+            passed=False,
+            evidence=(
+                f"Snapshot index {snapshot_index} out of range for "
+                f"{len(snapshots)} snapshots"
+            ),
+            score=0.0,
+        )
+
+    full_path = _snapshot_file_path(snapshots[snapshot_index], path)
+    if full_path is None:
+        return CheckResult(
+            type="snapshot_file_line_count_lte",
+            description=f"Snapshot file line count <= {max_lines}: {path}",
+            passed=False,
+            evidence=(
+                f"Snapshot {snapshot_index} has no snapshot_dir or path escaped "
+                f"snapshot root: {path}"
+            ),
+            score=0.0,
+        )
+
+    try:
+        with open(full_path, "r", encoding="utf-8", errors="replace") as f:
+            line_count = len(f.read().splitlines())
+    except FileNotFoundError:
+        return CheckResult(
+            type="snapshot_file_line_count_lte",
+            description=f"Snapshot file line count <= {max_lines}: {path}",
+            passed=False,
+            evidence=f"File not found in snapshot {snapshot_index}: {path}",
+            score=0.0,
+        )
+    except OSError as exc:
+        return CheckResult(
+            type="snapshot_file_line_count_lte",
+            description=f"Snapshot file line count <= {max_lines}: {path}",
+            passed=False,
+            evidence=f"Error reading snapshot file {path}: {exc}",
+            score=0.0,
+        )
+
+    if line_count <= max_lines:
+        return CheckResult(
+            type="snapshot_file_line_count_lte",
+            description=f"Snapshot file line count <= {max_lines}: {path}",
+            passed=True,
+            evidence=(
+                f"Snapshot {snapshot_index}: {path} has {line_count} lines "
+                f"(<= {max_lines})"
+            ),
+            score=1.0,
+        )
+
+    return CheckResult(
+        type="snapshot_file_line_count_lte",
+        description=f"Snapshot file line count <= {max_lines}: {path}",
+        passed=False,
+        evidence=(
+            f"Snapshot {snapshot_index}: {path} has {line_count} lines "
+            f"(> {max_lines})"
+        ),
+        score=0.0,
     )
 
 
@@ -769,6 +1093,100 @@ def check_transcript_final_block(
     )
 
 
+def check_step_transcript_contains(
+    step_index: int,
+    pattern: str,
+    step_transcripts: Optional[List[List[Dict]]],
+) -> CheckResult:
+    """Return passed=True when the selected step transcript text matches pattern."""
+    if step_transcripts is None:
+        return CheckResult(
+            type="step_transcript_contains",
+            description=f"Step transcript contains pattern: {pattern}",
+            passed=False,
+            evidence="No step transcripts available",
+            score=0.0,
+        )
+    if step_index < 0 or step_index >= len(step_transcripts):
+        return CheckResult(
+            type="step_transcript_contains",
+            description=f"Step transcript contains pattern: {pattern}",
+            passed=False,
+            evidence=(
+                f"Step index {step_index} out of range for "
+                f"{len(step_transcripts)} step transcripts"
+            ),
+            score=0.0,
+        )
+
+    text = _extract_all_assistant_text(step_transcripts[step_index])
+    if not text:
+        return CheckResult(
+            type="step_transcript_contains",
+            description=f"Step transcript contains pattern: {pattern}",
+            passed=False,
+            evidence=f"Step {step_index} transcript has no extractable assistant text",
+            score=0.0,
+        )
+
+    if re.search(pattern, text):
+        return CheckResult(
+            type="step_transcript_contains",
+            description=f"Step transcript contains pattern: {pattern}",
+            passed=True,
+            evidence=f"Pattern matched in step {step_index} transcript",
+            score=1.0,
+        )
+
+    return CheckResult(
+        type="step_transcript_contains",
+        description=f"Step transcript contains pattern: {pattern}",
+        passed=False,
+        evidence=(
+            f"Pattern not found in step {step_index} transcript. "
+            f"Transcript: {text[:TEST_OUTPUT_EVIDENCE_LIMIT]}"
+        ),
+        score=0.0,
+    )
+
+
+def check_step_transcript_final_block(
+    step_index: int,
+    line_patterns: List[str],
+    step_transcripts: Optional[List[List[Dict]]],
+    forbidden_substrings: Optional[List[str]] = None,
+) -> CheckResult:
+    """Run transcript_final_block against one step transcript from a chain."""
+    if step_transcripts is None:
+        return CheckResult(
+            type="step_transcript_final_block",
+            description="Step transcript final block matches",
+            passed=False,
+            evidence="No step transcripts available",
+            score=0.0,
+        )
+    if step_index < 0 or step_index >= len(step_transcripts):
+        return CheckResult(
+            type="step_transcript_final_block",
+            description="Step transcript final block matches",
+            passed=False,
+            evidence=(
+                f"Step index {step_index} out of range for "
+                f"{len(step_transcripts)} step transcripts"
+            ),
+            score=0.0,
+        )
+
+    base = check_transcript_final_block(
+        line_patterns,
+        step_transcripts[step_index],
+        forbidden_substrings=forbidden_substrings,
+    )
+    base.type = "step_transcript_final_block"
+    base.description = "Step transcript final block matches"
+    return base
+
+
 # ---------------------------------------------------------------------------
 # Grading orchestration
 # ---------------------------------------------------------------------------
@@ -779,6 +1197,7 @@ def _dispatch_expectation(
     snapshots: Optional[List[Dict]],
     transcript: Optional[List[Dict]] = None,
     provider: str = "claude",
+    step_transcripts: Optional[List[List[Dict]]] = None,
 ) -> CheckResult:
     """Dispatch a single expectation dict to the appropriate check function."""
     check_type = expectation.get("type", "")
@@ -817,6 +1236,37 @@ def _dispatch_expectation(
             expectation["expected_sequence"], snapshots or []
         )
 
+    if check_type == "snapshot_state":
+        return check_snapshot_state(
+            expectation["field"],
+            expectation["expected"],
+            expectation["snapshot_index"],
+            snapshots or [],
+        )
+
+    if check_type == "snapshot_file_exists":
+        return check_snapshot_file_exists(
+            expectation["path"],
+            expectation["snapshot_index"],
+            snapshots or [],
+        )
+
+    if check_type == "snapshot_file_contains":
+        return check_snapshot_file_contains(
+            expectation["path"],
+            expectation["pattern"],
+            expectation["snapshot_index"],
+            snapshots or [],
+        )
+
+    if check_type == "snapshot_file_line_count_lte":
+        return check_snapshot_file_line_count_lte(
+            expectation["path"],
+            expectation["max_lines"],
+            expectation["snapshot_index"],
+            snapshots or [],
+        )
+
     if check_type == "artifact_reference":
         return check_artifact_reference(
             expectation["source"],
@@ -832,6 +1282,21 @@ def _dispatch_expectation(
 
     if check_type == "gate_results":
         return check_gate_results(expectation["expected"], workdir)
+
+    if check_type == "step_transcript_contains":
+        return check_step_transcript_contains(
+            expectation["step_index"],
+            expectation["pattern"],
+            step_transcripts,
+        )
+
+    if check_type == "step_transcript_final_block":
+        return check_step_transcript_final_block(
+            expectation["step_index"],
+            expectation["line_patterns"],
+            step_transcripts,
+            forbidden_substrings=expectation.get("forbidden_substrings"),
+        )
 
     if check_type == "model_grade":
         try:
@@ -851,8 +1316,11 @@ def _dispatch_expectation(
             if threshold is not None:
                 kwargs["threshold"] = threshold
             kwargs["provider"] = provider
-            if target_path == "$TRANSCRIPT" and snapshots is not None:
-                kwargs["transcript"] = snapshots
+            if target_path == "$TRANSCRIPT":
+                if step_transcripts is not None:
+                    kwargs["transcript"] = step_transcripts
+                elif transcript is not None:
+                    kwargs["transcript"] = transcript
             return grade_with_model(rubric, target_content, **kwargs)
         except ImportError:
             return CheckResult(
@@ -878,6 +1346,7 @@ def grade_eval(
     snapshots: Optional[List[Dict]] = None,
     transcript: Optional[List[Dict]] = None,
     provider: str = "claude",
+    step_transcripts: Optional[List[List[Dict]]] = None,
 ) -> Dict:
     """Grade an eval case against a workdir. Return grading results dict.
 
@@ -902,6 +1371,7 @@ def grade_eval(
             snapshots,
             transcript,
             provider=provider,
+            step_transcripts=step_transcripts,
         )
         result_dict = {
             "type": result.type,

@@ -34,7 +34,7 @@ Implement the current work unit with TDD. The per-task loop is RED → GREEN →
 ## Outputs
 
 - After each task: failing tests, passing implementation, task commit, workflow progress, refreshed `{workDir}/stage-report.md`
-- After all tasks: as-built notes in `plan.md`, three-line handoff to `/sw-verify`, ready-to-verify build state
+- After all tasks: as-built notes in `plan.md`, three-line handoff to `/sw-verify`, ready-to-verify build state; the handoff points at `Artifacts: {workDir}/stage-report.md`
 
 ## Constraints
 

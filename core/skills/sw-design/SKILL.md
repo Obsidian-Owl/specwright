@@ -35,6 +35,7 @@ between research and gate handoff, applying `protocols/decision.md` for all deci
 
 When complete, ALL of the following exist in `.specwright/work/{id}/`:
 
+- `stage-report.md` -- design handoff digest with attention-required at the top
 - `design.md` -- solution overview, approach, integration points, risk assessment
   - Required section: `## Blast Radius` listing: modules/files the design touches, failure propagation scope for each (local/adjacent/systemic), and what the design does NOT change.
 - `context.md` -- research findings, file paths, gotchas (travels with downstream agents)
@@ -89,9 +90,10 @@ NEVER write specs, decompose, implement, branch, or test. After gate handoff, ST
 
 **Gate handoff (LOW freedom):**
 On completion, emit the three-line handoff per the `protocols/decision.md`
-Gate Handoff section. Detail lives in the artifact files
-(`design.md`, `decisions.md`, design assumptions artifact, `context.md`). The user
-reads the artifacts and runs `/sw-plan` when ready.
+Gate Handoff section. Write `{workDir}/stage-report.md` before the handoff.
+The Artifacts line points at `Artifacts: {workDir}/stage-report.md`. Detail
+lives in the artifact files (`design.md`, `decisions.md`, design assumptions
+artifact, `context.md`). The Next line remains machine-parseable: `Next: /sw-plan`.
 
 **State mutations (LOW freedom):**
 Follow `protocols/state.md` for read-modify-write mechanics. Postconditions:

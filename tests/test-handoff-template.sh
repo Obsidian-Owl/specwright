@@ -7,7 +7,7 @@
 #   AC-1, AC-2 — decision.md Gate Handoff section is the new three-line format
 #   AC-3..AC-6 — sw-design, sw-plan, sw-verify, sw-ship reference the new format
 #   AC-9       — sw-init and sw-build do NOT reference the gate handoff template
-#   AC-10      — Decision Digest / Quality Checks do not leak elsewhere
+#   AC-10      — old four-section handoff headings do not leak elsewhere
 #
 # AC-7 is covered by tests/test-claude-code-build.sh (run separately).
 # AC-8 is a behavioral test against pipeline skills, run after this unit ships.
@@ -59,8 +59,8 @@ assert_file_contains "core/protocols/decision.md" "^## Gate Handoff" \
   "decision.md has '## Gate Handoff' heading"
 assert_file_contains "core/protocols/decision.md" "Done\. \{one-line outcome\}" \
   "decision.md template includes 'Done. {one-line outcome}.'"
-assert_file_contains "core/protocols/decision.md" "Artifacts: \{workDir\}/" \
-  "decision.md template includes 'Artifacts: {workDir}/'"
+assert_file_contains "core/protocols/decision.md" "Artifacts: \{workDir\}/stage-report\.md" \
+  "decision.md template includes 'Artifacts: {workDir}/stage-report.md'"
 assert_file_contains "core/protocols/decision.md" "Next: /sw-\{next-skill\}" \
   "decision.md template includes 'Next: /sw-{next-skill}'"
 
@@ -94,14 +94,14 @@ assert_file_not_contains "core/skills/sw-init/SKILL.md" "Gate handoff \(LOW free
 assert_file_not_contains "core/skills/sw-build/SKILL.md" "Gate handoff \(LOW freedom\)" \
   "sw-build has no Gate handoff constraint block"
 
-# AC-10: Decision Digest / Quality Checks do not leak elsewhere
+# AC-10: old four-section handoff headings do not leak elsewhere
 echo ""
-echo "AC-10: no four-section template leaks"
-LEAK_FILES=$(grep -rEl 'Decision Digest|Quality Checks' core/ 2>/dev/null || true)
+echo "AC-10: no old four-section handoff headings leak"
+LEAK_FILES=$(grep -rEl '^### (Decision Digest|Quality Checks|Deficiencies|Recommendation)' core/ 2>/dev/null || true)
 if [ -z "$LEAK_FILES" ]; then
-  pass "no four-section template leaks in core/"
+  pass "no old four-section handoff headings leak in core/"
 else
-  fail "four-section template leaks in: $LEAK_FILES"
+  fail "old four-section handoff headings leak in: $LEAK_FILES"
 fi
 
 echo ""

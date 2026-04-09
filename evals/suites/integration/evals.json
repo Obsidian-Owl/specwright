@@ -18,6 +18,41 @@
           "description": "State transitions from designing to planning"
         },
         {
+          "type": "snapshot_file_exists",
+          "path": ".specwright/work/test-work/stage-report.md",
+          "snapshot_index": 0,
+          "description": "sw-design writes stage-report before handoff"
+        },
+        {
+          "type": "snapshot_file_contains",
+          "path": ".specwright/work/test-work/stage-report.md",
+          "pattern": "^Attention required:",
+          "snapshot_index": 0,
+          "description": "sw-design stage report starts with attention-required"
+        },
+        {
+          "type": "step_transcript_final_block",
+          "step_index": 0,
+          "line_patterns": [
+            "^Done\\.\\s+.+\\.$",
+            "^Artifacts:\\s+.+/$",
+            "^Next:\\s+/sw-[a-z\\-]+$"
+          ],
+          "forbidden_substrings": [
+            "Decision Digest",
+            "Quality Checks",
+            "Deficiencies",
+            "### Recommendation"
+          ],
+          "description": "sw-design emits machine-parseable three-line handoff"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The transcript shows a concise design handoff. It should confirm completion, point to the stage-report artifact, and make the next stage explicit without inlining the full report. Score 0.8+ for a tight operational handoff, 0.5-0.7 for partial structure, below 0.5 for vague or overly long transitions.",
+          "target": "$TRANSCRIPT",
+          "description": "Transcript quality for design-to-plan handoff"
+        },
+        {
           "type": "artifact_reference",
           "source": ".specwright/work/test-work/design.md",
           "target": ".specwright/work/test-work/spec.md",
@@ -52,6 +87,22 @@
           "type": "state_transition",
           "expected_sequence": ["planning", "building"],
           "description": "State transitions from planning to building"
+        },
+        {
+          "type": "snapshot_file_exists",
+          "path": ".specwright/work/test-work/stage-report.md",
+          "snapshot_index": 0,
+          "description": "sw-plan writes stage-report before handoff"
+        },
+        {
+          "type": "step_transcript_final_block",
+          "step_index": 0,
+          "line_patterns": [
+            "^Done\\.\\s+.+\\.$",
+            "^Artifacts:\\s+.+/$",
+            "^Next:\\s+/sw-[a-z\\-]+$"
+          ],
+          "description": "sw-plan emits machine-parseable three-line handoff"
         },
         {
           "type": "artifact_reference",
@@ -90,9 +141,55 @@
           "description": "Build gate evidence file exists"
         },
         {
+          "type": "snapshot_file_exists",
+          "path": ".specwright/work/test-work/stage-report.md",
+          "snapshot_index": 0,
+          "description": "sw-build writes a stage report before verify"
+        },
+        {
+          "type": "snapshot_file_contains",
+          "path": ".specwright/work/test-work/stage-report.md",
+          "pattern": "^Attention required:",
+          "snapshot_index": 0,
+          "description": "sw-build stage report starts with attention-required"
+        },
+        {
+          "type": "snapshot_file_line_count_lte",
+          "path": ".specwright/work/test-work/stage-report.md",
+          "max_lines": 40,
+          "snapshot_index": 0,
+          "description": "sw-build stage report stays within the line cap"
+        },
+        {
+          "type": "step_transcript_final_block",
+          "step_index": 0,
+          "line_patterns": [
+            "^Done\\.\\s+.+\\.$",
+            "^Artifacts:\\s+.+/$",
+            "^Next:\\s+/sw-[a-z\\-]+$"
+          ],
+          "description": "sw-build emits machine-parseable three-line handoff"
+        },
+        {
           "type": "file_exists",
           "path": ".specwright/work/test-work/evidence/spec-compliance.md",
           "description": "Spec compliance evidence file exists"
+        },
+        {
+          "type": "step_transcript_final_block",
+          "step_index": 1,
+          "line_patterns": [
+            "^Done\\.\\s+.+\\.$",
+            "^Artifacts:\\s+.+/$",
+            "^Next:\\s+/sw-[a-z\\-]+$"
+          ],
+          "description": "sw-verify emits machine-parseable three-line handoff"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The combined transcript demonstrates disciplined pipeline behavior: build reports completion, verify reports gate results, and the user-facing messages stay concise with artifact paths and explicit next steps. Score 0.8+ when both stages are operationally clear and machine-parseable, 0.5-0.7 for partial structure, below 0.5 for missing or noisy handoffs.",
+          "target": "$TRANSCRIPT",
+          "description": "Transcript quality for build-to-verify handoff"
         },
         {
           "type": "gate_results",
@@ -107,6 +204,68 @@
         }
       ],
       "tags": ["integration", "build-verify", "handoff"]
+    },
+    {
+      "id": "doctor-to-status-repair-report",
+      "layer": "integration",
+      "sequence": ["sw-doctor", "sw-status"],
+      "prompt_args": {
+        "repair_unit_id": "02d-structural-smoke-evals",
+        "headless": true
+      },
+      "seed": {
+        "type": "fixture",
+        "path": "suites/integration/fixtures/doctor-to-status-repair"
+      },
+      "expectations": [
+        {
+          "type": "step_transcript_contains",
+          "step_index": 0,
+          "pattern": "sw-status --repair 02d-structural-smoke-evals",
+          "description": "sw-doctor surfaces the inline repair command"
+        },
+        {
+          "type": "snapshot_state",
+          "field": "workUnits.0.status",
+          "expected": "shipped",
+          "snapshot_index": 0,
+          "description": "sw-doctor backfill never mutates shipped status when it cannot prove a PR"
+        },
+        {
+          "type": "snapshot_state",
+          "field": "workUnits.0.prNumber",
+          "expected": null,
+          "snapshot_index": 0,
+          "description": "sw-doctor leaves prNumber null when no PR is provable"
+        },
+        {
+          "type": "step_transcript_contains",
+          "step_index": 1,
+          "pattern": "report-only|interactive",
+          "description": "headless sw-status --repair reports next steps instead of mutating state"
+        },
+        {
+          "type": "snapshot_state",
+          "field": "workUnits.0.status",
+          "expected": "shipped",
+          "snapshot_index": 1,
+          "description": "headless repair path leaves status unchanged"
+        },
+        {
+          "type": "snapshot_state",
+          "field": "workUnits.0.prNumber",
+          "expected": null,
+          "snapshot_index": 1,
+          "description": "headless repair path leaves prNumber unchanged"
+        },
+        {
+          "type": "model_grade",
+          "rubric": "The transcript should clearly explain the STATE_DRIFT finding, show the exact remediation command, and make the headless/report-only limitation explicit. Score 0.8+ for precise operational guidance, 0.5-0.7 for partial guidance, below 0.5 for vague or missing repair instructions.",
+          "target": "$TRANSCRIPT",
+          "description": "Transcript quality for drift repair guidance"
+        }
+      ],
+      "tags": ["integration", "doctor-status", "state-drift", "behavioral"]
     }
   ]
 }

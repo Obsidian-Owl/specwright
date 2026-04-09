@@ -40,6 +40,8 @@ applying `protocols/decision.md` for all decisions. Gate handoff at the end.
 `spec.md` + `plan.md` + `context.md`. `workUnits` array in workflow.json.
 Also: `integration-criteria.md` in the design-level directory (`.specwright/work/{id}/`).
 
+Also: `{workDir}/stage-report.md` for the planning handoff.
+
 Also: `decisions.md` updated with planning-phase autonomous decisions.
 
 ## Constraints
@@ -116,10 +118,11 @@ directory structure, config examples. NOT allowed: function bodies, algorithm lo
 
 **Gate handoff (LOW freedom):**
 On completion, emit the three-line handoff per the `protocols/decision.md`
-Gate Handoff section. Detail lives in the artifact files (`spec.md` /
-`plan.md` / `context.md` for each unit, `integration-criteria.md` for
-multi-unit work). The user reads the artifacts and runs `/sw-build`
-when ready.
+Gate Handoff section. Write `{workDir}/stage-report.md` before the handoff.
+The Artifacts line points at `Artifacts: {workDir}/stage-report.md`. Detail
+lives in the artifact files (`spec.md` / `plan.md` / `context.md` for each
+unit, `integration-criteria.md` for multi-unit work). The Next line remains
+machine-parseable: `Next: /sw-build`.
 
 **State mutations (LOW freedom):**
 Follow `protocols/state.md`. Transition `designing` → `planning`. Multi-unit: populate

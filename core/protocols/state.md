@@ -29,7 +29,15 @@
     }
   },
   "workUnits": [
-    { "id": "string", "description": "string", "status": "pending | planned | building | verifying | shipping | shipped | abandoned", "order": "number", "workDir": "string" }
+    {
+      "id": "string",
+      "description": "string",
+      "status": "pending | planned | building | verifying | shipping | shipped | abandoned",
+      "order": "number",
+      "workDir": "string",
+      "prNumber": "number | null",
+      "prMergedAt": "ISO timestamp | null"
+    }
   ],
   "lock": {
     "skill": "string",
@@ -41,6 +49,12 @@
 
 `currentWork` is null when no work is active. `lock` is null when unlocked.
 `workUnits` is null for single-unit work (backward compatible). When present, `currentWork` still points to the active unit.
+
+`workUnits[{n}].prNumber: number | null` is optional, nullable, and backward-compatible.
+`workUnits[{n}].prMergedAt: ISO timestamp | null` is optional, nullable, and backward-compatible.
+Older workflow files may omit both fields. When present:
+- `prNumber`: GitHub pull request number for shipped work
+- `prMergedAt`: merge time when confirmed
 
 `unitId` is the active unit within the work. Null for single-unit work. In multi-unit mode, `workDir` points to the active unit's directory (e.g., `.specwright/work/{id}/units/{unitId}/`). For single-unit work, `workDir` points to the work root (unchanged).
 
