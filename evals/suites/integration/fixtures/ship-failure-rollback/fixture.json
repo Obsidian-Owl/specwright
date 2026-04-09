@@ -1,0 +1,35 @@
+{
+  "generated_from": {
+    "skill": "sw-ship",
+    "source_fixture": "synthetic",
+    "date": "2026-04-09"
+  },
+  "specwright_version": "0.16.0",
+  "language": "typescript",
+  "setup": {
+    "env": {
+      "EVALS_GH_LOG_DIR": ".gh",
+      "EVALS_GH_WORKFLOW": ".specwright/state/workflow.json",
+      "EVALS_GH_FAIL_PR_CREATE": "1"
+    },
+    "path_prepend": [
+      "bin"
+    ],
+    "commands": [
+      "bash -lc 'chmod +x bin/gh bin/log_workflow_state.py bin/watch_workflow_sequence.py'",
+      "git init -b main",
+      "git config user.name 'Specwright Eval'",
+      "git config user.email specwright-evals@example.com",
+      "git config core.hooksPath /dev/null",
+      "git add .specwright/CONSTITUTION.md .specwright/CHARTER.md .specwright/config.json .specwright/state/workflow.json .specwright/work/ship-failure/spec.md .specwright/work/ship-failure/plan.md .specwright/work/ship-failure/evidence/spec-report.md .specwright/work/ship-failure/evidence/tests-report.md bin/gh bin/log_workflow_state.py bin/watch_workflow_sequence.py fixture.json",
+      "git commit -m 'chore(eval): seed ship rollback fixture'",
+      "git init --bare .origin.git",
+      "git remote add origin .origin.git",
+      "git push -u origin main",
+      "git checkout -b work/ship-failure",
+      "bash -lc 'printf \"# rollback\\n\" > rollback-note.md'",
+      "git add rollback-note.md",
+      "git commit -m 'docs(ship): prepare rollback fixture'"
+    ]
+  }
+}

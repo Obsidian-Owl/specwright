@@ -181,6 +181,15 @@ class TestNewPromptTemplates(unittest.TestCase):
         self.assertIn("Attention required:", result)
         self.assertIn("Done. <one-line outcome>.", result)
         self.assertIn("Artifacts: <path to stage-report.md>", result)
+        self.assertIn("Use the documented `gh` command path directly.", result)
+        self.assertIn("Do not reopen `core/skills/sw-ship/SKILL.md`", result)
+        self.assertIn("run exactly one", result)
+
+    def test_doctor_prompt_treats_path_shims_as_stock_tools(self):
+        result = doctor()
+        self.assertIn("Assume PATH-provided CLI shims behave like their stock tools.", result)
+        self.assertIn("Never modify `status`", result)
+        self.assertIn("Do not reopen `core/skills/sw-doctor/SKILL.md`", result)
 
     def test_sync_returns_string(self):
         self.assertIsInstance(sync(), str)

@@ -35,7 +35,7 @@
           "step_index": 0,
           "line_patterns": [
             "^Done\\.\\s+.+\\.$",
-            "^Artifacts:\\s+.+/$",
+            "^Artifacts:\\s+.+stage-report\\.md$",
             "^Next:\\s+/sw-[a-z\\-]+$"
           ],
           "forbidden_substrings": [
@@ -99,7 +99,7 @@
           "step_index": 0,
           "line_patterns": [
             "^Done\\.\\s+.+\\.$",
-            "^Artifacts:\\s+.+/$",
+            "^Artifacts:\\s+.+stage-report\\.md$",
             "^Next:\\s+/sw-[a-z\\-]+$"
           ],
           "description": "sw-plan emits machine-parseable three-line handoff"
@@ -165,7 +165,7 @@
           "step_index": 0,
           "line_patterns": [
             "^Done\\.\\s+.+\\.$",
-            "^Artifacts:\\s+.+/$",
+            "^Artifacts:\\s+.+stage-report\\.md$",
             "^Next:\\s+/sw-[a-z\\-]+$"
           ],
           "description": "sw-build emits machine-parseable three-line handoff"
@@ -180,7 +180,7 @@
           "step_index": 1,
           "line_patterns": [
             "^Done\\.\\s+.+\\.$",
-            "^Artifacts:\\s+.+/$",
+            "^Artifacts:\\s+.+stage-report\\.md$",
             "^Next:\\s+/sw-[a-z\\-]+$"
           ],
           "description": "sw-verify emits machine-parseable three-line handoff"
@@ -266,6 +266,328 @@
         }
       ],
       "tags": ["integration", "doctor-status", "state-drift", "behavioral"]
+    },
+    {
+      "id": "recovery-closeout-full-pipeline",
+      "layer": "integration",
+      "runner": "codex",
+      "sequence": ["sw-design", "sw-plan", "sw-build", "sw-verify", "sw-ship"],
+      "prompt_args": {
+        "problem_statement": "Implement add(a, b) in src/math.ts with tests for positive, negative, and zero inputs.",
+        "instructions": "Keep this closeout eval minimal and deterministic. Operate on the existing single-unit workflow at `.specwright/work/recovery-closeout`. Do not create workUnits or multi-unit decomposition. Prefer one concrete task that implements `add(a, b)` and its tests. Do not require optional artifacts such as LANDSCAPE, AUDIT, research, or patterns. Do not reopen the matching `core/skills/` SKILL.md unless execution is blocked. Read only the files needed for the current stage, plus `.specwright/state/workflow.json`, `.specwright/config.json`, and `.specwright/work/recovery-closeout/`. Avoid unrelated repo exploration and finish each stage with the required handoff only."
+      },
+      "seed": {
+        "type": "fixture",
+        "path": "suites/integration/fixtures/recovery-closeout-full-pipeline"
+      },
+      "expectations": [
+        {
+          "type": "state",
+          "field": "currentWork.status",
+          "expected": "shipped",
+          "description": "Full pipeline ends in shipped state"
+        },
+        {
+          "type": "snapshot_file_exists",
+          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "snapshot_index": 0,
+          "description": "Step 0 writes stage-report before handoff"
+        },
+        {
+          "type": "snapshot_file_exists",
+          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "snapshot_index": 1,
+          "description": "Step 1 writes stage-report before handoff"
+        },
+        {
+          "type": "snapshot_file_exists",
+          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "snapshot_index": 2,
+          "description": "Step 2 writes stage-report before handoff"
+        },
+        {
+          "type": "snapshot_file_exists",
+          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "snapshot_index": 3,
+          "description": "Step 3 writes stage-report before handoff"
+        },
+        {
+          "type": "snapshot_file_exists",
+          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "snapshot_index": 4,
+          "description": "Step 4 writes stage-report before handoff"
+        },
+        {
+          "type": "snapshot_file_contains",
+          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "pattern": "^Attention required:",
+          "snapshot_index": 0,
+          "description": "Step 0 stage report starts with attention-required"
+        },
+        {
+          "type": "snapshot_file_contains",
+          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "pattern": "^Attention required:",
+          "snapshot_index": 1,
+          "description": "Step 1 stage report starts with attention-required"
+        },
+        {
+          "type": "snapshot_file_contains",
+          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "pattern": "^Attention required:",
+          "snapshot_index": 2,
+          "description": "Step 2 stage report starts with attention-required"
+        },
+        {
+          "type": "snapshot_file_contains",
+          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "pattern": "^Attention required:",
+          "snapshot_index": 3,
+          "description": "Step 3 stage report starts with attention-required"
+        },
+        {
+          "type": "snapshot_file_contains",
+          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "pattern": "^Attention required:",
+          "snapshot_index": 4,
+          "description": "Step 4 stage report starts with attention-required"
+        },
+        {
+          "type": "step_transcript_final_block",
+          "step_index": 0,
+          "line_patterns": [
+            "^Done\\.\\s+.+\\.$",
+            "^Artifacts:\\s+.+stage-report\\.md$",
+            "^Next:\\s+/sw-[a-z\\-]+$"
+          ],
+          "forbidden_substrings": [
+            "Decision Digest",
+            "Quality Checks",
+            "Deficiencies",
+            "### Recommendation"
+          ],
+          "description": "Step 0 emits machine-parseable three-line handoff"
+        },
+        {
+          "type": "step_transcript_final_block",
+          "step_index": 1,
+          "line_patterns": [
+            "^Done\\.\\s+.+\\.$",
+            "^Artifacts:\\s+.+stage-report\\.md$",
+            "^Next:\\s+/sw-[a-z\\-]+$"
+          ],
+          "forbidden_substrings": [
+            "Decision Digest",
+            "Quality Checks",
+            "Deficiencies",
+            "### Recommendation"
+          ],
+          "description": "Step 1 emits machine-parseable three-line handoff"
+        },
+        {
+          "type": "step_transcript_final_block",
+          "step_index": 2,
+          "line_patterns": [
+            "^Done\\.\\s+.+\\.$",
+            "^Artifacts:\\s+.+stage-report\\.md$",
+            "^Next:\\s+/sw-[a-z\\-]+$"
+          ],
+          "forbidden_substrings": [
+            "Decision Digest",
+            "Quality Checks",
+            "Deficiencies",
+            "### Recommendation"
+          ],
+          "description": "Step 2 emits machine-parseable three-line handoff"
+        },
+        {
+          "type": "step_transcript_final_block",
+          "step_index": 3,
+          "line_patterns": [
+            "^Done\\.\\s+.+\\.$",
+            "^Artifacts:\\s+.+stage-report\\.md$",
+            "^Next:\\s+/sw-[a-z\\-]+$"
+          ],
+          "forbidden_substrings": [
+            "Decision Digest",
+            "Quality Checks",
+            "Deficiencies",
+            "### Recommendation"
+          ],
+          "description": "Step 3 emits machine-parseable three-line handoff"
+        },
+        {
+          "type": "step_transcript_final_block",
+          "step_index": 4,
+          "line_patterns": [
+            "^Done\\.\\s+.+\\.$",
+            "^Artifacts:\\s+.+stage-report\\.md$",
+            "^Next:\\s+/sw-[a-z\\-]+$"
+          ],
+          "forbidden_substrings": [
+            "Decision Digest",
+            "Quality Checks",
+            "Deficiencies",
+            "### Recommendation"
+          ],
+          "description": "Step 4 emits machine-parseable three-line handoff"
+        },
+        {
+          "type": "file_contains",
+          "path": ".gh/invocations.log",
+          "pattern": "pr create",
+          "description": "Full pipeline closeout invokes gh pr create during ship"
+        },
+        {
+          "type": "file_not_exists",
+          "path": ".specwright/LANDSCAPE.md",
+          "description": "Optional LANDSCAPE artifact is absent for the full pipeline closeout run"
+        },
+        {
+          "type": "file_not_exists",
+          "path": ".specwright/AUDIT.md",
+          "description": "Optional AUDIT artifact is absent for the full pipeline closeout run"
+        },
+        {
+          "type": "file_not_exists",
+          "path": ".specwright/research",
+          "description": "Optional research directory is absent for the full pipeline closeout run"
+        },
+        {
+          "type": "file_not_exists",
+          "path": ".specwright/patterns.md",
+          "description": "Optional sw-learn artifact is absent for the full pipeline closeout run"
+        }
+      ],
+      "tags": ["integration", "recovery-closeout", "full-pipeline", "behavioral"]
+    },
+    {
+      "id": "doctor-to-status-repair-backfill",
+      "layer": "integration",
+      "runner": "codex",
+      "sequence": ["sw-doctor"],
+      "prompt_args": {},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/integration/fixtures/doctor-to-status-repair-backfill"
+      },
+      "expectations": [
+        {
+          "type": "state",
+          "field": "workUnits.0.status",
+          "expected": "shipped",
+          "description": "Backfill keeps shipped status intact"
+        },
+        {
+          "type": "state",
+          "field": "workUnits.0.prNumber",
+          "expected": 271,
+          "description": "Backfill enriches the missing legacy prNumber"
+        },
+        {
+          "type": "file_contains",
+          "path": ".gh/invocations.log",
+          "pattern": "search prs|pr list",
+          "description": "Backfill executes the gh discovery path before mutating pr fields"
+        }
+      ],
+      "tags": ["integration", "doctor-status", "backfill", "behavioral"]
+    },
+    {
+      "id": "ship-success-ordering",
+      "layer": "integration",
+      "runner": "codex",
+      "sequence": ["sw-ship"],
+      "prompt_args": {},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/integration/fixtures/ship-success-ordering"
+      },
+      "expectations": [
+        {
+          "type": "state",
+          "field": "workUnits.0.status",
+          "expected": "shipped",
+          "description": "Successful shipping marks the unit as shipped"
+        },
+        {
+          "type": "state",
+          "field": "workUnits.0.prNumber",
+          "expected": 314,
+          "description": "Successful shipping writes the PR number"
+        },
+        {
+          "type": "file_exists",
+          "path": ".specwright/work/ship-success/stage-report.md",
+          "description": "sw-ship writes the stage report artifact on success"
+        },
+        {
+          "type": "file_contains",
+          "path": ".specwright/work/ship-success/stage-report.md",
+          "pattern": "^Attention required:",
+          "description": "sw-ship stage report starts with attention-required"
+        },
+        {
+          "type": "file_contains",
+          "path": ".gh/pr-create-sequence.log",
+          "pattern": "status=shipping prNumber=.*",
+          "description": "sw-ship enters shipping before writing the shipped state"
+        },
+        {
+          "type": "file_contains",
+          "path": ".gh/invocations.log",
+          "pattern": "pr create",
+          "description": "sw-ship executes the PR creation command"
+        }
+      ],
+      "tags": ["integration", "ship", "ordering", "behavioral"]
+    },
+    {
+      "id": "ship-failure-rollback",
+      "layer": "integration",
+      "runner": "codex",
+      "sequence": ["sw-ship"],
+      "prompt_args": {},
+      "seed": {
+        "type": "fixture",
+        "path": "suites/integration/fixtures/ship-failure-rollback"
+      },
+      "expectations": [
+        {
+          "type": "snapshot_state",
+          "field": "currentWork.status",
+          "expected": "verifying",
+          "snapshot_index": 0,
+          "description": "Rollback returns the active work to verifying"
+        },
+        {
+          "type": "snapshot_state",
+          "field": "workUnits.0.status",
+          "expected": "verifying",
+          "snapshot_index": 0,
+          "description": "Rollback returns the unit to verifying"
+        },
+        {
+          "type": "snapshot_state",
+          "field": "workUnits.0.prNumber",
+          "expected": null,
+          "snapshot_index": 0,
+          "description": "Rollback leaves prNumber null after gh failure"
+        },
+        {
+          "type": "file_contains",
+          "path": ".gh/invocations.log",
+          "pattern": "pr create",
+          "description": "Rollback path executes gh pr create"
+        },
+        {
+          "type": "file_contains",
+          "path": ".gh/pr-create-sequence.log",
+          "pattern": "status=shipping prNumber=null",
+          "description": "Rollback proof captures the pre-failure shipping boundary"
+        }
+      ],
+      "tags": ["integration", "ship", "rollback", "behavioral"]
     }
   ]
 }

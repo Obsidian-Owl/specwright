@@ -1,0 +1,22 @@
+{
+  "generated_from": {
+    "skill": "sw-doctor",
+    "source_fixture": "synthetic",
+    "date": "2026-04-09"
+  },
+  "specwright_version": "0.16.0",
+  "language": "markdown",
+  "setup": {
+    "env": {
+      "EVALS_GH_LOG_DIR": ".gh",
+      "EVALS_GH_PR_LIST_JSON": "[{\"number\":271,\"mergedAt\":\"2026-04-07T12:00:00Z\",\"title\":\"Ship legacy workflow fixture\",\"url\":\"https://github.com/example/specwright/pull/271\"}]",
+      "EVALS_GH_SEARCH_JSON": "[{\"number\":271,\"mergedAt\":\"2026-04-07T12:00:00Z\",\"title\":\"Ship legacy workflow fixture\",\"url\":\"https://github.com/example/specwright/pull/271\"}]"
+    },
+    "path_prepend": [
+      "bin"
+    ],
+    "commands": [
+      "bash -lc 'chmod +x bin/gh'"
+    ]
+  }
+}

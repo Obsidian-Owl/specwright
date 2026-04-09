@@ -1,0 +1,32 @@
+{
+  "version": "2.0",
+  "project": {
+    "name": "recovery-closeout-full-pipeline",
+    "type": "typescript",
+    "languages": ["typescript"],
+    "framework": null,
+    "packageManager": "npm",
+    "testRunner": "vitest",
+    "linter": null,
+    "formatter": null
+  },
+  "commands": {
+    "build": null,
+    "test": "npx vitest run --dir ./src src/math.test.ts",
+    "lint": null,
+    "format": null
+  },
+  "git": {
+    "defaultBranch": "main",
+    "strategy": "trunk-based",
+    "conventionalCommits": true,
+    "branchPrefix": "work/"
+  },
+  "gates": {
+    "build": { "enabled": false },
+    "tests": { "enabled": true, "philosophy": "tdd-strict" },
+    "security": { "enabled": false },
+    "spec": { "enabled": true, "requireEvidence": true },
+    "wiring": { "enabled": false }
+  }
+}

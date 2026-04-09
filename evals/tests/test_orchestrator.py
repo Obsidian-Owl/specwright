@@ -235,6 +235,22 @@ class TestRunSingleEvalLayer1Invocation(unittest.TestCase):
                         runner=self.runner, timeout=600)
         self.assertEqual(self.runner.calls[0]["timeout"], 600)
 
+    @patch("evals.framework.orchestrator.create_runner")
+    @patch("evals.framework.orchestrator.setup_fixture")
+    def test_runner_override_uses_case_specific_runner(self, mock_setup, mock_create_runner):
+        mock_setup.side_effect = lambda src, dst: shutil.copytree(
+            self.fixture_dir, dst
+        )
+        override_runner = MockRunner()
+        mock_create_runner.return_value = override_runner
+        case = _make_skill_eval_case(fixture_path=self.fixture_dir)
+        case["runner"] = "codex"
+        run_single_eval(case, trial_num=1, results_dir=self.results_dir,
+                        runner=self.runner)
+        self.assertEqual(len(self.runner.calls), 0)
+        self.assertEqual(len(override_runner.calls), 1)
+        mock_create_runner.assert_called_once_with("codex")
+
 
 class TestRunSingleEvalFixtureSetupMetadata(unittest.TestCase):
     """Fixture metadata can request repo-root overlay bootstrap."""
@@ -469,6 +485,24 @@ class TestRunSingleEvalLayer2Invocation(unittest.TestCase):
             self.assertIsInstance(prompt, str)
             self.assertGreater(len(prompt), 10,
                                f"Prompt for {skill} too short to be real template")
+
+    @patch("evals.framework.orchestrator.create_runner")
+    @patch("evals.framework.orchestrator.run_sequence")
+    @patch("evals.framework.orchestrator.setup_fixture")
+    def test_runner_override_applies_to_sequence_case(self, mock_setup, mock_chain, mock_create_runner):
+        mock_setup.side_effect = lambda src, dst: shutil.copytree(
+            self.fixture_dir, dst
+        )
+        from evals.framework.chainer import ChainResult
+        override_runner = MockRunner()
+        mock_create_runner.return_value = override_runner
+        mock_chain.return_value = ChainResult(steps=[], snapshots=[])
+        case = _make_integration_eval_case(fixture_path=self.fixture_dir)
+        case["runner"] = "codex"
+        run_single_eval(case, trial_num=1, results_dir=self.results_dir,
+                        runner=self.runner)
+        self.assertIs(mock_chain.call_args.kwargs["runner"], override_runner)
+        mock_create_runner.assert_called_once_with("codex")
 
     @patch("evals.framework.orchestrator.run_sequence")
     @patch("evals.framework.orchestrator.setup_fixture")
@@ -908,6 +942,21 @@ class TestAggregation(unittest.TestCase):
         with open(benchmark_path) as f:
             data = json.load(f)
         self.assertIsInstance(data, dict)
+
+    @patch("evals.framework.orchestrator.aggregate_results")
+    @patch("evals.framework.orchestrator.run_single_eval")
+    def test_run_eval_suite_records_provider_from_runner_override(self, mock_run_single_eval, mock_aggregate):
+        case = _make_integration_eval_case(eval_id="provider-override", fixture_path=self.fixture_dir)
+        case["runner"] = "codex"
+        suite_path = _make_suite_json(self.tmpdir, [case])
+        mock_run_single_eval.return_value = "codex"
+        mock_aggregate.return_value = {"metadata": {}, "run_summary": {}}
+        with patch("evals.framework.orchestrator.create_runner") as mock_create_runner:
+            mock_create_runner.return_value = MockRunner()
+            results_dir = run_eval_suite(suite_path, trials=1)
+        with open(os.path.join(results_dir, "config.json")) as f:
+            config = json.load(f)
+        self.assertEqual(config["provider"], "codex")
 
     @patch("evals.framework.orchestrator.setup_fixture")
     def test_benchmark_json_has_metadata(self, mock_setup):

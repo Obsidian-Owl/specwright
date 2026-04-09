@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LOG_DIR="${EVALS_GH_LOG_DIR:-.gh}"
+WORKFLOW_PATH="${EVALS_GH_WORKFLOW:-.specwright/state/workflow.json}"
+PR_NUMBER="${EVALS_GH_PR_NUMBER:-314}"
+PR_URL="${EVALS_GH_PR_URL:-https://github.com/example/specwright/pull/${PR_NUMBER}}"
+PR_LIST_JSON="${EVALS_GH_PR_LIST_JSON:-[]}"
+SEARCH_JSON="${EVALS_GH_SEARCH_JSON:-${PR_LIST_JSON}}"
+FAIL_PR_CREATE="${EVALS_GH_FAIL_PR_CREATE:-0}"
+WATCH_WORKFLOW_SEQUENCE="${EVALS_GH_WATCH_WORKFLOW_SEQUENCE:-0}"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG_WORKFLOW_STATE_SCRIPT="${SCRIPT_DIR}/log_workflow_state.py"
+WATCH_WORKFLOW_SEQUENCE_SCRIPT="${SCRIPT_DIR}/watch_workflow_sequence.py"
+
+mkdir -p "${LOG_DIR}"
+printf '%s\n' "$*" >> "${LOG_DIR}/invocations.log"
+
+if [[ "${1:-}" == "--version" || "${1:-}" == "version" ]]; then
+  printf 'gh version 2.74.0 (2026-04-09)\n'
+  exit 0
+fi
+
+if [[ "${1:-}" == "help" || "$*" == *"--help"* ]]; then
+  printf 'GitHub CLI mock\n'
+  exit 0
+fi
+
+if [[ "${1:-}" == "auth" && "${2:-}" == "status" ]]; then
+  printf 'github.com\n  ✓ Logged in to github.com as specwright-evals\n'
+  exit 0
+fi
+
+if [[ "${1:-}" == "search" && "${2:-}" == "prs" ]]; then
+  printf '%s\n' "${SEARCH_JSON}"
+  exit 0
+fi
+
+if [[ "${1:-}" == "pr" ]]; then
+  case "${2:-}" in
+    list)
+      printf '%s\n' "${PR_LIST_JSON}"
+      exit 0
+      ;;
+    create)
+      if [[ -f "${LOG_WORKFLOW_STATE_SCRIPT}" ]]; then
+        python3 "${LOG_WORKFLOW_STATE_SCRIPT}" \
+          "${WORKFLOW_PATH}" \
+          "${LOG_DIR}/pr-create-sequence.log"
+      fi
+      if [[ "${WATCH_WORKFLOW_SEQUENCE}" == "1" && -f "${WATCH_WORKFLOW_SEQUENCE_SCRIPT}" ]]; then
+        python3 "${WATCH_WORKFLOW_SEQUENCE_SCRIPT}" \
+          "${WORKFLOW_PATH}" \
+          "${LOG_DIR}/pr-create-sequence.log" \
+          "${PR_NUMBER}" >/dev/null 2>&1 &
+      fi
+      if [[ "${FAIL_PR_CREATE}" == "1" ]]; then
+        echo "simulated gh pr create failure" >&2
+        exit 1
+      fi
+      printf '%s\n' "${PR_URL}"
+      exit 0
+      ;;
+    view)
+      printf '%s\n' "${PR_LIST_JSON}"
+      exit 0
+      ;;
+  esac
+fi
+
+if [[ "${1:-}" == "repo" && "${2:-}" == "view" ]]; then
+  printf '{}\n'
+  exit 0
+fi
+
+if [[ "${1:-}" == "api" ]]; then
+  printf '{}\n'
+  exit 0
+fi
+
+echo "unsupported gh shim invocation: $*" >&2
+exit 0

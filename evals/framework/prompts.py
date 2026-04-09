@@ -5,6 +5,14 @@ proceed without calling AskUserQuestion.
 """
 
 
+def _format_instructions(instructions: str = "") -> str:
+    """Render optional extra instructions for a prompt template."""
+    normalized = instructions.strip()
+    if not normalized:
+        return ""
+    return f"\n\nAdditional constraints for this eval:\n{normalized}"
+
+
 def init(project_type: str = "typescript") -> str:
     """Prompt template for /sw-init."""
     return f"""Run /sw-init for this project.
@@ -14,11 +22,12 @@ use standard defaults for a {project_type} project.
 Accept all suggested configurations. Do not ask clarifying questions."""
 
 
-def design(problem_statement: str) -> str:
+def design(problem_statement: str, instructions: str = "") -> str:
     """Prompt template for /sw-design.
 
     Args:
         problem_statement: The problem or feature to design a solution for.
+        instructions: Optional extra constraints for this eval run.
     """
     return f"""Run /sw-design for this project.
 
@@ -27,7 +36,7 @@ Do not ask clarifying questions — treat the problem statement as complete.
 Accept all assumptions as ACCEPTED (risk acknowledged).
 Approve all defaults.
 Write the stage report before the terminal handoff.
-The stage report must begin with `Attention required:` and stay concise.
+The stage report must begin with `Attention required:` and stay concise.{_format_instructions(instructions)}
 
 End with exactly these three lines:
 Done. <one-line outcome>.
@@ -37,7 +46,7 @@ Next: /sw-plan
 Problem: {problem_statement}"""
 
 
-def plan() -> str:
+def plan(instructions: str = "") -> str:
     """Prompt template for /sw-plan."""
     return """Run /sw-plan.
 
@@ -46,7 +55,7 @@ Approve all specs. Use single-unit layout unless the design
 explicitly calls for multi-unit decomposition.
 Accept all suggested acceptance criteria without changes.
 Write the stage report before the terminal handoff.
-The stage report must begin with `Attention required:` and stay concise.
+The stage report must begin with `Attention required:` and stay concise.""" + _format_instructions(instructions) + """
 
 End with exactly these three lines:
 Done. <one-line outcome>.
@@ -54,7 +63,7 @@ Artifacts: <path to stage-report.md>
 Next: /sw-build"""
 
 
-def build() -> str:
+def build(instructions: str = "") -> str:
     """Prompt template for /sw-build."""
     return """Run /sw-build.
 
@@ -62,7 +71,7 @@ Implement per the spec and plan in .specwright/work/.
 Follow TDD strictly. Commit after each completed task.
 Do not ask for confirmation — proceed through all tasks.
 Write the stage report before the terminal handoff.
-The stage report must begin with `Attention required:` and stay concise.
+The stage report must begin with `Attention required:` and stay concise.""" + _format_instructions(instructions) + """
 
 End with exactly these three lines:
 Done. <one-line outcome>.
@@ -70,11 +79,12 @@ Artifacts: <path to stage-report.md>
 Next: /sw-verify"""
 
 
-def verify(gate: str = "") -> str:
+def verify(gate: str = "", instructions: str = "") -> str:
     """Prompt template for /sw-verify.
 
     Args:
         gate: Optional single gate name to run (e.g. "security"). Empty = all gates.
+        instructions: Optional extra constraints for this eval run.
     """
     if gate:
         return f"""Run /sw-verify --gate={gate}
@@ -82,7 +92,7 @@ def verify(gate: str = "") -> str:
 Run only the {gate} quality gate. Report results.
 Accept all defaults.
 Write the stage report before the terminal handoff.
-The stage report must begin with `Attention required:` and stay concise.
+The stage report must begin with `Attention required:` and stay concise.{_format_instructions(instructions)}
 
 End with exactly these three lines:
 Done. <one-line outcome>.
@@ -93,7 +103,7 @@ Next: /sw-build or /sw-ship"""
 Run all enabled quality gates. Report results.
 Do not skip any gates. Accept all defaults.
 Write the stage report before the terminal handoff.
-The stage report must begin with `Attention required:` and stay concise.
+The stage report must begin with `Attention required:` and stay concise.""" + _format_instructions(instructions) + """
 
 End with exactly these three lines:
 Done. <one-line outcome>.
@@ -105,8 +115,20 @@ def ship() -> str:
     """Prompt template for /sw-ship."""
     return """Run /sw-ship.
 
-Create a PR with evidence-mapped body. Use the default branch strategy.
+This is a constrained non-interactive ship eval. Execute only the ship flow.
+Do not reopen `core/skills/sw-ship/SKILL.md` unless execution is blocked.
+Read only `.specwright/state/workflow.json`, `.specwright/config.json`,
+`{workDir}/spec.md`, `{workDir}/plan.md`, and `{workDir}/evidence/`.
+If pre-flight passes, set status to `shipping`, run exactly one
+`gh pr create`, then on success write `prNumber`, keep `prMergedAt` null,
+set status to `shipped`, and write `{workDir}/stage-report.md`.
+If push, PR creation, or the `prNumber` write fails, revert to `verifying`
+and keep `prNumber` null.
 Do not ask for confirmation — proceed with shipping.
+Assume PATH-provided CLI shims behave like their stock tools.
+Use the documented `gh` command path directly.
+Do not inspect unrelated files or audit the shim environment.
+Avoid intermediate narration. Execute the ship flow and only emit the final handoff.
 Write the stage report before the terminal handoff.
 The stage report must begin with `Attention required:` and stay concise.
 
@@ -120,9 +142,20 @@ def doctor() -> str:
     """Prompt template for /sw-doctor."""
     return """Run /sw-doctor.
 
-Perform the full Specwright health check, including STATE_DRIFT detection.
-If backfill is safe and provable, apply it. Otherwise print the exact
-remediation command for each affected unit."""
+This is a constrained non-interactive doctor eval. Execute only the
+STATE_DRIFT detection and backfill path.
+Do not reopen `core/skills/sw-doctor/SKILL.md` unless execution is blocked.
+Inspect `.specwright/state/workflow.json` for shipped units with
+`prNumber=null`. For each candidate, attempt one-time backfill in this
+order: `gh search prs` / `gh pr list`, then git merge history, else report
+STATE_DRIFT with the exact remediation command `sw-status --repair {unitId}`.
+If `gh` proves a merged PR, persist the backfill immediately in
+`workflow.json`. This eval expects the safe/provable mutation path, not a
+report-only summary.
+Never modify `status`; only `prNumber` and `prMergedAt` may change.
+Assume PATH-provided CLI shims behave like their stock tools.
+Do not inspect unrelated files or audit the shim environment.
+Avoid intermediate narration. Execute the doctor flow and print the final result only."""
 
 
 def debug(error_output: str = "") -> str:

@@ -123,6 +123,14 @@ class TestAC1ValidSuiteReturnsEmptyList(unittest.TestCase):
             errors = validate_suite(path)
             self.assertEqual(errors, [])
 
+    def test_valid_runner_override_returns_empty_list(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            case = _valid_sequence_case()
+            case["runner"] = "codex"
+            path = _write_suite(tmpdir, _valid_suite(case))
+            errors = validate_suite(path)
+            self.assertEqual(errors, [])
+
     def test_valid_workflow_case_returns_empty_list(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = _write_suite(tmpdir, _valid_suite(_valid_workflow_case()))
@@ -743,6 +751,14 @@ class TestCompoundValidation(unittest.TestCase):
             path = _write_suite(tmpdir, suite)
             errors = validate_suite(path)
             self.assertEqual(errors, [])
+
+    def test_invalid_runner_override_is_reported(self):
+        case = _valid_sequence_case(case_id="bad-runner")
+        case["runner"] = "llama"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = _write_suite(tmpdir, _valid_suite(case))
+            errors = validate_suite(path)
+            self.assertTrue(any("Unsupported runner" in error for error in errors))
 
 
 if __name__ == "__main__":

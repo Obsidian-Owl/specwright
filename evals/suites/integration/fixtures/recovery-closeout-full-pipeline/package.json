@@ -1,0 +1,13 @@
+{
+  "name": "recovery-closeout-full-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "npx vitest run --dir ./src src/math.test.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.3"
+  }
+}

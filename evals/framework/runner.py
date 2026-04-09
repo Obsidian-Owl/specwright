@@ -45,6 +45,15 @@ _CLAUDE_FALLBACK_PATTERNS = (
     "usage limit",
     "billing",
     "out of funds",
+    "tool permission",
+    "requires your approval",
+    "requires your tool permission",
+    "tool use is disabled",
+    "approval required",
+    "write permission",
+    "grant write access",
+    "permission to modify",
+    "need write access",
 )
 
 
@@ -328,6 +337,7 @@ def _run_popen(
         text=True,
         env=env,
         cwd=cwd,
+        stdin=subprocess.DEVNULL,
     )
     try:
         stdout, stderr = proc.communicate(timeout=timeout)
@@ -350,10 +360,17 @@ def _run_completed(
             timeout=timeout,
             env=env,
             cwd=cwd,
+            stdin=subprocess.DEVNULL,
         )
         return proc.stdout or "", proc.stderr or "", proc.returncode
     except subprocess.TimeoutExpired as exc:
-        return exc.stdout or "", exc.stderr or "", 124
+        stdout = exc.stdout or ""
+        stderr = exc.stderr or ""
+        if isinstance(stdout, bytes):
+            stdout = stdout.decode("utf-8", errors="replace")
+        if isinstance(stderr, bytes):
+            stderr = stderr.decode("utf-8", errors="replace")
+        return stdout, stderr, 124
 
 
 def _fallback_text(run_result: RunResult) -> str:

@@ -153,6 +153,7 @@ class TestRunSkillInvocation(unittest.TestCase):
         self.assertIn("--output-format", cmd)
         fmt_idx = cmd.index("--output-format")
         self.assertEqual(cmd[fmt_idx + 1], "stream-json")
+        self.assertIs(mock_popen_cls.call_args[1]["stdin"], subprocess.DEVNULL)
 
     @patch("evals.framework.runner.subprocess.Popen")
     def test_invokes_claude_with_prompt_via_dash_p(self, mock_popen_cls):
@@ -569,6 +570,7 @@ class TestCodexRunner(unittest.TestCase):
         self.assertEqual(env["TMPDIR"], "/tmp/eval-fixture/.tmp")
         self.assertEqual(env["TMP"], "/tmp/eval-fixture/.tmp")
         self.assertEqual(env["TEMP"], "/tmp/eval-fixture/.tmp")
+        self.assertIs(mock_run.call_args[1]["stdin"], subprocess.DEVNULL)
 
 
 class TestAutoRunner(unittest.TestCase):
@@ -582,6 +584,79 @@ class TestAutoRunner(unittest.TestCase):
             stdout="",
             stderr="",
             transcript=[{"type": "result", "result": "Not logged in · Please run /login"}],
+            provider="claude",
+        )
+        mock_codex.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[],
+            provider="codex",
+        )
+        runner = AutoRunner()
+        result = runner.run_skill("sw-build", "test")
+        self.assertEqual(result.provider, "codex")
+
+    @patch("evals.framework.runner.CodexRunner.run_skill")
+    @patch("evals.framework.runner.ClaudeCodeRunner.run_skill")
+    def test_auto_runner_falls_back_on_tool_permission_block(self, mock_claude, mock_codex):
+        mock_claude.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[
+                {
+                    "type": "result",
+                    "result": "git push requires your tool permission",
+                }
+            ],
+            provider="claude",
+        )
+        mock_codex.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[],
+            provider="codex",
+        )
+        runner = AutoRunner()
+        result = runner.run_skill("sw-build", "test")
+        self.assertEqual(result.provider, "codex")
+
+    @patch("evals.framework.runner.CodexRunner.run_skill")
+    @patch("evals.framework.runner.ClaudeCodeRunner.run_skill")
+    def test_auto_runner_falls_back_on_permission_text_in_stderr(self, mock_claude, mock_codex):
+        mock_claude.return_value = RunResult(
+            exit_code=1,
+            stdout="",
+            stderr="Error: command blocked because tool permission is required",
+            transcript=[],
+            provider="claude",
+        )
+        mock_codex.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[],
+            provider="codex",
+        )
+        runner = AutoRunner()
+        result = runner.run_skill("sw-build", "test")
+        self.assertEqual(result.provider, "codex")
+
+    @patch("evals.framework.runner.CodexRunner.run_skill")
+    @patch("evals.framework.runner.ClaudeCodeRunner.run_skill")
+    def test_auto_runner_falls_back_on_write_permission_request(self, mock_claude, mock_codex):
+        mock_claude.return_value = RunResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            transcript=[
+                {
+                    "type": "result",
+                    "result": "I need write permission to modify the workflow state file. Please grant write access to proceed.",
+                }
+            ],
             provider="claude",
         )
         mock_codex.return_value = RunResult(

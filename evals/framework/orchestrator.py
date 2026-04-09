@@ -13,7 +13,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-from evals.framework.runner import create_runner
+from evals.framework.runner import SUPPORTED_PROVIDERS, create_runner
 from evals.framework.chainer import run_sequence
 from evals.framework.grader import grade_eval
 from evals.framework.setup import (
@@ -53,6 +53,15 @@ _FIXTURE_METADATA_FILENAME = "fixture.json"
 def _runner_actual_provider(runner) -> str:
     """Return the concrete provider used by a runner after execution."""
     return getattr(runner, "_active_provider", getattr(runner, "provider", "claude"))
+
+
+def _case_runner_name(eval_case: Dict) -> Optional[str]:
+    """Return an optional per-eval runner override."""
+    runner_name = eval_case.get("runner")
+    if not isinstance(runner_name, str):
+        return None
+    runner_name = runner_name.strip().lower()
+    return runner_name or None
 
 
 @contextmanager
@@ -336,7 +345,7 @@ def run_single_eval(
     runner,
     timeout: int = 300,
     suite_dir: Optional[str] = None,
-) -> None:
+) -> Optional[str]:
     """Run a single eval case trial: setup, execute, grade, write results."""
     eval_id = eval_case["id"]
     trial_dir = _trial_dir(results_dir, eval_id, trial_num)
@@ -351,7 +360,7 @@ def run_single_eval(
             trial_num=trial_num,
             timeout=timeout,
         )
-        return
+        return None
 
     start_time = time.time()
 
@@ -415,7 +424,7 @@ def run_single_eval(
             duration_ms=elapsed_ms,
         )
         shutil.rmtree(workdir, ignore_errors=True)
-        return
+        return None
 
     layer = _determine_layer(eval_case)
     snapshots: List[Dict] = []
@@ -423,13 +432,17 @@ def run_single_eval(
     exec_error: Optional[str] = None
 
     run_result = None
+    active_runner = runner
+    case_runner_name = _case_runner_name(eval_case)
+    if case_runner_name is not None:
+        active_runner = create_runner(case_runner_name)
 
     try:
         try:
             with _temporary_env(runner_env):
                 if layer == _LAYER_SKILL:
                     resolved_prompt = _resolve_prompt_layer1(eval_case)
-                    run_result = runner.run_skill(
+                    run_result = active_runner.run_skill(
                         skill=eval_case["skill"],
                         prompt=resolved_prompt,
                         workdir=workdir,
@@ -439,7 +452,7 @@ def run_single_eval(
                     skills = eval_case.get("sequence") or eval_case.get("workflow") or []
                     prompts_dict = _resolve_prompts_layer2(eval_case)
                     chain_result = run_sequence(
-                        runner=runner,
+                        runner=active_runner,
                         skills=skills,
                         prompts=prompts_dict,
                         workdir=workdir,
@@ -489,6 +502,7 @@ def run_single_eval(
 
         pass_rate = grade_result.get("summary", {}).get("pass_rate", 0.0)
         print(f"  DONE (pass_rate: {pass_rate:.2f})", file=sys.stderr)
+        return run_result.provider if run_result is not None else None
 
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
@@ -569,9 +583,10 @@ def run_eval_suite(
 
     runner = create_runner(runner_name)
 
+    observed_providers: set[str] = set()
     for case in cases:
         for trial_num in range(1, trials + 1):
-            run_single_eval(
+            provider_used = run_single_eval(
                 eval_case=case,
                 trial_num=trial_num,
                 results_dir=results_dir,
@@ -579,8 +594,15 @@ def run_eval_suite(
                 timeout=timeout,
                 suite_dir=os.path.dirname(os.path.abspath(suite_path)),
             )
+            if isinstance(provider_used, str) and provider_used:
+                observed_providers.add(provider_used)
 
-    config["provider"] = _runner_actual_provider(runner)
+    if len(observed_providers) == 1:
+        config["provider"] = next(iter(observed_providers))
+    elif len(observed_providers) > 1:
+        config["provider"] = "mixed"
+    else:
+        config["provider"] = _runner_actual_provider(runner)
     with open(os.path.join(results_dir, _CONFIG_FILENAME), "w") as f:
         json.dump(config, f, indent=2)
 
@@ -757,6 +779,22 @@ def _validate_smoke_field(case_id: str, eval_case: dict) -> list[str]:
     return []
 
 
+def _validate_runner_field(case_id: str, eval_case: dict) -> list[str]:
+    """Validate the optional per-eval runner override."""
+    if "runner" not in eval_case:
+        return []
+    runner_name = eval_case["runner"]
+    if not isinstance(runner_name, str):
+        return [f"[{case_id}] `runner` field must be a string"]
+    normalized = runner_name.strip().lower()
+    if normalized not in SUPPORTED_PROVIDERS:
+        return [
+            f"[{case_id}] Unsupported runner '{runner_name}'. "
+            f"Expected one of: {', '.join(sorted(SUPPORTED_PROVIDERS))}"
+        ]
+    return []
+
+
 def validate_suite(suite_path: str) -> list[str]:
     """Validate an eval suite JSON file. Returns list of error strings (empty = valid)."""
     with open(suite_path) as f:
@@ -776,6 +814,7 @@ def validate_suite(suite_path: str) -> list[str]:
         errors.extend(_validate_prompt_template(case_id, eval_case))
         errors.extend(_validate_seed_path(case_id, eval_case))
         errors.extend(_validate_smoke_field(case_id, eval_case))
+        errors.extend(_validate_runner_field(case_id, eval_case))
 
         for expectation in eval_case.get("expectations", []):
             errors.extend(_validate_expectation(case_id, expectation))

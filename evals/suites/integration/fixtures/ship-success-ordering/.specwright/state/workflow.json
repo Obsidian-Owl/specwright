@@ -1,0 +1,31 @@
+{
+  "version": "2.0",
+  "currentWork": {
+    "id": "ship-success",
+    "unitId": "ship-success",
+    "description": "Ship the verified fixture branch",
+    "status": "shipping",
+    "workDir": ".specwright/work/ship-success",
+    "tasksTotal": 1,
+    "tasksCompleted": ["task-1"],
+    "currentTask": null,
+    "intensity": "quick"
+  },
+  "workUnits": [
+    {
+      "id": "ship-success",
+      "description": "Ship the verified fixture branch",
+      "status": "shipping",
+      "order": 1,
+      "workDir": ".specwright/work/ship-success",
+      "prNumber": null,
+      "prMergedAt": null
+    }
+  ],
+  "gates": {
+    "tests": {"status": "PASS"},
+    "spec": {"status": "PASS"}
+  },
+  "lock": null,
+  "lastUpdated": "2026-04-09T00:00:01.000Z"
+}
