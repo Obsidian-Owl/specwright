@@ -26,6 +26,13 @@ Use Full intensity. Approve the design when ready.
 Do not ask clarifying questions — treat the problem statement as complete.
 Accept all assumptions as ACCEPTED (risk acknowledged).
 Approve all defaults.
+Write the stage report before the terminal handoff.
+The stage report must begin with `Attention required:` and stay concise.
+
+End with exactly these three lines:
+Done. <one-line outcome>.
+Artifacts: <path to stage-report.md>
+Next: /sw-plan
 
 Problem: {problem_statement}"""
 
@@ -37,7 +44,14 @@ def plan() -> str:
 Read the design artifacts from .specwright/work/.
 Approve all specs. Use single-unit layout unless the design
 explicitly calls for multi-unit decomposition.
-Accept all suggested acceptance criteria without changes."""
+Accept all suggested acceptance criteria without changes.
+Write the stage report before the terminal handoff.
+The stage report must begin with `Attention required:` and stay concise.
+
+End with exactly these three lines:
+Done. <one-line outcome>.
+Artifacts: <path to stage-report.md>
+Next: /sw-build"""
 
 
 def build() -> str:
@@ -47,9 +61,11 @@ def build() -> str:
 Implement per the spec and plan in .specwright/work/.
 Follow TDD strictly. Commit after each completed task.
 Do not ask for confirmation — proceed through all tasks.
+Write the stage report before the terminal handoff.
+The stage report must begin with `Attention required:` and stay concise.
 
 End with exactly these three lines:
-Done.
+Done. <one-line outcome>.
 Artifacts: <path to stage-report.md>
 Next: /sw-verify"""
 
@@ -64,11 +80,25 @@ def verify(gate: str = "") -> str:
         return f"""Run /sw-verify --gate={gate}
 
 Run only the {gate} quality gate. Report results.
-Accept all defaults."""
+Accept all defaults.
+Write the stage report before the terminal handoff.
+The stage report must begin with `Attention required:` and stay concise.
+
+End with exactly these three lines:
+Done. <one-line outcome>.
+Artifacts: <path to stage-report.md>
+Next: /sw-build or /sw-ship"""
     return """Run /sw-verify.
 
 Run all enabled quality gates. Report results.
-Do not skip any gates. Accept all defaults."""
+Do not skip any gates. Accept all defaults.
+Write the stage report before the terminal handoff.
+The stage report must begin with `Attention required:` and stay concise.
+
+End with exactly these three lines:
+Done. <one-line outcome>.
+Artifacts: <path to stage-report.md>
+Next: /sw-build or /sw-ship"""
 
 
 def ship() -> str:
@@ -76,7 +106,14 @@ def ship() -> str:
     return """Run /sw-ship.
 
 Create a PR with evidence-mapped body. Use the default branch strategy.
-Do not ask for confirmation — proceed with shipping."""
+Do not ask for confirmation — proceed with shipping.
+Write the stage report before the terminal handoff.
+The stage report must begin with `Attention required:` and stay concise.
+
+End with exactly these three lines:
+Done. <one-line outcome>.
+Artifacts: <path to stage-report.md>
+Next: /sw-build"""
 
 
 def doctor() -> str:

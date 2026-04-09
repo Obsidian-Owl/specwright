@@ -210,7 +210,7 @@
       "layer": "integration",
       "sequence": ["sw-doctor", "sw-status"],
       "prompt_args": {
-        "repair_unit_id": "02d-structural-smoke-evals",
+        "repair_unit_id": "zz-unconfirmed-shipped-fixture",
         "headless": true
       },
       "seed": {
@@ -221,7 +221,7 @@
         {
           "type": "step_transcript_contains",
           "step_index": 0,
-          "pattern": "sw-status --repair 02d-structural-smoke-evals",
+          "pattern": "sw-status --repair zz-unconfirmed-shipped-fixture",
           "description": "sw-doctor surfaces the inline repair command"
         },
         {
