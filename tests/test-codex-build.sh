@@ -6,6 +6,7 @@
 # - Build succeeds and produces dist/codex
 # - Required files/directories exist
 # - Commands are present for all user-facing skills
+# - Source and packaged commands use the plugin-native specwright:sw-* contract
 # - Hook assets are packaged
 # - Task tracking tools stripped from skills frontmatter
 # - Agent model shorthand translated to Codex model IDs
@@ -27,6 +28,7 @@ CX_DIST="$DIST_DIR/codex"
 
 PASS=0
 FAIL=0
+CODEX_COMMANDS="sw-init sw-research sw-design sw-plan sw-build sw-verify sw-ship sw-debug sw-pivot sw-doctor sw-guard sw-status sw-learn sw-audit sw-sync sw-review"
 
 pass() {
   echo "  PASS: $1"
@@ -132,11 +134,50 @@ fi
 echo "--- Command coverage ---"
 CMD_COUNT=$(find "$CX_DIST/commands" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
 assert_eq "$CMD_COUNT" "16" "16 command files are packaged"
-for cmd in sw-init sw-research sw-design sw-plan sw-build sw-verify sw-ship sw-debug sw-pivot sw-doctor sw-guard sw-status sw-learn sw-audit sw-sync sw-review; do
+for cmd in $CODEX_COMMANDS; do
   if [ -f "$CX_DIST/commands/$cmd.md" ]; then
     pass "commands/$cmd.md exists"
   else
     fail "commands/$cmd.md missing"
+  fi
+done
+
+echo "--- Command contract ---"
+for cmd in $CODEX_COMMANDS; do
+  SOURCE_CMD="$ROOT_DIR/adapters/codex/commands/$cmd.md"
+  PACKAGED_CMD="$CX_DIST/commands/$cmd.md"
+  EXPECTED_SKILL="specwright:$cmd"
+
+  if [ -f "$SOURCE_CMD" ]; then
+    if grep -qF '.agents/skills/' "$SOURCE_CMD"; then
+      fail "source $cmd command still references .agents/skills/"
+    else
+      pass "source $cmd command does not reference .agents/skills/"
+    fi
+
+    if grep -qF "$EXPECTED_SKILL" "$SOURCE_CMD"; then
+      pass "source $cmd command references $EXPECTED_SKILL"
+    else
+      fail "source $cmd command missing $EXPECTED_SKILL"
+    fi
+  else
+    fail "source $cmd.md missing from adapters/codex/commands/"
+  fi
+
+  if [ -f "$PACKAGED_CMD" ]; then
+    if grep -qF '.agents/skills/' "$PACKAGED_CMD"; then
+      fail "packaged $cmd command still references .agents/skills/"
+    else
+      pass "packaged $cmd command does not reference .agents/skills/"
+    fi
+
+    if grep -qF "$EXPECTED_SKILL" "$PACKAGED_CMD"; then
+      pass "packaged $cmd command references $EXPECTED_SKILL"
+    else
+      fail "packaged $cmd command missing $EXPECTED_SKILL"
+    fi
+  else
+    fail "packaged $cmd command missing from dist/codex/commands/"
   fi
 done
 

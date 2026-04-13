@@ -10,12 +10,52 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from evals.framework.capture import capture_snapshot, capture_timing
+from evals.framework.git_env import sanitized_git_env
+
+
+class TestSanitizedGitEnv(unittest.TestCase):
+    def test_strips_repo_local_git_vars_but_preserves_identity_and_transport(self):
+        with patch.dict(
+            os.environ,
+            {
+                "PATH": "/usr/bin",
+                "GIT_DIR": "/tmp/outer/.git",
+                "GIT_WORK_TREE": "/tmp/outer",
+                "GIT_CONFIG_PARAMETERS": "core.hooksPath=.githooks",
+                "GIT_SSH_COMMAND": "ssh -i ~/.ssh/id_ed25519",
+                "GIT_EXEC_PATH": "/opt/git/libexec/git-core",
+                "GIT_AUTHOR_NAME": "Eval Bot",
+                "GIT_COMMITTER_EMAIL": "evals@example.com",
+            },
+            clear=True,
+        ):
+            env = sanitized_git_env()
+
+        self.assertEqual(env["PATH"], "/usr/bin")
+        self.assertEqual(env["GIT_SSH_COMMAND"], "ssh -i ~/.ssh/id_ed25519")
+        self.assertEqual(env["GIT_EXEC_PATH"], "/opt/git/libexec/git-core")
+        self.assertEqual(env["GIT_AUTHOR_NAME"], "Eval Bot")
+        self.assertEqual(env["GIT_COMMITTER_EMAIL"], "evals@example.com")
+        self.assertNotIn("GIT_DIR", env)
+        self.assertNotIn("GIT_WORK_TREE", env)
+        self.assertNotIn("GIT_CONFIG_PARAMETERS", env)
 
 
 class TestCaptureSnapshotBasic(unittest.TestCase):
     """AC-9: capture_snapshot produces a manifest with expected fields."""
+
+    def _run_git(self, args):
+        subprocess.run(
+            ["git", *args],
+            cwd=self.workdir,
+            check=True,
+            capture_output=True,
+            text=True,
+            env=sanitized_git_env(),
+        )
 
     def setUp(self):
         self.workdir = tempfile.mkdtemp()
@@ -33,15 +73,16 @@ class TestCaptureSnapshotBasic(unittest.TestCase):
         with open(os.path.join(work_dir, "spec.md"), "w") as f:
             f.write("# Spec")
         # Init git repo for git status
-        subprocess.run(["git", "init", "-q"], cwd=self.workdir, check=True, capture_output=True)
+        self._run_git(["init", "-q"])
+        self._run_git(["config", "user.name", "Eval Test"])
+        self._run_git(["config", "user.email", "evals@example.com"])
         # Stage specific files (not git add -A per constitution)
-        subprocess.run(
-            ["git", "add",
+        self._run_git(
+            ["add",
              os.path.join(".specwright", "state", "workflow.json"),
-             os.path.join(".specwright", "work", "test-work", "spec.md")],
-            cwd=self.workdir, check=True, capture_output=True,
+             os.path.join(".specwright", "work", "test-work", "spec.md")]
         )
-        subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=self.workdir, check=True, capture_output=True)
+        self._run_git(["commit", "-q", "-m", "init"])
 
     def tearDown(self):
         shutil.rmtree(self.workdir, ignore_errors=True)
@@ -85,7 +126,14 @@ class TestCaptureSnapshotMissingSpecwright(unittest.TestCase):
     def setUp(self):
         self.workdir = tempfile.mkdtemp()
         self.output_dir = tempfile.mkdtemp()
-        subprocess.run(["git", "init", "-q"], cwd=self.workdir, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "init", "-q"],
+            cwd=self.workdir,
+            check=True,
+            capture_output=True,
+            text=True,
+            env=sanitized_git_env(),
+        )
 
     def tearDown(self):
         shutil.rmtree(self.workdir, ignore_errors=True)

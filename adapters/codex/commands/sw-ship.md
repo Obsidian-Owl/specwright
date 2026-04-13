@@ -2,6 +2,6 @@
 description: Strategy-aware merge via pull request.
 ---
 
-Read and follow the skill file at `.agents/skills/sw-ship/SKILL.md`.
+Use the installed `specwright:sw-ship` skill for this request.
 
 $ARGUMENTS

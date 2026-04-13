@@ -2,6 +2,6 @@
 description: Project setup. Creates constitution and charter. Configures gates.
 ---
 
-Read and follow the skill file at `.agents/skills/sw-init/SKILL.md`.
+Use the installed `specwright:sw-init` skill for this request.
 
 $ARGUMENTS

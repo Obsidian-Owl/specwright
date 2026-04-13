@@ -28,6 +28,8 @@ _REPO_OVERLAY_RELATIVE_IGNORES = {
     os.path.join(".specwright", "work"),
 }
 
+from evals.framework.git_env import sanitized_git_env
+
 
 def setup_fixture(fixture_path: str, workdir: str) -> None:
     """Copy the fixture directory to the working directory.
@@ -109,6 +111,7 @@ def setup_repo(
 
 def _run_checked(cmd: List[str], cwd: Optional[str] = None) -> None:
     """Run a command, raising RuntimeError with stderr on failure."""
+    env = sanitized_git_env() if cmd and cmd[0] == "git" else None
     try:
         subprocess.run(
             cmd,
@@ -116,6 +119,7 @@ def _run_checked(cmd: List[str], cwd: Optional[str] = None) -> None:
             capture_output=True,
             text=True,
             cwd=cwd,
+            env=env,
         )
     except subprocess.CalledProcessError as exc:
         stderr_msg = exc.stderr or str(exc)
