@@ -23,7 +23,10 @@ trap 'rm -rf "$TEST_TMPDIR"' EXIT
 
 SUBAGENT_HOOK="$ROOT_DIR/adapters/claude-code/hooks/subagent-context.mjs"
 POST_WRITE_HOOK="$ROOT_DIR/adapters/claude-code/hooks/post-write-diagnostics.mjs"
+PRE_SHIP_GUARD_HOOK="$ROOT_DIR/adapters/claude-code/hooks/pre-ship-guard.mjs"
 SESSION_START_HOOK="$ROOT_DIR/adapters/claude-code/hooks/session-start.mjs"
+SESSION_STOP_HOOK="$ROOT_DIR/adapters/claude-code/hooks/session-stop.mjs"
+STATE_PATHS_MODULE="$ROOT_DIR/adapters/shared/specwright-state-paths.mjs"
 
 PASS=0
 FAIL=0
@@ -33,17 +36,29 @@ fail() { echo "  FAIL: $1"; FAIL=$((FAIL + 1)); }
 
 assert_eq() {
   local actual="$1" expected="$2" label="$3"
-  [ "$actual" = "$expected" ] && pass "$label" || fail "$label (expected '$expected', got '$actual')"
+  if [ "$actual" = "$expected" ]; then
+    pass "$label"
+  else
+    fail "$label (expected '$expected', got '$actual')"
+  fi
 }
 
 assert_contains() {
   local haystack="$1" needle="$2" label="$3"
-  echo "$haystack" | grep -q "$needle" && pass "$label" || fail "$label (not found: '$needle')"
+  if echo "$haystack" | grep -Fq "$needle"; then
+    pass "$label"
+  else
+    fail "$label (not found: '$needle')"
+  fi
 }
 
 assert_not_contains() {
   local haystack="$1" needle="$2" label="$3"
-  echo "$haystack" | grep -q "$needle" && fail "$label (found unexpected: '$needle')" || pass "$label"
+  if echo "$haystack" | grep -Fq "$needle"; then
+    fail "$label (found unexpected: '$needle')"
+  else
+    pass "$label"
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -54,6 +69,29 @@ assert_not_contains() {
 make_project() {
   local dir="$1"
   mkdir -p "$dir/.specwright/state"
+}
+
+init_git_repo() {
+  local dir="$1"
+  mkdir -p "$dir"
+  git -C "$dir" -c core.hooksPath=/dev/null init -q
+  git -C "$dir" -c core.hooksPath=/dev/null config user.name "Specwright Tests"
+  git -C "$dir" -c core.hooksPath=/dev/null config user.email "specwright-tests@example.com"
+  git -C "$dir" -c core.hooksPath=/dev/null checkout -qb main >/dev/null 2>&1 || true
+  printf 'seed\n' > "$dir/README.md"
+  git -C "$dir" -c core.hooksPath=/dev/null add README.md
+  git -C "$dir" -c core.hooksPath=/dev/null commit -qm "test: init repo"
+}
+
+run_resolver_json() {
+  local dir="$1"
+  (
+    cd "$dir" &&
+    STATE_PATHS_MODULE="$STATE_PATHS_MODULE" node --input-type=module <<'EOF'
+const { resolveSpecwrightRoots } = await import(process.env.STATE_PATHS_MODULE);
+process.stdout.write(JSON.stringify(resolveSpecwrightRoots()));
+EOF
+  )
 }
 
 write_workflow() {
@@ -71,6 +109,52 @@ write_workflow() {
 }
 EOF
 }
+
+# ---------------------------------------------------------------------------
+# Section 0: specwright-state-paths.mjs
+# ---------------------------------------------------------------------------
+
+echo ""
+echo "=== Section 0: specwright-state-paths.mjs ==="
+
+T="$TEST_TMPDIR/t-resolver-primary"
+init_git_repo "$T"
+T_REAL="$(cd "$T" && pwd -P)"
+output=$(run_resolver_json "$T" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "state-paths: primary worktree resolves successfully"
+assert_contains "$output" '"ok":true' "state-paths: primary worktree returns ok=true"
+assert_contains "$output" "\"projectRoot\":\"$T_REAL\"" "state-paths: primary worktree includes projectRoot"
+assert_contains "$output" "\"gitDir\":\"$T_REAL/.git\"" "state-paths: primary worktree includes gitDir"
+assert_contains "$output" "\"gitCommonDir\":\"$T_REAL/.git\"" "state-paths: primary worktree includes gitCommonDir"
+assert_contains "$output" "\"repoStateRoot\":\"$T_REAL/.git/specwright\"" "state-paths: primary worktree includes repoStateRoot"
+assert_contains "$output" "\"worktreeStateRoot\":\"$T_REAL/.git/specwright\"" "state-paths: primary worktree includes worktreeStateRoot"
+assert_contains "$output" '"worktreeId":"main-worktree"' "state-paths: primary worktree derives main-worktree id"
+
+T="$TEST_TMPDIR/t-resolver-linked-primary"
+L="$TEST_TMPDIR/linked-worktree"
+init_git_repo "$T"
+git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b linked-worktree "$L" HEAD
+T_REAL="$(cd "$T" && pwd -P)"
+L_REAL="$(cd "$L" && pwd -P)"
+output=$(run_resolver_json "$L" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "state-paths: linked worktree resolves successfully"
+assert_contains "$output" '"ok":true' "state-paths: linked worktree returns ok=true"
+assert_contains "$output" "\"projectRoot\":\"$L_REAL\"" "state-paths: linked worktree includes linked projectRoot"
+assert_contains "$output" "\"gitCommonDir\":\"$T_REAL/.git\"" "state-paths: linked worktree includes shared gitCommonDir"
+assert_contains "$output" "\"repoStateRoot\":\"$T_REAL/.git/specwright\"" "state-paths: linked worktree includes shared repoStateRoot"
+assert_contains "$output" "\"worktreeStateRoot\":\"$T_REAL/.git/worktrees/linked-worktree/specwright\"" "state-paths: linked worktree includes worktreeStateRoot"
+assert_contains "$output" '"worktreeId":"linked-worktree"' "state-paths: linked worktree derives linked worktree id"
+
+T="$TEST_TMPDIR/t-resolver-no-git"
+mkdir -p "$T"
+output=$(run_resolver_json "$T" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "state-paths: non-git directory returns structured failure"
+assert_contains "$output" '"ok":false' "state-paths: non-git directory returns ok=false"
+assert_contains "$output" '"code":"GIT_RESOLUTION_FAILED"' "state-paths: non-git directory returns failure code"
+assert_contains "$output" '"root":"projectRoot"' "state-paths: non-git directory reports failing root"
 
 # ---------------------------------------------------------------------------
 # Section 1: subagent-context.mjs
@@ -172,6 +256,20 @@ exit_code=$?
 assert_eq "$exit_code" "0" "subagent-context: missing agent_type → exit 0"
 assert_eq "$output" "" "subagent-context: missing agent_type → no output"
 
+# AC-2: nested linked worktree cwd still resolves workflow from worktree root
+T="$TEST_TMPDIR/t-subagent-linked-primary"
+L="$TEST_TMPDIR/subagent-linked-worktree"
+init_git_repo "$T"
+git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b subagent-linked-worktree "$L" HEAD
+make_project "$L"
+mkdir -p "$L/.specwright/work/WU-001" "$L/nested/context"
+write_workflow "$L" ".specwright/work/WU-001"
+printf '# Repo Map\nnested context\n' > "$L/.specwright/work/WU-001/repo-map.md"
+output=$(cd "$L/nested/context" && echo '{"agent_type":"specwright-executor"}' | node "$SUBAGENT_HOOK" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "subagent-context: nested linked worktree → exit 0"
+assert_contains "$output" "additionalContext" "subagent-context: nested linked worktree → resolves workflow via git root"
+
 # ---------------------------------------------------------------------------
 # Section 2: post-write-diagnostics.mjs
 # ---------------------------------------------------------------------------
@@ -210,11 +308,32 @@ assert_eq "$exit_code" "0" "post-write-diagnostics: OPENCODE_VERSION → exit 0"
 assert_eq "$output" "" "post-write-diagnostics: OPENCODE_VERSION → no output"
 
 # ---------------------------------------------------------------------------
-# Section 3: session-start.mjs
+# Section 3: pre-ship-guard.mjs
 # ---------------------------------------------------------------------------
 
 echo ""
-echo "=== Section 3: session-start.mjs ==="
+echo "=== Section 3: pre-ship-guard.mjs ==="
+
+T="$TEST_TMPDIR/t-guard-nested-primary"
+init_git_repo "$T"
+make_project "$T"
+write_workflow "$T" ".specwright/work/WU-001" "building"
+mkdir -p "$T/nested/guard"
+payload='{"tool_input":{"command":"gh pr create --title nested --body nested"}}'
+stderr_path="$TEST_TMPDIR/pre-ship-guard.stderr"
+output=$(cd "$T/nested/guard" && printf '%s' "$payload" | node "$PRE_SHIP_GUARD_HOOK" 2>"$stderr_path")
+exit_code=$?
+stderr_output=$(cat "$stderr_path")
+assert_eq "$exit_code" "1" "pre-ship-guard: nested primary worktree blocks PR creation"
+assert_contains "$stderr_output" "PR creation blocked" "pre-ship-guard: nested primary worktree emits block reason"
+assert_eq "$output" "" "pre-ship-guard: nested primary worktree writes no stdout"
+
+# ---------------------------------------------------------------------------
+# Section 4: session-start.mjs
+# ---------------------------------------------------------------------------
+
+echo ""
+echo "=== Section 4: session-start.mjs ==="
 
 # AC-4: No workflow.json → exit 0, no output
 T="$TEST_TMPDIR/t-ss-no-workflow"
@@ -243,6 +362,30 @@ exit_code=$?
 assert_eq "$exit_code" "0" "session-start: active work no continuation → exit 0"
 assert_contains "$output" "Work in progress" "session-start: active work no continuation → contains 'Work in progress'"
 assert_not_contains "$output" "Continuation Snapshot" "session-start: active work no continuation → no snapshot"
+
+# AC-4: nested primary git worktree still resolves workflow from repo root
+T="$TEST_TMPDIR/t-ss-nested-primary"
+init_git_repo "$T"
+make_project "$T"
+write_workflow "$T" ".specwright/work/WU-001" "building"
+mkdir -p "$T/app/nested"
+output=$(cd "$T/app/nested" && node "$SESSION_START_HOOK" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "session-start: nested primary worktree → exit 0"
+assert_contains "$output" "Work in progress" "session-start: nested primary worktree → resolves workflow via git root"
+
+# AC-4: nested linked worktree still resolves workflow from linked root
+T="$TEST_TMPDIR/t-ss-linked-primary"
+L="$TEST_TMPDIR/session-start-linked-worktree"
+init_git_repo "$T"
+git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b session-start-linked-worktree "$L" HEAD
+make_project "$L"
+write_workflow "$L" ".specwright/work/WU-001" "building"
+mkdir -p "$L/deep/nested"
+output=$(cd "$L/deep/nested" && node "$SESSION_START_HOOK" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "session-start: nested linked worktree → exit 0"
+assert_contains "$output" "Work in progress" "session-start: nested linked worktree → resolves workflow via git root"
 
 # AC-6: Active work, fresh continuation WITH Correction Summary → output contains both sections
 T="$TEST_TMPDIR/t-ss-fresh-cont"
@@ -325,6 +468,23 @@ output=$(cd "$T" && node "$SESSION_START_HOOK" 2>/dev/null)
 exit_code=$?
 assert_eq "$exit_code" "0" "session-start: lock held → exit 0"
 assert_contains "$output" "Lock held by" "session-start: lock held → output contains 'Lock held by'"
+
+# ---------------------------------------------------------------------------
+# Section 5: session-stop.mjs
+# ---------------------------------------------------------------------------
+
+echo ""
+echo "=== Section 5: session-stop.mjs ==="
+
+T="$TEST_TMPDIR/t-stop-nested-primary"
+init_git_repo "$T"
+make_project "$T"
+write_workflow "$T" ".specwright/work/WU-001" "building"
+mkdir -p "$T/stop/nested"
+output=$(cd "$T/stop/nested" && node "$SESSION_STOP_HOOK" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "session-stop: nested primary worktree → exit 0"
+assert_contains "$output" '"ok":false' "session-stop: nested primary worktree warns about active work"
 
 # ---------------------------------------------------------------------------
 # Summary

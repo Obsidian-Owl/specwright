@@ -6,7 +6,7 @@
  */
 
 import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
 
 const PR_PATTERN = /gh\s+pr\s+create|gh\s+api\s+[^\s]*\/pulls(\s|$)|curl\s+.*api\.github\.com[^\s]*\/pulls(\s|$)/;
 
@@ -22,7 +22,7 @@ if (!PR_PATTERN.test(command)) {
   process.exit(0);
 }
 
-const workflowPath = join(process.cwd(), '.specwright', 'state', 'workflow.json');
+const workflowPath = resolveLegacyStatePaths().workflowPath;
 if (!existsSync(workflowPath)) {
   process.exit(0);
 }

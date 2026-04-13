@@ -106,6 +106,12 @@ for dir in skills protocols agents commands hooks .codex-plugin; do
   fi
 done
 
+if [ -f "$DIST_DIR/shared/specwright-state-paths.mjs" ]; then
+  pass "dist/shared/specwright-state-paths.mjs exists"
+else
+  fail "dist/shared/specwright-state-paths.mjs missing"
+fi
+
 for file in README.md hooks.json .codex-plugin/plugin.json; do
   if [ -f "$CX_DIST/$file" ]; then
     pass "$file exists"
@@ -140,6 +146,14 @@ for hook in session-start.mjs pre-ship-guard.mjs stop.mjs; do
     pass "hooks/$hook exists"
   else
     fail "hooks/$hook missing"
+  fi
+done
+
+for hook in session-start.mjs pre-ship-guard.mjs stop.mjs; do
+  if grep -Fq "../../shared/specwright-state-paths.mjs" "$CX_DIST/hooks/$hook" 2>/dev/null; then
+    pass "hooks/$hook imports shared resolver"
+  else
+    fail "hooks/$hook does not import shared resolver"
   fi
 done
 

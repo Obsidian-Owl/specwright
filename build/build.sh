@@ -299,6 +299,11 @@ validate_skills() {
   return $errors
 }
 
+copy_shared_adapters() {
+  rm -rf "$DIST_DIR/shared"
+  cp -r "$ROOT_DIR/adapters/shared" "$DIST_DIR/shared"
+}
+
 # ─── Platform Builds ────────────────────────────────────────────────
 
 build_claude_code() {
@@ -321,6 +326,7 @@ build_claude_code() {
   cp -r "$ROOT_DIR/adapters/claude-code/hooks" "$dist/hooks"
   cp -r "$ROOT_DIR/adapters/claude-code/.claude-plugin" "$dist/.claude-plugin"
   cp "$ROOT_DIR/adapters/claude-code/CLAUDE.md" "$dist/CLAUDE.md"
+  copy_shared_adapters
 
   # Copy README
   cp "$ROOT_DIR/README.md" "$dist/README.md"
@@ -371,7 +377,8 @@ build_opencode() {
   cp -r "$ROOT_DIR/core/protocols" "$dist/protocols"
   cp -r "$ROOT_DIR/core/agents" "$dist/agents"
 
-  # Copy adapter content (opencode-specific, no hooks/.claude-plugin/CLAUDE.md)
+  # Copy adapter content (opencode-specific, no hooks/.claude-plugin/CLAUDE.md).
+  # Opencode does not import adapters/shared because it has no runtime hooks.
   cp -r "$ROOT_DIR/adapters/opencode/commands" "$dist/commands"
   cp "$ROOT_DIR/adapters/opencode/package.json" "$dist/package.json"
   cp "$ROOT_DIR/adapters/opencode/plugin.ts" "$dist/plugin.ts"
@@ -447,6 +454,7 @@ build_codex() {
   cp -r "$ROOT_DIR/adapters/codex/hooks" "$dist/hooks"
   cp "$ROOT_DIR/adapters/codex/hooks.json" "$dist/hooks.json"
   cp -r "$ROOT_DIR/adapters/codex/.codex-plugin" "$dist/.codex-plugin"
+  copy_shared_adapters
 
   # Copy adapter-specific README
   cp "$ROOT_DIR/adapters/codex/README.md" "$dist/README.md"
