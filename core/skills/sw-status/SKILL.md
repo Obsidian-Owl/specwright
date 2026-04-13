@@ -35,12 +35,15 @@ other works are active in the repository, and what the next action should be.
 ## Constraints
 
 **Display (HIGH freedom):**
+- Print the resolved `repoStateRoot` and `worktreeStateRoot` before the session
+  summary so hidden `.git` state is inspectable.
 - Show the current session first: `worktreeId`, mode, branch, and
   `attachedWorkId`.
 - If the session is attached, show that work's status, unit/task progress,
   gates, and per-work lock freshness.
 - Enumerate other active works discovered under `repoStateRoot/work/*`, along
-  with their recorded owner worktrees.
+  with their recorded owner worktrees and whether the owner still has a live
+  top-level session.
 - If no work is attached in this worktree, say so and suggest `/sw-design`.
 - Keep the output concise.
 
@@ -85,6 +88,7 @@ other works are active in the repository, and what the next action should be.
   `revert-to-building`, `mark-abandoned`, `force-shipped-with-note`.
 - `force-shipped-with-note` appends the user's assertion to the owning
   `decisions.md`.
+- If repo-wide inspection finds stale attachments without live top-level sessions, report them as stale attachments and never treat them as active owners.
 
 ## Protocol References
 
