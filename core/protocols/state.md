@@ -115,8 +115,8 @@ Each top-level work owns its own workflow file.
   to the current terminal session.
 - `attachment` records the current owner of the work. It replaces the old
   repo-global `currentWork`.
-- `workUnits[{n}].prNumber` and `workUnits[{n}].prMergedAt` are optional,
-  nullable, backward-compatible fields.
+- `workUnits[{n}].prNumber` is an optional, nullable, backward-compatible `number | null` field.
+- `workUnits[{n}].prMergedAt` is an optional, nullable, backward-compatible `ISO timestamp | null` field.
 - Older workflow files may omit either field; readers must treat both
   omissions as backward-compatible legacy state.
 - `workDir` remains the unit-local artifact path for the selected unit. Skills
