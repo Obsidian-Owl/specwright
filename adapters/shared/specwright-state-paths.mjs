@@ -1,6 +1,6 @@
 import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync } from 'fs';
 import { basename, dirname, join, resolve } from 'path';
 
 const FAILURE_CODE = 'GIT_RESOLUTION_FAILED';
@@ -142,6 +142,87 @@ function buildWorkArtifacts(baseDir, workId, workDir) {
   };
 }
 
+function parseWorktreeList(text) {
+  const entries = [];
+  let current = null;
+
+  for (const line of text.split('\n')) {
+    if (!line) {
+      continue;
+    }
+
+    if (line.startsWith('worktree ')) {
+      if (current) {
+        entries.push(current);
+      }
+
+      current = {
+        path: resolve(line.slice('worktree '.length).trim()),
+        prunable: false
+      };
+      continue;
+    }
+
+    if (!current) {
+      continue;
+    }
+
+    if (line === 'prunable' || line.startsWith('prunable ')) {
+      current.prunable = true;
+      continue;
+    }
+
+    if (line.startsWith('branch ')) {
+      current.branch = line.slice('branch '.length).trim();
+      continue;
+    }
+
+    if (line.startsWith('HEAD ')) {
+      current.head = line.slice('HEAD '.length).trim();
+    }
+  }
+
+  if (current) {
+    entries.push(current);
+  }
+
+  return entries;
+}
+
+function listSessionFiles(roots) {
+  const sessionFiles = [];
+  const primarySessionPath = join(roots.gitCommonDir, 'specwright', 'session.json');
+  if (existsSync(primarySessionPath)) {
+    sessionFiles.push({
+      worktreeId: PRIMARY_WORKTREE_ID,
+      sessionPath: primarySessionPath
+    });
+  }
+
+  const linkedWorktreesDir = join(roots.gitCommonDir, 'worktrees');
+  if (!existsSync(linkedWorktreesDir)) {
+    return sessionFiles;
+  }
+
+  for (const entry of readdirSync(linkedWorktreesDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const sessionPath = join(linkedWorktreesDir, entry.name, 'specwright', 'session.json');
+    if (!existsSync(sessionPath)) {
+      continue;
+    }
+
+    sessionFiles.push({
+      worktreeId: entry.name,
+      sessionPath
+    });
+  }
+
+  return sessionFiles;
+}
+
 export function loadSpecwrightState(options = {}) {
   const legacy = resolveLegacyStatePaths(options);
   const sharedConfigPath = legacy.ok ? join(legacy.repoStateRoot, SHARED_CONFIG_FILE) : null;
@@ -253,5 +334,52 @@ export function normalizeActiveWork(stateInfo) {
     lock: workflow.lock ?? null,
     branch: stateInfo.session?.branch ?? workflow.branch ?? null,
     attachment: workflow.attachment ?? null
+  };
+}
+
+export function inspectWorktreeSessions(options = {}) {
+  const roots = resolveSpecwrightRoots(options);
+  if (!roots.ok) {
+    return roots;
+  }
+
+  const listedWorktrees = parseWorktreeList(
+    runGit(['worktree', 'list', '--porcelain'], roots.projectRoot)
+  );
+  const liveWorktreePaths = new Set(
+    listedWorktrees
+      .filter((entry) => !entry.prunable && existsSync(entry.path))
+      .map((entry) => entry.path)
+  );
+
+  const sessions = listSessionFiles(roots).map(({ worktreeId, sessionPath }) => {
+    const session = parseJsonFile(sessionPath);
+    const worktreePath = session?.worktreePath ? resolve(session.worktreePath) : null;
+    const live = Boolean(worktreePath && liveWorktreePaths.has(worktreePath));
+    const deadReason = live
+      ? null
+      : (!worktreePath
+          ? 'missing-worktree-path'
+          : (!existsSync(worktreePath) ? 'missing-worktree-directory' : 'not-listed-by-git'));
+
+    return {
+      worktreeId,
+      sessionPath,
+      worktreePath,
+      attachedWorkId: session?.attachedWorkId ?? null,
+      branch: session?.branch ?? null,
+      mode: session?.mode ?? null,
+      live,
+      deadReason
+    };
+  });
+
+  return {
+    ok: true,
+    projectRoot: roots.projectRoot,
+    gitCommonDir: roots.gitCommonDir,
+    listedWorktrees,
+    sessions,
+    deadSessions: sessions.filter((session) => !session.live)
   };
 }
