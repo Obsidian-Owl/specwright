@@ -13,6 +13,7 @@
 
 import { readFileSync } from 'fs';
 import { join, resolve, isAbsolute } from 'path';
+import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
 
 const REPO_MAP_AGENTS = ['specwright-executor', 'specwright-tester'];
 const CONTEXT_AGENTS = ['specwright-architect', 'specwright-reviewer'];
@@ -45,10 +46,13 @@ function main() {
 
   // Read workflow state to find current work directory
   let workDir;
+  let projectRoot;
   try {
-    const workflowPath = join(process.cwd(), '.specwright', 'state', 'workflow.json');
+    const statePaths = resolveLegacyStatePaths();
+    const workflowPath = statePaths.workflowPath;
     const workflow = JSON.parse(readFileSync(workflowPath, 'utf8'));
     workDir = workflow?.currentWork?.workDir;
+    projectRoot = statePaths.lookupRoot;
   } catch {
     // Can't read workflow — exit silently
     process.exit(0);
@@ -66,7 +70,6 @@ function main() {
   // Read the target file (with path traversal validation)
   let content;
   try {
-    const projectRoot = process.cwd();
     const filePath = resolve(projectRoot, workDir, targetFile);
 
     // Validate resolved path is within project root to prevent path traversal.

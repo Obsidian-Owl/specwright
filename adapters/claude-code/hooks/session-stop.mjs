@@ -5,10 +5,9 @@
  */
 
 import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
 
-const cwd = process.cwd();
-const statePath = join(cwd, '.specwright', 'state', 'workflow.json');
+const statePath = resolveLegacyStatePaths().workflowPath;
 
 if (!existsSync(statePath)) {
   // No Specwright state — nothing to warn about

@@ -11,7 +11,7 @@
  */
 
 import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
 
 // Match only PR-creation operations. The `(\s|$)` anchor prevents matching
 // `/pulls/123` or `/pulls/123/reviews` — those are read-only operations that
@@ -43,7 +43,7 @@ if (!PR_PATTERN.test(command)) {
 
 // PR creation pattern matched — check workflow state
 const projectDir = process.argv[2] || process.cwd();
-const workflowPath = join(projectDir, '.specwright', 'state', 'workflow.json');
+const workflowPath = resolveLegacyStatePaths({ cwd: projectDir }).workflowPath;
 
 if (!existsSync(workflowPath)) {
   // No Specwright state — not a managed project, allow
