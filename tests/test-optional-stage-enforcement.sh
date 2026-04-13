@@ -92,6 +92,10 @@ assert_file_contains "core/skills/sw-design/SKILL.md" \
   'Clearing prior shipped work.*sw-learn first if pattern capture is desired' \
   "sw-design prints clobber notice before clearing prior shipped work"
 
+assert_file_contains "core/skills/sw-design/SKILL.md" \
+  'current worktree only|other top-level worktrees|unrelated active works' \
+  "sw-design limits shipped-work retargeting to the current worktree without clearing unrelated active works"
+
 # AC-5: No core pipeline skill hard-requires an optional skill
 echo ""
 echo "AC-5: core pipeline skills do not hard-require optional skills"

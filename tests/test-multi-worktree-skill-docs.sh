@@ -128,6 +128,35 @@ for gate_file in \
 done
 
 echo ""
+echo "--- Task 4: singleton workflow paths stay gone across touched docs ---"
+for scoped_file in \
+  "core/skills/sw-design/SKILL.md" \
+  "core/skills/sw-plan/SKILL.md" \
+  "core/skills/sw-build/SKILL.md" \
+  "core/skills/sw-pivot/SKILL.md" \
+  "core/skills/sw-verify/SKILL.md" \
+  "core/skills/sw-ship/SKILL.md" \
+  "core/skills/sw-learn/SKILL.md" \
+  "core/skills/gate-build/SKILL.md" \
+  "core/skills/gate-tests/SKILL.md" \
+  "core/skills/gate-security/SKILL.md" \
+  "core/skills/gate-wiring/SKILL.md" \
+  "core/skills/gate-semantic/SKILL.md" \
+  "core/skills/gate-spec/SKILL.md"; do
+  if grep -q '\.specwright/state/workflow\.json' "$scoped_file"; then
+    fail "$scoped_file avoids checkout-local singleton workflow paths"
+  else
+    pass "$scoped_file avoids checkout-local singleton workflow paths"
+  fi
+
+  if grep -q '{currentWork\.workDir}' "$scoped_file"; then
+    fail "$scoped_file avoids currentWork.workDir singleton path templates"
+  else
+    pass "$scoped_file avoids currentWork.workDir singleton path templates"
+  fi
+done
+
+echo ""
 echo "RESULT: $PASS passed, $FAIL failed"
 
 if [ "$FAIL" -gt 0 ]; then
