@@ -6,92 +6,68 @@
  */
 
 import { readFileSync, existsSync, unlinkSync } from 'fs';
-import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
-
-const statePaths = resolveLegacyStatePaths();
-const statePath = statePaths.workflowPath;
-const continuationPath = statePaths.continuationPath;
-
-if (!existsSync(statePath)) {
-  // Specwright not initialized — nothing to do
-  process.exit(0);
-}
+import { loadSpecwrightState, normalizeActiveWork } from '../../shared/specwright-state-paths.mjs';
 
 try {
-  const state = JSON.parse(readFileSync(statePath, 'utf-8'));
+  const stateInfo = loadSpecwrightState();
+  const continuationPath = stateInfo.continuationPath;
+  const work = normalizeActiveWork(stateInfo);
 
-  if (state.currentWork && !['shipped', 'abandoned'].includes(state.currentWork.status)) {
-    const work = state.currentWork;
-    const completed = work.tasksCompleted?.length ?? 0;
-    const total = work.tasksTotal ?? '?';
+  if (!work || ['shipped', 'abandoned'].includes(work.status)) {
+    process.exit(0);
+  }
 
-    const gatesSummary = Object.entries(state.gates || {})
-      .map(([name, g]) => `${name}: ${g.status}`)
-      .join(', ') || 'none run';
+  const lockWarning = work.lock
+    ? `\n⚠ Lock held by "${work.lock.skill}" since ${work.lock.since}`
+    : '';
 
-    const lockWarning = state.lock
-      ? `\n⚠ Lock held by "${state.lock.skill}" since ${state.lock.since}`
-      : '';
+  let continuationContent = '';
+  if (existsSync(continuationPath)) {
+    try {
+      const raw = readFileSync(continuationPath, 'utf-8');
+      const firstLine = raw.split('\n')[0] || '';
+      const match = firstLine.match(/^Snapshot:\s*(.+)$/);
 
-    // Check for continuation snapshot from PreCompact hook
-    let continuationContent = '';
-    if (existsSync(continuationPath)) {
-      try {
-        const raw = readFileSync(continuationPath, 'utf-8');
-        const firstLine = raw.split('\n')[0] || '';
-        const match = firstLine.match(/^Snapshot:\s*(.+)$/);
+      if (match) {
+        const snapshotTime = new Date(match[1].trim());
+        const ageMs = Date.now() - snapshotTime.getTime();
+        const twoHoursMs = 2 * 60 * 60 * 1000;
 
-        if (match) {
-          const snapshotTime = new Date(match[1].trim());
-          const ageMs = Date.now() - snapshotTime.getTime();
-          const twoHoursMs = 2 * 60 * 60 * 1000;
+        if (!isNaN(snapshotTime.getTime()) && ageMs < twoHoursMs) {
+          continuationContent = `\n--- Continuation Snapshot ---\n${raw}`;
 
-          if (!isNaN(snapshotTime.getTime()) && ageMs < twoHoursMs) {
-            // Fresh snapshot — include in recovery output
-            continuationContent = `\n--- Continuation Snapshot ---\n${raw}`;
-
-            // Parse and extract Correction Summary if present.
-            // Note: \Z is PCRE/Python only — use $ for end-of-string in JS regex.
-            const correctionMatch = raw.match(/## Correction Summary\n([\s\S]*?)(?=\n## |\n---|$)/);
-            if (correctionMatch && correctionMatch[1].trim()) {
-              // Intentional duplication: the full snapshot (above) contains the section
-              // in context; this highlighted extract surfaces corrections prominently so
-              // the agent prioritizes avoiding these patterns after compaction recovery.
-              continuationContent += `\n--- Quality Corrections ---\nIn this build session, the following quality issues were found and should be avoided:\n${correctionMatch[1].trim()}`;
-            }
+          const correctionMatch = raw.match(/## Correction Summary\n([\s\S]*?)(?=\n## |\n---|$)/);
+          if (correctionMatch && correctionMatch[1].trim()) {
+            continuationContent += `\n--- Quality Corrections ---\nIn this build session, the following quality issues were found and should be avoided:\n${correctionMatch[1].trim()}`;
           }
         }
-
-        // Always delete after reading (one-time snapshot)
-        unlinkSync(continuationPath);
-      } catch {
-        // Ignore continuation read errors — not critical
       }
+
+      unlinkSync(continuationPath);
+    } catch {
+      // Ignore continuation read errors — not critical
     }
-
-    const workDir = work.workDir || `.specwright/work/${work.id}`;
-    const unitLine = work.unitId ? `  Active Unit: ${work.unitId}\n` : '';
-
-    const shippingWarning = work.status === 'shipping'
-      ? '\n  ⚠ Status is "shipping" — PR creation was in progress. Run /sw-ship to check if the PR was created or to retry.'
-      : '';
-
-    const summary = [
-      `Specwright: Work in progress`,
-      `  Unit: ${work.id} (${work.status})`,
-      unitLine ? unitLine.trimEnd() : null,
-      `  Progress: ${completed}/${total} tasks`,
-      `  Gates: ${gatesSummary}`,
-      `  Spec: ${workDir}/spec.md`,
-      `  Plan: ${workDir}/plan.md`,
-      lockWarning,
-      shippingWarning,
-      continuationContent,
-    ].filter(Boolean).join('\n');
-
-    // SessionStart hook stdout is added as context Claude can see and act on
-    process.stdout.write(summary + '\n');
   }
+
+  const unitLine = work.unitId ? `  Active Unit: ${work.unitId}\n` : '';
+  const shippingWarning = work.status === 'shipping'
+    ? '\n  ⚠ Status is "shipping" — PR creation was in progress. Run /sw-ship to check if the PR was created or to retry.'
+    : '';
+
+  const summary = [
+    'Specwright: Work in progress',
+    `  Unit: ${work.workId} (${work.status})`,
+    unitLine ? unitLine.trimEnd() : null,
+    `  Progress: ${work.completedCount}/${work.totalCount} tasks`,
+    `  Gates: ${work.gatesSummary}`,
+    `  Spec: ${work.specPath}`,
+    `  Plan: ${work.planPath}`,
+    lockWarning,
+    shippingWarning,
+    continuationContent
+  ].filter(Boolean).join('\n');
+
+  process.stdout.write(summary + '\n');
 } catch (err) {
   // Don't block session on hook failure — degrade gracefully
   process.stderr.write(`Specwright: Failed to read state: ${err.message}\n`);

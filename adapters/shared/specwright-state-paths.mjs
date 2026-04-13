@@ -1,10 +1,12 @@
 import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
+import { existsSync, readFileSync } from 'fs';
 import { basename, dirname, join, resolve } from 'path';
 
 const FAILURE_CODE = 'GIT_RESOLUTION_FAILED';
 const PRIMARY_WORKTREE_ID = 'main-worktree';
 const LEGACY_STATE_SEGMENTS = ['.specwright', 'state'];
+const SHARED_CONFIG_FILE = 'config.json';
 
 function runGit(args, cwd) {
   return execFileSync('git', args, {
@@ -102,5 +104,154 @@ export function resolveLegacyStatePaths(options = {}) {
     workflowPath: join(legacyStateRoot, 'workflow.json'),
     continuationPath: join(legacyStateRoot, 'continuation.md'),
     usedFallback: !roots.ok
+  };
+}
+
+function parseJsonFile(path) {
+  return JSON.parse(readFileSync(path, 'utf8'));
+}
+
+function gateVerdict(gate) {
+  if (!gate || typeof gate !== 'object') {
+    return 'UNKNOWN';
+  }
+
+  return gate.status ?? gate.verdict ?? 'UNKNOWN';
+}
+
+function summarizeGates(gates) {
+  const entries = Object.entries(gates ?? {});
+  if (entries.length === 0) {
+    return 'none run';
+  }
+
+  return entries
+    .map(([name, gate]) => `${name}: ${gateVerdict(gate)}`)
+    .join(', ');
+}
+
+function buildWorkArtifacts(baseDir, workId, workDir) {
+  const relativeWorkDir = workDir || `work/${workId}`;
+  const workDirPath = resolve(baseDir, relativeWorkDir);
+
+  return {
+    workDir: relativeWorkDir,
+    workDirPath,
+    specPath: resolve(workDirPath, 'spec.md'),
+    planPath: resolve(workDirPath, 'plan.md')
+  };
+}
+
+export function loadSpecwrightState(options = {}) {
+  const legacy = resolveLegacyStatePaths(options);
+  const sharedConfigPath = legacy.ok ? join(legacy.repoStateRoot, SHARED_CONFIG_FILE) : null;
+  const usingSharedLayout = Boolean(sharedConfigPath && existsSync(sharedConfigPath));
+
+  if (usingSharedLayout) {
+    const sessionPath = join(legacy.worktreeStateRoot, 'session.json');
+    const continuationPath = join(legacy.worktreeStateRoot, 'continuation.md');
+    const session = existsSync(sessionPath) ? parseJsonFile(sessionPath) : null;
+    const attachedWorkId = session?.attachedWorkId ?? null;
+    const workflowPath = attachedWorkId
+      ? join(legacy.repoStateRoot, 'work', attachedWorkId, 'workflow.json')
+      : null;
+    const workflow = workflowPath && existsSync(workflowPath)
+      ? parseJsonFile(workflowPath)
+      : null;
+
+    return {
+      ...legacy,
+      layout: 'shared',
+      sharedConfigPath,
+      sessionPath,
+      session,
+      attachedWorkId,
+      workflowPath,
+      workflow,
+      continuationPath
+    };
+  }
+
+  const workflowPath = legacy.workflowPath;
+  const workflow = existsSync(workflowPath) ? parseJsonFile(workflowPath) : null;
+
+  return {
+    ...legacy,
+    layout: 'legacy',
+    sharedConfigPath: null,
+    sessionPath: null,
+    session: null,
+    attachedWorkId: workflow?.currentWork?.id ?? null,
+    workflowPath,
+    workflow,
+    continuationPath: legacy.continuationPath
+  };
+}
+
+export function normalizeActiveWork(stateInfo) {
+  const workflow = stateInfo?.workflow;
+  if (!workflow || typeof workflow !== 'object') {
+    return null;
+  }
+
+  if (workflow.currentWork && typeof workflow.currentWork === 'object') {
+    const legacyWork = workflow.currentWork;
+    const artifacts = buildWorkArtifacts(
+      stateInfo.lookupRoot,
+      legacyWork.id,
+      legacyWork.workDir
+    );
+
+    return {
+      layout: 'legacy',
+      workId: legacyWork.id,
+      status: legacyWork.status ?? null,
+      unitId: legacyWork.unitId ?? null,
+      tasksCompleted: Array.isArray(legacyWork.tasksCompleted) ? legacyWork.tasksCompleted : [],
+      tasksTotal: legacyWork.tasksTotal ?? null,
+      completedCount: Array.isArray(legacyWork.tasksCompleted) ? legacyWork.tasksCompleted.length : 0,
+      totalCount: legacyWork.tasksTotal ?? '?',
+      workDir: artifacts.workDir,
+      workDirPath: artifacts.workDirPath,
+      specPath: artifacts.specPath,
+      planPath: artifacts.planPath,
+      artifactsRoot: stateInfo.lookupRoot,
+      gates: workflow.gates ?? {},
+      gatesSummary: summarizeGates(workflow.gates),
+      lock: workflow.lock ?? null,
+      branch: legacyWork.branch ?? null
+    };
+  }
+
+  if (!workflow.id) {
+    return null;
+  }
+
+  const artifacts = buildWorkArtifacts(
+    stateInfo.repoStateRoot,
+    workflow.id,
+    workflow.workDir
+  );
+  const tasksCompleted = Array.isArray(workflow.tasksCompleted) ? workflow.tasksCompleted : [];
+
+  return {
+    layout: 'shared',
+    workId: workflow.id,
+    status: workflow.status ?? null,
+    unitId: workflow.unitId ?? null,
+    tasksCompleted,
+    tasksTotal: workflow.tasksTotal ?? null,
+    completedCount: tasksCompleted.length,
+    totalCount: workflow.tasksTotal ?? '?',
+    workDir: artifacts.workDir,
+    workDirPath: artifacts.workDirPath,
+    specPath: artifacts.specPath,
+    planPath: artifacts.planPath,
+    artifactsRoot: stateInfo.repoStateRoot,
+    gates: workflow.gates ?? {},
+    gatesSummary: summarizeGates(workflow.gates),
+    lock: workflow.lock ?? null,
+    branch: stateInfo.session?.branch ?? workflow.branch ?? null,
+    attachment: workflow.attachment ?? null
   };
 }

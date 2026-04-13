@@ -27,6 +27,7 @@ PRE_SHIP_GUARD_HOOK="$ROOT_DIR/adapters/claude-code/hooks/pre-ship-guard.mjs"
 SESSION_START_HOOK="$ROOT_DIR/adapters/claude-code/hooks/session-start.mjs"
 SESSION_STOP_HOOK="$ROOT_DIR/adapters/claude-code/hooks/session-stop.mjs"
 STATE_PATHS_MODULE="$ROOT_DIR/adapters/shared/specwright-state-paths.mjs"
+CLAUDE_HOOKS_CONFIG="$ROOT_DIR/adapters/claude-code/hooks/hooks.json"
 
 PASS=0
 FAIL=0
@@ -110,6 +111,68 @@ write_workflow() {
 EOF
 }
 
+git_common_dir() {
+  git -C "$1" rev-parse --path-format=absolute --git-common-dir
+}
+
+git_dir() {
+  git -C "$1" rev-parse --path-format=absolute --git-dir
+}
+
+repo_state_root() {
+  printf '%s/specwright\n' "$(git_common_dir "$1")"
+}
+
+worktree_state_root() {
+  printf '%s/specwright\n' "$(git_dir "$1")"
+}
+
+make_shared_project() {
+  local dir="$1"
+  local work_id="$2"
+  local status="${3:-building}"
+  local branch="${4:-$(git -C "$dir" branch --show-current)}"
+  local repo_root worktree_root work_dir
+
+  repo_root="$(repo_state_root "$dir")"
+  worktree_root="$(worktree_state_root "$dir")"
+  work_dir="$repo_root/work/$work_id"
+
+  mkdir -p "$work_dir" "$worktree_root"
+  cat > "$repo_root/config.json" <<'EOF'
+{
+  "version": "2.0"
+}
+EOF
+  cat > "$worktree_root/session.json" <<EOF
+{
+  "version": "3.0",
+  "worktreeId": "test-worktree",
+  "worktreePath": "$(cd "$dir" && pwd -P)",
+  "branch": "$branch",
+  "attachedWorkId": "$work_id",
+  "mode": "top-level",
+  "lastSeenAt": "2026-04-13T00:00:00Z"
+}
+EOF
+  cat > "$work_dir/workflow.json" <<EOF
+{
+  "version": "3.0",
+  "id": "$work_id",
+  "status": "$status",
+  "workDir": "work/$work_id",
+  "unitId": "unit-$work_id",
+  "tasksCompleted": ["t1"],
+  "tasksTotal": 3,
+  "branch": "$branch",
+  "gates": {
+    "build": { "verdict": "PASS" },
+    "tests": { "verdict": "PASS" }
+  }
+}
+EOF
+}
+
 # ---------------------------------------------------------------------------
 # Section 0: specwright-state-paths.mjs
 # ---------------------------------------------------------------------------
@@ -155,6 +218,15 @@ assert_eq "$exit_code" "0" "state-paths: non-git directory returns structured fa
 assert_contains "$output" '"ok":false' "state-paths: non-git directory returns ok=false"
 assert_contains "$output" '"code":"GIT_RESOLUTION_FAILED"' "state-paths: non-git directory returns failure code"
 assert_contains "$output" '"root":"projectRoot"' "state-paths: non-git directory reports failing root"
+
+echo ""
+echo "=== Section 0.5: hooks.json logical roots ==="
+
+hooks_json="$(cat "$CLAUDE_HOOKS_CONFIG")"
+assert_contains "$hooks_json" "{worktreeStateRoot}/continuation.md" "hooks.json: PreCompact writes continuation to worktreeStateRoot"
+assert_contains "$hooks_json" "session.json.attachedWorkId" "hooks.json: PreCompact resolves the selected work from session attachment"
+assert_contains "$hooks_json" "{repoStateRoot}/work/{workId}/workflow.json" "hooks.json: PreCompact points at per-work workflow state"
+assert_not_contains "$hooks_json" ".specwright/state/continuation.md" "hooks.json: PreCompact no longer points at legacy continuation"
 
 # ---------------------------------------------------------------------------
 # Section 1: subagent-context.mjs
@@ -270,6 +342,19 @@ exit_code=$?
 assert_eq "$exit_code" "0" "subagent-context: nested linked worktree → exit 0"
 assert_contains "$output" "additionalContext" "subagent-context: nested linked worktree → resolves workflow via git root"
 
+# AC-2: shared/session layout resolves repo-map via repoStateRoot
+T="$TEST_TMPDIR/t-subagent-shared-primary"
+L="$TEST_TMPDIR/subagent-shared-linked"
+init_git_repo "$T"
+git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b subagent-shared-linked "$L" HEAD
+make_shared_project "$L" "shared-subagent"
+mkdir -p "$(repo_state_root "$L")/work/shared-subagent" "$L/nested/shared"
+printf '# Repo Map\nshared session content\n' > "$(repo_state_root "$L")/work/shared-subagent/repo-map.md"
+output=$(cd "$L/nested/shared" && echo '{"agent_type":"specwright-executor"}' | node "$SUBAGENT_HOOK" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "subagent-context: shared linked worktree → exit 0"
+assert_contains "$output" "shared session content" "subagent-context: shared linked worktree → resolves repo-map from repoStateRoot"
+
 # ---------------------------------------------------------------------------
 # Section 2: post-write-diagnostics.mjs
 # ---------------------------------------------------------------------------
@@ -327,6 +412,17 @@ stderr_output=$(cat "$stderr_path")
 assert_eq "$exit_code" "1" "pre-ship-guard: nested primary worktree blocks PR creation"
 assert_contains "$stderr_output" "PR creation blocked" "pre-ship-guard: nested primary worktree emits block reason"
 assert_eq "$output" "" "pre-ship-guard: nested primary worktree writes no stdout"
+
+T="$TEST_TMPDIR/t-guard-shared-primary"
+init_git_repo "$T"
+make_shared_project "$T" "shared-guard" "building"
+payload='{"tool_input":{"command":"gh pr create --title shared --body shared"}}'
+stderr_path="$TEST_TMPDIR/pre-ship-guard-shared.stderr"
+output=$(cd "$T" && printf '%s' "$payload" | node "$PRE_SHIP_GUARD_HOOK" 2>"$stderr_path")
+exit_code=$?
+stderr_output=$(cat "$stderr_path")
+assert_eq "$exit_code" "1" "pre-ship-guard: shared layout blocks PR creation outside shipping"
+assert_contains "$stderr_output" "PR creation blocked" "pre-ship-guard: shared layout emits block reason"
 
 # ---------------------------------------------------------------------------
 # Section 4: session-start.mjs
@@ -387,6 +483,18 @@ exit_code=$?
 assert_eq "$exit_code" "0" "session-start: nested linked worktree → exit 0"
 assert_contains "$output" "Work in progress" "session-start: nested linked worktree → resolves workflow via git root"
 
+# AC-4: shared/session layout resolves selected work from session attachment
+T="$TEST_TMPDIR/t-ss-shared-primary"
+L="$TEST_TMPDIR/session-start-shared-linked"
+init_git_repo "$T"
+git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b session-start-shared-linked "$L" HEAD
+make_shared_project "$L" "shared-session-start" "building"
+mkdir -p "$L/deep/shared"
+output=$(cd "$L/deep/shared" && node "$SESSION_START_HOOK" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "session-start: shared linked worktree → exit 0"
+assert_contains "$output" "shared-session-start (building)" "session-start: shared linked worktree → resolves attached shared work"
+
 # AC-6: Active work, fresh continuation WITH Correction Summary → output contains both sections
 T="$TEST_TMPDIR/t-ss-fresh-cont"
 make_project "$T"
@@ -445,6 +553,26 @@ else
   pass "session-start: stale continuation.md deleted after reading"
 fi
 
+T="$TEST_TMPDIR/t-ss-shared-cont"
+init_git_repo "$T"
+make_shared_project "$T" "shared-continuation" "building"
+SNAP_TIME="$(node -e 'console.log(new Date().toISOString())')"
+cat > "$(worktree_state_root "$T")/continuation.md" <<EOF
+Snapshot: $SNAP_TIME
+
+## Progress
+Shared continuation notes.
+EOF
+output=$(cd "$T" && node "$SESSION_START_HOOK" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "session-start: shared continuation → exit 0"
+assert_contains "$output" "Continuation Snapshot" "session-start: shared continuation → reads worktree-local continuation"
+if [ -f "$(worktree_state_root "$T")/continuation.md" ]; then
+  fail "session-start: shared continuation.md not deleted"
+else
+  pass "session-start: shared continuation.md deleted after reading"
+fi
+
 # AC-5: Lock held → output contains "Lock held by"
 T="$TEST_TMPDIR/t-ss-lock"
 make_project "$T"
@@ -485,6 +613,15 @@ output=$(cd "$T/stop/nested" && node "$SESSION_STOP_HOOK" 2>/dev/null)
 exit_code=$?
 assert_eq "$exit_code" "0" "session-stop: nested primary worktree → exit 0"
 assert_contains "$output" '"ok":false' "session-stop: nested primary worktree warns about active work"
+
+T="$TEST_TMPDIR/t-stop-shared-primary"
+init_git_repo "$T"
+make_shared_project "$T" "shared-stop" "building"
+mkdir -p "$T/stop/shared"
+output=$(cd "$T/stop/shared" && node "$SESSION_STOP_HOOK" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "session-stop: shared nested primary worktree → exit 0"
+assert_contains "$output" '"ok":false' "session-stop: shared nested primary worktree warns about active work"
 
 # ---------------------------------------------------------------------------
 # Summary

@@ -10,8 +10,8 @@
  * Falls back to process.cwd() when not provided.
  */
 
-import { readFileSync, existsSync } from 'fs';
-import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
+import { readFileSync } from 'fs';
+import { loadSpecwrightState, normalizeActiveWork } from '../../shared/specwright-state-paths.mjs';
 
 // Match only PR-creation operations. The `(\s|$)` anchor prevents matching
 // `/pulls/123` or `/pulls/123/reviews` — those are read-only operations that
@@ -43,16 +43,14 @@ if (!PR_PATTERN.test(command)) {
 
 // PR creation pattern matched — check workflow state
 const projectDir = process.argv[2] || process.cwd();
-const workflowPath = resolveLegacyStatePaths({ cwd: projectDir }).workflowPath;
-
-if (!existsSync(workflowPath)) {
-  // No Specwright state — not a managed project, allow
-  process.exit(0);
-}
-
 try {
-  const state = JSON.parse(readFileSync(workflowPath, 'utf-8'));
-  const status = state?.currentWork?.status;
+  const stateInfo = loadSpecwrightState({ cwd: projectDir });
+  if (!stateInfo.workflow) {
+    process.exit(0);
+  }
+
+  const work = normalizeActiveWork(stateInfo);
+  const status = work?.status;
 
   if (status === 'shipping') {
     // Correct state — allow PR creation

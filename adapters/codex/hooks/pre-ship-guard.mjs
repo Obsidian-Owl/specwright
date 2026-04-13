@@ -5,8 +5,8 @@
  * Blocks PR creation commands unless workflow status is "shipping".
  */
 
-import { readFileSync, existsSync } from 'fs';
-import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
+import { readFileSync } from 'fs';
+import { loadSpecwrightState, normalizeActiveWork } from '../../shared/specwright-state-paths.mjs';
 
 const PR_PATTERN = /gh\s+pr\s+create|gh\s+api\s+[^\s]*\/pulls(\s|$)|curl\s+.*api\.github\.com[^\s]*\/pulls(\s|$)/;
 
@@ -22,14 +22,14 @@ if (!PR_PATTERN.test(command)) {
   process.exit(0);
 }
 
-const workflowPath = resolveLegacyStatePaths().workflowPath;
-if (!existsSync(workflowPath)) {
-  process.exit(0);
-}
-
 try {
-  const state = JSON.parse(readFileSync(workflowPath, 'utf-8'));
-  const status = state?.currentWork?.status;
+  const stateInfo = loadSpecwrightState();
+  if (!stateInfo.workflow) {
+    process.exit(0);
+  }
+
+  const work = normalizeActiveWork(stateInfo);
+  const status = work?.status;
 
   if (status === 'shipping') {
     process.exit(0);

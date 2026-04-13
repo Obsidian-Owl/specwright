@@ -6,36 +6,28 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
+import { loadSpecwrightState, normalizeActiveWork } from '../../shared/specwright-state-paths.mjs';
 
-function writeSnapshot(currentWork, gates, statePaths) {
-  const stateDir = statePaths.legacyStateRoot;
-  const continuationPath = statePaths.continuationPath;
-  const workDir = currentWork.workDir || `.specwright/work/${currentWork.id}`;
-  const completed = currentWork.tasksCompleted?.length ?? 0;
-  const total = currentWork.tasksTotal ?? '?';
+function writeSnapshot(work, continuationPath) {
+  const stateDir = continuationPath.replace(/\/continuation\.md$/, '');
   const timestamp = new Date().toISOString();
-
-  const gatesSummary = gates
-    ? Object.entries(gates).map(([name, g]) => `${name}: ${g.status}`).join(', ') || 'none run'
-    : 'none run';
 
   const snapshot = [
     `Snapshot: ${timestamp}`,
     '',
     '## Current State',
-    `Work unit: ${currentWork.id} (${currentWork.status})`,
-    currentWork.unitId ? `Active unit: ${currentWork.unitId}` : null,
-    `Progress: ${completed}/${total} tasks`,
-    `Gates: ${gatesSummary}`,
+    `Work unit: ${work.workId} (${work.status})`,
+    work.unitId ? `Active unit: ${work.unitId}` : null,
+    `Progress: ${work.completedCount}/${work.totalCount} tasks`,
+    `Gates: ${work.gatesSummary}`,
     '',
     '## Work in Progress',
-    `Spec: ${workDir}/spec.md`,
-    `Plan: ${workDir}/plan.md`,
+    `Spec: ${work.specPath}`,
+    `Plan: ${work.planPath}`,
     '',
     '## Next Steps',
-    `1. Read ${workDir}/spec.md.`,
-    `2. Read ${workDir}/plan.md.`,
+    `1. Read ${work.specPath}.`,
+    `2. Read ${work.planPath}.`,
     '3. Continue with /sw-status then the next workflow skill.'
   ].filter(Boolean).join('\n');
 
@@ -55,25 +47,22 @@ try {
     // Ignore missing stdin and proceed with safe JSON output.
   }
 
-  const statePaths = resolveLegacyStatePaths();
-  const statePath = statePaths.workflowPath;
-  if (!existsSync(statePath)) {
+  const stateInfo = loadSpecwrightState();
+  if (!stateInfo.workflow) {
     emit({ continue: true });
     process.exit(0);
   }
 
-  const state = JSON.parse(readFileSync(statePath, 'utf-8'));
-  const work = state?.currentWork;
-
+  const work = normalizeActiveWork(stateInfo);
   if (!work || ['shipped', 'abandoned'].includes(work.status)) {
     emit({ continue: true });
     process.exit(0);
   }
 
-  writeSnapshot(work, state.gates, statePaths);
+  writeSnapshot(work, stateInfo.continuationPath);
   emit({
     continue: true,
-    systemMessage: `Specwright continuation snapshot saved for ${work.id}.`
+    systemMessage: `Specwright continuation snapshot saved for ${work.workId}.`
   });
 } catch {
   emit({ continue: true });
