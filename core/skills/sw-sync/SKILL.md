@@ -54,19 +54,27 @@ claimed by a live Specwright session or a subordinate helper worktree.
   session still references it.
 
 **Safety checks (LOW freedom):**
-- Validate branch names before passing them to shell commands.
+- Validate each candidate branch with `git check-ref-format --branch` before
+  passing it to shell commands.
+- Reject names that start with `-`, contain shell metacharacters or control
+  whitespace, or fail ref-format validation.
+- Pass branch names to Git as quoted positional arguments after `--`.
 - If `config.git.cleanupBranch` is false, skip deletion entirely and say so.
 - If worktree enumeration fails, skip deletion and warn rather than guessing.
 
 **Confirmation (LOW freedom):**
 - Show the candidate branch list with deletion reasons.
 - Use AskUserQuestion for confirm-all, select-subset, or abort.
+- In non-interactive context, skip deletion and report candidates only per
+  `protocols/headless.md`.
 - Delete with `git branch -d` only. Never use `-D`.
 
 **Base branch sync (MEDIUM freedom):**
 - Checkout the configured base branch and pull with `--ff-only`.
 - Return to the original branch afterward.
 - If the working tree is dirty, warn and skip the checkout/pull path.
+- If `--ff-only` reports divergence, warn and continue without creating a merge
+  commit.
 
 **No state mutation (LOW freedom):**
 - `sw-sync` never writes Specwright state.

@@ -115,14 +115,10 @@ Each top-level work owns its own workflow file.
   to the current terminal session.
 - `attachment` records the current owner of the work. It replaces the old
   repo-global `currentWork`.
-- `workUnits[{n}].prNumber` is an optional, nullable, backward-compatible
-  field of type `number | null`.
-- `workUnits[{n}].prMergedAt` is an optional, nullable, backward-compatible
-  field of type `ISO timestamp | null`.
-- `prNumber` remains optional, nullable, and backward-compatible as `number | null`.
-- `prMergedAt` remains optional, nullable, and backward-compatible as `ISO timestamp | null`.
-- Older workflow files may omit `prNumber` and `prMergedAt`; readers must treat
-  both omissions as backward-compatible legacy state.
+- `workUnits[{n}].prNumber` and `workUnits[{n}].prMergedAt` are optional,
+  nullable, backward-compatible fields.
+- Older workflow files may omit either field; readers must treat both
+  omissions as backward-compatible legacy state.
 - `workDir` remains the unit-local artifact path for the selected unit. Skills
   still resolve unit-local files through `workflow.workDir`, never by guessing
   from IDs.
@@ -215,6 +211,9 @@ Valid lifecycle transitions are enforced per selected work:
 | `shipped` | `designing` | sw-design creates a new work in the current session |
 | `shipped` | (none) | sw-learn clears the session attachment when capture is complete |
 | any | `abandoned` | sw-status --reset |
+
+`sw-learn` is an optional capture step after `shipped`. It is never a
+prerequisite for starting the next work or queued unit.
 
 **Enforcement:** skills check the selected work's `status` before mutating. If
 the intended transition is invalid, STOP with:

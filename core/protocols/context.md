@@ -86,6 +86,11 @@ If the shared/session layout is absent, callers may read legacy files from
 - `{projectRoot}/.specwright/state/workflow.json`
 - `{projectRoot}/.specwright/state/continuation.md`
 
+Legacy `workflow.json` remains a migration-only bridge. It still uses the v2
+`currentWork` wrapper, so work-aware callers must normalize that wrapper
+explicitly or stop and direct the user to `/sw-init` before relying on work
+status, branch, or unit fields.
+
 Once either new logical root exists, writes go only to the new layout. Mixed
 read/write behavior is forbidden.
 
@@ -118,6 +123,7 @@ if (exists(repoStateRoot + "/config.json")) {
   config = read(repoStateRoot + "/config.json");
 } else if (exists(projectRoot + "/.specwright/config.json")) {
   config = read(projectRoot + "/.specwright/config.json"); // migration only
+  warn("Using legacy working-tree Specwright layout — run /sw-init to migrate shared/session roots.");
 } else {
   error("Run /sw-init first.");
 }
@@ -126,6 +132,11 @@ if (!config.version) {
   warn("Config missing version field — re-run /sw-init to upgrade.");
 }
 ```
+
+`config.version` validates the config document only. It does not advertise the
+selected work's workflow schema version, so callers detect legacy versus
+shared/session state layout from the resolved roots above, not by comparing
+`config.version` to `workflow.json.version`.
 
 Before work-aware operations:
 

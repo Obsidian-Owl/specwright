@@ -65,8 +65,12 @@ other works are active in the repository, and what the next action should be.
 - Scan `{repoStateRoot}/work/` for work directories.
 - Exclude any work currently claimed by a live session from deletion choices.
 - Present only non-attached work directories for deletion.
-- Canonicalize each selected path and verify it stays under
-  `{repoStateRoot}/work/` before removing it.
+- Canonicalize `{repoStateRoot}/work/` and each selected candidate with
+  `realpath` before removing anything.
+- Verify each canonical candidate is a direct child of the canonical
+  `{repoStateRoot}/work/` directory.
+- If canonicalization fails, or a candidate escapes the allowed direct-child
+  scope, skip it with a warning.
 - Delete only the user-selected, verified paths.
 
 **Repair mode (MEDIUM freedom):**

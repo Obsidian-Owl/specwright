@@ -130,6 +130,9 @@ assert_contains "$SKILL_FILE" 'live sessions' "protects branches claimed by live
 assert_contains "$SKILL_FILE" 'subordinate helper worktree' "protects subordinate helper branches"
 assert_contains "$SKILL_FILE" 'workflow.json.branch' "protects branches recorded on works"
 assert_contains "$SKILL_FILE" 'cleanupBranch' "honors cleanupBranch gate"
+assert_contains "$SKILL_FILE" 'git check-ref-format --branch' "documents git ref-format validation"
+assert_contains "$SKILL_FILE" 'shell metacharacters' "documents injection-oriented branch validation"
+assert_contains "$SKILL_FILE" 'skip deletion and report candidates only' "documents headless report-only deletion behavior"
 
 echo ""
 echo "--- Singleton drift guards ---"

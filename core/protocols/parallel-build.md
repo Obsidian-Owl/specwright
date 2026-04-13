@@ -42,6 +42,11 @@ Read `plan.md` to extract each task's file targets (`**Files**:`).
 Group independent tasks into a parallel batch. Remaining tasks form a
 sequential tail. Minimum batch size is 2.
 
+Before creating helper worktrees, present the proposed parallel batch and
+sequential tail to the user via `AskUserQuestion`. If the user declines, or if
+confirmation is unavailable in a non-interactive context, skip parallel
+execution and continue sequentially.
+
 ## Worktree Setup
 
 For each task in the parallel batch, create an isolated helper worktree:
@@ -60,6 +65,10 @@ For each helper worktree, materialize a subordinate session at its
 - the helper branch name
 
 If `git worktree lock` fails, warn and continue without the lock.
+
+If the configured build or test commands require local dependencies in the
+helper checkout, install them in each helper worktree before spawning helpers,
+or prove that the helper already has access to the required dependency tree.
 
 ## Team Creation
 
@@ -109,13 +118,16 @@ sequential tail or the user.
 After cherry-pick or any exit path:
 
 ```bash
-git worktree unlock .specwright/worktrees/{task-id}
+if helperWasLocked; then
+  git worktree unlock .specwright/worktrees/{task-id}
+fi
 git worktree remove .specwright/worktrees/{task-id}
 git branch -d specwright-wt-{task-id}
 ```
 
 Also remove the helper's subordinate session data with the worktree itself.
-Never force-remove helper worktrees.
+Never force-remove helper worktrees. Only unlock helpers that were actually
+locked successfully.
 
 ## Sequential Tail
 
@@ -131,4 +143,6 @@ the normal sequential build loop in the parent top-level session.
 | Helper failure | retry in sequential tail |
 | Cherry-pick conflict | abort and retry sequentially or surface to user |
 | Team creation failure | fall back to sequential execution |
+| Parallel partition not confirmed | fall back to sequential execution before helper creation |
+| Helper dependency install fails | fall back to sequential execution before helper spawn |
 | `git worktree lock` unavailable | warn and continue without lock |

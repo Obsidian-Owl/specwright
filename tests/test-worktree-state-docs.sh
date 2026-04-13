@@ -78,11 +78,19 @@ assert_contains "$STATE_PROTOCOL" 'Subordinate sessions are allowed only as cont
 assert_not_contains "$STATE_PROTOCOL" '## Workflow State File' "state protocol no longer presents a singleton workflow heading"
 
 echo ""
+echo "--- Context migration fallback ---"
+assert_contains "$CONTEXT_PROTOCOL" 'currentWork` wrapper' "context protocol documents legacy workflow wrapper normalization"
+assert_contains "$CONTEXT_PROTOCOL" 'legacy working-tree Specwright layout' "context protocol warns when legacy layout is in use"
+
+echo ""
 echo "--- Parallel-build protocol ---"
 assert_contains "$PARALLEL_PROTOCOL" 'top-level' "parallel-build keeps a top-level parent session"
 assert_contains "$PARALLEL_PROTOCOL" 'subordinate' "parallel-build creates subordinate helper sessions"
 assert_contains "$PARALLEL_PROTOCOL" 'workflow.json.attachment' "parallel-build keeps ownership on the parent workflow"
 assert_contains "$PARALLEL_PROTOCOL" 'attachedWorkId = {parentWorkId}' "parallel-build binds helpers to the parent work"
+assert_contains "$PARALLEL_PROTOCOL" 'AskUserQuestion' "parallel-build requires confirmation before helper creation"
+assert_contains "$PARALLEL_PROTOCOL" 'install them in each helper worktree' "parallel-build documents helper dependency installation"
+assert_contains "$PARALLEL_PROTOCOL" 'if helperWasLocked' "parallel-build only unlocks helpers that were locked"
 assert_not_contains "$PARALLEL_PROTOCOL" '.specwright/state/' "parallel-build no longer points helpers at legacy state paths"
 
 echo ""
