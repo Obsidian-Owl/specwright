@@ -25,15 +25,16 @@ between research and gate handoff, applying `protocols/decision.md` for all deci
 ## Inputs
 
 - The user's request (argument or conversation)
-- `.specwright/CONSTITUTION.md` -- practices to follow
-- `.specwright/CHARTER.md` -- vision and invariants
-- `.specwright/config.json` -- project configuration
-- `.specwright/state/workflow.json` -- current state
+- `{repoStateRoot}/CONSTITUTION.md` -- practices to follow
+- `{repoStateRoot}/CHARTER.md` -- vision and invariants
+- `{repoStateRoot}/config.json` -- project configuration
+- `{worktreeStateRoot}/session.json` -- current worktree attachment, when present
+- `{repoStateRoot}/work/*/workflow.json` -- other active works for collision checks
 - The codebase itself
 
 ## Outputs
 
-When complete, ALL of the following exist in `.specwright/work/{id}/`:
+When complete, ALL of the following exist in `{repoStateRoot}/work/{id}/`:
 
 - `stage-report.md` -- design handoff digest with attention-required at the top
 - `design.md` -- solution overview, approach, integration points, risk assessment
@@ -97,24 +98,23 @@ artifact, `context.md`). The Next line remains machine-parseable: `Next: /sw-pla
 
 **State mutations (LOW freedom):**
 Follow `protocols/state.md` for read-modify-write mechanics. Postconditions:
-- If prior `currentWork` has status `abandoned`: cleared to null, `workUnits` reset to null (prevents stale multi-unit data from triggering cross-unit checks).
-- If prior `currentWork` has status `shipped`:
-  - **With a new-work argument**: clear `currentWork` to null AND reset
-    `workUnits` to null (mirroring the abandoned-path mutation). Before
-    clearing, print exactly one informational notice:
-    `Clearing prior shipped work {unitId}. Run /sw-learn first if pattern capture is desired.`
-    The notice is a print, not a confirmation prompt — the clear proceeds.
-    sw-learn remains optional and may be invoked separately if desired.
-  - **With no argument**: do NOT clear. Shipped work is terminal — the
-    design artifacts are not a change-request surface. Present the shipped
-    status at the gate with the PR URL and the next action (start new
-    work with an argument, or run `/sw-build` for the next queued unit if
-    one exists). Record the interpretation in decisions.md. The Failure
-    Modes "Active work in progress → continue existing" path does NOT
-    apply to shipped work.
-- `currentWork.status` is `designing`. Work directory created at `.specwright/work/{id}/`.
-- `currentWork.baselineCommit` is the SHA of `origin/{config.git.baseBranch}` (default `origin/main`). Captures base branch HEAD before any work begins — used by gate-wiring for cross-unit verification. Never overwritten on re-entry (change request).
-- `baselineCommit` also written to `{workDir}/context.md` for historical reference (persists after sw-learn clears currentWork).
+- New work created at `{repoStateRoot}/work/{id}/`.
+- `{worktreeStateRoot}/session.json.attachedWorkId` is set to the new work ID for
+  the current worktree only.
+- Do not clear or rewrite unrelated active works in other top-level worktrees.
+  Starting a new design in this worktree changes only this worktree's session
+  attachment.
+- If this worktree was previously attached to a shipped work and the user starts
+  a new design, print exactly one informational notice before retargeting this
+  worktree:
+  `Clearing prior shipped work {unitId}. Run /sw-learn first if pattern capture is desired.`
+  The notice is informational only; `sw-learn` remains optional.
+- The new selected work's `workflow.json.status` is `designing`.
+- The new selected work's `baselineCommit` is the SHA of
+  `origin/{config.git.baseBranch}` (default `origin/main`). Captures base branch
+  HEAD before any work begins and is never overwritten on re-entry.
+- `baselineCommit` also written to `{workDir}/context.md` for historical
+  reference.
 
 ## Protocol References
 

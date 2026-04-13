@@ -24,21 +24,22 @@ applying `protocols/decision.md` for all decisions. Gate handoff at the end.
 
 ## Inputs
 
-- `.specwright/state/workflow.json` -- current state (must be `designing` or `planning`)
-- `.specwright/work/{currentWork.id}/design.md` -- approved solution design
-- `.specwright/work/{currentWork.id}/context.md` -- research findings from sw-design
-- `.specwright/work/{currentWork.id}/decisions.md` -- design-phase decisions
+- `{worktreeStateRoot}/session.json` -- selected work for this worktree
+- `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work state
+- `{repoStateRoot}/work/{selectedWork.id}/design.md` -- approved solution design
+- `{repoStateRoot}/work/{selectedWork.id}/context.md` -- research findings from sw-design
+- `{repoStateRoot}/work/{selectedWork.id}/decisions.md` -- design-phase decisions
 - Conditional design artifacts: `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`
-- `.specwright/CONSTITUTION.md` -- practices to follow
-- `.specwright/config.json` -- project configuration
+- `{repoStateRoot}/CONSTITUTION.md` -- practices to follow
+- `{repoStateRoot}/config.json` -- project configuration
 
 ## Outputs
 
-**Single-unit work**: `spec.md` + `plan.md` in `.specwright/work/{id}/` (flat layout).
+**Single-unit work**: `spec.md` + `plan.md` in `{repoStateRoot}/work/{selectedWork.id}/` (flat layout).
 
-**Multi-unit work**: For each unit in `.specwright/work/{id}/units/{unit-id}/`:
+**Multi-unit work**: For each unit in `{repoStateRoot}/work/{selectedWork.id}/units/{unit-id}/`:
 `spec.md` + `plan.md` + `context.md`. `workUnits` array in workflow.json.
-Also: `integration-criteria.md` in the design-level directory (`.specwright/work/{id}/`).
+Also: `integration-criteria.md` in the design-level directory (`{repoStateRoot}/work/{selectedWork.id}/`).
 
 Also: `{workDir}/stage-report.md` for the planning handoff.
 
@@ -51,7 +52,9 @@ Follow `protocols/stage-boundary.md`. Produce specs and plans. NEVER implement, 
 test, or commit. After gate handoff, STOP.
 
 **Pre-condition check (LOW freedom):**
-Check `currentWork.status` is `designing` or `planning` and `design.md` exists.
+Resolve the selected work from the current worktree session. Check that
+`selectedWork.status` is `designing` or `planning` and `design.md` exists.
+`sw-plan` operates on the current worktree's attached work only.
 
 **Decompose (MEDIUM freedom, only if large):**
 - Assess whether the design requires multiple work units. Apply autonomously — use
@@ -63,7 +66,7 @@ Check `currentWork.status` is `designing` or `planning` and `design.md` exists.
 
 **Integration criteria (MEDIUM freedom, multi-unit only):**
 - When decomposing into multiple work units, also write `integration-criteria.md` in
-  the design-level directory (`.specwright/work/{currentWork.id}/`). Not generated for
+  the design-level directory (`{repoStateRoot}/work/{selectedWork.id}/`). Not generated for
   single-unit work.
 - Two IC types coexist in `integration-criteria.md`: structural (IC-{n}) and behavioral
   (IC-B{n}). Both types go to the same file.
@@ -125,9 +128,12 @@ unit, `integration-criteria.md` for multi-unit work). The Next line remains
 machine-parseable: `Next: /sw-build`.
 
 **State mutations (LOW freedom):**
-Follow `protocols/state.md`. Transition `designing` → `planning`. Multi-unit: populate
-workUnits array, set first unit to `building`, transition to `building`, handoff to
-`/sw-build`.
+Follow `protocols/state.md`. Mutate only the selected work's `workflow.json` and
+the current worktree's `session.json`. Transition `designing` → `planning`.
+Multi-unit: populate the selected work's `workUnits` array, set the first unit
+to `building`, transition the selected work to `building`, and hand off to
+`/sw-build`. Do not clear or retarget unrelated active works owned by other
+top-level worktrees.
 
 ## Protocol References
 
