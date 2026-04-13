@@ -270,6 +270,12 @@ else
   fail "hooks/ directory missing from dist/claude-code/"
 fi
 
+if [ -f "$DIST_DIR/shared/specwright-state-paths.mjs" ]; then
+  pass "dist/shared/specwright-state-paths.mjs exists"
+else
+  fail "dist/shared/specwright-state-paths.mjs missing"
+fi
+
 # ─── .claude-plugin/ directory ────────────────────────────────────────
 
 echo "--- .claude-plugin/ directory ---"
@@ -635,6 +641,20 @@ for hook in $EXPECTED_HOOKS; do
     fail "hooks/$hook missing"
   fi
 done
+
+for hook in session-start.mjs session-stop.mjs subagent-context.mjs; do
+  if grep -Fq "../../shared/specwright-state-paths.mjs" "$CC_DIST/hooks/$hook" 2>/dev/null; then
+    pass "hooks/$hook imports shared resolver"
+  else
+    fail "hooks/$hook does not import shared resolver"
+  fi
+done
+
+if grep -Fq "../../shared/specwright-state-paths.mjs" "$CC_DIST/hooks/pre-ship-guard.mjs" 2>/dev/null; then
+  pass "hooks/pre-ship-guard.mjs imports shared resolver"
+else
+  fail "hooks/pre-ship-guard.mjs does not import shared resolver"
+fi
 
 echo "--- Hook files pass node --check (valid JavaScript) ---"
 
