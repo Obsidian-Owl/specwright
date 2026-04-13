@@ -12,6 +12,7 @@ STATE_PROTOCOL="$ROOT_DIR/core/protocols/state.md"
 CONTEXT_PROTOCOL="$ROOT_DIR/core/protocols/context.md"
 GIT_PROTOCOL="$ROOT_DIR/core/protocols/git.md"
 PARALLEL_PROTOCOL="$ROOT_DIR/core/protocols/parallel-build.md"
+INIT_SKILL="$ROOT_DIR/core/skills/sw-init/SKILL.md"
 STATUS_SKILL="$ROOT_DIR/core/skills/sw-status/SKILL.md"
 SYNC_SKILL="$ROOT_DIR/core/skills/sw-sync/SKILL.md"
 DOCTOR_SKILL="$ROOT_DIR/core/skills/sw-doctor/SKILL.md"
@@ -59,6 +60,7 @@ for file in \
   "$CONTEXT_PROTOCOL" \
   "$GIT_PROTOCOL" \
   "$PARALLEL_PROTOCOL" \
+  "$INIT_SKILL" \
   "$STATUS_SKILL" \
   "$SYNC_SKILL" \
   "$DOCTOR_SKILL"; do
@@ -68,6 +70,14 @@ for file in \
     fail "exists: ${file#"$ROOT_DIR"/}"
   fi
 done
+
+echo ""
+echo "--- Init shared/session bootstrap ---"
+assert_contains "$INIT_SKILL" '{repoStateRoot}/config.json' "sw-init writes shared config to repoStateRoot"
+assert_contains "$INIT_SKILL" '{worktreeStateRoot}/session.json' "sw-init creates the per-worktree session root"
+assert_contains "$INIT_SKILL" 'linked worktree can bootstrap its local session root against shared repo state' "sw-init documents linked-worktree bootstrap against shared state"
+assert_not_contains "$INIT_SKILL" "\`.specwright/\` created here will not be visible in other worktrees" "sw-init no longer treats linked worktrees as isolated .specwright installs"
+assert_not_contains "$INIT_SKILL" '.specwright/state/workflow.json' "sw-init no longer initializes the legacy singleton workflow path"
 
 echo ""
 echo "--- State protocol ---"
