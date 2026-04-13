@@ -155,7 +155,7 @@ class TestSetupRepoClone(unittest.TestCase):
         # Find the git clone call among all calls
         clone_calls = [
             c for c in mock_run.call_args_list
-            if "clone" in str(c)
+            if c[0][0][:2] == ["git", "clone"]
         ]
         self.assertEqual(len(clone_calls), 1, "Exactly one git clone call expected")
         clone_args = clone_calls[0][0][0]  # positional arg 0 is the command list
@@ -172,7 +172,7 @@ class TestSetupRepoClone(unittest.TestCase):
 
         clone_calls = [
             c for c in mock_run.call_args_list
-            if "clone" in str(c)
+            if c[0][0][:2] == ["git", "clone"]
         ]
         self.assertEqual(len(clone_calls), 1)
         clone_args = clone_calls[0][0][0]
@@ -190,7 +190,7 @@ class TestSetupRepoCheckout(unittest.TestCase):
 
         checkout_calls = [
             c for c in mock_run.call_args_list
-            if "checkout" in str(c)
+            if c[0][0][:2] == ["git", "checkout"]
         ]
         self.assertEqual(len(checkout_calls), 1, "Exactly one git checkout call expected")
         checkout_args = checkout_calls[0][0][0]
@@ -206,7 +206,7 @@ class TestSetupRepoCheckout(unittest.TestCase):
 
         checkout_calls = [
             c for c in mock_run.call_args_list
-            if "checkout" in str(c)
+            if c[0][0][:2] == ["git", "checkout"]
         ]
         self.assertEqual(len(checkout_calls), 1)
         checkout_args = checkout_calls[0][0][0]
@@ -220,7 +220,7 @@ class TestSetupRepoCheckout(unittest.TestCase):
 
         checkout_calls = [
             c for c in mock_run.call_args_list
-            if "checkout" in str(c)
+            if c[0][0][:2] == ["git", "checkout"]
         ]
         self.assertEqual(len(checkout_calls), 1)
         checkout_kwargs = checkout_calls[0][1]
@@ -236,10 +236,9 @@ class TestSetupRepoCheckout(unittest.TestCase):
         clone_idx = None
         checkout_idx = None
         for i, c in enumerate(call_list):
-            args_str = str(c)
-            if "clone" in args_str:
+            if c[0][0][:2] == ["git", "clone"]:
                 clone_idx = i
-            if "checkout" in args_str:
+            if c[0][0][:2] == ["git", "checkout"]:
                 checkout_idx = i
 
         self.assertIsNotNone(clone_idx, "git clone must be called")
