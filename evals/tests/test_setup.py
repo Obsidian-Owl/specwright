@@ -233,12 +233,9 @@ class TestSetupRepoInstallCommand(unittest.TestCase):
 
         install_calls = [
             c for c in mock_run.call_args_list
-            if "npm install" in str(c) or "npm" in str(c)
+            if c[0][0][:2] == ["npm", "install"]
         ]
-        self.assertGreaterEqual(
-            len(install_calls), 1,
-            "install_command must be executed",
-        )
+        self.assertEqual(len(install_calls), 1, "install_command must be executed")
 
     @patch("evals.framework.setup.subprocess.run")
     def test_install_command_runs_in_workdir(self, mock_run):
@@ -251,14 +248,14 @@ class TestSetupRepoInstallCommand(unittest.TestCase):
         # Last call should be the install command
         install_calls = [
             c for c in mock_run.call_args_list
-            if "pip" in str(c) or "install" in str(c) and "clone" not in str(c)
+            if c[0][0][:2] == ["pip", "install"]
         ]
-        # At least one install call must have cwd set to workdir
-        found_cwd = False
-        for c in install_calls:
-            if c[1].get("cwd") == "/tmp/workdir":
-                found_cwd = True
-        self.assertTrue(found_cwd, "install command must run in workdir")
+        self.assertEqual(len(install_calls), 1, "Exactly one pip install call expected")
+        self.assertEqual(
+            install_calls[0][1].get("cwd"),
+            "/tmp/workdir",
+            "install command must run in workdir",
+        )
 
     @patch("evals.framework.setup.subprocess.run")
     def test_no_install_call_when_install_command_is_none(self, mock_run):
@@ -287,10 +284,9 @@ class TestSetupRepoInstallCommand(unittest.TestCase):
         checkout_idx = None
         install_idx = None
         for i, c in enumerate(call_list):
-            args_str = str(c)
-            if "checkout" in args_str:
+            if c[0][0][:2] == ["git", "checkout"]:
                 checkout_idx = i
-            if "make" in args_str:
+            if c[0][0][:2] == ["make", "install"]:
                 install_idx = i
 
         self.assertIsNotNone(checkout_idx, "git checkout must be called")

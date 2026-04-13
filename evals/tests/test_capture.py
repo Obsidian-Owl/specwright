@@ -10,9 +10,38 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from evals.framework.capture import capture_snapshot, capture_timing
 from evals.framework.git_env import sanitized_git_env
+
+
+class TestSanitizedGitEnv(unittest.TestCase):
+    def test_strips_repo_local_git_vars_but_preserves_identity_and_transport(self):
+        with patch.dict(
+            os.environ,
+            {
+                "PATH": "/usr/bin",
+                "GIT_DIR": "/tmp/outer/.git",
+                "GIT_WORK_TREE": "/tmp/outer",
+                "GIT_CONFIG_PARAMETERS": "core.hooksPath=.githooks",
+                "GIT_SSH_COMMAND": "ssh -i ~/.ssh/id_ed25519",
+                "GIT_EXEC_PATH": "/opt/git/libexec/git-core",
+                "GIT_AUTHOR_NAME": "Eval Bot",
+                "GIT_COMMITTER_EMAIL": "evals@example.com",
+            },
+            clear=True,
+        ):
+            env = sanitized_git_env()
+
+        self.assertEqual(env["PATH"], "/usr/bin")
+        self.assertEqual(env["GIT_SSH_COMMAND"], "ssh -i ~/.ssh/id_ed25519")
+        self.assertEqual(env["GIT_EXEC_PATH"], "/opt/git/libexec/git-core")
+        self.assertEqual(env["GIT_AUTHOR_NAME"], "Eval Bot")
+        self.assertEqual(env["GIT_COMMITTER_EMAIL"], "evals@example.com")
+        self.assertNotIn("GIT_DIR", env)
+        self.assertNotIn("GIT_WORK_TREE", env)
+        self.assertNotIn("GIT_CONFIG_PARAMETERS", env)
 
 
 class TestCaptureSnapshotBasic(unittest.TestCase):
@@ -24,6 +53,7 @@ class TestCaptureSnapshotBasic(unittest.TestCase):
             cwd=self.workdir,
             check=True,
             capture_output=True,
+            text=True,
             env=sanitized_git_env(),
         )
 
@@ -96,6 +126,7 @@ class TestCaptureSnapshotMissingSpecwright(unittest.TestCase):
             cwd=self.workdir,
             check=True,
             capture_output=True,
+            text=True,
             env=sanitized_git_env(),
         )
 

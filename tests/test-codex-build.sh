@@ -154,6 +154,8 @@ for cmd in $CODEX_COMMANDS; do
     else
       fail "source $cmd command missing $EXPECTED_SKILL"
     fi
+  else
+    fail "source $cmd.md missing from adapters/codex/commands/"
   fi
 
   if [ -f "$PACKAGED_CMD" ]; then
@@ -168,6 +170,8 @@ for cmd in $CODEX_COMMANDS; do
     else
       fail "packaged $cmd command missing $EXPECTED_SKILL"
     fi
+  else
+    fail "packaged $cmd command missing from dist/codex/commands/"
   fi
 done
 
