@@ -1,148 +1,134 @@
 # Parallel Build Protocol
 
-Experimental parallel task execution using Claude Code Agent Teams. Only used by sw-build when all prerequisites are met. Falls back to sequential execution otherwise.
+Experimental parallel task execution using helper worktrees. Only used by
+`sw-build` when all prerequisites are met. Falls back to sequential execution
+otherwise.
 
 ## Prerequisites
 
 All three conditions must be true:
 
 1. `config.experimental.agentTeams.enabled` is `true`
-2. Environment variable `SPECWRIGHT_AGENT_TEAMS=1` is set
-3. The work unit has 4 or more tasks
+2. `SPECWRIGHT_AGENT_TEAMS=1` is set
+3. the selected work unit has 4 or more tasks
 
-If any condition fails: skip parallel execution entirely. No error, no warning. Execute tasks sequentially (normal behavior).
+If any condition fails, skip parallel execution entirely.
+
+## Parent And Subordinate Sessions
+
+Parallel execution never creates a second top-level owner for the selected
+work.
+
+- the current worktree remains the parent `top-level` session
+- each helper worktree is a `subordinate` session under the same `workId`
+- subordinate sessions inherit context from the parent work
+- subordinate sessions do not claim ownership in
+  `workflow.json.attachment`
+
+Subordinate sessions may read the parent work's shared artifacts and use local
+continuation state, but they must not directly ship, verify, or rewrite shared
+work selection.
 
 ## Independence Analysis
 
-Read `plan.md` to extract each task's file targets (files listed under `**Files**:`).
-
-Classification rules:
+Read `plan.md` to extract each task's file targets (`**Files**:`).
 
 | Condition | Classification |
-|-----------|---------------|
-| No file overlap with any other task | Independent |
-| Shares a file target with another task | Dependent |
-| No explicit file targets listed in plan.md | Dependent (conservative) |
+|---|---|
+| no file overlap with another task | independent |
+| shares a file target with another task | dependent |
+| no explicit file targets | dependent (conservative) |
 
-Group independent tasks into a parallel batch. Remaining tasks form a sequential tail.
-
-**Minimum batch size:** 2. If fewer than 2 tasks are independent, skip parallel execution.
-
-Present the partition to the user via AskUserQuestion:
-- List independent tasks (parallel batch) and dependent tasks (sequential tail)
-- User must confirm before proceeding
+Group independent tasks into a parallel batch. Remaining tasks form a
+sequential tail. Minimum batch size is 2.
 
 ## Worktree Setup
 
-For each task in the parallel batch, create an isolated git worktree:
+For each task in the parallel batch, create an isolated helper worktree:
 
 ```bash
 git worktree add .specwright/worktrees/{task-id} -b specwright-wt-{task-id} HEAD
 git worktree lock .specwright/worktrees/{task-id} --reason "Specwright parallel build"
 ```
 
-Lock prevents `git gc` from pruning worktrees during long builds. If `git worktree lock`
-fails (e.g., old git version without lock support), WARN and continue without lock.
+For each helper worktree, materialize a subordinate session at its
+`worktreeStateRoot/session.json` with:
 
-`.specwright/worktrees/` is project-local and gitignored.
+- the helper `worktreeId`
+- `attachedWorkId = {parentWorkId}`
+- `mode = "subordinate"`
+- the helper branch name
 
-If `config.commands.build` or `config.commands.test` require installed dependencies (e.g., `node_modules/`), the lead must install dependencies in each worktree before spawning teammates:
-
-```bash
-cd .specwright/worktrees/{task-id} && {package-manager-install-command}
-```
-
-Record all worktree paths for cleanup.
+If `git worktree lock` fails, warn and continue without the lock.
 
 ## Team Creation
 
-Create an agent team with one teammate per parallel task, capped at `config.experimental.agentTeams.maxTeammates`.
+Spawn one helper per parallel task, capped by
+`config.experimental.agentTeams.maxTeammates`.
 
-If the parallel batch exceeds `maxTeammates`, split into sub-batches and execute them sequentially.
+Each helper prompt includes:
 
-### Spawn Prompt Template
+- the task acceptance criteria and relevant plan/context sections
+- the parent work's shared artifact path under `repoStateRoot`
+- the helper worktree path
+- the rule that only the helper worktree may be edited
+- the rule that shared work selection and shipping remain parent-only
 
-Each teammate's spawn prompt includes:
-
-- **Acceptance criteria**: the task's criteria from spec.md (inline, not by reference)
-- **Plan details**: relevant plan.md and context.md sections (inline)
-- **Constitution practices**: relevant principles from CONSTITUTION.md
-- **Build/test commands**: from config.json `commands` section
-- **Worktree path (absolute)**: "Your working directory is `{absolute-project-path}/.specwright/worktrees/{task-id}`"
-- **Main tree artifacts path**: "Read spec, plan, context, and constitution from `{absolute-project-path}/.specwright/`"
-- **File scope constraint**: "You may ONLY modify files within your worktree"
-- **State restriction**: "Do NOT read or modify any files in `.specwright/state/`"
-- **TDD delegation chain**: delegate RED phase to `specwright-tester`, then GREEN phase to `specwright-executor`, then refactor
-- **Commit instruction**: "After passing tests, commit your changes to your worktree branch using conventional commit format"
-- **Wait instruction**: "When done, mark your task as completed. Do NOT start additional tasks after completing yours"
-
-If `config.experimental.agentTeams.requirePlanApproval` is `true`, include: "Submit your implementation plan before starting. Wait for lead approval."
+If plan approval is required, the helper submits a plan before starting.
 
 ## Parallel Execution
 
-The lead waits for all teammates to complete. Do NOT start implementing tasks while teammates are working.
+Each subordinate helper:
 
-Each teammate independently:
-1. Changes to their worktree directory
-2. Runs RED phase (delegates to `specwright-tester` subagent)
-3. Runs GREEN phase (delegates to `specwright-executor` subagent)
-4. Runs REFACTOR (executor or self)
-5. Runs build/test commands to verify (if configured)
-6. Commits to their worktree branch (`specwright-wt-{task-id}`)
-7. Marks task as completed
+1. changes to its helper worktree
+2. runs the normal RED -> GREEN -> REFACTOR loop for its task
+3. commits to `specwright-wt-{task-id}`
+4. reports completion back to the parent
 
-**Failure handling:** If a teammate fails (build-fixer exhausted after max 2 attempts), the lead records the failure and continues monitoring other teammates. Failed tasks move to the sequential tail for retry.
+The parent session remains the only authority that updates the selected work's
+shared workflow state.
+
+If a helper fails, the parent records the failure and retries that task in the
+sequential tail.
 
 ## Cherry-Pick
 
-After all teammates finish, the lead cherry-picks each completed worktree branch's commit(s) onto the feature branch:
+After helpers finish, the parent top-level session cherry-picks completed
+helper commits onto the feature branch in task order:
 
 ```bash
 git checkout {feature-branch}
 git cherry-pick HEAD..specwright-wt-{task-id}
 ```
 
-The range `HEAD..specwright-wt-{task-id}` picks all commits on the worktree branch since it diverged, not just the tip. Cherry-pick in task order (task-1 before task-2, etc.) for deterministic history.
-
-**Conflict handling:**
-- Abort the cherry-pick: `git cherry-pick --abort`
-- Present the conflict to the user via AskUserQuestion
-- Offer options: resolve manually, or re-run the conflicting task sequentially after other tasks
+If cherry-pick conflicts, abort the cherry-pick and hand the task back to the
+sequential tail or the user.
 
 ## Cleanup
 
-After cherry-pick (or on any exit path):
+After cherry-pick or any exit path:
 
 ```bash
-# Only unlock if the lock step succeeded for this worktree
 git worktree unlock .specwright/worktrees/{task-id}
 git worktree remove .specwright/worktrees/{task-id}
 git branch -d specwright-wt-{task-id}
 ```
 
-Run `git worktree unlock` only if the lock step succeeded for this worktree. If the
-worktree was never locked (lock failed during setup), skip the unlock step.
-
-Use `git branch -d` (not `-D`) and `git worktree remove` (no `--force` flag). If removal fails, warn the user. Do not force-remove.
-
-Clean up the agent team after all worktrees are removed.
+Also remove the helper's subordinate session data with the worktree itself.
+Never force-remove helper worktrees.
 
 ## Sequential Tail
 
-Execute remaining tasks using the normal sequential TDD loop (unchanged sw-build behavior):
-- Tasks classified as dependent during independence analysis
-- Tasks that failed during parallel execution
-- Tasks that couldn't be cherry-picked due to conflicts
-
-The lead handles these tasks directly, one at a time, with normal state updates.
+Run all dependent tasks, failed helper tasks, and cherry-pick conflicts through
+the normal sequential build loop in the parent top-level session.
 
 ## Failure Modes
 
 | Condition | Action |
-|-----------|--------|
-| Compaction during parallel execution | Read workflow.json, check `.specwright/worktrees/` for orphaned worktrees. For each orphan: run `git worktree unlock` (locked worktrees cannot be removed without `--force`, which is blocked), then `git worktree remove`, then `git branch -d`. Resume with sequential execution for remaining tasks. |
-| Orphaned worktrees (from crash or prior failure) | Check `.specwright/worktrees/` at build start. If non-empty, unlock any locked worktrees first (`git worktree unlock`), then warn user. Offer cleanup or resume. |
-| Teammate failure (build-fixer exhausted) | Record failure, continue with other teammates, retry failed task in sequential tail |
-| Cherry-pick conflict | Abort cherry-pick, present to user, offer manual resolution or sequential re-run |
-| Agent team creation failure | Fall back to sequential execution for all tasks. No error — graceful degradation. |
-| git worktree lock fails (old git version) | WARN, continue without lock — graceful degradation. Worktrees are unprotected from gc pruning. |
+|---|---|
+| Compaction during parallel execution | inspect helper worktrees, remove subordinate sessions, resume sequentially |
+| Orphaned helper worktrees | warn, offer cleanup, never force-remove |
+| Helper failure | retry in sequential tail |
+| Cherry-pick conflict | abort and retry sequentially or surface to user |
+| Team creation failure | fall back to sequential execution |
+| `git worktree lock` unavailable | warn and continue without lock |
