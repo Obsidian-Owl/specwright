@@ -24,13 +24,13 @@ can still be wired incorrectly.
 ## Inputs
 
 - `.specwright/config.json` -- architecture layers, project structure
-- `.specwright/state/workflow.json` -- current work unit
+- `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit
 - Changed files (via `git diff`)
 
 ## Outputs
 
-- Evidence file at `{currentWork.workDir}/evidence/wiring-report.md`
-- Gate status in workflow.json
+- Evidence file at `{workDir}/evidence/wiring-report.md`
+- Gate status in the selected work's `workflow.json`
 - Findings with specific file:line references and remediation
 
 ## Constraints
@@ -63,8 +63,8 @@ invisible to per-unit analysis: missing cross-unit imports, interface mismatches
 disconnected entry points.
 
 *Activation predicate* — all four conditions must be true:
-1. `workUnits` array exists in workflow.json (multi-unit work)
-2. `currentWork.baselineCommit` is non-null
+1. `workUnits` array exists in the selected work's workflow.json (multi-unit work)
+2. `selectedWork.baselineCommit` is non-null
 3. `git cat-file -t {baselineCommit}` exits 0 (commit is reachable)
 4. All `workUnits` entries except the current `unitId` have status `shipped` or
    `abandoned`, AND at least one non-current unit has status `shipped` (if all

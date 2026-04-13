@@ -23,16 +23,17 @@ gate handoff using `protocols/decision.md` template.
 
 ## Inputs
 
-- `.specwright/state/workflow.json` -- current work unit, previous gate results
-- `.specwright/config.json` -- gate configuration (object or array format)
-- `{currentWork.workDir}/spec.md` -- for spec compliance gate
+- `{worktreeStateRoot}/session.json` -- selected work for this worktree
+- `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit and previous gate results
+- `{repoStateRoot}/config.json` -- gate configuration (object or array format)
+- `{workDir}/spec.md` -- for spec compliance gate
 - Gate skill files in `skills/gate-*/SKILL.md`
 
 ## Outputs
 
-- `{currentWork.workDir}/stage-report.md` -- verify handoff digest with attention-at-top
-- Evidence files in `{currentWork.workDir}/evidence/`, one per gate
-- `workflow.json` gates section updated; status set to `verifying` during run
+- `{workDir}/stage-report.md` -- verify handoff digest with attention-at-top
+- Evidence files in `{workDir}/evidence/`, one per gate
+- Selected work's `workflow.json` gates section updated; status set to `verifying` during run
 - Aggregate report presented at gate handoff
 
 ## Constraints
@@ -40,6 +41,10 @@ gate handoff using `protocols/decision.md` template.
 **Stage boundary (LOW freedom):**
 Follow `protocols/stage-boundary.md`. Run quality gates and show findings. NEVER fix
 code, create PRs, or ship. After gate handoff, STOP.
+
+**Ownership check (LOW freedom):**
+Resolve the selected work from the current worktree session. If another live
+top-level worktree owns that work, STOP with explicit adopt/takeover guidance.
 
 **Assumption re-validation (LOW freedom) — before gate execution:**
 Scan the design assumptions artifact from the design-level directory. Check
@@ -76,7 +81,8 @@ heuristics per `protocols/evidence.md#verdict-rendering`.
 
 **Evidence completeness (LOW freedom):**
 Skip when `--gate=<name>` was used (partial run — only the targeted gate is expected).
-In full mode: check every enabled gate has a status in `workflow.json` `gates.{name}`.
+In full mode: check every enabled gate has a status in the selected work's
+`workflow.json` `gates.{name}`.
 No status and no evidence file → ERROR: "Gate {name} was enabled but produced no
 evidence — gate was not executed."
 
@@ -90,7 +96,7 @@ six gates complete.
 
 When activated:
 - Load `integration-criteria.md` from the design-level directory
-  (`.specwright/work/{currentWork.id}/`). If the file does not exist → SKIP with
+  (`{repoStateRoot}/work/{selectedWork.id}/`). If the file does not exist → SKIP with
   INFO note ("No integration-criteria.md found"). Identify behavioral ICs
   (IC-B{n} entries).
 - For each IC-B, search for test evidence: a test file exercising the described
@@ -119,8 +125,10 @@ The Next: line points to `/sw-build` (on BLOCK) or `/sw-ship` (on PASS
 or WARN). Example: `Next: /sw-ship`.
 
 **State updates (LOW freedom):**
-Follow `protocols/state.md`. Set status to `verifying` at start. Update `gates` section
-after each gate completes. Do NOT set `shipped`.
+Follow `protocols/state.md`. Mutate only the selected work's `workflow.json`
+and the current worktree session. Set status to `verifying` at start. Update
+the selected work's `gates` section after each gate completes. Do NOT set
+`shipped`.
 
 ## Protocol References
 
@@ -139,4 +147,4 @@ after each gate completes. Do NOT set `shipped`.
 | No active work unit | STOP: "Run /sw-design, /sw-plan, and /sw-build first." |
 | No gates enabled / all skipped | WARN, proceed to ready-to-ship |
 | Gate skill file not found | ERROR for that gate, continue remaining |
-| Compaction during verification | Read workflow.json, resume from next gate without fresh results |
+| Compaction during verification | Read the selected work's workflow.json, resume from next gate without fresh results |

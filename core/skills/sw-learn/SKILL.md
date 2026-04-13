@@ -25,10 +25,11 @@ work benefits.
 
 ## Inputs
 
-- `.specwright/state/workflow.json` -- current work unit (should be shipped)
-- `{currentWork.workDir}/evidence/` -- gate evidence files
-- `{currentWork.workDir}/plan.md` -- architecture decisions
-- `.specwright/CONSTITUTION.md` -- existing practices
+- `{worktreeStateRoot}/session.json` -- selected work for this worktree
+- `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- current work unit (should be shipped)
+- `{workDir}/evidence/` -- gate evidence files
+- `{workDir}/plan.md` -- architecture decisions
+- `{repoStateRoot}/CONSTITUTION.md` -- existing practices
 - `.specwright/learnings/` -- prior work unit learnings (for retrospective)
 - Git log for the work unit's commits
 
@@ -99,15 +100,21 @@ work benefits.
 - Per `protocols/learning-lifecycle.md`. If auto-memory directory doesn't exist or system prompt doesn't mention auto-memory, silently fall back to patterns.md only.
 
 **State cleanup (LOW freedom):**
-- Before clearing, verify `currentWork.status` is `shipped`. If it is anything else (e.g. `building`, `verifying`), STOP with: "State cleanup requires status 'shipped'. Current status: {status}. Complete the current build cycle before running /sw-learn."
-- After ALL persistence steps complete successfully (learnings JSON write, LANDSCAPE.md update, AUDIT.md resolution), clear the workflow state:
-  - Acquire lock per `protocols/state.md` (set `lock: {skill: "sw-learn", since: "<ISO>"}`) before other mutations.
+- Resolve the selected work from the current worktree session. If another live
+  top-level worktree owns it, STOP with explicit adopt/takeover guidance.
+- Before clearing, verify the selected work's status is `shipped`. If it is
+  anything else (e.g. `building`, `verifying`), STOP with:
+  "State cleanup requires status 'shipped'. Current status: {status}. Complete the current build cycle before running /sw-learn."
+- After ALL persistence steps complete successfully (learnings JSON write,
+  LANDSCAPE.md update, AUDIT.md resolution), clear the current worktree session
+  attachment:
+  - Acquire the selected work lock per `protocols/state.md` before other mutations.
   - Follow `protocols/state.md` read-modify-write sequence.
-  - Set `currentWork` to `null`.
-  - Set `gates` to `{}`.
-  - Preserve the `workUnits` array (historical reference for future retrospectives).
-  - Release lock.
-- If ANY persistence step fails (learnings write, landscape update, audit resolution): STOP with error. Do NOT clear `currentWork`. The user must fix the failure and re-run `/sw-learn`.
+  - Set `{worktreeStateRoot}/session.json.attachedWorkId` to `null`.
+  - Clear the selected work's attachment record and release the lock.
+  - Preserve the selected work record, `workUnits`, `gates`, and shipped
+    history for future retrospectives.
+- If ANY persistence step fails (learnings write, landscape update, audit resolution): STOP with error. Do NOT clear the current worktree session attachment. The user must fix the failure and re-run `/sw-learn`.
 - This is the `shipped → (none)` transition defined in `protocols/state.md`.
 
 ## Protocol References

@@ -86,6 +86,48 @@ assert_contains "core/skills/sw-pivot/SKILL.md" \
   "sw-pivot documents adopt/takeover guidance for ownership conflicts"
 
 echo ""
+echo "--- Task 3: verify, ship, learn, and gate docs use selected work roots ---"
+assert_contains "core/skills/sw-verify/SKILL.md" \
+  'selected work|session\.json|current worktree session' \
+  "sw-verify references the selected work for this worktree"
+
+assert_contains "core/skills/sw-verify/SKILL.md" \
+  'selected work.?s `?workflow\.json`|selected work.?s evidence directory|workDir' \
+  "sw-verify records evidence and gate updates on the selected work"
+
+assert_contains "core/skills/sw-ship/SKILL.md" \
+  'selected work|session\.json|attached work' \
+  "sw-ship operates on the selected work"
+
+assert_contains "core/skills/sw-ship/SKILL.md" \
+  'adopt/takeover|other live top-level worktree|owned elsewhere' \
+  "sw-ship stops with adopt/takeover guidance for ownership conflicts"
+
+assert_contains "core/skills/sw-learn/SKILL.md" \
+  'selected work|session\.json|attached work' \
+  "sw-learn reads the selected work and current session"
+
+assert_contains "core/skills/sw-learn/SKILL.md" \
+  'clear the current worktree session attachment|attachedWorkId|preserve the work record' \
+  "sw-learn cleanup clears the worktree attachment instead of deleting repo-wide history"
+
+for gate_file in \
+  "core/skills/gate-build/SKILL.md" \
+  "core/skills/gate-tests/SKILL.md" \
+  "core/skills/gate-security/SKILL.md" \
+  "core/skills/gate-wiring/SKILL.md" \
+  "core/skills/gate-semantic/SKILL.md" \
+  "core/skills/gate-spec/SKILL.md"; do
+  assert_contains "$gate_file" \
+    'selected work.?s `?workflow\.json`|{repoStateRoot}/work/{selectedWork\.id}/workflow\.json' \
+    "$gate_file writes gate status to the selected work workflow"
+
+  assert_contains "$gate_file" \
+    '{workDir}/evidence/|selected work.?s evidence' \
+    "$gate_file uses the selected work evidence root"
+done
+
+echo ""
 echo "RESULT: $PASS passed, $FAIL failed"
 
 if [ "$FAIL" -gt 0 ]; then

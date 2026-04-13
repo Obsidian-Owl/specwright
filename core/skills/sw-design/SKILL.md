@@ -109,6 +109,9 @@ Follow `protocols/state.md` for read-modify-write mechanics. Postconditions:
   worktree:
   `Clearing prior shipped work {unitId}. Run /sw-learn first if pattern capture is desired.`
   The notice is informational only; `sw-learn` remains optional.
+- During legacy fallback migration, if prior `currentWork` has status `shipped`,
+  clear that legacy attachment and reset `workUnits` to null before retargeting
+  this worktree.
 - The new selected work's `workflow.json.status` is `designing`.
 - The new selected work's `baselineCommit` is the SHA of
   `origin/{config.git.baseBranch}` (default `origin/main`). Captures base branch

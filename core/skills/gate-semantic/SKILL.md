@@ -23,13 +23,13 @@ premises, claims, and conclusion grounded in file:line evidence.
 ## Inputs
 
 - `config.json` `gates.semantic` — categories, tools, optional `rulesDir`
-- `workflow.json` — current work unit
+- `{repoStateRoot}/work/{selectedWork.id}/workflow.json` — selected work unit
 - Changed files via `git diff --name-only $(git merge-base HEAD <baseBranch>)`
 
 ## Outputs
 
-- `{currentWork.workDir}/evidence/semantic-report.md`
-- Gate status in workflow.json
+- `{workDir}/evidence/semantic-report.md`
+- Gate status in the selected work's `workflow.json`
 
 ## Constraints
 

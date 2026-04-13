@@ -25,13 +25,13 @@ test quality, not just pass/fail.
 
 - `.specwright/config.json` -- test commands, project language
 - `.specwright/TESTING.md` -- testing strategy with boundary classifications (optional)
-- `.specwright/state/workflow.json` -- current work unit
+- `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit
 - Test files in the codebase
 
 ## Outputs
 
-- Evidence file at `{currentWork.workDir}/evidence/test-quality.md`
-- Gate status in workflow.json
+- Evidence file at `{workDir}/evidence/test-quality.md`
+- Gate status in the selected work's `workflow.json`
 - Findings organized by category with specific file:line references
 
 ## Constraints
