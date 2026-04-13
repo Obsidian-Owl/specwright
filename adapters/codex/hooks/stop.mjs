@@ -6,11 +6,12 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
 
 function writeSnapshot(currentWork, gates) {
-  const stateDir = join(process.cwd(), '.specwright', 'state');
-  const continuationPath = join(stateDir, 'continuation.md');
+  const statePaths = resolveLegacyStatePaths();
+  const stateDir = statePaths.legacyStateRoot;
+  const continuationPath = statePaths.continuationPath;
   const workDir = currentWork.workDir || `.specwright/work/${currentWork.id}`;
   const completed = currentWork.tasksCompleted?.length ?? 0;
   const total = currentWork.tasksTotal ?? '?';
@@ -55,7 +56,7 @@ try {
     // Ignore missing stdin and proceed with safe JSON output.
   }
 
-  const statePath = join(process.cwd(), '.specwright', 'state', 'workflow.json');
+  const statePath = resolveLegacyStatePaths().workflowPath;
   if (!existsSync(statePath)) {
     emit({ continue: true });
     process.exit(0);

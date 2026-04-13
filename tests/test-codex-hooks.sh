@@ -40,11 +40,23 @@ assert_eq() {
 
 assert_contains() {
   local haystack="$1" needle="$2" label="$3"
-  if echo "$haystack" | grep -q "$needle"; then
+  if echo "$haystack" | grep -Fq "$needle"; then
     pass "$label"
   else
     fail "$label (not found: '$needle')"
   fi
+}
+
+init_git_repo() {
+  local dir="$1"
+  mkdir -p "$dir"
+  git -C "$dir" -c core.hooksPath=/dev/null init -q
+  git -C "$dir" -c core.hooksPath=/dev/null config user.name "Specwright Tests"
+  git -C "$dir" -c core.hooksPath=/dev/null config user.email "specwright-tests@example.com"
+  git -C "$dir" -c core.hooksPath=/dev/null checkout -qb main >/dev/null 2>&1 || true
+  printf 'seed\n' > "$dir/README.md"
+  git -C "$dir" -c core.hooksPath=/dev/null add README.md
+  git -C "$dir" -c core.hooksPath=/dev/null commit -qm "test: init repo"
 }
 
 make_project() {
@@ -109,6 +121,34 @@ output="$(
 assert_contains "$output" "Specwright: Work in progress" "session-start prints active-work summary"
 assert_contains "$output" "WU-001 (building)" "session-start includes work id and status"
 
+T="$TEST_TMPDIR/session-start-nested-primary"
+init_git_repo "$T"
+make_project "$T"
+mkdir -p "$T/.specwright/work/WU-001" "$T/nested/start"
+write_workflow "$T" "building"
+output="$(
+  {
+    cd "$T/nested/start" &&
+    node "$SESSION_START_HOOK"
+  } 2>/dev/null || true
+)"
+assert_contains "$output" "Specwright: Work in progress" "session-start resolves workflow from nested primary worktree"
+
+T="$TEST_TMPDIR/session-start-linked-primary"
+L="$TEST_TMPDIR/codex-session-start-linked"
+init_git_repo "$T"
+git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b codex-session-start-linked "$L" HEAD
+make_project "$L"
+mkdir -p "$L/.specwright/work/WU-001" "$L/deep/start"
+write_workflow "$L" "building"
+output="$(
+  {
+    cd "$L/deep/start" &&
+    node "$SESSION_START_HOOK"
+  } 2>/dev/null || true
+)"
+assert_contains "$output" "Specwright: Work in progress" "session-start resolves workflow from nested linked worktree"
+
 echo "--- PreToolUse shipping guard ---"
 T="$TEST_TMPDIR/pre-ship-blocked"
 make_project "$T"
@@ -145,6 +185,24 @@ output="$(
   } 2>/dev/null || true
 )"
 assert_eq "$output" "" "pre-ship guard ignores non-PR commands"
+
+T="$TEST_TMPDIR/pre-ship-nested-primary"
+init_git_repo "$T"
+make_project "$T"
+write_workflow "$T" "building"
+mkdir -p "$T/deep/guard"
+payload='{"tool_input":{"command":"gh pr create --title nested --body nested"}}'
+output="$(
+  {
+    cd "$T/deep/guard" &&
+    printf '%s' "$payload" | node "$PRE_SHIP_HOOK"
+  } 2>/dev/null || true
+)"
+if [ -n "$output" ] && echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1; then
+  pass "pre-ship guard denies nested primary worktree PR creation"
+else
+  fail "pre-ship guard did not deny nested primary worktree PR creation"
+fi
 
 echo "--- Stop hook ---"
 T="$TEST_TMPDIR/stop-no-state"
@@ -184,6 +242,29 @@ if [ -f "$T/.specwright/state/continuation.md" ]; then
   assert_contains "$snapshot" "## Current State" "continuation includes Current State section"
 else
   fail "stop hook did not write continuation snapshot"
+fi
+
+T="$TEST_TMPDIR/stop-nested-primary"
+init_git_repo "$T"
+make_project "$T"
+mkdir -p "$T/.specwright/work/WU-001" "$T/nested/stop"
+write_workflow "$T" "building"
+output="$(
+  {
+    cd "$T/nested/stop" &&
+    printf '{}' | node "$STOP_HOOK"
+  } 2>/dev/null || true
+)"
+if echo "$output" | jq -e '.continue == true' >/dev/null 2>&1; then
+  pass "stop hook returns continue=true from nested primary worktree"
+else
+  fail "stop hook invalid output from nested primary worktree"
+fi
+
+if [ -f "$T/.specwright/state/continuation.md" ]; then
+  pass "stop hook writes continuation snapshot from nested primary worktree"
+else
+  fail "stop hook did not write continuation snapshot from nested primary worktree"
 fi
 
 echo ""

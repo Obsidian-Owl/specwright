@@ -6,11 +6,11 @@
  */
 
 import { readFileSync, existsSync, unlinkSync } from 'fs';
-import { join } from 'path';
+import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
 
-const cwd = process.cwd();
-const statePath = join(cwd, '.specwright', 'state', 'workflow.json');
-const continuationPath = join(cwd, '.specwright', 'state', 'continuation.md');
+const statePaths = resolveLegacyStatePaths();
+const statePath = statePaths.workflowPath;
+const continuationPath = statePaths.continuationPath;
 
 if (!existsSync(statePath)) {
   process.exit(0);
