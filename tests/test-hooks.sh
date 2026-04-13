@@ -24,6 +24,7 @@ trap 'rm -rf "$TEST_TMPDIR"' EXIT
 SUBAGENT_HOOK="$ROOT_DIR/adapters/claude-code/hooks/subagent-context.mjs"
 POST_WRITE_HOOK="$ROOT_DIR/adapters/claude-code/hooks/post-write-diagnostics.mjs"
 SESSION_START_HOOK="$ROOT_DIR/adapters/claude-code/hooks/session-start.mjs"
+STATE_PATHS_MODULE="$ROOT_DIR/adapters/shared/specwright-state-paths.mjs"
 
 PASS=0
 FAIL=0
@@ -33,17 +34,29 @@ fail() { echo "  FAIL: $1"; FAIL=$((FAIL + 1)); }
 
 assert_eq() {
   local actual="$1" expected="$2" label="$3"
-  [ "$actual" = "$expected" ] && pass "$label" || fail "$label (expected '$expected', got '$actual')"
+  if [ "$actual" = "$expected" ]; then
+    pass "$label"
+  else
+    fail "$label (expected '$expected', got '$actual')"
+  fi
 }
 
 assert_contains() {
   local haystack="$1" needle="$2" label="$3"
-  echo "$haystack" | grep -q "$needle" && pass "$label" || fail "$label (not found: '$needle')"
+  if echo "$haystack" | grep -Fq "$needle"; then
+    pass "$label"
+  else
+    fail "$label (not found: '$needle')"
+  fi
 }
 
 assert_not_contains() {
   local haystack="$1" needle="$2" label="$3"
-  echo "$haystack" | grep -q "$needle" && fail "$label (found unexpected: '$needle')" || pass "$label"
+  if echo "$haystack" | grep -Fq "$needle"; then
+    fail "$label (found unexpected: '$needle')"
+  else
+    pass "$label"
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -54,6 +67,29 @@ assert_not_contains() {
 make_project() {
   local dir="$1"
   mkdir -p "$dir/.specwright/state"
+}
+
+init_git_repo() {
+  local dir="$1"
+  mkdir -p "$dir"
+  git -C "$dir" -c core.hooksPath=/dev/null init -q
+  git -C "$dir" -c core.hooksPath=/dev/null config user.name "Specwright Tests"
+  git -C "$dir" -c core.hooksPath=/dev/null config user.email "specwright-tests@example.com"
+  git -C "$dir" -c core.hooksPath=/dev/null checkout -qb main >/dev/null 2>&1 || true
+  printf 'seed\n' > "$dir/README.md"
+  git -C "$dir" -c core.hooksPath=/dev/null add README.md
+  git -C "$dir" -c core.hooksPath=/dev/null commit -qm "test: init repo"
+}
+
+run_resolver_json() {
+  local dir="$1"
+  (
+    cd "$dir" &&
+    STATE_PATHS_MODULE="$STATE_PATHS_MODULE" node --input-type=module <<'EOF'
+const { resolveSpecwrightRoots } = await import(process.env.STATE_PATHS_MODULE);
+process.stdout.write(JSON.stringify(resolveSpecwrightRoots()));
+EOF
+  )
 }
 
 write_workflow() {
@@ -71,6 +107,52 @@ write_workflow() {
 }
 EOF
 }
+
+# ---------------------------------------------------------------------------
+# Section 0: specwright-state-paths.mjs
+# ---------------------------------------------------------------------------
+
+echo ""
+echo "=== Section 0: specwright-state-paths.mjs ==="
+
+T="$TEST_TMPDIR/t-resolver-primary"
+init_git_repo "$T"
+T_REAL="$(cd "$T" && pwd -P)"
+output=$(run_resolver_json "$T" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "state-paths: primary worktree resolves successfully"
+assert_contains "$output" '"ok":true' "state-paths: primary worktree returns ok=true"
+assert_contains "$output" "\"projectRoot\":\"$T_REAL\"" "state-paths: primary worktree includes projectRoot"
+assert_contains "$output" "\"gitDir\":\"$T_REAL/.git\"" "state-paths: primary worktree includes gitDir"
+assert_contains "$output" "\"gitCommonDir\":\"$T_REAL/.git\"" "state-paths: primary worktree includes gitCommonDir"
+assert_contains "$output" "\"repoStateRoot\":\"$T_REAL/.git/specwright\"" "state-paths: primary worktree includes repoStateRoot"
+assert_contains "$output" "\"worktreeStateRoot\":\"$T_REAL/.git/specwright\"" "state-paths: primary worktree includes worktreeStateRoot"
+assert_contains "$output" '"worktreeId":"main-worktree"' "state-paths: primary worktree derives main-worktree id"
+
+T="$TEST_TMPDIR/t-resolver-linked-primary"
+L="$TEST_TMPDIR/linked-worktree"
+init_git_repo "$T"
+git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b linked-worktree "$L" HEAD
+T_REAL="$(cd "$T" && pwd -P)"
+L_REAL="$(cd "$L" && pwd -P)"
+output=$(run_resolver_json "$L" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "state-paths: linked worktree resolves successfully"
+assert_contains "$output" '"ok":true' "state-paths: linked worktree returns ok=true"
+assert_contains "$output" "\"projectRoot\":\"$L_REAL\"" "state-paths: linked worktree includes linked projectRoot"
+assert_contains "$output" "\"gitCommonDir\":\"$T_REAL/.git\"" "state-paths: linked worktree includes shared gitCommonDir"
+assert_contains "$output" "\"repoStateRoot\":\"$T_REAL/.git/specwright\"" "state-paths: linked worktree includes shared repoStateRoot"
+assert_contains "$output" "\"worktreeStateRoot\":\"$T_REAL/.git/worktrees/linked-worktree/specwright\"" "state-paths: linked worktree includes worktreeStateRoot"
+assert_contains "$output" '"worktreeId":"linked-worktree"' "state-paths: linked worktree derives linked worktree id"
+
+T="$TEST_TMPDIR/t-resolver-no-git"
+mkdir -p "$T"
+output=$(run_resolver_json "$T" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "state-paths: non-git directory returns structured failure"
+assert_contains "$output" '"ok":false' "state-paths: non-git directory returns ok=false"
+assert_contains "$output" '"code":"GIT_RESOLUTION_FAILED"' "state-paths: non-git directory returns failure code"
+assert_contains "$output" '"root":"projectRoot"' "state-paths: non-git directory reports failing root"
 
 # ---------------------------------------------------------------------------
 # Section 1: subagent-context.mjs
