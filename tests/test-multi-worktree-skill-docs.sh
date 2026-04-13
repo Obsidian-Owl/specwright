@@ -60,6 +60,32 @@ assert_contains "core/skills/sw-plan/SKILL.md" \
   "sw-plan describes logical roots or session-local work selection"
 
 echo ""
+echo "--- Task 2: sw-build and sw-pivot per-work ownership semantics ---"
+assert_contains "core/skills/sw-build/SKILL.md" \
+  'session-selected work|selected work|attached work' \
+  "sw-build resolves the selected work from the current worktree session"
+
+assert_contains "core/skills/sw-build/SKILL.md" \
+  'per-work lock|selected work.?s `?workflow\.json`|mutate only the selected work' \
+  "sw-build describes per-work workflow and lock semantics"
+
+assert_contains "core/skills/sw-build/SKILL.md" \
+  'adopt/takeover|already-owned active work|other live top-level worktree' \
+  "sw-build stops with adopt/takeover guidance for already-owned work"
+
+assert_contains "core/skills/sw-pivot/SKILL.md" \
+  'selected work|attached work|session\.json' \
+  "sw-pivot operates on the selected work for this worktree"
+
+assert_contains "core/skills/sw-pivot/SKILL.md" \
+  'remaining tasks on the selected work|selected work.?s `?workflow\.json`|per-work' \
+  "sw-pivot describes remaining-task updates on the selected work"
+
+assert_contains "core/skills/sw-pivot/SKILL.md" \
+  'adopt/takeover|other live top-level worktree|already-owned active work' \
+  "sw-pivot documents adopt/takeover guidance for ownership conflicts"
+
+echo ""
 echo "RESULT: $PASS passed, $FAIL failed"
 
 if [ "$FAIL" -gt 0 ]; then
