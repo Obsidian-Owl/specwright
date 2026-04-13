@@ -9,6 +9,8 @@ import subprocess
 import time
 from typing import Any, Dict, List, Optional
 
+from evals.framework.git_env import sanitized_git_env
+
 
 # ---------------------------------------------------------------------------
 # Result type
@@ -483,6 +485,7 @@ def check_git(check_type: str, workdir: str, **kwargs) -> CheckResult:
             cwd=workdir,
             capture_output=True,
             text=True,
+            env=sanitized_git_env(),
         )
         passed = proc.returncode == 0
         return CheckResult(
@@ -500,6 +503,7 @@ def check_git(check_type: str, workdir: str, **kwargs) -> CheckResult:
             cwd=workdir,
             capture_output=True,
             text=True,
+            env=sanitized_git_env(),
         )
         try:
             actual_count = int(proc.stdout.strip())
@@ -526,6 +530,7 @@ def check_git(check_type: str, workdir: str, **kwargs) -> CheckResult:
             cwd=workdir,
             capture_output=True,
             text=True,
+            env=sanitized_git_env(),
         )
         dirty = proc.stdout.strip()
         if not dirty:

@@ -7,6 +7,8 @@ import subprocess
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from evals.framework.git_env import sanitized_git_env
+
 
 def capture_snapshot(workdir: str, output_dir: str) -> Dict[str, Any]:
     """Snapshot .specwright/ state, git status, and file tree.
@@ -90,6 +92,7 @@ def _get_git_status(workdir: str) -> str:
             cwd=workdir,
             capture_output=True,
             text=True,
+            env=sanitized_git_env(),
         )
         return result.stdout
     except (FileNotFoundError, subprocess.SubprocessError):

@@ -26,6 +26,8 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+from evals.framework.git_env import sanitized_git_env
+
 SEEDS_PATH = Path(__file__).parent.parent / "suites" / "workflow" / "seeds.json"
 DATASET_NAME = "AmazonScience/SWE-PolyBench"
 TARGET_LANGUAGES = {"JavaScript", "TypeScript"}
@@ -136,17 +138,17 @@ def verify_seeds() -> None:
             # Clone
             subprocess.run(
                 ["git", "clone", "--depth", "1", f"https://github.com/{seed['repo']}.git", workdir],
-                check=True, capture_output=True, text=True,
+                check=True, capture_output=True, text=True, env=sanitized_git_env(),
             )
 
             # Fetch and checkout specific commit
             subprocess.run(
                 ["git", "fetch", "--depth", "1", "origin", seed["base_commit"]],
-                cwd=workdir, check=True, capture_output=True, text=True,
+                cwd=workdir, check=True, capture_output=True, text=True, env=sanitized_git_env(),
             )
             subprocess.run(
                 ["git", "checkout", seed["base_commit"]],
-                cwd=workdir, check=True, capture_output=True, text=True,
+                cwd=workdir, check=True, capture_output=True, text=True, env=sanitized_git_env(),
             )
 
             # Install deps
