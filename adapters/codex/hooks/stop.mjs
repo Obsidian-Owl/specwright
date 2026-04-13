@@ -5,11 +5,12 @@
  * Writes a continuation snapshot for active work and returns valid JSON output.
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { dirname } from 'path';
 import { loadSpecwrightState, normalizeActiveWork } from '../../shared/specwright-state-paths.mjs';
 
 function writeSnapshot(work, continuationPath) {
-  const stateDir = continuationPath.replace(/\/continuation\.md$/, '');
+  const stateDir = dirname(continuationPath);
   const timestamp = new Date().toISOString();
 
   const snapshot = [

@@ -80,6 +80,10 @@ worktree_state_root() {
   printf '%s/specwright\n' "$(git_dir "$1")"
 }
 
+fresh_timestamp() {
+  date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
 make_shared_project() {
   local dir="$1"
   local work_id="$2"
@@ -105,7 +109,7 @@ EOF
   "branch": "$branch",
   "attachedWorkId": "$work_id",
   "mode": "top-level",
-  "lastSeenAt": "2026-04-13T00:00:00Z"
+  "lastSeenAt": "$(fresh_timestamp)"
 }
 EOF
   cat > "$work_dir/workflow.json" <<EOF
@@ -182,6 +186,35 @@ output="$(
 )"
 assert_contains "$output" "Specwright: Work in progress" "session-start prints active-work summary"
 assert_contains "$output" "WU-001 (building)" "session-start includes work id and status"
+
+T="$TEST_TMPDIR/session-start-lock"
+make_project "$T"
+mkdir -p "$T/.specwright/work/WU-001"
+cat > "$T/.specwright/state/workflow.json" <<'EOF'
+{
+  "currentWork": {
+    "id": "WU-001",
+    "status": "building",
+    "workDir": ".specwright/work/WU-001",
+    "tasksCompleted": ["t1"],
+    "tasksTotal": 3
+  },
+  "gates": {
+    "build": { "status": "PASS" }
+  },
+  "lock": {
+    "skill": "sw-build",
+    "since": "2026-03-23T10:00:00.000Z"
+  }
+}
+EOF
+output="$(
+  {
+    cd "$T" &&
+    node "$SESSION_START_HOOK"
+  } 2>/dev/null || true
+)"
+assert_contains "$output" "Lock held by" "session-start surfaces lock warnings"
 
 T="$TEST_TMPDIR/session-start-nested-primary"
 init_git_repo "$T"

@@ -69,6 +69,10 @@ worktree_state_root() {
   printf '%s/specwright\n' "$(git_dir "$1")"
 }
 
+fresh_timestamp() {
+  date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
 make_shared_project() {
   local dir="$1"
   local work_id="$2"
@@ -94,7 +98,7 @@ EOF
   "branch": "$branch",
   "attachedWorkId": "$work_id",
   "mode": "top-level",
-  "lastSeenAt": "2026-04-13T00:00:00Z"
+  "lastSeenAt": "$(fresh_timestamp)"
 }
 EOF
   cat > "$work_dir/workflow.json" <<EOF
@@ -196,6 +200,88 @@ else
 fi
 
 echo ""
+echo "--- Invalid attached work ids are ignored ---"
+T="$TEST_TMPDIR/invalid-attached-work"
+init_git_repo "$T"
+make_shared_project "$T" "shared-safe"
+mkdir -p "$(repo_state_root "$T")/escape"
+cat > "$(repo_state_root "$T")/escape/workflow.json" <<EOF
+{
+  "version": "3.0",
+  "id": "escaped-work",
+  "status": "building",
+  "workDir": "work/escaped-work",
+  "unitId": "unit-escaped-work",
+  "tasksCompleted": ["t1"],
+  "tasksTotal": 1
+}
+EOF
+cat > "$(worktree_state_root "$T")/session.json" <<EOF
+{
+  "version": "3.0",
+  "worktreeId": "test-worktree",
+  "worktreePath": "$(cd "$T" && pwd -P)",
+  "branch": "$(git -C "$T" branch --show-current)",
+  "attachedWorkId": "../escape",
+  "mode": "top-level",
+  "lastSeenAt": "$(fresh_timestamp)"
+}
+EOF
+output="$(load_state_json "$T")"
+assert_contains "$output" '"layout":"shared"' "invalid attached work id still reports shared layout"
+assert_contains "$output" '"workId":null' "invalid attached work id does not resolve a workflow"
+if echo "$output" | grep -Fq 'escaped-work'; then
+  fail "invalid attached work id does not escape the shared work root"
+else
+  pass "invalid attached work id cannot read workflows outside the shared work root"
+fi
+
+echo ""
+echo "--- Shared layout dispatch stays shared ---"
+T="$TEST_TMPDIR/shared-layout-dispatch"
+init_git_repo "$T"
+make_shared_project "$T" "shared-dispatch"
+cat > "$(repo_state_root "$T")/work/shared-dispatch/workflow.json" <<EOF
+{
+  "version": "3.0",
+  "id": "shared-dispatch",
+  "status": "building",
+  "workDir": "work/shared-dispatch",
+  "unitId": "unit-shared-dispatch",
+  "tasksCompleted": ["t1"],
+  "tasksTotal": 3,
+  "branch": "$(git -C "$T" branch --show-current)",
+  "gates": {
+    "build": { "verdict": "PASS" }
+  },
+  "currentWork": {
+    "id": "legacy-shadow",
+    "status": "building",
+    "workDir": ".specwright/work/legacy-shadow",
+    "tasksCompleted": [],
+    "tasksTotal": 1
+  }
+}
+EOF
+output="$(load_state_json "$T")"
+assert_contains "$output" '"workId":"shared-dispatch"' "shared layout dispatch prefers the shared workflow shape"
+if echo "$output" | grep -Fq 'legacy-shadow'; then
+  fail "shared layout dispatch does not fall back to the legacy wrapper when layout is shared"
+else
+  pass "shared layout dispatch ignores legacy wrapper keys on shared workflows"
+fi
+
+echo ""
+echo "--- Malformed session files degrade to findings ---"
+T="$TEST_TMPDIR/malformed-session-primary"
+init_git_repo "$T"
+make_shared_project "$T" "malformed-session-work"
+printf '{invalid-json\n' > "$(worktree_state_root "$T")/session.json"
+output="$(inspect_sessions_json "$T")"
+assert_contains "$output" '"deadSessions":[' "malformed session inspection reports a cleanup candidate"
+assert_contains "$output" '"deadReason":"malformed-session-json:' "malformed session inspection reports a structured dead reason"
+
+echo ""
 echo "--- Dead session detection ---"
 T="$TEST_TMPDIR/dead-session-primary"
 L="$TEST_TMPDIR/dead-session-linked"
@@ -207,6 +293,28 @@ output="$(inspect_sessions_json "$T")"
 assert_contains "$output" '"deadSessions":[' "dead session inspection reports a cleanup candidate"
 assert_contains "$output" '"attachedWorkId":"dead-session-work"' "dead session inspection preserves the attached work id"
 assert_contains "$output" '"deadReason":"missing-worktree-directory"' "dead session inspection marks missing worktree directories"
+
+echo ""
+echo "--- Not-listed-by-git detection ---"
+T="$TEST_TMPDIR/not-listed-primary"
+P="$TEST_TMPDIR/not-listed-path"
+init_git_repo "$T"
+mkdir -p "$P"
+mkdir -p "$(git_common_dir "$T")/worktrees/not-listed/specwright"
+cat > "$(git_common_dir "$T")/worktrees/not-listed/specwright/session.json" <<EOF
+{
+  "version": "3.0",
+  "worktreeId": "not-listed",
+  "worktreePath": "$(cd "$P" && pwd -P)",
+  "branch": "work/not-listed",
+  "attachedWorkId": "not-listed-work",
+  "mode": "top-level",
+  "lastSeenAt": "$(fresh_timestamp)"
+}
+EOF
+output="$(inspect_sessions_json "$T")"
+assert_contains "$output" '"attachedWorkId":"not-listed-work"' "not-listed-by-git inspection preserves the attached work id"
+assert_contains "$output" '"deadReason":"not-listed-by-git"' "not-listed-by-git inspection marks unregistered worktree paths"
 
 echo ""
 TOTAL=$((PASS + FAIL))

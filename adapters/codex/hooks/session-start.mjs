@@ -18,6 +18,9 @@ try {
   }
 
   const unitLine = work.unitId ? `  Active Unit: ${work.unitId}\n` : '';
+  const lockWarning = work.lock
+    ? `\n  WARNING: Lock held by "${work.lock.skill}" since ${work.lock.since}`
+    : '';
 
   let continuationContent = '';
   if (existsSync(continuationPath)) {
@@ -51,6 +54,7 @@ try {
     `  Gates: ${work.gatesSummary}`,
     `  Spec: ${work.specPath}`,
     `  Plan: ${work.planPath}`,
+    lockWarning,
     shippingWarning,
     continuationContent
   ].filter(Boolean).join('\n');

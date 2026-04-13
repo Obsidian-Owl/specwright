@@ -127,6 +127,10 @@ worktree_state_root() {
   printf '%s/specwright\n' "$(git_dir "$1")"
 }
 
+fresh_timestamp() {
+  date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
 make_shared_project() {
   local dir="$1"
   local work_id="$2"
@@ -152,7 +156,7 @@ EOF
   "branch": "$branch",
   "attachedWorkId": "$work_id",
   "mode": "top-level",
-  "lastSeenAt": "2026-04-13T00:00:00Z"
+  "lastSeenAt": "$(fresh_timestamp)"
 }
 EOF
   cat > "$work_dir/workflow.json" <<EOF

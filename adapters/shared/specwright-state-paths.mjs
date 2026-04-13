@@ -1,7 +1,7 @@
 import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
 import { existsSync, readFileSync, readdirSync } from 'fs';
-import { basename, dirname, join, resolve } from 'path';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'path';
 
 const FAILURE_CODE = 'GIT_RESOLUTION_FAILED';
 const PRIMARY_WORKTREE_ID = 'main-worktree';
@@ -109,6 +109,49 @@ export function resolveLegacyStatePaths(options = {}) {
 
 function parseJsonFile(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
+}
+
+function normalizeAttachedWorkId(value) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const workId = value.trim();
+  if (!workId || workId === '.' || workId === '..') {
+    return null;
+  }
+
+  if (workId.includes('/') || workId.includes('\\')) {
+    return null;
+  }
+
+  return workId;
+}
+
+function resolveSharedWorkflowPath(repoStateRoot, attachedWorkId) {
+  const workId = normalizeAttachedWorkId(attachedWorkId);
+  if (!workId) {
+    return {
+      attachedWorkId: null,
+      workflowPath: null
+    };
+  }
+
+  const workRoot = resolve(repoStateRoot, 'work');
+  const workflowPath = resolve(workRoot, workId, 'workflow.json');
+  const relativePath = relative(workRoot, workflowPath);
+
+  if (!relativePath || relativePath.startsWith('..') || isAbsolute(relativePath)) {
+    return {
+      attachedWorkId: null,
+      workflowPath: null
+    };
+  }
+
+  return {
+    attachedWorkId: workId,
+    workflowPath
+  };
 }
 
 function gateVerdict(gate) {
@@ -232,10 +275,9 @@ export function loadSpecwrightState(options = {}) {
     const sessionPath = join(legacy.worktreeStateRoot, 'session.json');
     const continuationPath = join(legacy.worktreeStateRoot, 'continuation.md');
     const session = existsSync(sessionPath) ? parseJsonFile(sessionPath) : null;
-    const attachedWorkId = session?.attachedWorkId ?? null;
-    const workflowPath = attachedWorkId
-      ? join(legacy.repoStateRoot, 'work', attachedWorkId, 'workflow.json')
-      : null;
+    const attachedWork = resolveSharedWorkflowPath(legacy.repoStateRoot, session?.attachedWorkId);
+    const attachedWorkId = attachedWork.attachedWorkId;
+    const workflowPath = attachedWork.workflowPath;
     const workflow = workflowPath && existsSync(workflowPath)
       ? parseJsonFile(workflowPath)
       : null;
@@ -275,7 +317,7 @@ export function normalizeActiveWork(stateInfo) {
     return null;
   }
 
-  if (workflow.currentWork && typeof workflow.currentWork === 'object') {
+  if (stateInfo?.layout === 'legacy' && workflow.currentWork && typeof workflow.currentWork === 'object') {
     const legacyWork = workflow.currentWork;
     const artifacts = buildWorkArtifacts(
       stateInfo.lookupRoot,
@@ -353,7 +395,23 @@ export function inspectWorktreeSessions(options = {}) {
   );
 
   const sessions = listSessionFiles(roots).map(({ worktreeId, sessionPath }) => {
-    const session = parseJsonFile(sessionPath);
+    let session;
+    try {
+      session = parseJsonFile(sessionPath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        worktreeId,
+        sessionPath,
+        worktreePath: null,
+        attachedWorkId: null,
+        branch: null,
+        mode: null,
+        live: false,
+        deadReason: `malformed-session-json: ${message}`
+      };
+    }
+
     const worktreePath = session?.worktreePath ? resolve(session.worktreePath) : null;
     const live = Boolean(worktreePath && liveWorktreePaths.has(worktreePath));
     const deadReason = live

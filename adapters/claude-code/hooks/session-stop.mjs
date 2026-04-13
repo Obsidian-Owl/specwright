@@ -4,12 +4,11 @@
  * Deterministic — no LLM involved.
  */
 
-import { readFileSync, existsSync } from 'fs';
 import { loadSpecwrightState, normalizeActiveWork } from '../../shared/specwright-state-paths.mjs';
 
 try {
   const stateInfo = loadSpecwrightState();
-  if (!stateInfo.workflowPath || !existsSync(stateInfo.workflowPath)) {
+  if (!stateInfo.workflow) {
     console.log(JSON.stringify({ ok: true }));
     process.exit(0);
   }
