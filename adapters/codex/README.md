@@ -10,6 +10,9 @@ point Codex directly at `adapters/codex`. The distributable bundle is built to
 - `commands/`, `hooks/`, `hooks.json`
 - `.codex-plugin/plugin.json`
 
+Packaged Codex slash commands invoke the installed `specwright:sw-*` skills
+from that bundle.
+
 ## User Install
 
 ```sh
@@ -38,3 +41,6 @@ If you are working on Specwright itself:
 1. Build the distributable with `./build/build.sh codex`.
 2. Install the resulting `dist/codex` bundle into a user or repo marketplace.
 3. Use `.agents/skills` directly if you only need skills-only mode.
+
+That `.agents/skills` path is a repo-local development shortcut, not part of
+the packaged Codex install contract.

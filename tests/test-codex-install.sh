@@ -53,6 +53,79 @@ assert_eq() {
   fi
 }
 
+assert_contains() {
+  local haystack="$1"
+  local needle="$2"
+  local label="$3"
+  if printf '%s' "$haystack" | grep -qF -- "$needle"; then
+    pass "$label"
+  else
+    fail "$label (missing '$needle')"
+  fi
+}
+
+assert_not_contains() {
+  local haystack="$1"
+  local needle="$2"
+  local label="$3"
+  if printf '%s' "$haystack" | grep -qF -- "$needle"; then
+    fail "$label (unexpected '$needle')"
+  else
+    pass "$label"
+  fi
+}
+
+extract_details_block() {
+  python3 - "$1" "$2" <<'PY'
+from pathlib import Path
+import sys
+
+text = Path(sys.argv[1]).read_text()
+summary = f"<summary><b>{sys.argv[2]}</b></summary>"
+start = text.find(summary)
+if start == -1:
+    raise SystemExit(1)
+end = text.find("</details>", start)
+if end == -1:
+    end = len(text)
+print(text[start:end])
+PY
+}
+
+extract_before_heading() {
+  python3 - "$1" "$2" <<'PY'
+from pathlib import Path
+import sys
+
+text = Path(sys.argv[1]).read_text()
+heading = f"## {sys.argv[2]}\n"
+index = text.find(heading)
+if index == -1:
+    print(text)
+else:
+    print(text[:index])
+PY
+}
+
+extract_heading_section() {
+  python3 - "$1" "$2" <<'PY'
+from pathlib import Path
+import sys
+
+text = Path(sys.argv[1]).read_text()
+heading = f"## {sys.argv[2]}\n"
+start = text.find(heading)
+if start == -1:
+    raise SystemExit(1)
+remainder = text[start:]
+next_index = remainder.find("\n## ", len(heading))
+if next_index == -1:
+    print(remainder)
+else:
+    print(remainder[:next_index + 1])
+PY
+}
+
 cleanup() {
   if [ -n "$TMP_DIR" ] && [ -d "$TMP_DIR" ]; then
     rm -rf "$TMP_DIR"
@@ -75,6 +148,13 @@ if [ ! -x "$BUILD_SCRIPT" ]; then
   echo "ABORT: build script not executable at $BUILD_SCRIPT"
   exit 1
 fi
+
+assert_file "$INSTALLER" "installer script exists"
+INSTALLER_HELP="$(bash "$INSTALLER" --help)"
+assert_contains "$INSTALLER_HELP" "--user" "installer help documents --user"
+assert_contains "$INSTALLER_HELP" "--repo" "installer help documents --repo"
+assert_contains "$INSTALLER_HELP" "--version" "installer help documents --version"
+assert_contains "$INSTALLER_HELP" "--update" "installer help documents --update"
 
 TMP_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t specwright-codex-test)"
 ASSET_DIR="$TMP_DIR/asset"
@@ -176,6 +256,17 @@ assert_file "$REPO_DIR/.agents/plugins/marketplace.json" "repo install writes ma
 assert_eq "$(jq -r '.plugins[] | select(.name == "specwright") | .source.path' "$REPO_DIR/.agents/plugins/marketplace.json")" "./plugins/specwright" "repo marketplace path points at bundled plugin"
 assert_eq "$(jq -r '.plugins[] | select(.name == "specwright") | .version' "$REPO_DIR/.agents/plugins/marketplace.json")" "latest" "repo marketplace records installed version"
 assert_eq "$(jq '[.plugins[] | select(.name == "specwright")] | length' "$REPO_DIR/.agents/plugins/marketplace.json")" "1" "repo install adds one specwright marketplace entry"
+
+echo "--- Documentation contract ---"
+README_CODEX_SECTION="$(extract_details_block "$ROOT_DIR/README.md" "Codex CLI")"
+ADAPTER_PACKAGED_SECTION="$(extract_before_heading "$ROOT_DIR/adapters/codex/README.md" "Local Development")"
+ADAPTER_LOCAL_DEV_SECTION="$(extract_heading_section "$ROOT_DIR/adapters/codex/README.md" "Local Development")"
+
+assert_contains "$README_CODEX_SECTION" "skills-only mode" "README distinguishes packaged install from skills-only mode"
+assert_not_contains "$README_CODEX_SECTION" ".agents/skills" "README packaged Codex section does not require .agents/skills"
+assert_contains "$ADAPTER_PACKAGED_SECTION" "specwright:sw-*" "adapter README documents specwright:sw-* command contract"
+assert_not_contains "$ADAPTER_PACKAGED_SECTION" ".agents/skills" "adapter README packaged sections do not require .agents/skills"
+assert_contains "$ADAPTER_LOCAL_DEV_SECTION" ".agents/skills" "adapter README scopes .agents/skills to local development"
 
 echo ""
 TOTAL=$((PASS + FAIL))
