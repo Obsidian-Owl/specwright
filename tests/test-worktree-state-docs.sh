@@ -12,6 +12,8 @@ STATE_PROTOCOL="$ROOT_DIR/core/protocols/state.md"
 CONTEXT_PROTOCOL="$ROOT_DIR/core/protocols/context.md"
 GIT_PROTOCOL="$ROOT_DIR/core/protocols/git.md"
 PARALLEL_PROTOCOL="$ROOT_DIR/core/protocols/parallel-build.md"
+RECOVERY_PROTOCOL="$ROOT_DIR/core/protocols/recovery.md"
+INIT_SKILL="$ROOT_DIR/core/skills/sw-init/SKILL.md"
 STATUS_SKILL="$ROOT_DIR/core/skills/sw-status/SKILL.md"
 SYNC_SKILL="$ROOT_DIR/core/skills/sw-sync/SKILL.md"
 DOCTOR_SKILL="$ROOT_DIR/core/skills/sw-doctor/SKILL.md"
@@ -59,6 +61,8 @@ for file in \
   "$CONTEXT_PROTOCOL" \
   "$GIT_PROTOCOL" \
   "$PARALLEL_PROTOCOL" \
+  "$RECOVERY_PROTOCOL" \
+  "$INIT_SKILL" \
   "$STATUS_SKILL" \
   "$SYNC_SKILL" \
   "$DOCTOR_SKILL"; do
@@ -68,6 +72,14 @@ for file in \
     fail "exists: ${file#"$ROOT_DIR"/}"
   fi
 done
+
+echo ""
+echo "--- Init shared/session bootstrap ---"
+assert_contains "$INIT_SKILL" '{repoStateRoot}/config.json' "sw-init writes shared config to repoStateRoot"
+assert_contains "$INIT_SKILL" '{worktreeStateRoot}/session.json' "sw-init creates the per-worktree session root"
+assert_contains "$INIT_SKILL" 'linked worktree can bootstrap its local session root against shared repo state' "sw-init documents linked-worktree bootstrap against shared state"
+assert_not_contains "$INIT_SKILL" "\`.specwright/\` created here will not be visible in other worktrees" "sw-init no longer treats linked worktrees as isolated .specwright installs"
+assert_not_contains "$INIT_SKILL" '.specwright/state/workflow.json' "sw-init no longer initializes the legacy singleton workflow path"
 
 echo ""
 echo "--- State protocol ---"
@@ -81,6 +93,20 @@ echo ""
 echo "--- Context migration fallback ---"
 assert_contains "$CONTEXT_PROTOCOL" 'currentWork` wrapper' "context protocol documents legacy workflow wrapper normalization"
 assert_contains "$CONTEXT_PROTOCOL" 'legacy working-tree Specwright layout' "context protocol warns when legacy layout is in use"
+
+echo ""
+echo "--- Doctor migration checks ---"
+assert_contains "$DOCTOR_SKILL" 'layout status' "sw-doctor reports shared versus legacy layout status"
+assert_contains "$DOCTOR_SKILL" 'dead sessions' "sw-doctor checks for dead sessions"
+assert_contains "$DOCTOR_SKILL" 'legacy-write drift' "sw-doctor checks for legacy-write drift"
+assert_contains "$DOCTOR_SKILL" 'bounded to the documented migration surface' "sw-doctor bounds repair to the migration surface"
+
+echo ""
+echo "--- Repo-wide work visibility ---"
+assert_contains "$STATUS_SKILL" "resolved \`repoStateRoot\` and \`worktreeStateRoot\`" "sw-status prints resolved logical roots"
+assert_contains "$STATUS_SKILL" 'live top-level sessions' "sw-status distinguishes live session ownership from stale attachments"
+assert_contains "$SYNC_SKILL" "subordinate helper worktrees discovered via \`git worktree list --porcelain\`" "sw-sync protects subordinate helper worktrees discovered from Git"
+assert_contains "$SYNC_SKILL" 'live session or subordinate helper still claims it' "sw-sync keeps claimed branches out of deletion"
 
 echo ""
 echo "--- Parallel-build protocol ---"
@@ -100,6 +126,7 @@ for file in \
   "$CONTEXT_PROTOCOL" \
   "$GIT_PROTOCOL" \
   "$PARALLEL_PROTOCOL" \
+  "$RECOVERY_PROTOCOL" \
   "$STATUS_SKILL" \
   "$SYNC_SKILL" \
   "$DOCTOR_SKILL"; do
@@ -110,6 +137,13 @@ for file in \
     fail "$label references a logical state root"
   fi
 done
+
+echo ""
+echo "--- Recovery logical roots ---"
+assert_contains "$RECOVERY_PROTOCOL" '{worktreeStateRoot}/session.json' "recovery reads session state from worktreeStateRoot"
+assert_contains "$RECOVERY_PROTOCOL" '{repoStateRoot}/work/{workId}/workflow.json' "recovery reads the selected work workflow from repoStateRoot"
+assert_contains "$RECOVERY_PROTOCOL" '{worktreeStateRoot}/continuation.md' "recovery reads continuation from worktreeStateRoot"
+assert_not_contains "$RECOVERY_PROTOCOL" '.specwright/state/workflow.json' "recovery no longer points at the legacy singleton workflow path"
 
 echo ""
 echo "--- File-specific singleton drift guards ---"

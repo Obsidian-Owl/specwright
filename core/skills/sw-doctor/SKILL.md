@@ -39,12 +39,14 @@ and per-worktree session model, then print actionable repair hints.
 **Pre-condition (LOW freedom):**
 - If neither the shared layout nor the legacy fallback can be resolved, stop
   immediately and tell the user to run `/sw-init`.
+- Always report layout status first: `shared/session`, `legacy fallback`, or
+  `missing`.
 
 **Checks (LOW freedom — run all 13 in order):**
 1. **Anchor docs** — shared Constitution and Charter exist and are non-empty
 2. **Config** — shared config parses and contains `gates` and `git`
-3. **State** — current session parses when present, and every discovered
-   workflow parses with a null or fresh per-work lock
+3. **State** — current session parses when present, every discovered workflow
+   parses with a null or fresh per-work lock, and layout status is explicit
 4. **Gates** — enabled gate skills exist
 5. **Build command** — configured build command exists on PATH
 6. **Test command** — configured test command exists on PATH
@@ -56,6 +58,15 @@ and per-worktree session model, then print actionable repair hints.
 12. **LSP** — PASS/WARN/INFO based on available platform or standalone LSP
 13. **STATE_DRIFT** — enumerate repo-wide workflows and flag shipped units with
     `status=shipped` and `prNumber=null`
+
+Within the State pass, check all of the following and report them by name:
+- layout status for the current checkout
+- session attachment consistency between `session.json` and the owning
+  `workflow.json`
+- dead sessions where a recorded attachment points at a missing or removed
+  worktree
+- legacy-write drift where the shared layout exists but checkout-local legacy
+  state files are still being treated as writable sources
 
 STATE_DRIFT findings must print the inline remediation command
 `sw-status --repair {unitId}` and include the owning work ID.
@@ -81,6 +92,7 @@ STATE_DRIFT findings must print the inline remediation command
 - The only allowed mutation is STATE_DRIFT backfill.
 - When mutating a work's `workflow.json`, follow `protocols/state.md`.
 - Doctor never modifies `status`; only `prNumber` and `prMergedAt` may change.
+- Any repair guidance beyond PR backfill must remain bounded to the documented migration surface: shared docs/config under `{repoStateRoot}`, split per-work workflows, and this worktree's `{worktreeStateRoot}/session.json`.
 
 ## Protocol References
 

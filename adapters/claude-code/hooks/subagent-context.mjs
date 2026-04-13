@@ -13,7 +13,7 @@
 
 import { readFileSync } from 'fs';
 import { join, resolve, isAbsolute } from 'path';
-import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
+import { loadSpecwrightState, normalizeActiveWork } from '../../shared/specwright-state-paths.mjs';
 
 const REPO_MAP_AGENTS = ['specwright-executor', 'specwright-tester'];
 const CONTEXT_AGENTS = ['specwright-architect', 'specwright-reviewer'];
@@ -45,36 +45,31 @@ function main() {
   }
 
   // Read workflow state to find current work directory
-  let workDir;
-  let projectRoot;
+  let work;
   try {
-    const statePaths = resolveLegacyStatePaths();
-    const workflowPath = statePaths.workflowPath;
-    const workflow = JSON.parse(readFileSync(workflowPath, 'utf8'));
-    workDir = workflow?.currentWork?.workDir;
-    projectRoot = statePaths.lookupRoot;
+    work = normalizeActiveWork(loadSpecwrightState());
   } catch {
     // Can't read workflow — exit silently
     process.exit(0);
   }
 
-  if (!workDir) {
+  if (!work?.workDir) {
     process.exit(0);
   }
 
   // Defense-in-depth: reject absolute workDir paths (workflow.json is user-writable)
-  if (isAbsolute(workDir)) {
+  if (isAbsolute(work.workDir)) {
     process.exit(0);
   }
 
   // Read the target file (with path traversal validation)
   let content;
   try {
-    const filePath = resolve(projectRoot, workDir, targetFile);
+    const filePath = resolve(work.workDirPath, targetFile);
 
     // Validate resolved path is within project root to prevent path traversal.
     // Append separator to avoid prefix matching siblings (e.g., /repo-evil matching /repo).
-    if (!filePath.startsWith(projectRoot + '/')) {
+    if (!filePath.startsWith(work.artifactsRoot + '/')) {
       process.exit(0);
     }
 

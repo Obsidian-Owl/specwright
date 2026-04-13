@@ -4,27 +4,52 @@
 
 **IMMEDIATELY execute these steps:**
 
-### 1. Recover Current State
+### 1. Resolve Logical Roots
 ```
-Read .specwright/state/workflow.json
+Resolve {projectRoot}, {repoStateRoot}, and {worktreeStateRoot} per protocols/context.md
 ```
-This is the source of truth for where you are.
+Use those roots for all recovery reads. Do not guess checkout-local paths.
 
-### 1.5. Check for Continuation Snapshot
+### 1.5. Recover Session And Continuation State
 
-If `.specwright/state/continuation.md` exists, read it. This optional file contains the working state captured before compaction: active task, files in progress, pending decisions, and next steps. If absent, continue with workflow.json only.
+Read `{worktreeStateRoot}/session.json` when it exists. This is the current
+worktree's source of truth for attachment, mode, branch, and `lastSeenAt`.
 
-### 2. Load Anchor Context
+If `{worktreeStateRoot}/continuation.md` exists, read it. This optional file
+contains the working state captured before compaction: active task, files in
+progress, pending decisions, and next steps. If absent, continue with session
+and workflow state only.
+
+If the shared/session layout is absent, follow the legacy fallback rules in
+`protocols/context.md` before proceeding.
+
+### 2. Recover The Selected Work
+
+If `session.json.attachedWorkId` exists, read
+`{repoStateRoot}/work/{workId}/workflow.json`.
+
+This selected work `workflow.json` is the source of truth for lifecycle status,
+active unit, gates, task progress, and lock state.
+
+If no work can be resolved for a work-aware recovery path, stop with:
+
+> "Run /sw-design first."
+
+### 3. Load Anchor Context
 ```
-Read .specwright/CHARTER.md      # Technology vision
-Read .specwright/CONSTITUTION.md # Development practices
+Read {repoStateRoot}/CHARTER.md
+Read {repoStateRoot}/CONSTITUTION.md
 ```
 
-### 3. Resume Active Work
+Read `{repoStateRoot}/TESTING.md` only when the resumed skill needs testing
+boundaries and the file exists.
 
-**If active work exists:**
-- Read the current work unit's spec/plan documents
-- Check progress markers in workflow.json
+### 4. Resume Active Work
+
+**If selected work exists:**
+- Read the current work unit's `spec.md` and `plan.md` from the selected
+  work's `workflow.workDir`
+- Check progress markers in the selected work's `workflow.json`
 - Resume from current state
 
 **Never:**
@@ -32,14 +57,15 @@ Read .specwright/CONSTITUTION.md # Development practices
 - Assume what was happening
 - Restart from scratch
 
-### 4. Skill-Specific Recovery
+### 5. Skill-Specific Recovery
 
-Each skill's documentation has a "Failure Modes" section with specific recovery notes.
+Each skill's documentation has a "Failure Modes" section with specific recovery
+notes.
 
-Example:
-- If plan exists but tasks don't → resume at task decomposition
-- If tasks exist but evidence missing → re-run last gate
-- If lock is stale → clear lock and resume
+Examples:
+- If plan exists but tasks do not, resume at task decomposition
+- If evidence is missing, re-run the last gate
+- If a per-work lock is stale, clear it on the selected work only and resume
 
 ## Critical Rule
 

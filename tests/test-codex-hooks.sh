@@ -64,6 +64,72 @@ make_project() {
   mkdir -p "$dir/.specwright/state"
 }
 
+git_common_dir() {
+  git -C "$1" rev-parse --path-format=absolute --git-common-dir
+}
+
+git_dir() {
+  git -C "$1" rev-parse --path-format=absolute --git-dir
+}
+
+repo_state_root() {
+  printf '%s/specwright\n' "$(git_common_dir "$1")"
+}
+
+worktree_state_root() {
+  printf '%s/specwright\n' "$(git_dir "$1")"
+}
+
+fresh_timestamp() {
+  date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
+make_shared_project() {
+  local dir="$1"
+  local work_id="$2"
+  local status="$3"
+  local branch="${4:-$(git -C "$dir" branch --show-current)}"
+  local repo_root worktree_root work_dir
+
+  repo_root="$(repo_state_root "$dir")"
+  worktree_root="$(worktree_state_root "$dir")"
+  work_dir="$repo_root/work/$work_id"
+
+  mkdir -p "$work_dir" "$worktree_root"
+  cat > "$repo_root/config.json" <<'EOF'
+{
+  "version": "2.0"
+}
+EOF
+  cat > "$worktree_root/session.json" <<EOF
+{
+  "version": "3.0",
+  "worktreeId": "test-worktree",
+  "worktreePath": "$(cd "$dir" && pwd -P)",
+  "branch": "$branch",
+  "attachedWorkId": "$work_id",
+  "mode": "top-level",
+  "lastSeenAt": "$(fresh_timestamp)"
+}
+EOF
+  cat > "$work_dir/workflow.json" <<EOF
+{
+  "version": "3.0",
+  "id": "$work_id",
+  "status": "$status",
+  "workDir": "work/$work_id",
+  "unitId": "unit-$work_id",
+  "tasksCompleted": ["t1"],
+  "tasksTotal": 3,
+  "branch": "$branch",
+  "gates": {
+    "build": { "verdict": "PASS" },
+    "tests": { "verdict": "PASS" }
+  }
+}
+EOF
+}
+
 write_workflow() {
   local dir="$1"
   local status="$2"
@@ -121,6 +187,35 @@ output="$(
 assert_contains "$output" "Specwright: Work in progress" "session-start prints active-work summary"
 assert_contains "$output" "WU-001 (building)" "session-start includes work id and status"
 
+T="$TEST_TMPDIR/session-start-lock"
+make_project "$T"
+mkdir -p "$T/.specwright/work/WU-001"
+cat > "$T/.specwright/state/workflow.json" <<'EOF'
+{
+  "currentWork": {
+    "id": "WU-001",
+    "status": "building",
+    "workDir": ".specwright/work/WU-001",
+    "tasksCompleted": ["t1"],
+    "tasksTotal": 3
+  },
+  "gates": {
+    "build": { "status": "PASS" }
+  },
+  "lock": {
+    "skill": "sw-build",
+    "since": "2026-03-23T10:00:00.000Z"
+  }
+}
+EOF
+output="$(
+  {
+    cd "$T" &&
+    node "$SESSION_START_HOOK"
+  } 2>/dev/null || true
+)"
+assert_contains "$output" "Lock held by" "session-start surfaces lock warnings"
+
 T="$TEST_TMPDIR/session-start-nested-primary"
 init_git_repo "$T"
 make_project "$T"
@@ -148,6 +243,20 @@ output="$(
   } 2>/dev/null || true
 )"
 assert_contains "$output" "Specwright: Work in progress" "session-start resolves workflow from nested linked worktree"
+
+T="$TEST_TMPDIR/session-start-shared-primary"
+L="$TEST_TMPDIR/codex-session-start-shared-linked"
+init_git_repo "$T"
+git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b codex-session-start-shared-linked "$L" HEAD
+make_shared_project "$L" "shared-codex-start" "building"
+mkdir -p "$L/deep/shared"
+output="$(
+  {
+    cd "$L/deep/shared" &&
+    node "$SESSION_START_HOOK"
+  } 2>/dev/null || true
+)"
+assert_contains "$output" "shared-codex-start (building)" "session-start resolves shared attached work from linked worktree"
 
 echo "--- PreToolUse shipping guard ---"
 T="$TEST_TMPDIR/pre-ship-blocked"
@@ -204,6 +313,22 @@ else
   fail "pre-ship guard did not deny nested primary worktree PR creation"
 fi
 
+T="$TEST_TMPDIR/pre-ship-shared"
+init_git_repo "$T"
+make_shared_project "$T" "shared-codex-guard" "building"
+payload='{"tool_input":{"command":"gh pr create --title shared --body shared"}}'
+output="$(
+  {
+    cd "$T" &&
+    printf '%s' "$payload" | node "$PRE_SHIP_HOOK"
+  } 2>/dev/null || true
+)"
+if [ -n "$output" ] && echo "$output" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1; then
+  pass "pre-ship guard denies shared-layout PR creation outside shipping"
+else
+  fail "pre-ship guard did not deny shared-layout PR creation"
+fi
+
 echo "--- Stop hook ---"
 T="$TEST_TMPDIR/stop-no-state"
 mkdir -p "$T"
@@ -242,6 +367,27 @@ if [ -f "$T/.specwright/state/continuation.md" ]; then
   assert_contains "$snapshot" "## Current State" "continuation includes Current State section"
 else
   fail "stop hook did not write continuation snapshot"
+fi
+
+T="$TEST_TMPDIR/stop-shared"
+init_git_repo "$T"
+make_shared_project "$T" "shared-codex-stop" "building"
+output="$(
+  {
+    cd "$T" &&
+    printf '{}' | node "$STOP_HOOK"
+  } 2>/dev/null || true
+)"
+if echo "$output" | jq -e '.continue == true' >/dev/null 2>&1; then
+  pass "stop hook returns continue=true with shared active work"
+else
+  fail "stop hook invalid output with shared active work"
+fi
+
+if [ -f "$(worktree_state_root "$T")/continuation.md" ]; then
+  pass "stop hook writes shared continuation snapshot to worktreeStateRoot"
+else
+  fail "stop hook did not write shared continuation snapshot"
 fi
 
 T="$TEST_TMPDIR/stop-nested-primary"

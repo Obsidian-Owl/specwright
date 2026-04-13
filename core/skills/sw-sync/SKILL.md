@@ -45,6 +45,8 @@ claimed by a live Specwright session or a subordinate helper worktree.
   - branches recorded by live `session.json` files across `git worktree list`
   - branches recorded in attached work `workflow.json.branch`
   - helper branch patterns `worktree-*` and `specwright-wt-*`
+- Treat subordinate helper worktrees discovered via `git worktree list --porcelain`
+  as protected branch owners even when they are not user-facing sessions.
 - Never delete a branch that appears in that protection set.
 
 **Stale branch detection (HIGH freedom):**
@@ -52,6 +54,7 @@ claimed by a live Specwright session or a subordinate helper worktree.
 - Supplementary signal: `git branch --merged` against the configured base branch
 - Do not promote a branch to deletion solely because it is merged if a live
   session still references it.
+- Do not delete a branch when a live session or subordinate helper still claims it.
 
 **Safety checks (LOW freedom):**
 - Validate each candidate branch with `git check-ref-format --branch` before

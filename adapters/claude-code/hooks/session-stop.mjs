@@ -4,27 +4,20 @@
  * Deterministic — no LLM involved.
  */
 
-import { readFileSync, existsSync } from 'fs';
-import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
-
-const statePath = resolveLegacyStatePaths().workflowPath;
-
-if (!existsSync(statePath)) {
-  // No Specwright state — nothing to warn about
-  console.log(JSON.stringify({ ok: true }));
-  process.exit(0);
-}
+import { loadSpecwrightState, normalizeActiveWork } from '../../shared/specwright-state-paths.mjs';
 
 try {
-  const state = JSON.parse(readFileSync(statePath, 'utf-8'));
-  const work = state.currentWork;
+  const stateInfo = loadSpecwrightState();
+  if (!stateInfo.workflow) {
+    console.log(JSON.stringify({ ok: true }));
+    process.exit(0);
+  }
 
+  const work = normalizeActiveWork(stateInfo);
   if (work && !['shipped', 'abandoned', null].includes(work.status)) {
-    const completed = work.tasksCompleted?.length ?? 0;
-    const total = work.tasksTotal ?? '?';
     console.log(JSON.stringify({
       ok: false,
-      reason: `Specwright has active work: ${work.id} (status: ${work.status}, ${completed}/${total} tasks done). Consider running /sw-status before ending this session, or /sw-status --reset to abandon.`
+      reason: `Specwright has active work: ${work.workId} (status: ${work.status}, ${work.completedCount}/${work.totalCount} tasks done). Consider running /sw-status before ending this session, or /sw-status --reset to abandon.`
     }));
   } else {
     console.log(JSON.stringify({ ok: true }));

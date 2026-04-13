@@ -6,32 +6,21 @@
  */
 
 import { readFileSync, existsSync, unlinkSync } from 'fs';
-import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
-
-const statePaths = resolveLegacyStatePaths();
-const statePath = statePaths.workflowPath;
-const continuationPath = statePaths.continuationPath;
-
-if (!existsSync(statePath)) {
-  process.exit(0);
-}
+import { loadSpecwrightState, normalizeActiveWork } from '../../shared/specwright-state-paths.mjs';
 
 try {
-  const state = JSON.parse(readFileSync(statePath, 'utf-8'));
-  const work = state?.currentWork;
+  const stateInfo = loadSpecwrightState();
+  const continuationPath = stateInfo.continuationPath;
+  const work = normalizeActiveWork(stateInfo);
 
   if (!work || ['shipped', 'abandoned'].includes(work.status)) {
     process.exit(0);
   }
 
-  const completed = work.tasksCompleted?.length ?? 0;
-  const total = work.tasksTotal ?? '?';
-  const workDir = work.workDir || `.specwright/work/${work.id}`;
   const unitLine = work.unitId ? `  Active Unit: ${work.unitId}\n` : '';
-
-  const gatesSummary = Object.entries(state.gates || {})
-    .map(([name, g]) => `${name}: ${g.status}`)
-    .join(', ') || 'none run';
+  const lockWarning = work.lock
+    ? `\n  WARNING: Lock held by "${work.lock.skill}" since ${work.lock.since}`
+    : '';
 
   let continuationContent = '';
   if (existsSync(continuationPath)) {
@@ -59,12 +48,13 @@ try {
 
   const summary = [
     'Specwright: Work in progress',
-    `  Unit: ${work.id} (${work.status})`,
+    `  Unit: ${work.workId} (${work.status})`,
     unitLine ? unitLine.trimEnd() : null,
-    `  Progress: ${completed}/${total} tasks`,
-    `  Gates: ${gatesSummary}`,
-    `  Spec: ${workDir}/spec.md`,
-    `  Plan: ${workDir}/plan.md`,
+    `  Progress: ${work.completedCount}/${work.totalCount} tasks`,
+    `  Gates: ${work.gatesSummary}`,
+    `  Spec: ${work.specPath}`,
+    `  Plan: ${work.planPath}`,
+    lockWarning,
     shippingWarning,
     continuationContent
   ].filter(Boolean).join('\n');

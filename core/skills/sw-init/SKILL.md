@@ -30,13 +30,16 @@ configuration and anchor documents that will guide all future work.
 
 When complete, ALL of the following exist:
 
-- `.specwright/config.json` -- detected + configured project settings
-- `.specwright/CONSTITUTION.md` -- development practices the AI must follow
-- `.specwright/CHARTER.md` -- technology vision and project identity
-- `.specwright/state/workflow.json` -- initialized empty state
+- `{repoStateRoot}/config.json` -- detected + configured project settings
+- `{repoStateRoot}/CONSTITUTION.md` -- development practices the AI must follow
+- `{repoStateRoot}/CHARTER.md` -- technology vision and project identity
+- `{repoStateRoot}/work/` -- shared work root, initialized and empty
+- `{worktreeStateRoot}/session.json` -- initialized detached top-level session for
+  the current worktree
 
 Optional (created if the user opts in):
-- `.specwright/TESTING.md` -- testing strategy: boundaries, infrastructure, mock allowances
+- `{repoStateRoot}/TESTING.md` -- testing strategy: boundaries,
+  infrastructure, mock allowances
 - Hooks set up if the user wants them
 
 Quality gates are configured in config (all six default to enabled; user may disable).
@@ -44,11 +47,13 @@ Quality gates are configured in config (all six default to enabled; user may dis
 ## Constraints
 
 **Worktree context (LOW freedom):**
-- Check `worktreeContext` per `protocols/context.md`. If `linked`, WARN: "This is a linked
-  git worktree. `.specwright/` created here will not be visible in other worktrees (it's
-  gitignored). Consider running `/sw-init` in the main worktree instead." The user may
-  proceed — this is a warning, not a block. Creating local `.specwright/` in a linked
-  worktree is a valid use case for isolated work.
+- Check `worktreeContext` per `protocols/context.md`.
+- If `linked`, explain that shared Specwright state lives under `{repoStateRoot}` and that a linked worktree can bootstrap its local session root against shared repo state.
+- If the shared layout already exists, reuse it and create or repair only this
+  worktree's `{worktreeStateRoot}/session.json`.
+- If the shared layout does not exist yet, say that `/sw-init` will create the
+  repo-level state under the Git common dir plus a session root for the current
+  worktree. This is a warning, not a block.
 
 **Detection (MEDIUM freedom):**
 - Scan codebase: language(s), framework(s), package manager, test runner, linting/formatting, git workflow, CI/CD. Read dependency manifests. Don't guess what you can detect.
@@ -113,9 +118,16 @@ Quality gates are configured in config (all six default to enabled; user may dis
 - If old git schema detected: offer migration with sensible defaults.
 
 **Configuration (LOW freedom):**
-- Write `.specwright/config.json` with detected and configured values.
-- Create `.specwright/state/workflow.json` with empty initial state.
-- Create directory structure: `.specwright/state/`, `.specwright/work/`, `.specwright/learnings/`. If survey produced LANDSCAPE.md, include it (optional).
+- Write `{repoStateRoot}/config.json` with detected and configured values.
+- Create `{repoStateRoot}/work/`, `{repoStateRoot}/research/`, and
+  `{repoStateRoot}/learnings/`. If survey produced LANDSCAPE.md, write it
+  under `{repoStateRoot}`.
+- Create `{worktreeStateRoot}/session.json` as a detached top-level session for
+  the current worktree. Initialize `attachedWorkId: null`, current branch when
+  available, `mode: "top-level"`, and fresh `lastSeenAt`.
+- If a legacy checkout-local `.specwright/` install exists, treat it as
+  migration input only: import the shared docs/config the user keeps, then
+  write all repaired state to `{repoStateRoot}` and `{worktreeStateRoot}` only.
 - Follow `protocols/state.md` for state file format.
 
 **Gate configuration (MEDIUM freedom):**
