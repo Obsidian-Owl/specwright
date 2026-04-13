@@ -44,6 +44,15 @@ other works are active in the repository, and what the next action should be.
 - If no work is attached in this worktree, say so and suggest `/sw-design`.
 - Keep the output concise.
 
+**Non-interactive context (LOW freedom):**
+- Follow `protocols/headless.md` when AskUserQuestion is unavailable.
+- `--reset`: abort without confirmation and report that reset requires a human.
+- `--cleanup`: report-only. List eligible work directories but do not delete
+  them.
+- `--repair`: report-only. Inspect the selected or uniquely matched work/unit,
+  print what interactive repair would do, and never mutate workflow state in
+  headless mode.
+
 **Reset mode (LOW freedom):**
 - `--reset` applies to the work attached to this worktree session.
 - Confirm with the user before mutating anything.
@@ -67,10 +76,11 @@ other works are active in the repository, and what the next action should be.
 - If the match is ambiguous across works, stop and tell the user which work IDs
   conflict.
 - Repair applies only to shipped units with `prNumber=null`.
-- If `gh` proves a merged PR, update only the owning work's `prNumber` and
-  `prMergedAt`.
+- If `gh` confirms a merged PR, populate the owning work's `prNumber` and `prMergedAt` and report `repaired`.
 - If no PR can be proven, offer the same three outcomes as before:
   `revert-to-building`, `mark-abandoned`, `force-shipped-with-note`.
+- `force-shipped-with-note` appends the user's assertion to the owning
+  `decisions.md`.
 
 ## Protocol References
 

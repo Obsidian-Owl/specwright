@@ -55,17 +55,22 @@ and per-worktree session model, then print actionable repair hints.
 11. **OpenGrep** — INFO availability only
 12. **LSP** — PASS/WARN/INFO based on available platform or standalone LSP
 13. **STATE_DRIFT** — enumerate repo-wide workflows and flag shipped units with
-    `prNumber=null`
+    `status=shipped` and `prNumber=null`
+
+STATE_DRIFT findings must print the inline remediation command
+`sw-status --repair {unitId}` and include the owning work ID.
 
 **STATE_DRIFT backfill (MEDIUM freedom):**
+- On the first invocation, attempt a one-time backfill for any shipped unit with
+  `status=shipped` and `prNumber=null`.
 - Candidate set: shipped units with `prNumber=null` across all discovered
   workflows.
-- Detection order is strict:
-  1. `gh` lookup
-  2. `git log` / merge confirmation
-  3. otherwise leave the fields untouched and warn
+- Detection order is strict: `gh` lookup, then `git log` / merge confirmation,
+  then warn and leave the fields untouched.
+- Backfill order is `gh`, then `git log`, then warn.
 - Backfill scope is limited to `prNumber` and `prMergedAt` on the owning work's
   workflow file.
+- Backfill never modifies `status`; it only writes `prNumber` and `prMergedAt`.
 
 **Output format (MEDIUM freedom):**
 - Print the same PASS/WARN/FAIL/INFO table shape as the existing doctor output.
@@ -75,6 +80,7 @@ and per-worktree session model, then print actionable repair hints.
 **Workflow mutation scope (LOW freedom):**
 - The only allowed mutation is STATE_DRIFT backfill.
 - When mutating a work's `workflow.json`, follow `protocols/state.md`.
+- Doctor never modifies `status`; only `prNumber` and `prMergedAt` may change.
 
 ## Protocol References
 
