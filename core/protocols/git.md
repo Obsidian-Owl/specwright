@@ -1,6 +1,7 @@
 # Git Operations Protocol
 
-All git behavior is driven by `config.json` `git` section. Nothing is hardcoded.
+All git behavior is driven by the `git` section of `config.json`. Nothing is
+hardcoded.
 
 ## Config Schema
 
@@ -22,128 +23,181 @@ All git behavior is driven by `config.json` `git` section. Nothing is hardcoded.
 ```
 
 | Field | Type | Default | Description |
-|-------|------|---------|-------------|
+|---|---|---|---|
 | `strategy` | enum | `trunk-based` | `trunk-based`, `github-flow`, `gitflow`, `custom` |
-| `baseBranch` | string | `main` | Primary integration branch |
-| `branchPrefix` | string | `feat/` | Prefix for feature branches |
+| `baseBranch` | string | `main` | primary integration branch |
+| `branchPrefix` | string | `feat/` | prefix for feature branches |
 | `mergeStrategy` | enum | `squash` | `squash`, `rebase`, `merge` |
-| `prRequired` | boolean | `true` | Whether PRs are required for shipping |
+| `prRequired` | boolean | `true` | whether PRs are required for shipping |
 | `commitFormat` | enum | `conventional` | `conventional`, `freeform`, `custom` |
-| `commitTemplate` | string | `null` | Template for `custom` format. Placeholders: `{type}`, `{scope}`, `{description}` |
-| `branchPerWorkUnit` | boolean | `true` | Create a branch per work unit |
-| `cleanupBranch` | boolean | `true` | Delete branch after merge |
+| `commitTemplate` | string | `null` | template for `custom` format |
+| `branchPerWorkUnit` | boolean | `true` | create a branch per work unit |
+| `cleanupBranch` | boolean | `true` | delete branch after merge |
 | `prTool` | string | `gh` | CLI tool for PR creation |
 
-Missing fields fall back to defaults. Old config schemas (e.g., `defaultBranch` instead of `baseBranch`, `conventionalCommits` instead of `commitFormat`) are detected and migrated by sw-init.
+## Logical Roots And Selected Work
+
+Git operations that participate in the Specwright workflow use the same logical
+roots as `protocols/context.md` and `protocols/state.md`:
+
+| Root | Resolution | Purpose |
+|---|---|---|
+| `projectRoot` | `git rev-parse --show-toplevel` | checkout path and command cwd |
+| `repoStateRoot` | `git rev-parse --git-common-dir` + `/specwright` | shared work records |
+| `worktreeStateRoot` | `git rev-parse --git-dir` + `/specwright` | current session record |
+
+The selected work comes from `worktreeStateRoot/session.json.attachedWorkId`
+unless a later skill introduces an explicit selector.
+
+## Branch Ownership Rules
+
+Top-level Git workflow operations apply only when all of the following are
+true:
+
+1. the current session exists and `session.json.mode == "top-level"`
+2. the session is attached to the selected work
+3. the selected work's `workflow.json.attachment.worktreeId` matches the
+   current session's `worktreeId`
+4. no other live top-level session claims that work
+
+If any check fails, STOP with explicit adopt/takeover guidance. Do not allow
+two top-level worktrees to mutate or ship the same work silently.
+
+Subordinate sessions may create temporary helper branches for orchestration,
+but they must not push, verify, or ship the parent work directly.
 
 ## Branch Lifecycle
 
 **Create** (at build start):
+
 ```bash
-git checkout config.git.baseBranch
+git checkout {config.git.baseBranch}
 git fetch origin
-git pull origin config.git.baseBranch
-git checkout -b {config.git.branchPrefix}{work-unit-id}
-```
-If branch already exists (recovery): `git checkout {branch}`.
-
-**Sync check** (at build start, after branch setup):
-Compare local baseBranch with origin/baseBranch. If behind, warn the user
-with the commit count. Advisory only — let the user decide whether to
-rebase. If branch already exists (recovery): also check for upstream drift.
-
-**Work**: All task commits happen on the feature branch. Never on baseBranch.
-
-**Push** (at ship):
-```bash
-git push -u origin {branch}
+git pull --ff-only origin {config.git.baseBranch}
+git checkout -b {config.git.branchPrefix}{work-or-unit-id}
 ```
 
-**Cleanup** (after merge, if `config.git.cleanupBranch`):
-- Delete local feature branch: `git branch -d {branch}`
-- Delete remote branch if it still exists: `git push origin --delete {branch}`
-- Prune stale remote refs: `git fetch --prune`
-- Sync base branch: `git checkout {baseBranch} && git pull origin {baseBranch}`
+If the branch already exists during recovery, switch to it instead of creating
+it again.
+
+When a branch becomes the active branch for a work:
+
+- record it in the selected work's `workflow.json.branch`
+- mirror the current branch in `session.json.branch`
+
+Branch names remain config-driven. Specwright must not hardcode `main`, a
+single remote, or a single unit naming scheme outside the config contract.
+
+## Sync Check
+
+At build start, after branch setup:
+
+- compare the local base branch with `origin/{baseBranch}`
+- warn if the base branch is behind
+- if the feature branch already exists, also check upstream drift for the
+  session-attached branch
+
+This is advisory only unless a skill adds a stricter policy.
 
 ## Strategy: Branch + PR Targets
 
 Read `config.git.strategy`:
 
 | Strategy | Branch from | PR targets | Merge style |
-|----------|------------|------------|-------------|
-| `trunk-based` | baseBranch | baseBranch | squash (default) |
-| `github-flow` | baseBranch | baseBranch | merge or squash |
+|---|---|---|---|
+| `trunk-based` | base branch | base branch | squash (default) |
+| `github-flow` | base branch | base branch | merge or squash |
 | `gitflow` | `develop` | `develop` (feature), `main` (release) | merge |
 | `custom` | ask user | ask user | ask user |
 
-For `custom` strategy: prompt the user with AskUserQuestion for each git operation that would normally be derived from config. This is the escape hatch.
+For `custom` strategy: prompt the user for operations that are not derivable
+from config.
 
 ## Staging Rules
 
-**ALWAYS stage specific files by path:**
+Always stage specific files by path:
+
 ```bash
-git add src/foo.ts protocols/git.md
+git add src/foo.ts core/protocols/git.md
 ```
 
-**NEVER use:** `git add -A`, `git add .`, `git add --all`
+Never use:
+
+- `git add -A`
+- `git add .`
+- `git add --all`
 
 ## Blocked Operations
 
-**NEVER run these commands. They are destructive to worktrees or working state.**
+Never run these commands:
 
-- `git worktree prune` — Global operation that can destroy worktrees outside Specwright's
-  control. If orphaned worktree metadata needs cleanup, use `git worktree remove` on
-  specific known paths within `.specwright/worktrees/` only.
-- `git worktree remove --force` — If `git worktree remove` fails, warn the user. Do not
-  force-remove. Forced removal bypasses safety checks that protect active worktrees.
-- `git checkout .` / `git restore .` — Discards all changes globally. Use specific file
-  paths instead.
+- `git worktree prune`
+- `git worktree remove --force`
+- `git checkout .`
+- `git restore .`
+
+These are destructive to worktree safety or working state.
 
 ## Commit Format
 
-Read `config.git.commitFormat`:
+Read `config.git.commitFormat`.
 
 **conventional** (default):
-```
+
+```text
 {type}({scope}): {description}
 ```
+
 Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `ci`.
-Scope: detect from changed file paths (e.g., `protocols`, `skills`, `gate-*`).
 
-**freeform**: No enforced structure. Descriptive message referencing work unit.
+**freeform:** no enforced structure.
 
-**custom**: Use `config.git.commitTemplate` as the pattern. Substitute `{type}`, `{scope}`, `{description}` placeholders.
+**custom:** use `config.git.commitTemplate`.
 
-**Scope detection:**
-```bash
-git diff --name-only config.git.baseBranch...HEAD 2>/dev/null || git diff --name-only HEAD~10
-```
+Always use a heredoc for the commit message:
 
-**Always use HEREDOC for commits:**
 ```bash
 git commit -m "$(cat <<'EOF'
-feat(auth): implement OAuth flow
+feat(scope): description
 
 Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
 ```
 
-The `Co-Authored-By` trailer is always included.
+## Commit Recovery
 
-## Commit Recovery (Pre-commit Hook Failures)
+If `git commit` fails and the output shows formatter-like rewrites, re-stage
+only the affected paths and retry once. If the second attempt fails, stop and
+show the error.
 
-If `git commit` exits non-zero AND output contains formatter-like patterns ("reformatted", "fixed", file modification reports), re-stage the modified files and retry once. If the second attempt fails, stop and show the error to the user.
+## Push
 
-This extends the build skill's `config.commands.format` handling (which runs formatters *before* commit) to cover formatters invoked *by* pre-commit hooks outside Specwright's config.
+Only the attached top-level owner of a work may push its workflow branch:
+
+```bash
+git push -u origin {branch}
+```
+
+If the session branch does not match the selected work's recorded branch,
+STOP and surface the mismatch before any push.
 
 ## PR Creation
 
-**Prerequisite:** `currentWork.status` must be `shipping`. If status is anything
-else, STOP with: "PR creation requires shipping state. Run /sw-verify then /sw-ship."
+PR creation is allowed only when all of the following are true:
+
+1. the selected work's `workflow.json.status` is `shipping`
+2. the current session is `top-level`
+3. the current session is attached to that work
+4. the work's recorded attachment still points at this worktree
+5. the current branch matches the selected work's recorded branch
+
+If any prerequisite fails, STOP with:
+
+> "PR creation requires the attached work to be in shipping state and owned by this top-level worktree. Run /sw-verify then /sw-ship from the owning checkout."
 
 Read `config.git.prTool` (default: `gh`).
-If `config.git.prRequired` is false: ask user preference.
+If `config.git.prRequired` is false, ask the user for preference.
 
 ```bash
 gh pr create --title "{title}" --base {target} --body "$(cat <<'EOF'
@@ -153,3 +207,14 @@ EOF
 ```
 
 PR title follows the configured commit format style.
+
+## Cleanup
+
+After merge, if `config.git.cleanupBranch` is true:
+
+- delete the local feature branch with `git branch -d`
+- delete the remote branch only if it still exists
+- prune stale remote refs
+- sync the base branch with `--ff-only`
+
+Never delete branches referenced by live sessions or subordinate worktrees.

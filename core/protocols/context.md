@@ -1,162 +1,178 @@
 # Context Loading Protocol
 
+## Logical Roots
+
+Every skill, hook, and adapter resolves the same three logical roots on every
+invocation:
+
+| Root | Resolution | Purpose |
+|---|---|---|
+| `projectRoot` | `git rev-parse --show-toplevel` | source tree and user-facing cwd |
+| `repoStateRoot` | `git rev-parse --git-common-dir` + `/specwright` | shared repo-level Specwright state |
+| `worktreeStateRoot` | `git rev-parse --git-dir` + `/specwright` | per-worktree session and continuation state |
+
+Callers must prefer those logical roots over checkout-local `.specwright/...`
+path concatenation.
+
 ## Standard Context Documents
 
-### Anchor Documents
-Load when needed for alignment/verification:
+### Shared repo documents
 
-- `.specwright/CONSTITUTION.md` — Development practices and principles
-- `.specwright/CHARTER.md` — Technology vision and project purpose
-- `.specwright/TESTING.md` — Testing strategy: boundaries, mock allowances, test infrastructure (optional — if absent, Constitution testing rules are the sole authority. See `protocols/testing-strategy.md` for precedence: Constitution > TESTING.md > patterns.md)
+Load from `repoStateRoot` when needed for alignment or verification:
 
-### Configuration
-- `.specwright/config.json` — Project settings, commands, gates, git, integration
-  - `backlog.type` / `backlog.label` — backlog target (optional; read before writing backlog items per `protocols/backlog.md`)
+- `{repoStateRoot}/config.json` — project settings, commands, gates, git,
+  integration, backlog settings
+- `{repoStateRoot}/CONSTITUTION.md` — development practices and principles
+- `{repoStateRoot}/CHARTER.md` — technology vision and project purpose
+- `{repoStateRoot}/TESTING.md` — testing strategy (optional; if absent,
+  Constitution testing rules remain authoritative)
+- `{repoStateRoot}/LANDSCAPE.md` — codebase architecture and module knowledge
+  (optional)
+- `{repoStateRoot}/AUDIT.md` — codebase health findings and tech debt tracking
+  (optional)
+- `{repoStateRoot}/research/*.md` — external research briefs (loaded by
+  `sw-design` on demand; warn if stale per `protocols/research.md`)
 
-### State
-- `.specwright/state/workflow.json` — Current progress, gate results, lock status
+### Per-work documents
 
-### Reference Documents
-Load on demand when codebase structure knowledge is needed:
+Load from the selected work under `repoStateRoot/work/{workId}`:
 
-- `.specwright/LANDSCAPE.md` — Codebase architecture and module knowledge (optional)
-- `.specwright/AUDIT.md` — Codebase health findings and tech debt tracking (optional)
-- `.specwright/research/*.md` — External research briefs (loaded by sw-design only; warn if stale per `protocols/research.md`)
+- `workflow.json` — lifecycle, gates, units, attachment, per-work lock
+- `design.md`, `context.md`, `decisions.md`, `assumptions.md`
+- `units/{unitId}/spec.md`, `plan.md`, `context.md`, `stage-report.md`,
+  `evidence/`
 
-## Worktree Detection
+### Per-worktree documents
 
-Detect whether the current working directory is a linked git worktree before
-accessing any `.specwright/` state files. This detection runs on every skill
-invocation (recomputed, not cached).
+Load from `worktreeStateRoot`:
 
-**Detection logic:**
+- `session.json` — the current worktree's attached work, mode, branch, and
+  `lastSeenAt`
+- `continuation.md` — worktree-local continuation snapshot (optional)
 
-1. Check if `.git` is a file (not a directory).
-2. If `.git` is a file, read its content and check the `gitdir:` path:
-   - Path contains `/worktrees/` → `worktreeContext = linked` (linked worktree)
-   - Path contains `/modules/` → `worktreeContext = primary` (git submodule)
-   - Any other content → `worktreeContext = primary` (unknown, conservative)
-3. If `.git` is a directory → `worktreeContext = primary` (main worktree)
-4. If `.git` is unreadable (permissions) → `worktreeContext = primary` (conservative)
-5. If `.git` does not exist → `worktreeContext = primary` (not a git repo; git ops will fail separately)
+## Root Resolution Sequence
 
-**Values:**
-- `primary` — main worktree, submodule, or unreadable `.git`. Normal behavior.
-- `linked` — linked git worktree (Claude Code Desktop, `--worktree` flag, user-created).
+Run this sequence before loading Specwright state:
 
-Skills reference `worktreeContext` in their pre-condition checks alongside config
-and state loading. Detection runs before state file access.
+1. resolve `projectRoot`
+2. resolve `gitDir`
+3. resolve `gitCommonDir`
+4. derive `repoStateRoot`
+5. derive `worktreeStateRoot`
 
-## Linked Worktree Degradation
+If Git root resolution fails, report which root failed and whether the problem
+is local to this worktree or repo-wide.
 
-When `worktreeContext` is `linked` AND `.specwright/config.json` does not exist
-(`.specwright/` is gitignored and absent in linked worktrees), skills behave
-according to their tier.
+## Loading Mode
 
-When `worktreeContext` is `primary`, no degradation applies — all skills behave
-normally regardless of this section.
+### Preferred mode: shared/session layout
 
-**Tier A — State-mutating skills (STOP with guidance):**
+If `{repoStateRoot}/config.json` exists, the repository is using the shared
+state layout. That is the normal path for both primary and linked worktrees.
 
-Cannot function without `.specwright/` state. STOP message:
-> Running in a linked git worktree — Specwright state files are not present
-> (`.specwright/` is gitignored). To use this skill, switch to the main worktree
-> or run `/sw-init` here to create local state.
+**Important:** a linked worktree is not degraded merely because the checkout
+lacks a working-tree `.specwright/` directory. Shared repo state lives under
+`repoStateRoot`, and session-local state lives under `worktreeStateRoot`.
 
-| Skill | Rationale |
-|-------|-----------|
-| sw-design | Creates currentWork, writes design artifacts |
-| sw-plan | Writes specs, plans, transitions state |
-| sw-build | Commits, updates tasksCompleted, transitions state |
-| sw-ship | Creates PR, sets shipped status |
-| sw-pivot | Modifies plan.md, revises tasks |
-| sw-learn | Writes patterns.md, clears currentWork |
-| sw-verify | Sets status to verifying, writes gate results and evidence files |
+### Migration fallback: legacy working-tree layout
 
-**Tier B — Read-only skills (WARN and continue):**
+If the shared/session layout is absent, callers may read legacy files from
+`{projectRoot}/.specwright/` during migration:
 
-Can function without `.specwright/` state. These skills either operate on external
-data (GitHub, codebase) or produce advisory output. The Initialization Checks
-`config.json` gate is suppressed for Tier B skills when `worktreeContext` is `linked`
-— the WARN message replaces the init error.
+- `{projectRoot}/.specwright/config.json`
+- `{projectRoot}/.specwright/CONSTITUTION.md`
+- `{projectRoot}/.specwright/CHARTER.md`
+- `{projectRoot}/.specwright/TESTING.md`
+- `{projectRoot}/.specwright/state/workflow.json`
+- `{projectRoot}/.specwright/state/continuation.md`
 
-WARN message:
-> Running in a linked git worktree — state files may not be present. Results
-> may be incomplete.
+Once either new logical root exists, writes go only to the new layout. Mixed
+read/write behavior is forbidden.
 
-| Skill | Rationale |
-|-------|-----------|
-| sw-review | Fetches PR comments from GitHub — no state needed |
-| sw-status | Reports state — warns if state missing |
-| sw-doctor | Read-only health check |
-| sw-debug | Investigation-first — reads codebase |
-| sw-research | Outward research — no state mutation |
-| sw-audit | Read-only codebase analysis |
+## Session And Work Resolution
 
-**Tier C — Stateless utilities (no change):**
+State-aware callers resolve the selected work in this order:
 
-Never touch `.specwright/state/`. No worktree behavior change needed.
+1. explicit selector, if the skill introduces one
+2. `{worktreeStateRoot}/session.json.attachedWorkId`
+3. legacy fallback during migration only
 
-| Skill | Rationale |
-|-------|-----------|
-| sw-sync | Reads config and workflow.json (active branch); never writes state |
-| sw-guard | Configures external guardrails, no state |
-| sw-init | Creates `.specwright/` — special case* |
-| gate-build | Internal gate invoked by verify |
-| gate-tests | Internal gate invoked by verify |
-| gate-security | Internal gate invoked by verify |
-| gate-wiring | Internal gate invoked by verify |
-| gate-semantic | Internal gate invoked by verify |
-| gate-spec | Internal gate invoked by verify |
+Session-aware callers also read:
 
-*sw-init special case: warns when invoked in a linked worktree (see
-`skills/sw-init/SKILL.md`) but allows the user to proceed. Creating
-`.specwright/` locally in a linked worktree is a valid use case.
+- `session.json.mode` to distinguish `top-level` from `subordinate`
+- `session.json.branch` to compare the current checkout with the attached work
+- `session.json.lastSeenAt` for freshness and repair logic
 
-Gate skills are invoked by sw-verify (Tier A). In a linked worktree without state,
-sw-verify STOPs before invoking any gates.
+If no work can be resolved for an operation that requires one, STOP with:
+
+> "Run /sw-design first."
 
 ## Initialization Checks
 
-**Before any operation:**
+Before any operation:
 
 ```javascript
-// Tier B skills in linked worktrees skip this check (WARN was already emitted)
-if (worktreeContext === 'linked' && skillTier === 'B') {
-  // config.json absence is expected — degradation WARN already shown
-} else if (!exists('.specwright/config.json')) {
+resolveLogicalRoots();
+
+if (exists(repoStateRoot + "/config.json")) {
+  config = read(repoStateRoot + "/config.json");
+} else if (exists(projectRoot + "/.specwright/config.json")) {
+  config = read(projectRoot + "/.specwright/config.json"); // migration only
+} else {
   error("Run /sw-init first.");
 }
+
 if (!config.version) {
-  warn("Config missing version field — re-run /sw-init to upgrade to 2.0.");
-} else if (config.version !== "2.0") {
-  warn("Config version mismatch: expected 2.0, found " + config.version);
+  warn("Config missing version field — re-run /sw-init to upgrade.");
 }
 ```
 
-**Before work-unit operations:**
+Before work-aware operations:
 
 ```javascript
-if (!state.currentWork && requiresWorkUnit) {
+session = readIfExists(worktreeStateRoot + "/session.json");
+workId = explicitSelector || session?.attachedWorkId || legacyFallbackWorkId;
+
+if (requiresWorkUnit && !workId) {
   error("Run /sw-design first.");
 }
 ```
 
+## Worktree Modes
+
+| Mode | Source | Behavior |
+|---|---|---|
+| `top-level` | normal user-facing worktree | may own one attached work and mutate its workflow state |
+| `subordinate` | internal helper worktree such as `parallel-build` | may inherit context, but does not claim top-level ownership or rewrite shared work selection |
+
+Skills that require top-level ownership must enforce it explicitly. They must
+not infer "top-level" from the absence of a linked-worktree marker.
+
 ## Loading Strategy
 
-**Always load:**
-- config.json (for all operations)
-- workflow.json (for state-aware operations)
+Always load:
 
-**Load on demand:**
-- CONSTITUTION.md (when verifying practices)
-- CHARTER.md (when verifying vision alignment)
-- TESTING.md (when writing or auditing tests — if it exists)
-- Work unit artifacts (when operating on specific epic/task)
+- `config.json`
+- `session.json` for session-aware operations
+
+Load on demand:
+
+- the selected work's `workflow.json`
+- `CONSTITUTION.md`, `CHARTER.md`, `TESTING.md`
+- work-local artifacts for the selected work and unit
+
+Read-only repo-wide views such as `sw-status`, `sw-sync`, and `sw-doctor` may
+enumerate all works from `{repoStateRoot}/work/*/workflow.json` in addition to
+reading the current session.
 
 ## Error Handling
 
-If required context missing:
-1. Stop immediately
-2. Provide clear error message
-3. Indicate which command should be run first
+If required context is missing:
+
+1. stop immediately
+2. say which logical root or file could not be resolved
+3. say whether legacy fallback was attempted
+4. indicate which command or repair path should run next
+
+Failures that are local to the current worktree should say so explicitly rather
+than implying the whole repository is broken.
