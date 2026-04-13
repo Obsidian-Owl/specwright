@@ -52,7 +52,7 @@ function deriveWorktreeId(gitDir, gitCommonDir) {
     return tail;
   }
 
-  return `worktree-${createHash('sha1').update(gitDir).digest('hex').slice(0, 12)}`;
+  return `worktree-${createHash('sha256').update(gitDir).digest('hex').slice(0, 12)}`;
 }
 
 export function resolveSpecwrightRoots(options = {}) {

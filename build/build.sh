@@ -377,7 +377,8 @@ build_opencode() {
   cp -r "$ROOT_DIR/core/protocols" "$dist/protocols"
   cp -r "$ROOT_DIR/core/agents" "$dist/agents"
 
-  # Copy adapter content (opencode-specific, no hooks/.claude-plugin/CLAUDE.md)
+  # Copy adapter content (opencode-specific, no hooks/.claude-plugin/CLAUDE.md).
+  # Opencode does not import adapters/shared because it has no runtime hooks.
   cp -r "$ROOT_DIR/adapters/opencode/commands" "$dist/commands"
   cp "$ROOT_DIR/adapters/opencode/package.json" "$dist/package.json"
   cp "$ROOT_DIR/adapters/opencode/plugin.ts" "$dist/plugin.ts"

@@ -8,8 +8,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { resolveLegacyStatePaths } from '../../shared/specwright-state-paths.mjs';
 
-function writeSnapshot(currentWork, gates) {
-  const statePaths = resolveLegacyStatePaths();
+function writeSnapshot(currentWork, gates, statePaths) {
   const stateDir = statePaths.legacyStateRoot;
   const continuationPath = statePaths.continuationPath;
   const workDir = currentWork.workDir || `.specwright/work/${currentWork.id}`;
@@ -56,7 +55,8 @@ try {
     // Ignore missing stdin and proceed with safe JSON output.
   }
 
-  const statePath = resolveLegacyStatePaths().workflowPath;
+  const statePaths = resolveLegacyStatePaths();
+  const statePath = statePaths.workflowPath;
   if (!existsSync(statePath)) {
     emit({ continue: true });
     process.exit(0);
@@ -70,7 +70,7 @@ try {
     process.exit(0);
   }
 
-  writeSnapshot(work, state.gates);
+  writeSnapshot(work, state.gates, statePaths);
   emit({
     continue: true,
     systemMessage: `Specwright continuation snapshot saved for ${work.id}.`
