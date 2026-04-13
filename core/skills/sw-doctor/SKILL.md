@@ -1,9 +1,9 @@
 ---
 name: sw-doctor
 description: >-
-  Specwright health check. Validates that configuration, anchor docs,
-  commands, gates, hooks, and workflow integrity are correctly set up.
-  Produces a PASS/WARN/FAIL table and may backfill shipped PR metadata.
+  Specwright health check. Validates shared config, anchor docs, workflow and
+  session state, commands, gates, and hooks. May backfill shipped PR metadata
+  when it can prove the mapping safely.
 argument-hint: ""
 allowed-tools:
   - Read
@@ -17,111 +17,81 @@ allowed-tools:
 
 ## Goal
 
-Validate that a Specwright installation is correctly configured. Produces a
-health table with ✓/⚠/✗ per check and repair hints for any issues found.
-Also repairs missing shipped-PR metadata when it can prove the mapping safely.
+Validate that a Specwright installation is coherent under the shared repo-state
+and per-worktree session model, then print actionable repair hints.
 
 ## Inputs
 
-- `.specwright/config.json` -- gates, git, commands, backlog config
-- `.specwright/CONSTITUTION.md` and `.specwright/CHARTER.md`
-- `.specwright/state/workflow.json`
-- Plugin root `skills/gate-*/SKILL.md` files
-- Plugin root `hooks/hooks.json` and referenced `.mjs` files
-- `which {cmd}` for each configured command
+- `{repoStateRoot}/config.json`
+- `{repoStateRoot}/CONSTITUTION.md` and `{repoStateRoot}/CHARTER.md`
+- `{worktreeStateRoot}/session.json` when present
+- `{repoStateRoot}/work/*/workflow.json`
+- gate skill files, hook config, and configured commands
 
 ## Outputs
 
-- Health table printed to conversation (no file written)
-- Optional workflow.json backfill of `workUnits[{n}].prNumber` and `prMergedAt`
-  only. `status` is never modified.
+- PASS/WARN/FAIL health table
+- Optional backfill of `prNumber` and `prMergedAt` on the owning work's
+  `workflow.json`
 
 ## Constraints
 
 **Pre-condition (LOW freedom):**
-- If `.specwright/` directory does not exist: STOP immediately.
-  "Specwright not initialized. Run /sw-init first."
+- If neither the shared layout nor the legacy fallback can be resolved, stop
+  immediately and tell the user to run `/sw-init`.
 
 **Checks (LOW freedom — run all 13 in order):**
-1. **Anchor docs** — `.specwright/CONSTITUTION.md` and `.specwright/CHARTER.md` exist and are non-empty
-2. **Config** — `.specwright/config.json` is valid JSON with `gates` and `git` fields present
-3. **State** — `.specwright/state/workflow.json` is valid JSON; `lock` is null or held < 1 hour
-4. **Gates** — for each key `{gate}` in `config.gates` where `config.gates[{gate}].enabled` is `true`, verify `skills/gate-{gate}/SKILL.md` exists
-5. **Build command** — if `config.commands.build` is set, `which {cmd}` exits 0; WARN if not found
-6. **Test command** — if `config.commands.test` is set, `which {cmd}` exits 0; WARN if not found
-7. **Format/lint** — if `config.commands.format` or `config.commands.lint` is set, `which {cmd}` for each; WARN if not found
-8. **Hooks** — if `hooks/hooks.json` exists: must be parseable JSON; each `.mjs` file it references must exist; WARN if missing
-9. **Backlog config** — if `config.backlog.type` is set:
-   - `markdown`: `.specwright/` directory is accessible (PASS)
-   - `github-issues`: run `gh auth status`; WARN if exits non-zero
-10. **ast-grep** — `sg --version 2>&1 | grep -iq ast-grep` succeeds: INFO `ℹ ast-grep available (enables semantic analysis)`; not found or wrong binary: INFO `ℹ ast-grep not installed (optional — enables semantic analysis)`
-11. **OpenGrep** — `which opengrep` exits 0: INFO `ℹ OpenGrep available (enables taint analysis)`; not found: INFO `ℹ OpenGrep not installed (optional — enables taint analysis)`
-12. **LSP** — detect platform LSP (Claude Code: behavioral detection via agent capabilities; Opencode: `.opencode/` config with `lsp` section):
-    - Platform LSP detected: PASS
-    - Only `cli-lsp-client` on PATH: INFO `ℹ Standalone LSP daemon available`
-    - `cli-lsp-client` + platform LSP both detected: WARN `⚠ cli-lsp-client may conflict with platform LSP — duplicate servers cause resource doubling`
-    - Neither: INFO `ℹ No LSP available (optional — enables type-aware analysis)`
-13. **STATE_DRIFT** — scan `workflow.workUnits` for `status=shipped` and
-    `prNumber=null`. For each finding, print the inline remediation command:
-    `→ run: sw-status --repair {unitId}`.
+1. **Anchor docs** — shared Constitution and Charter exist and are non-empty
+2. **Config** — shared config parses and contains `gates` and `git`
+3. **State** — current session parses when present, and every discovered
+   workflow parses with a null or fresh per-work lock
+4. **Gates** — enabled gate skills exist
+5. **Build command** — configured build command exists on PATH
+6. **Test command** — configured test command exists on PATH
+7. **Format/lint** — configured format or lint commands exist on PATH
+8. **Hooks** — hook manifest parses and referenced hook files exist
+9. **Backlog config** — configured backlog target is usable
+10. **ast-grep** — INFO availability only
+11. **OpenGrep** — INFO availability only
+12. **LSP** — PASS/WARN/INFO based on available platform or standalone LSP
+13. **STATE_DRIFT** — enumerate repo-wide workflows and flag shipped units with
+    `status=shipped` and `prNumber=null`
+
+STATE_DRIFT findings must print the inline remediation command
+`sw-status --repair {unitId}` and include the owning work ID.
 
 **STATE_DRIFT backfill (MEDIUM freedom):**
-- On the first sw-doctor invocation against a project, attempt a one-time backfill
-  before printing the final table.
-- Candidate set: `workUnits` entries with `status=shipped` and `prNumber=null`.
-- Detection order is strict:
-  1. `gh` lookup by branch/title/PR search
-  2. `git log` / merge-commit confirmation against the shipped branch history
-  3. If neither proves the mapping, leave `prNumber` null and emit STATE_DRIFT WARN
-- Backfill scope is locked: it may write only `prNumber` and `prMergedAt`; it
-  never modifies `status`, `order`, `workDir`, or any gate result.
-- `prMergedAt` remains null when only the PR number is confirmed and merge time
-  cannot be proven.
-- If `gh` is unavailable or unauthenticated, degrade to the `git log` path, then WARN.
+- On the first invocation, attempt a one-time backfill for any shipped unit with
+  `status=shipped` and `prNumber=null`.
+- Candidate set: shipped units with `prNumber=null` across all discovered
+  workflows.
+- Detection order is strict: `gh` lookup, then `git log` / merge confirmation,
+  then warn and leave the fields untouched.
+- Backfill order is `gh`, then `git log`, then warn.
+- Backfill scope is limited to `prNumber` and `prMergedAt` on the owning work's
+  workflow file.
+- Backfill never modifies `status`; it only writes `prNumber` and `prMergedAt`.
 
 **Output format (MEDIUM freedom):**
-```
-Specwright Health Check
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✓ Anchor docs       PASS
-✓ Config            PASS
-✓ State             PASS
-✓ Gates             PASS
-⚠ Build command     WARN — 'pnpm build' not found on PATH
-✓ Test command      PASS
-✓ Format/lint       PASS
-✗ Hooks             FAIL — hooks/session-start.mjs missing
-✓ Backlog config    PASS
-ℹ ast-grep          INFO — not installed (optional)
-ℹ OpenGrep          INFO — not installed (optional)
-ℹ LSP               INFO — no LSP available (optional)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-7 passed · 1 warning · 1 failure · 3 info
-→ Run /sw-guard to reconfigure hooks.
-```
-- PASS: ✓ prefix, no detail needed
-- INFO: ℹ prefix + brief status description (used for optional tool availability checks)
-- WARN: ⚠ prefix + specific issue description (which file, which command)
-- FAIL: ✗ prefix + specific issue + one repair hint pointing to a command
-- Repair hints: use `→ Run /sw-guard` for hooks/guardrail issues; `→ Run /sw-init` for config/anchor issues; `→ Run gh auth login` for GitHub auth issues
-- If all checks pass: add "All checks passed." after the summary line
+- Print the same PASS/WARN/FAIL/INFO table shape as the existing doctor output.
+- STATE_DRIFT findings must include the owning work ID and unit ID so the user
+  can distinguish repo-wide issues.
 
 **Workflow mutation scope (LOW freedom):**
-- The only allowed mutation is the one-time STATE_DRIFT backfill above.
-- When mutating workflow.json, follow `protocols/state.md` read-modify-write.
-- only `prNumber` and `prMergedAt` may change; backfill never modifies `status`.
-- No other file writes. No lock acquisition unless workflow.json is being written.
+- The only allowed mutation is STATE_DRIFT backfill.
+- When mutating a work's `workflow.json`, follow `protocols/state.md`.
+- Doctor never modifies `status`; only `prNumber` and `prMergedAt` may change.
 
 ## Protocol References
 
-- `protocols/context.md` -- config loading
-- `protocols/state.md` -- workflow.json format reference
+- `protocols/context.md` -- logical-root loading
+- `protocols/state.md` -- per-work workflow format and lock handling
 
 ## Failure Modes
 
 | Condition | Action |
-|-----------|--------|
-| `.specwright/` missing | STOP: "Specwright not initialized. Run /sw-init first." |
-| `config.json` missing but `.specwright/` exists | FAIL that check, continue remaining checks |
-| All checks PASS | Print table, add "All checks passed." |
-| `hooks/hooks.json` absent | SKIP hooks check with INFO note: "No hooks configured." |
+|---|---|
+| shared config missing | fail that check and continue |
+| workflow parse error | fail the state check and identify the owning work |
+| all checks pass | print the table and say all checks passed |
+| hooks absent | INFO: no hooks configured |
