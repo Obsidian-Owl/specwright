@@ -498,6 +498,35 @@ output=$(cd "$L/deep/shared" && node "$SESSION_START_HOOK" 2>/dev/null)
 exit_code=$?
 assert_eq "$exit_code" "0" "session-start: shared linked worktree → exit 0"
 assert_contains "$output" "shared-session-start (building)" "session-start: shared linked worktree → resolves attached shared work"
+assert_not_contains "$output" "Failed to read state" "session-start: shared linked worktree → does not fail without checkout-local config"
+if [ -e "$L/.specwright/config.json" ]; then
+  fail "session-start: shared linked worktree fixture unexpectedly created checkout-local config"
+else
+  pass "session-start: shared linked worktree fixture omits checkout-local config"
+fi
+
+T="$TEST_TMPDIR/t-ss-shared-conflict-primary"
+L="$TEST_TMPDIR/session-start-shared-conflict-linked"
+init_git_repo "$T"
+git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b session-start-shared-conflict-linked "$L" HEAD
+make_shared_project "$T" "shared-conflict" "building"
+mkdir -p "$(worktree_state_root "$L")"
+cat > "$(worktree_state_root "$L")/session.json" <<EOF
+{
+  "version": "3.0",
+  "worktreeId": "session-start-shared-conflict-linked",
+  "worktreePath": "$(cd "$L" && pwd -P)",
+  "branch": "session-start-shared-conflict-linked",
+  "attachedWorkId": "shared-conflict",
+  "mode": "top-level",
+  "lastSeenAt": "$(fresh_timestamp)"
+}
+EOF
+output=$(cd "$L" && node "$SESSION_START_HOOK" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "session-start: shared ownership conflict → exit 0"
+assert_contains "$output" "already active in another top-level worktree" "session-start: shared ownership conflict → warns about another top-level owner"
+assert_contains "$output" "Adopt/takeover required before mutating or shipping it here." "session-start: shared ownership conflict → gives adopt/takeover guidance"
 
 # AC-6: Active work, fresh continuation WITH Correction Summary → output contains both sections
 T="$TEST_TMPDIR/t-ss-fresh-cont"

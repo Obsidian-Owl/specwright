@@ -47,6 +47,15 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local haystack="$1" needle="$2" label="$3"
+  if echo "$haystack" | grep -Fq "$needle"; then
+    fail "$label (found unexpected: '$needle')"
+  else
+    pass "$label"
+  fi
+}
+
 init_git_repo() {
   local dir="$1"
   mkdir -p "$dir"
@@ -257,6 +266,38 @@ output="$(
   } 2>/dev/null || true
 )"
 assert_contains "$output" "shared-codex-start (building)" "session-start resolves shared attached work from linked worktree"
+assert_not_contains "$output" "Failed to read state" "session-start does not fail on linked shared-state worktree without checkout-local config"
+if [ -e "$L/.specwright/config.json" ]; then
+  fail "session-start shared-state fixture unexpectedly created checkout-local config"
+else
+  pass "session-start shared-state fixture omits checkout-local config"
+fi
+
+T="$TEST_TMPDIR/session-start-shared-conflict-primary"
+L="$TEST_TMPDIR/codex-session-start-shared-conflict"
+init_git_repo "$T"
+git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b codex-session-start-shared-conflict "$L" HEAD
+make_shared_project "$T" "shared-codex-conflict" "building"
+mkdir -p "$(worktree_state_root "$L")"
+cat > "$(worktree_state_root "$L")/session.json" <<EOF
+{
+  "version": "3.0",
+  "worktreeId": "codex-session-start-shared-conflict",
+  "worktreePath": "$(cd "$L" && pwd -P)",
+  "branch": "codex-session-start-shared-conflict",
+  "attachedWorkId": "shared-codex-conflict",
+  "mode": "top-level",
+  "lastSeenAt": "$(fresh_timestamp)"
+}
+EOF
+output="$(
+  {
+    cd "$L" &&
+    node "$SESSION_START_HOOK"
+  } 2>/dev/null || true
+)"
+assert_contains "$output" "already active in another top-level worktree" "session-start warns when another top-level worktree already owns the shared work"
+assert_contains "$output" "Adopt/takeover required before mutating or shipping it here." "session-start gives adopt/takeover guidance for shared-work conflicts"
 
 echo "--- PreToolUse shipping guard ---"
 T="$TEST_TMPDIR/pre-ship-blocked"

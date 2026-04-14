@@ -55,6 +55,28 @@ assert_eq() {
   fi
 }
 
+assert_file_contains() {
+  local file="$1"
+  local needle="$2"
+  local label="$3"
+  if grep -Fq "$needle" "$file"; then
+    pass "$label"
+  else
+    fail "$label (not found: '$needle')"
+  fi
+}
+
+assert_file_not_contains() {
+  local file="$1"
+  local needle="$2"
+  local label="$3"
+  if grep -Fq "$needle" "$file"; then
+    fail "$label (found unexpected: '$needle')"
+  else
+    pass "$label"
+  fi
+}
+
 # Extract YAML frontmatter (content between first --- and second ---)
 extract_frontmatter() {
   local file="$1"
@@ -351,6 +373,21 @@ if [ -f "$CC_DIST/README.md" ]; then
 else
   fail "README.md missing from dist/claude-code/"
 fi
+
+echo "--- Worktree-aware root docs ---"
+
+assert_file_contains "$ROOT_DIR/README.md" "git rev-parse --git-common-dir" "README.md documents shared repo state via git-common-dir"
+assert_file_contains "$ROOT_DIR/README.md" "git rev-parse --git-dir" "README.md documents per-worktree session state via git-dir"
+assert_file_not_contains "$ROOT_DIR/README.md" ".specwright/config.json" "README.md no longer points config at checkout-local .specwright/config.json"
+
+assert_file_contains "$ROOT_DIR/DESIGN.md" "{repoStateRoot}" "DESIGN.md describes the shared repo state root"
+assert_file_contains "$ROOT_DIR/DESIGN.md" "{worktreeStateRoot}" "DESIGN.md describes the per-worktree state root"
+assert_file_not_contains "$ROOT_DIR/DESIGN.md" ".specwright/worktrees/" "DESIGN.md no longer describes helper worktrees under .specwright/worktrees/"
+assert_file_not_contains "$ROOT_DIR/DESIGN.md" "workflow.json # Current state" "DESIGN.md no longer describes a singleton .specwright/state/workflow.json layout"
+
+assert_file_contains "$CC_DIST/CLAUDE.md" "repoStateRoot" "dist CLAUDE.md references the shared repo state root"
+assert_file_contains "$CC_DIST/CLAUDE.md" "worktreeStateRoot" "dist CLAUDE.md references the per-worktree state root"
+assert_file_not_contains "$CC_DIST/CLAUDE.md" '**`.specwright/CONSTITUTION.md`**' "dist CLAUDE.md no longer points anchor docs at checkout-local .specwright/"
 
 # ═══════════════════════════════════════════════════════════════════════
 # AC-3: Identity mapping — tool names unchanged, no lowercased tools
