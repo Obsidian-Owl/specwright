@@ -441,3 +441,45 @@ export function inspectWorktreeSessions(options = {}) {
     deadSessions: sessions.filter((session) => !session.live)
   };
 }
+
+function isTopLevelSession(session) {
+  return Boolean(session) && session.mode !== 'subordinate';
+}
+
+export function findSelectedWorkOwnerConflict(stateInfo, options = {}) {
+  const currentSession = stateInfo?.session;
+  const attachedWorkId = stateInfo?.attachedWorkId;
+
+  if (stateInfo?.layout !== 'shared' || !currentSession || !attachedWorkId || !isTopLevelSession(currentSession)) {
+    return null;
+  }
+
+  const sessionsInfo = inspectWorktreeSessions({
+    cwd: options.cwd ?? stateInfo.projectRoot ?? process.cwd()
+  });
+
+  if (!sessionsInfo?.ok) {
+    return null;
+  }
+
+  const owner = sessionsInfo.sessions.find((session) =>
+    session.live &&
+    isTopLevelSession(session) &&
+    session.attachedWorkId === attachedWorkId &&
+    session.worktreeId !== stateInfo.worktreeId
+  );
+
+  if (!owner) {
+    return null;
+  }
+
+  return {
+    workId: attachedWorkId,
+    currentWorktreeId: stateInfo.worktreeId ?? null,
+    currentWorktreePath: stateInfo.projectRoot ?? null,
+    ownerWorktreeId: owner.worktreeId,
+    ownerWorktreePath: owner.worktreePath,
+    ownerBranch: owner.branch ?? null,
+    ownerSessionPath: owner.sessionPath
+  };
+}

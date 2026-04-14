@@ -6,12 +6,17 @@
  */
 
 import { readFileSync, existsSync, unlinkSync } from 'fs';
-import { loadSpecwrightState, normalizeActiveWork } from '../../shared/specwright-state-paths.mjs';
+import {
+  findSelectedWorkOwnerConflict,
+  loadSpecwrightState,
+  normalizeActiveWork
+} from '../../shared/specwright-state-paths.mjs';
 
 try {
   const stateInfo = loadSpecwrightState();
   const continuationPath = stateInfo.continuationPath;
   const work = normalizeActiveWork(stateInfo);
+  const ownerConflict = findSelectedWorkOwnerConflict(stateInfo);
 
   if (!work || ['shipped', 'abandoned'].includes(work.status)) {
     process.exit(0);
@@ -20,6 +25,9 @@ try {
   const unitLine = work.unitId ? `  Active Unit: ${work.unitId}\n` : '';
   const lockWarning = work.lock
     ? `\n  WARNING: Lock held by "${work.lock.skill}" since ${work.lock.since}`
+    : '';
+  const ownershipWarning = ownerConflict
+    ? `\n  WARNING: This work is already active in another top-level worktree (${ownerConflict.ownerWorktreeId}${ownerConflict.ownerBranch ? ` on ${ownerConflict.ownerBranch}` : ''}: ${ownerConflict.ownerWorktreePath}). Adopt/takeover required before mutating or shipping it here.`
     : '';
 
   let continuationContent = '';
@@ -55,6 +63,7 @@ try {
     `  Spec: ${work.specPath}`,
     `  Plan: ${work.planPath}`,
     lockWarning,
+    ownershipWarning,
     shippingWarning,
     continuationContent
   ].filter(Boolean).join('\n');
