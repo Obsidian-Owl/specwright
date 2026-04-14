@@ -352,12 +352,16 @@ def _render_table(
     run_results: Dict[str, Dict[str, Any]],
     baseline: BaselineFile,
     new_evals: List[str],
+    regressions: List[Regression],
+    improvements: List[Improvement],
 ) -> str:
     """Render a delta table in markdown format."""
     lines = [
         "| Eval | Pass Rate | Duration | Tokens (input+output) | Verdict |",
         "|---|---|---|---|---|",
     ]
+    regressed_ids = {item.eval_id for item in regressions}
+    improved_ids = {item.eval_id for item in improvements}
     all_ids = sorted(set(list(run_results.keys()) + list(baseline.evals.keys())))
     for eval_id in all_ids:
         run_entry = run_results.get(eval_id) or {}
@@ -391,7 +395,16 @@ def _render_table(
             # ints; comparator may receive either.
             dur_cell = f"{run_dur:.0f}ms ({run_dur - base_dur:+.0f}ms)"
             tok_cell = f"{run_io:.0f} ({run_io - base_io:+.0f})"
-            verdict = "ok"
+            has_regression = eval_id in regressed_ids
+            has_improvement = eval_id in improved_ids
+            if has_regression and has_improvement:
+                verdict = "mixed"
+            elif has_regression:
+                verdict = "regression"
+            elif has_improvement:
+                verdict = "improved"
+            else:
+                verdict = "ok"
         lines.append(f"| {eval_id} | {pr_cell} | {dur_cell} | {tok_cell} | {verdict} |")
 
     return "\n".join(lines) + "\n"
@@ -430,7 +443,13 @@ def compare_run_to_baseline(
         result.regressions.extend(regs)
         result.improvements.extend(imps)
 
-    result.table_markdown = _render_table(run_results, baseline, new_evals)
+    result.table_markdown = _render_table(
+        run_results,
+        baseline,
+        new_evals,
+        result.regressions,
+        result.improvements,
+    )
     result.exit_code = 1 if result.regressions else 0
     return result
 
