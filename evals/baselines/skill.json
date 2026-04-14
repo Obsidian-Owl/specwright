@@ -1,7 +1,7 @@
 {
   "suite": "skill",
-  "generated_at": "2026-04-08T10:29:51.582580+00:00",
-  "generated_from_commit": "74d7156",
+  "generated_at": "2026-04-14T20:03:09Z",
+  "generated_from_commit": "5b05028",
   "__comment": "Skill smoke is structural-only. Duration is a coarse CI health signal here, so the multiplier is intentionally looser to absorb GitHub runner variance while keeping pass-rate regressions strict.",
   "tolerances": {
     "pass_rate_delta": 0.0,
@@ -23,7 +23,7 @@
     },
     "structural-skill-validation": {
       "pass_rate": 1.0,
-      "duration_ms": 1928,
+      "duration_ms": 2558,
       "tokens": {},
       "runs": 1
     },
@@ -35,7 +35,7 @@
     },
     "workflow-yaml-validation": {
       "pass_rate": 1.0,
-      "duration_ms": 617,
+      "duration_ms": 1300,
       "tokens": {},
       "runs": 1
     }

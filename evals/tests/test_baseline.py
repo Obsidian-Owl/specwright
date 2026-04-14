@@ -381,6 +381,14 @@ class TestCompareRunToBaselineRegressions(unittest.TestCase):
         # At least 3: pass_rate, duration_ms, tokens.input_tokens
         self.assertGreaterEqual(len(result.regressions), 3)
 
+    def test_table_marks_regression_rows(self):
+        baseline = BaselineFile(**_valid_baseline_dict())
+        result = compare_run_to_baseline(
+            _run_results(duration_ms=37501), baseline
+        )
+        self.assertIn("| eval-01 |", result.table_markdown)
+        self.assertIn("| regression |", result.table_markdown)
+
 
 class TestCompareRunToBaselineImprovements(unittest.TestCase):
 
@@ -408,6 +416,13 @@ class TestCompareRunToBaselineImprovements(unittest.TestCase):
             _run_results(input_tokens=8000), baseline
         )
         self.assertTrue(any(i.metric.startswith("tokens.") for i in result.improvements))
+
+    def test_table_marks_improvement_rows(self):
+        baseline = BaselineFile(**_valid_baseline_dict())
+        result = compare_run_to_baseline(
+            _run_results(duration_ms=20000), baseline
+        )
+        self.assertIn("| improved |", result.table_markdown)
 
 
 class TestCompareRunToBaselineMissingEntries(unittest.TestCase):

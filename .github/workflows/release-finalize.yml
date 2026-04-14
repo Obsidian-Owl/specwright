@@ -23,8 +23,10 @@ jobs:
 
       - name: Extract version
         id: version
+        env:
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          BRANCH="${{ github.event.pull_request.head.ref }}"
+          BRANCH="$PR_HEAD_REF"
           VERSION="${BRANCH#release/v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
@@ -52,8 +54,9 @@ jobs:
       - name: Cleanup release branch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          BRANCH="${{ github.event.pull_request.head.ref }}"
+          BRANCH="$PR_HEAD_REF"
           git push origin --delete "$BRANCH" 2>/dev/null || true
 
   publish-npm:
@@ -80,7 +83,7 @@ jobs:
       - name: Check if version already published
         run: |
           VERSION=$(node -p "require('./dist/opencode/package.json').version")
-          PUBLISHED=$(npm view @obsidian-owl/opencode-specwright@${VERSION} version 2>/dev/null || echo "")
+          PUBLISHED=$(npm view "@obsidian-owl/opencode-specwright@${VERSION}" version 2>/dev/null || echo "")
           if [ -n "$PUBLISHED" ]; then
             echo "Version ${VERSION} already published, skipping"
             echo "SKIP_PUBLISH=true" >> "$GITHUB_ENV"
@@ -88,7 +91,7 @@ jobs:
 
       - name: Publish to npm
         if: env.SKIP_PUBLISH != 'true'
-        run: cd dist/opencode && npm publish --access public
+        run: cd dist/opencode && npm publish --provenance --access public
 
   publish-codex-bundle:
     needs: tag-and-release

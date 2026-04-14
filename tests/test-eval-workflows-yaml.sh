@@ -28,7 +28,14 @@ cd "$ROOT_DIR" || exit 1
 
 assert_yaml_valid() {
   local path="$1"
-  if python3 -c "import yaml; yaml.safe_load(open('$path'))" 2>/dev/null; then
+  if python3 - "$path" >/dev/null 2>&1 <<'PY'
+import sys
+import yaml
+
+with open(sys.argv[1]) as f:
+    yaml.safe_load(f)
+PY
+  then
     pass "$path is valid YAML"
   else
     fail "$path is not valid YAML"
@@ -41,21 +48,25 @@ assert_yaml_path_equals() {
   local expected="$3"
   local message="$4"
   local actual
-  actual=$(python3 -c "
-import yaml, sys
-with open('$path') as f:
+  actual=$(
+    python3 - "$path" "$jq_like" 2>&1 <<'PY'
+import sys
+import yaml
+
+path, expr = sys.argv[1:3]
+with open(path) as f:
     doc = yaml.safe_load(f)
-expr = '$jq_like'
-parts = [p for p in expr.split('.') if p]
-v = doc
-for p in parts:
-    if isinstance(v, dict):
-        v = v.get(p)
+parts = [part for part in expr.split('.') if part]
+value = doc
+for part in parts:
+    if isinstance(value, dict):
+        value = value.get(part)
     else:
-        v = None
+        value = None
         break
-print(v if v is not None else 'MISSING')
-" 2>&1)
+print(value if value is not None else "MISSING")
+PY
+  )
   if [ "$actual" = "$expected" ]; then
     pass "$message"
   else
@@ -72,27 +83,31 @@ assert_yaml_has_key() {
   # boolean True. We accept either the string key OR True as a match
   # for "on" specifically — GitHub Actions YAML has this idiom for
   # the trigger key.
-  result=$(python3 -c "
+  result=$(
+    python3 - "$path" "$jq_like" 2>&1 <<'PY'
+import sys
 import yaml
-with open('$path') as f:
+
+path, expr = sys.argv[1:3]
+with open(path) as f:
     doc = yaml.safe_load(f)
-expr = '$jq_like'
-parts = [p for p in expr.split('.') if p]
-v = doc
-for p in parts:
-    if isinstance(v, dict):
-        if p in v:
-            v = v[p]
-        elif p == 'on' and True in v:
-            v = v[True]
+parts = [part for part in expr.split('.') if part]
+value = doc
+for part in parts:
+    if isinstance(value, dict):
+        if part in value:
+            value = value[part]
+        elif part == "on" and True in value:
+            value = value[True]
         else:
-            print('MISSING')
+            print("MISSING")
             raise SystemExit(0)
     else:
-        print('MISSING')
+        print("MISSING")
         raise SystemExit(0)
-print('OK')
-" 2>&1)
+print("OK")
+PY
+  )
   if [ "$result" = "OK" ]; then
     pass "$message"
   else
@@ -107,17 +122,22 @@ assert_step_uses() {
   local expected="$4"
   local message="$5"
   local actual
-  actual=$(python3 -c "
+  actual=$(
+    python3 - "$path" "$job" "$step_name" 2>&1 <<'PY'
+import sys
 import yaml
-with open('$path') as f:
+
+path, job, step_name = sys.argv[1:4]
+with open(path) as f:
     doc = yaml.safe_load(f)
-steps = doc.get('jobs', {}).get('$job', {}).get('steps', [])
+steps = doc.get("jobs", {}).get(job, {}).get("steps", [])
 for step in steps:
-    if step.get('name') == '$step_name':
-        print(step.get('uses', 'MISSING'))
+    if step.get("name") == step_name:
+        print(step.get("uses", "MISSING"))
         raise SystemExit(0)
-print('MISSING')
-" 2>&1)
+print("MISSING")
+PY
+  )
   if [ "$actual" = "$expected" ]; then
     pass "$message"
   else
@@ -133,24 +153,29 @@ assert_step_with_value() {
   local expected="$5"
   local message="$6"
   local actual
-  actual=$(python3 -c "
+  actual=$(
+    python3 - "$path" "$job" "$step_name" "$key" 2>&1 <<'PY'
+import sys
 import yaml
-with open('$path') as f:
+
+path, job, step_name, key = sys.argv[1:5]
+with open(path) as f:
     doc = yaml.safe_load(f)
-steps = doc.get('jobs', {}).get('$job', {}).get('steps', [])
+steps = doc.get("jobs", {}).get(job, {}).get("steps", [])
 for step in steps:
-    if step.get('name') == '$step_name':
+    if step.get("name") == step_name:
         value = step
-        for part in '$key'.split('.'):
+        for part in key.split("."):
             if isinstance(value, dict):
                 value = value.get(part)
             else:
                 value = None
                 break
-        print(value if value is not None else 'MISSING')
+        print(value if value is not None else "MISSING")
         raise SystemExit(0)
-print('MISSING')
-" 2>&1)
+print("MISSING")
+PY
+  )
   if [ "$actual" = "$expected" ]; then
     pass "$message"
   else
@@ -165,48 +190,27 @@ assert_step_run_contains() {
   local needle="$4"
   local message="$5"
   local result
-  result=$(python3 -c "
+  result=$(
+    python3 - "$path" "$job" "$step_name" "$needle" 2>&1 <<'PY'
+import sys
 import yaml
-with open('$path') as f:
+
+path, job, step_name, needle = sys.argv[1:5]
+with open(path) as f:
     doc = yaml.safe_load(f)
-steps = doc.get('jobs', {}).get('$job', {}).get('steps', [])
+steps = doc.get("jobs", {}).get(job, {}).get("steps", [])
 for step in steps:
-    if step.get('name') == '$step_name':
-        run = step.get('run', '')
-        print('OK' if '$needle' in run else 'MISSING')
+    if step.get("name") == step_name:
+        run = step.get("run", "")
+        print("OK" if needle in run else "MISSING")
         raise SystemExit(0)
-print('MISSING')
-" 2>&1)
+print("MISSING")
+PY
+  )
   if [ "$result" = "OK" ]; then
     pass "$message"
   else
     fail "$message — '$needle' not found"
-  fi
-}
-
-assert_step_run_not_contains() {
-  local path="$1"
-  local job="$2"
-  local step_name="$3"
-  local needle="$4"
-  local message="$5"
-  local result
-  result=$(python3 -c "
-import yaml
-with open('$path') as f:
-    doc = yaml.safe_load(f)
-steps = doc.get('jobs', {}).get('$job', {}).get('steps', [])
-for step in steps:
-    if step.get('name') == '$step_name':
-        run = step.get('run', '')
-        print('OK' if '$needle' not in run else 'FOUND')
-        raise SystemExit(0)
-print('MISSING')
-" 2>&1)
-  if [ "$result" = "OK" ]; then
-    pass "$message"
-  else
-    fail "$message — unexpected '$needle' found"
   fi
 }
 
@@ -216,13 +220,18 @@ assert_no_step_named() {
   local step_name="$3"
   local message="$4"
   local result
-  result=$(python3 -c "
+  result=$(
+    python3 - "$path" "$job" "$step_name" 2>&1 <<'PY'
+import sys
 import yaml
-with open('$path') as f:
+
+path, job, step_name = sys.argv[1:4]
+with open(path) as f:
     doc = yaml.safe_load(f)
-steps = doc.get('jobs', {}).get('$job', {}).get('steps', [])
-print('FOUND' if any(step.get('name') == '$step_name' for step in steps) else 'OK')
-" 2>&1)
+steps = doc.get("jobs", {}).get(job, {}).get("steps", [])
+print("FOUND" if any(step.get("name") == step_name for step in steps) else "OK")
+PY
+  )
   if [ "$result" = "OK" ]; then
     pass "$message"
   else
@@ -294,16 +303,15 @@ else
   assert_step_uses "$RELEASE_FINALIZE" "publish-npm" "Setup Node.js" "actions/setup-node@v6" "release-finalize.yml uses setup-node@v6 for publish-npm"
   assert_step_with_value "$RELEASE_FINALIZE" "publish-npm" "Setup Node.js" "with.node-version" "24" "release-finalize.yml publish-npm uses Node 24"
   assert_no_step_named "$RELEASE_FINALIZE" "publish-npm" "Update npm for OIDC support" "release-finalize.yml does not self-upgrade npm in publish-npm"
-  assert_step_run_contains "$RELEASE_FINALIZE" "publish-npm" "Publish to npm" "npm publish --access public" "release-finalize.yml publish-npm uses plain npm publish"
-  assert_step_run_not_contains "$RELEASE_FINALIZE" "publish-npm" "Publish to npm" "--provenance" "release-finalize.yml publish-npm does not force --provenance"
+  assert_step_run_contains "$RELEASE_FINALIZE" "publish-npm" "Publish to npm" "npm publish --provenance --access public" "release-finalize.yml publish-npm uses provenance publish"
 fi
 
 # ----- Optional: actionlint if available -----
 
 echo ""
 if command -v actionlint >/dev/null 2>&1; then
-  if actionlint .github/workflows/eval-smoke.yml .github/workflows/eval-full.yml > /tmp/actionlint.out 2>&1; then
-    pass "actionlint clean for both workflows"
+  if actionlint .github/workflows/eval-smoke.yml .github/workflows/eval-full.yml .github/workflows/release-finalize.yml > /tmp/actionlint.out 2>&1; then
+    pass "actionlint clean for all tracked workflows"
   else
     fail "actionlint reported issues: $(cat /tmp/actionlint.out)"
   fi
