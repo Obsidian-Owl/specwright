@@ -7,7 +7,10 @@ const FAILURE_CODE = 'GIT_RESOLUTION_FAILED';
 const PRIMARY_WORKTREE_ID = 'main-worktree';
 const LEGACY_STATE_SEGMENTS = ['.specwright', 'state'];
 const SHARED_CONFIG_FILE = 'config.json';
-const REPO_LOCAL_GIT_ENV_VARS = new Set([
+const FALLBACK_REPO_LOCAL_GIT_ENV_VARS = new Set([
+  // Tracks `git rev-parse --local-env-vars` plus config-injection vars that
+  // Git does not report but are still unsafe to inherit across repositories.
+  // Re-check this fallback when the minimum supported Git version changes.
   'GIT_ALTERNATE_OBJECT_DIRECTORIES',
   'GIT_COMMON_DIR',
   'GIT_CONFIG',
@@ -17,6 +20,7 @@ const REPO_LOCAL_GIT_ENV_VARS = new Set([
   'GIT_GRAFT_FILE',
   'GIT_IMPLICIT_WORK_TREE',
   'GIT_INDEX_FILE',
+  'GIT_NAMESPACE',
   'GIT_NO_REPLACE_OBJECTS',
   'GIT_OBJECT_DIRECTORY',
   'GIT_PREFIX',
@@ -25,9 +29,9 @@ const REPO_LOCAL_GIT_ENV_VARS = new Set([
   'GIT_WORK_TREE'
 ]);
 
-function sanitizedGitEnv(extra = {}) {
+function sanitizedGitEnv(extra = {}, keys = REPO_LOCAL_GIT_ENV_VARS) {
   const env = { ...process.env };
-  for (const key of REPO_LOCAL_GIT_ENV_VARS) {
+  for (const key of keys) {
     delete env[key];
   }
 
@@ -36,6 +40,30 @@ function sanitizedGitEnv(extra = {}) {
     ...extra
   };
 }
+
+function loadRepoLocalGitEnvVars() {
+  const keys = new Set(FALLBACK_REPO_LOCAL_GIT_ENV_VARS);
+
+  try {
+    const output = execFileSync('git', ['rev-parse', '--local-env-vars'], {
+      env: sanitizedGitEnv({}, FALLBACK_REPO_LOCAL_GIT_ENV_VARS),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+
+    for (const key of output.split(/\r?\n/u)) {
+      if (key) {
+        keys.add(key);
+      }
+    }
+  } catch {
+    // Keep the static fallback when Git cannot provide a dynamic env list.
+  }
+
+  return keys;
+}
+
+const REPO_LOCAL_GIT_ENV_VARS = loadRepoLocalGitEnvVars();
 
 function runGit(args, cwd) {
   return execFileSync('git', args, {

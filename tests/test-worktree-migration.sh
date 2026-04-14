@@ -6,6 +6,8 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=tests/test-lib.sh
+. "$SCRIPT_DIR/test-lib.sh"
 STATE_PATHS_MODULE="$ROOT_DIR/adapters/shared/specwright-state-paths.mjs"
 TEST_TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_TMPDIR"' EXIT
@@ -41,48 +43,7 @@ assert_contains() {
   fi
 }
 
-git_nested() {
-  local env_cmd=(env)
-  local git_var
-  while IFS= read -r git_var; do
-    env_cmd+=(-u "$git_var")
-  done < <(git rev-parse --local-env-vars)
-  "${env_cmd[@]}" git "$@"
-}
-
-init_git_repo() {
-  local dir="$1"
-  mkdir -p "$dir"
-  git_nested -C "$dir" -c core.hooksPath=/dev/null init -q
-  git_nested -C "$dir" -c core.hooksPath=/dev/null config user.name "Specwright Tests"
-  git_nested -C "$dir" -c core.hooksPath=/dev/null config user.email "specwright-tests@example.com"
-  git_nested -C "$dir" -c core.hooksPath=/dev/null checkout -qb main >/dev/null 2>&1 || true
-  printf 'seed\n' > "$dir/README.md"
-  git_nested -C "$dir" -c core.hooksPath=/dev/null add README.md
-  git_nested -C "$dir" -c core.hooksPath=/dev/null commit -qm "test: init repo"
-}
-
-run_with_outer_git_context() {
-  local outer="$1"
-  shift
-  local outer_git_dir outer_common_dir outer_root
-  outer_git_dir="$(git_nested -C "$outer" rev-parse --path-format=absolute --git-dir)"
-  outer_common_dir="$(git_nested -C "$outer" rev-parse --path-format=absolute --git-common-dir)"
-  outer_root="$(cd "$outer" && pwd -P)"
-  GIT_DIR="$outer_git_dir" \
-  GIT_WORK_TREE="$outer_root" \
-  GIT_COMMON_DIR="$outer_common_dir" \
-  GIT_PREFIX="" \
-  "$@"
-}
-
-git_common_dir() {
-  git_nested -C "$1" rev-parse --path-format=absolute --git-common-dir
-}
-
-git_dir() {
-  git_nested -C "$1" rev-parse --path-format=absolute --git-dir
-}
+git_nested_prepare || exit 1
 
 repo_state_root() {
   printf '%s/specwright\n' "$(git_common_dir "$1")"

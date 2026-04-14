@@ -84,7 +84,8 @@ text = Path(sys.argv[1]).read_text()
 summary = f"<summary><b>{sys.argv[2]}</b></summary>"
 start = text.find(summary)
 if start == -1:
-    raise SystemExit(1)
+    print("")
+    raise SystemExit(0)
 end = text.find("</details>", start)
 if end == -1:
     end = len(text)
@@ -101,7 +102,7 @@ text = Path(sys.argv[1]).read_text()
 heading = f"## {sys.argv[2]}\n"
 index = text.find(heading)
 if index == -1:
-    print(text)
+    print("")
 else:
     print(text[:index])
 PY
@@ -116,7 +117,8 @@ text = Path(sys.argv[1]).read_text()
 heading = f"## {sys.argv[2]}\n"
 start = text.find(heading)
 if start == -1:
-    raise SystemExit(1)
+    print("")
+    raise SystemExit(0)
 remainder = text[start:]
 next_index = remainder.find("\n## ", len(heading))
 if next_index == -1:
