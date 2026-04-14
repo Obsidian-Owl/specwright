@@ -38,6 +38,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.29.0] - 2026-04-14
+
+### Changed
+
+- feat(state): add multi-worktree runtime proof (#169)
+- fix(codex): align installer contract and hook context (#168)
+- feat(04-pipeline-skill-cutover): ship unit 04 pipeline skill cutover (#167)
+- feat(03-init-and-migration-surfaces): ship unit 03 init and migration surfaces (#166)
+- fix(codex): align command contract and nested git state (#165)
+- feat(02-work-and-session-state-model): ship unit 02 work and session state model (#164)
+- feat(01-root-resolution-foundation): ship unit 01 root resolution foundation (#163)
+- test(recovery): add closeout runtime proof for the final IC-B criteria (#161)
+- feat(evals): add snapshot-based integration assertions (#159)
+
 ## [0.28.0] - 2026-04-08
 
 ### Changed
