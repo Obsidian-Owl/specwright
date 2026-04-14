@@ -6,6 +6,8 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=tests/test-lib.sh
+. "$SCRIPT_DIR/test-lib.sh"
 STATE_PATHS_MODULE="$ROOT_DIR/adapters/shared/specwright-state-paths.mjs"
 TEST_TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_TMPDIR"' EXIT
@@ -41,25 +43,7 @@ assert_contains() {
   fi
 }
 
-init_git_repo() {
-  local dir="$1"
-  mkdir -p "$dir"
-  git -C "$dir" -c core.hooksPath=/dev/null init -q
-  git -C "$dir" -c core.hooksPath=/dev/null config user.name "Specwright Tests"
-  git -C "$dir" -c core.hooksPath=/dev/null config user.email "specwright-tests@example.com"
-  git -C "$dir" -c core.hooksPath=/dev/null checkout -qb main >/dev/null 2>&1 || true
-  printf 'seed\n' > "$dir/README.md"
-  git -C "$dir" -c core.hooksPath=/dev/null add README.md
-  git -C "$dir" -c core.hooksPath=/dev/null commit -qm "test: init repo"
-}
-
-git_common_dir() {
-  git -C "$1" rev-parse --path-format=absolute --git-common-dir
-}
-
-git_dir() {
-  git -C "$1" rev-parse --path-format=absolute --git-dir
-}
+git_nested_prepare || exit 1
 
 repo_state_root() {
   printf '%s/specwright\n' "$(git_common_dir "$1")"
@@ -77,7 +61,7 @@ make_shared_project() {
   local dir="$1"
   local work_id="$2"
   local status="${3:-building}"
-  local branch="${4:-$(git -C "$dir" branch --show-current)}"
+  local branch="${4:-$(git_nested -C "$dir" branch --show-current)}"
   local repo_root worktree_root work_dir
 
   repo_root="$(repo_state_root "$dir")"
@@ -172,11 +156,33 @@ EOF
 echo "=== worktree migration regression ==="
 echo ""
 
+echo "--- Nested git context isolation ---"
+T="$TEST_TMPDIR/hook-env-outer"
+U="$TEST_TMPDIR/hook-env-target"
+V="$TEST_TMPDIR/hook-env-fresh"
+init_git_repo "$T"
+init_git_repo "$U"
+U_REAL="$(cd "$U" && pwd -P)"
+output="$(run_with_outer_git_context "$T" git_common_dir "$U" 2>/dev/null)"
+assert_eq "$output" "$U_REAL/.git" "worktree migration: git_common_dir ignores inherited outer git context"
+output="$(run_with_outer_git_context "$T" git_dir "$U" 2>/dev/null)"
+assert_eq "$output" "$U_REAL/.git" "worktree migration: git_dir ignores inherited outer git context"
+run_with_outer_git_context "$T" init_git_repo "$V" >/dev/null 2>&1
+if git_nested -C "$V" rev-parse HEAD >/dev/null 2>&1; then
+  pass "worktree migration: init_git_repo creates a temp repo under inherited outer git context"
+else
+  fail "worktree migration: init_git_repo creates a temp repo under inherited outer git context"
+fi
+make_shared_project "$U" "outer-shared-install"
+mkdir -p "$U/nested/path"
+output="$(run_with_outer_git_context "$T" load_state_json "$U/nested/path" 2>/dev/null)"
+assert_contains "$output" '"workId":"outer-shared-install"' "worktree migration: shared state loading ignores inherited outer git context"
+
 echo "--- Shared new install ---"
 T="$TEST_TMPDIR/shared-primary"
 L="$TEST_TMPDIR/shared-linked"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b shared-linked "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b shared-linked "$L" HEAD
 make_shared_project "$L" "shared-install"
 mkdir -p "$L/nested/path"
 output="$(load_state_json "$L/nested/path")"
@@ -221,7 +227,7 @@ cat > "$(worktree_state_root "$T")/session.json" <<EOF
   "version": "3.0",
   "worktreeId": "test-worktree",
   "worktreePath": "$(cd "$T" && pwd -P)",
-  "branch": "$(git -C "$T" branch --show-current)",
+  "branch": "$(git_nested -C "$T" branch --show-current)",
   "attachedWorkId": "../escape",
   "mode": "top-level",
   "lastSeenAt": "$(fresh_timestamp)"
@@ -250,7 +256,7 @@ cat > "$(repo_state_root "$T")/work/shared-dispatch/workflow.json" <<EOF
   "unitId": "unit-shared-dispatch",
   "tasksCompleted": ["t1"],
   "tasksTotal": 3,
-  "branch": "$(git -C "$T" branch --show-current)",
+  "branch": "$(git_nested -C "$T" branch --show-current)",
   "gates": {
     "build": { "verdict": "PASS" }
   },
@@ -286,7 +292,7 @@ echo "--- Dead session detection ---"
 T="$TEST_TMPDIR/dead-session-primary"
 L="$TEST_TMPDIR/dead-session-linked"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b dead-session-linked "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b dead-session-linked "$L" HEAD
 make_shared_project "$L" "dead-session-work"
 rm -rf "$L"
 output="$(inspect_sessions_json "$T")"
