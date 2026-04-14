@@ -107,8 +107,8 @@ Solution architecture and implementation planning are separate skills:
 sw-build supports optional parallel task execution using Claude Code Agent Teams. When enabled and tasks are independent (no file overlap), the build orchestrator:
 
 1. Analyzes plan.md file targets to classify tasks as independent or dependent
-2. Creates isolated git worktrees (`.specwright/worktrees/{task-id}`)
-3. Spawns teammates — each runs the full TDD cycle (tester → executor → refactor) in its worktree
+2. Creates isolated git worktrees and a subordinate `worktreeStateRoot/session.json` for each helper
+3. Spawns teammates — each runs the full TDD cycle (tester → executor → refactor) in its worktree while reading shared artifacts from `repoStateRoot`
 4. Cherry-picks completed worktree commits onto the feature branch
 5. Falls back to sequential execution for dependent or failed tasks
 
@@ -271,9 +271,11 @@ specwright/
 
 Platform markers allow a single core SKILL.md to contain platform-specific body sections without requiring full adapter overrides. Frontmatter differences use the tool mapping/stripping mechanism; body differences use markers.
 
-Runtime state (created by init):
+Runtime state (created by init) is split across logical Git roots:
+
+Shared repo state under `{repoStateRoot}` (`git rev-parse --git-common-dir` + `/specwright`):
 ```
-.specwright/
+{repoStateRoot}/
 ├── config.json       # Project configuration (commands: build, test, test:integration, test:smoke)
 ├── CONSTITUTION.md   # Development practices
 ├── CHARTER.md        # Technology vision
@@ -282,10 +284,9 @@ Runtime state (created by init):
 ├── AUDIT.md          # Codebase health findings (optional)
 ├── research/         # External research briefs (optional)
 │   └── {topic-id}-{date}.md
-├── state/
-│   └── workflow.json # Current state
-└── work/             # Work unit artifacts
+└── work/             # Per-work records and artifacts
     └── {work-id}/
+        ├── workflow.json    # Work lifecycle, units, gates, lock, attachment
         ├── design.md       # Solution design (design-level)
         ├── context.md      # Research findings (design-level)
         ├── assumptions.md  # Design assumptions (design-level)
@@ -297,6 +298,13 @@ Runtime state (created by init):
                 ├── plan.md     # Unit-scoped task breakdown
                 ├── context.md  # Curated subset of parent context
                 └── evidence/   # Gate evidence for this unit
+```
+
+Per-worktree runtime state under `{worktreeStateRoot}` (`git rev-parse --git-dir` + `/specwright`):
+```
+{worktreeStateRoot}/
+├── session.json      # Current worktree attachment, branch, mode, lastSeenAt
+└── continuation.md   # Worktree-local recovery snapshot (optional)
 ```
 
 ## History

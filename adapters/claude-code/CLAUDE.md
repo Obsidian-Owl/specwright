@@ -31,9 +31,9 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 
 Three persistent documents drive all decisions:
 
-- **`.specwright/CONSTITUTION.md`** -- Development practices. How the user wants code written. The AI MUST follow these.
-- **`.specwright/CHARTER.md`** -- Technology vision. What this repo is, who consumes it, architectural invariants.
-- **`.specwright/TESTING.md`** -- Testing strategy. How the project should be tested, what boundaries exist, what may be mocked. Optional — created during init if the user opts in.
+- **`{repoStateRoot}/CONSTITUTION.md`** -- Development practices. How the user wants code written. The AI MUST follow these.
+- **`{repoStateRoot}/CHARTER.md`** -- Technology vision. What this repo is, who consumes it, architectural invariants.
+- **`{repoStateRoot}/TESTING.md`** -- Testing strategy. How the project should be tested, what boundaries exist, what may be mocked. Optional — created during init if the user opts in.
 
 Constitution and Charter are created during init. TESTING.md is created during init if the user opts in. All are referenced during design and plan, validated during verify. Precedence: Constitution (rules) > Testing Strategy (approach) > patterns.md (reference). Constitution always wins on conflict.
 
@@ -42,7 +42,8 @@ Constitution and Charter are created during init. TESTING.md is created during i
 - `skills/` -- SKILL.md files (goal + constraints, not procedures)
 - `protocols/` -- Shared protocols for fragile operations (loaded on demand)
 - `agents/` -- Agent prompt definitions (7 agents: architect, tester, integration-tester, executor, reviewer, build-fixer, researcher)
-- `.specwright/` -- Runtime state, config, anchor docs, work artifacts
+- `repoStateRoot` (`git rev-parse --git-common-dir` + `/specwright`) -- shared config, anchor docs, research, and per-work artifacts
+- `worktreeStateRoot` (`git rev-parse --git-dir` + `/specwright`) -- current worktree session and continuation state
 
 See `DESIGN.md` for the full architecture document.
 
