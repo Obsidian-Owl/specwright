@@ -114,7 +114,8 @@ Quality gates are configured in config (all six default to enabled; user may dis
 **Git workflow configuration (MEDIUM freedom):**
 - Detect workflow by scanning branch names, remotes, CI files. Present detected strategy with confidence.
 - Confirm via AskUserQuestion: strategy (trunk-based/github-flow/gitflow/custom), branch prefix, merge strategy, PR required, commit format.
-- Store in `config.json` `git` section per `protocols/git.md`.
+- Store `git.targets` and `git.freshness` in `config.json`, seeding branch-role defaults and freshness checkpoints from the detected workflow strategy while preserving `baseBranch` as a compatibility alias and without requiring users to define a custom branch DSL.
+- Store the resulting settings in the `config.json` `git` section per `protocols/git.md`.
 - If old git schema detected: offer migration with sensible defaults.
 
 **Configuration (LOW freedom):**

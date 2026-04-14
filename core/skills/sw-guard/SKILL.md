@@ -64,6 +64,7 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
 - If `.specwright/config.json` does not exist, rely entirely on detection.
   Validate detected tools by running them (e.g., `--version` check). Present
   standalone recommendations with explicit "detected via heuristics" labeling.
+- When Git workflow config is present or inferred, seed or migrate `git.targets` and `git.freshness` from the detected Git workflow strategy without requiring users to define a custom branch DSL.
 - For unfamiliar stacks or niche tools, use WebSearch to identify tooling conventions.
 - Detect existing guardrails before recommending. Show delta on re-runs.
 

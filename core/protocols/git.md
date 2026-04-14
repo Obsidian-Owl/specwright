@@ -10,6 +10,23 @@ hardcoded.
   "git": {
     "strategy": "trunk-based",
     "baseBranch": "main",
+    "targets": {
+      "defaultRole": "integration",
+      "roles": {
+        "integration": { "branch": "main" },
+        "release": { "branch": "main" },
+        "maintenance": { "pattern": "release/*" }
+      }
+    },
+    "freshness": {
+      "validation": "branch-head",
+      "reconcile": "manual",
+      "checkpoints": {
+        "build": "require",
+        "verify": "require",
+        "ship": "require"
+      }
+    },
     "branchPrefix": "feat/",
     "mergeStrategy": "squash",
     "prRequired": true,
@@ -25,7 +42,9 @@ hardcoded.
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `strategy` | enum | `trunk-based` | `trunk-based`, `github-flow`, `gitflow`, `custom` |
-| `baseBranch` | string | `main` | primary integration branch |
+| `baseBranch` | string | `main` | compatibility alias for the default integration branch |
+| `targets` | object | see above | canonical branch-role defaults used to resolve work-level target refs |
+| `freshness` | object | see above | canonical checkpoint policy for build, verify, and ship freshness checks |
 | `branchPrefix` | string | `feat/` | prefix for feature branches |
 | `mergeStrategy` | enum | `squash` | `squash`, `rebase`, `merge` |
 | `prRequired` | boolean | `true` | whether PRs are required for shipping |
@@ -34,6 +53,37 @@ hardcoded.
 | `branchPerWorkUnit` | boolean | `true` | create a branch per work unit |
 | `cleanupBranch` | boolean | `true` | delete branch after merge |
 | `prTool` | string | `gh` | CLI tool for PR creation |
+
+## Branch Role Defaults And Freshness Policy
+
+`git.targets` and `git.freshness` are the canonical config surfaces for branch
+targeting and checkpoint policy.
+
+`git.targets` stays intentionally small:
+
+- `defaultRole` selects the role used when the work does not specify one
+- `roles.{role}.branch` sets a concrete default branch such as `main` or `develop`
+- `roles.{role}.pattern` allows constrained families such as `release/*`
+
+Pattern-based defaults are templates, not autonomous selectors. `sw-design`
+may resolve a `roles.{role}.pattern` entry automatically only when exactly one
+remote branch matches. Zero or multiple matches require an explicit user choice
+so the work records a concrete `targetRef.branch` instead of guessing.
+
+`git.baseBranch` remains supported as a compatibility alias for the default
+integration branch. Writers should prefer `git.targets.roles.integration.branch`
+when the expanded shape exists, but readers must keep honoring `baseBranch`
+during migration.
+
+`git.freshness` defines the lifecycle policy that later stages resolve onto the
+selected work:
+
+- `validation`: `branch-head` or `queue`
+- `reconcile`: `manual`, `rebase`, or `merge`
+- `checkpoints.build|verify|ship`: `ignore`, `warn`, or `require`
+
+This keeps the branch-target model explicit without introducing a custom branch
+DSL.
 
 ## Logical Roots And Selected Work
 
@@ -68,12 +118,18 @@ but they must not push, verify, or ship the parent work directly.
 
 ## Branch Lifecycle
 
+If the selected work already records `targetRef`, branch setup uses that
+concrete target before falling back to `git.targets` defaults or the
+`baseBranch` compatibility alias.
+
 **Create** (at build start):
 
 ```bash
-git checkout {config.git.baseBranch}
-git fetch origin
-git pull --ff-only origin {config.git.baseBranch}
+TARGET_REMOTE="{resolved target remote}"
+TARGET_BRANCH="{resolved target branch}"
+git fetch "$TARGET_REMOTE"
+git checkout "$TARGET_BRANCH"
+git pull --ff-only "$TARGET_REMOTE" "$TARGET_BRANCH"
 git checkout -b {config.git.branchPrefix}{work-or-unit-id}
 ```
 
@@ -92,10 +148,10 @@ single remote, or a single unit naming scheme outside the config contract.
 
 At build start, after branch setup:
 
-- compare the local base branch with `origin/{baseBranch}`
-- warn if the base branch is behind
+- compare the resolved local target branch with `{target remote}/{target branch}`
+- warn if the resolved target branch is behind
 - if the feature branch already exists, also check upstream drift for the
-  session-attached branch
+  session-attached branch relative to that same resolved target
 
 This is advisory only unless a skill adds a stricter policy.
 
@@ -112,6 +168,11 @@ Read `config.git.strategy`:
 
 For `custom` strategy: prompt the user for operations that are not derivable
 from config.
+
+`sw-init` and `sw-guard` seed or migrate `git.targets` and `git.freshness`
+from the detected workflow strategy. `sw-design` then resolves the selected
+work's concrete `targetRef` from those defaults instead of inferring a target
+from the current checkout alone.
 
 ## Staging Rules
 

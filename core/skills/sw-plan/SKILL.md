@@ -130,6 +130,9 @@ machine-parseable: `Next: /sw-build`.
 **State mutations (LOW freedom):**
 Follow `protocols/state.md`. Mutate only the selected work's `workflow.json` and
 the current worktree's `session.json`. Transition `designing` → `planning`.
+- Preserve the selected work's recorded `targetRef` and freshness metadata in the selected work state and any generated unit context that depends on them.
+- Do not collapse back to inferring a single `baseBranch` target.
+
 Multi-unit: populate the selected work's `workUnits` array, set the first unit
 to `building`, transition the selected work to `building`, and hand off to
 `/sw-build`. Do not clear or retarget unrelated active works owned by other

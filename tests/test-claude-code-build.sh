@@ -30,6 +30,7 @@ BUILD_SCRIPT="$ROOT_DIR/build/build.sh"
 DIST_DIR="$ROOT_DIR/dist"
 CC_DIST="$DIST_DIR/claude-code"
 MULTI_WORKTREE_RUNTIME_TEST="$ROOT_DIR/tests/test-multi-worktree-state.sh"
+TARGET_MODEL_DOCS_TEST="$ROOT_DIR/tests/test-branch-freshness-target-model-docs.sh"
 
 PASS=0
 FAIL=0
@@ -1095,6 +1096,31 @@ if echo "$HARNESS_OUTPUT" | grep -Fq "IC-B2: status view reports attached work a
   pass "runtime harness output includes sw-status repo-active ownership coverage"
 else
   fail "runtime harness output missing sw-status repo-active ownership coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Branch freshness target-model docs ==="
+
+if [ -x "$TARGET_MODEL_DOCS_TEST" ]; then
+  pass "tests/test-branch-freshness-target-model-docs.sh is executable"
+else
+  fail "tests/test-branch-freshness-target-model-docs.sh is missing or not executable"
+fi
+
+TARGET_MODEL_EXIT=0
+TARGET_MODEL_OUTPUT="$(bash "$TARGET_MODEL_DOCS_TEST" 2>&1)" || TARGET_MODEL_EXIT=$?
+
+if [ "$TARGET_MODEL_EXIT" -ne 0 ]; then
+  fail "tests/test-branch-freshness-target-model-docs.sh passes under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${TARGET_MODEL_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-branch-freshness-target-model-docs.sh passes under the configured test path"
+fi
+if echo "$TARGET_MODEL_OUTPUT" | grep -Fq "workflow schema adds targetRef object"; then
+  pass "target-model regression output includes targetRef schema coverage"
+else
+  fail "target-model regression output missing targetRef schema coverage"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
