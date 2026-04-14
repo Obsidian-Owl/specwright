@@ -115,6 +115,7 @@ Follow `protocols/state.md` for read-modify-write mechanics. Postconditions:
 - The new selected work's `workflow.json.status` is `designing`.
 - The new selected work's `targetRef` records the concrete remote, branch, role, resolution source, and resolution time for the selected work.
 - The new selected work's `baselineCommit` is the SHA of the resolved target branch HEAD captured before any work begins and is never overwritten on re-entry.
+- `targetRef` also written to `{workDir}/context.md` for historical reference.
 - `baselineCommit` also written to `{workDir}/context.md` for historical
   reference.
 

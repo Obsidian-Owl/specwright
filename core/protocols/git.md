@@ -113,6 +113,8 @@ but they must not push, verify, or ship the parent work directly.
 
 ## Branch Lifecycle
 
+If the selected work already records `targetRef`, branch setup uses that concrete target before falling back to `git.targets` defaults or the `baseBranch` compatibility alias.
+
 **Create** (at build start):
 
 ```bash

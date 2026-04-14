@@ -39,6 +39,17 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local file="$1"
+  local needle="$2"
+  local label="$3"
+  if grep -Fq "$needle" "$file"; then
+    fail "$label"
+  else
+    pass "$label"
+  fi
+}
+
 echo "=== branch freshness target model docs ==="
 echo ""
 
@@ -75,6 +86,14 @@ assert_contains "$INIT_SKILL" "Store \`git.targets\` and \`git.freshness\` in \`
 assert_contains "$INIT_SKILL" 'without requiring users to define a custom branch DSL' "sw-init avoids a custom branch DSL"
 assert_contains "$GUARD_SKILL" "seed or migrate \`git.targets\` and \`git.freshness\` from the detected Git workflow strategy" "sw-guard seeds or migrates the new git model"
 assert_contains "$GUARD_SKILL" 'without requiring users to define a custom branch DSL' "sw-guard keeps the git model intentionally small"
+
+echo ""
+echo "--- Consistency guards ---"
+assert_contains "$DESIGN_SKILL" "\`targetRef\` also written to \`{workDir}/context.md\` for historical reference." "sw-design writes targetRef to context"
+assert_contains "$GIT_PROTOCOL" "If the selected work already records \`targetRef\`, branch setup uses that concrete target before falling back to \`git.targets\` defaults or the \`baseBranch\` compatibility alias." "git branch setup prefers targetRef before compatibility fallbacks"
+for file in "$STATE_PROTOCOL" "$GIT_PROTOCOL" "$DESIGN_SKILL" "$PLAN_SKILL" "$INIT_SKILL" "$GUARD_SKILL"; do
+  assert_not_contains "$file" "\`targetBranch\`" "${file#"$ROOT_DIR"/} avoids targetBranch drift"
+done
 
 echo ""
 echo "RESULT: $PASS passed, $FAIL failed"
