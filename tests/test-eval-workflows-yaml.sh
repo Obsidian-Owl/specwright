@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 #
-# Tests for Unit 02b-2 GitHub Actions workflows.
+# Tests for GitHub Actions workflow contracts.
 #
 # Validates:
 #   .github/workflows/eval-smoke.yml — PR smoke check
 #   .github/workflows/eval-full.yml  — weekly full runs
+#   .github/workflows/release-finalize.yml — release publish contract
 #
 # Strategy: parse each YAML with Python's yaml module and assert
 # structural properties. No actual workflow execution — that happens
@@ -99,6 +100,136 @@ print('OK')
   fi
 }
 
+assert_step_uses() {
+  local path="$1"
+  local job="$2"
+  local step_name="$3"
+  local expected="$4"
+  local message="$5"
+  local actual
+  actual=$(python3 -c "
+import yaml
+with open('$path') as f:
+    doc = yaml.safe_load(f)
+steps = doc.get('jobs', {}).get('$job', {}).get('steps', [])
+for step in steps:
+    if step.get('name') == '$step_name':
+        print(step.get('uses', 'MISSING'))
+        raise SystemExit(0)
+print('MISSING')
+" 2>&1)
+  if [ "$actual" = "$expected" ]; then
+    pass "$message"
+  else
+    fail "$message — expected '$expected', got '$actual'"
+  fi
+}
+
+assert_step_with_value() {
+  local path="$1"
+  local job="$2"
+  local step_name="$3"
+  local key="$4"
+  local expected="$5"
+  local message="$6"
+  local actual
+  actual=$(python3 -c "
+import yaml
+with open('$path') as f:
+    doc = yaml.safe_load(f)
+steps = doc.get('jobs', {}).get('$job', {}).get('steps', [])
+for step in steps:
+    if step.get('name') == '$step_name':
+        value = step
+        for part in '$key'.split('.'):
+            if isinstance(value, dict):
+                value = value.get(part)
+            else:
+                value = None
+                break
+        print(value if value is not None else 'MISSING')
+        raise SystemExit(0)
+print('MISSING')
+" 2>&1)
+  if [ "$actual" = "$expected" ]; then
+    pass "$message"
+  else
+    fail "$message — expected '$expected', got '$actual'"
+  fi
+}
+
+assert_step_run_contains() {
+  local path="$1"
+  local job="$2"
+  local step_name="$3"
+  local needle="$4"
+  local message="$5"
+  local result
+  result=$(python3 -c "
+import yaml
+with open('$path') as f:
+    doc = yaml.safe_load(f)
+steps = doc.get('jobs', {}).get('$job', {}).get('steps', [])
+for step in steps:
+    if step.get('name') == '$step_name':
+        run = step.get('run', '')
+        print('OK' if '$needle' in run else 'MISSING')
+        raise SystemExit(0)
+print('MISSING')
+" 2>&1)
+  if [ "$result" = "OK" ]; then
+    pass "$message"
+  else
+    fail "$message — '$needle' not found"
+  fi
+}
+
+assert_step_run_not_contains() {
+  local path="$1"
+  local job="$2"
+  local step_name="$3"
+  local needle="$4"
+  local message="$5"
+  local result
+  result=$(python3 -c "
+import yaml
+with open('$path') as f:
+    doc = yaml.safe_load(f)
+steps = doc.get('jobs', {}).get('$job', {}).get('steps', [])
+for step in steps:
+    if step.get('name') == '$step_name':
+        run = step.get('run', '')
+        print('OK' if '$needle' not in run else 'FOUND')
+        raise SystemExit(0)
+print('MISSING')
+" 2>&1)
+  if [ "$result" = "OK" ]; then
+    pass "$message"
+  else
+    fail "$message — unexpected '$needle' found"
+  fi
+}
+
+assert_no_step_named() {
+  local path="$1"
+  local job="$2"
+  local step_name="$3"
+  local message="$4"
+  local result
+  result=$(python3 -c "
+import yaml
+with open('$path') as f:
+    doc = yaml.safe_load(f)
+steps = doc.get('jobs', {}).get('$job', {}).get('steps', [])
+print('FOUND' if any(step.get('name') == '$step_name' for step in steps) else 'OK')
+" 2>&1)
+  if [ "$result" = "OK" ]; then
+    pass "$message"
+  else
+    fail "$message — step '$step_name' is present"
+  fi
+}
+
 # ----- eval-smoke.yml -----
 
 echo ""
@@ -144,6 +275,27 @@ else
   assert_yaml_path_equals "$FULL" "jobs.dispatcher.permissions.contents" "write" "eval-full.yml dispatcher has contents:write"
   assert_yaml_path_equals "$FULL" "jobs.dispatcher.permissions.pull-requests" "write" "eval-full.yml dispatcher has pull-requests:write"
   assert_yaml_path_equals "$FULL" "jobs.dispatcher.permissions.issues" "write" "eval-full.yml dispatcher has issues:write"
+fi
+
+# ----- release-finalize.yml -----
+
+echo ""
+echo "=== Test: .github/workflows/release-finalize.yml ==="
+
+RELEASE_FINALIZE=".github/workflows/release-finalize.yml"
+
+if [ ! -f "$RELEASE_FINALIZE" ]; then
+  fail "$RELEASE_FINALIZE does not exist"
+else
+  assert_yaml_valid "$RELEASE_FINALIZE"
+  assert_yaml_has_key "$RELEASE_FINALIZE" "jobs.publish-npm" "release-finalize.yml has 'publish-npm' job"
+  assert_yaml_path_equals "$RELEASE_FINALIZE" "jobs.publish-npm.permissions.contents" "read" "release-finalize.yml publish-npm has contents:read"
+  assert_yaml_path_equals "$RELEASE_FINALIZE" "jobs.publish-npm.permissions.id-token" "write" "release-finalize.yml publish-npm has id-token:write"
+  assert_step_uses "$RELEASE_FINALIZE" "publish-npm" "Setup Node.js" "actions/setup-node@v6" "release-finalize.yml uses setup-node@v6 for publish-npm"
+  assert_step_with_value "$RELEASE_FINALIZE" "publish-npm" "Setup Node.js" "with.node-version" "24" "release-finalize.yml publish-npm uses Node 24"
+  assert_no_step_named "$RELEASE_FINALIZE" "publish-npm" "Update npm for OIDC support" "release-finalize.yml does not self-upgrade npm in publish-npm"
+  assert_step_run_contains "$RELEASE_FINALIZE" "publish-npm" "Publish to npm" "npm publish --access public" "release-finalize.yml publish-npm uses plain npm publish"
+  assert_step_run_not_contains "$RELEASE_FINALIZE" "publish-npm" "Publish to npm" "--provenance" "release-finalize.yml publish-npm does not force --provenance"
 fi
 
 # ----- Optional: actionlint if available -----

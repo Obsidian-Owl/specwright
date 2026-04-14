@@ -69,13 +69,10 @@ jobs:
           ref: v${{ needs.tag-and-release.outputs.version }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22.x'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-
-      - name: Update npm for OIDC support
-        run: npm install -g npm@11
 
       - name: Build opencode adapter
         run: ./build/build.sh opencode
@@ -91,7 +88,7 @@ jobs:
 
       - name: Publish to npm
         if: env.SKIP_PUBLISH != 'true'
-        run: cd dist/opencode && npm publish --provenance --access public
+        run: cd dist/opencode && npm publish --access public
 
   publish-codex-bundle:
     needs: tag-and-release
