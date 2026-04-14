@@ -343,7 +343,14 @@ When a work unit has 4+ independent tasks, Specwright can execute them in parall
 <details>
 <summary><b>Configuration</b></summary>
 
-Specwright reads project configuration from `.specwright/config.json`:
+Specwright resolves state through Git logical roots. In the shared/session
+layout, repo-wide config, anchor docs, and work records live under
+`git rev-parse --git-common-dir` + `/specwright`, while the current worktree's
+session and continuation files live under `git rev-parse --git-dir` +
+`/specwright`. Legacy checkout-local `.specwright/` is migration fallback
+only.
+
+Project configuration is read from the shared repo state root:
 
 ```json
 {
@@ -380,6 +387,11 @@ specwright/
 ├── DESIGN.md          # Full architecture
 └── README.md
 ```
+
+Runtime state is worktree-aware rather than checkout-singleton: shared work and
+project records live under the Git common-dir `specwright/` root, and each
+worktree keeps its own `session.json` plus `continuation.md` under that
+worktree's Git admin dir.
 
 </details>
 
