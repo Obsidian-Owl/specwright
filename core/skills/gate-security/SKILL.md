@@ -23,13 +23,13 @@ judgment for analysis that tools can't do.
 ## Inputs
 
 - `.specwright/config.json` -- `commands.lint`, SAST tool config if available
-- `.specwright/state/workflow.json` -- current work unit
+- `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit
 - Changed files (detected via `git diff`)
 
 ## Outputs
 
-- Evidence file at `{currentWork.workDir}/evidence/security-report.md`
-- Gate status in workflow.json
+- Evidence file at `{workDir}/evidence/security-report.md`
+- Gate status in the selected work's `workflow.json`
 - Findings shown inline with severity, location, and remediation
 
 ## Constraints

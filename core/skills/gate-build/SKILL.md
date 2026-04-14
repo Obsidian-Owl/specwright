@@ -23,12 +23,12 @@ else matters.
 
 - `.specwright/config.json` -- `commands.build`, `commands.test`,
   `commands.test:integration`, `commands.test:smoke`
-- `.specwright/state/workflow.json` -- current work unit for evidence path
+- `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit for evidence path
 
 ## Outputs
 
-- Evidence file at `{currentWork.workDir}/evidence/build-report.md`
-- Gate status update in workflow.json: PASS, FAIL, WARN, or SKIP
+- Evidence file at `{workDir}/evidence/build-report.md`
+- Gate status update in the selected work's `workflow.json`: PASS, FAIL, WARN, or SKIP
 - Console output showing results inline (users see findings, not just badges)
 
 ## Constraints
@@ -65,7 +65,7 @@ stdout/stderr output, and duration (elapsed wall time). Per-tier sections are
 written regardless of tier outcome.
 
 - Follow `protocols/evidence.md#verdict-rendering` for verdict rendering.
-- Update `workflow.json` gates section per `protocols/state.md`.
+- Update the selected work's `workflow.json` gates section per `protocols/state.md`.
 
 ## Protocol References
 

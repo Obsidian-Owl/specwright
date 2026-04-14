@@ -24,15 +24,15 @@ that closes the loop.
 
 ## Inputs
 
-- `{currentWork.workDir}/spec.md` -- acceptance criteria
-- `.specwright/state/workflow.json` -- current work unit
+- `{workDir}/spec.md` -- acceptance criteria
+- `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit
 - The codebase (implementation and tests)
 
 ## Outputs
 
-- Evidence file at `{currentWork.workDir}/evidence/spec-compliance.md`
+- Evidence file at `{workDir}/evidence/spec-compliance.md`
 - Compliance matrix: each criterion → implementation ref + test ref + status
-- Gate status in workflow.json
+- Gate status in the selected work's `workflow.json`
 
 ## Constraints
 

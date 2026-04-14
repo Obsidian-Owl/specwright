@@ -25,25 +25,29 @@ and recorded in decisions.md — the revised plan is the artifact.
 
 ## Inputs
 
-- `.specwright/state/workflow.json` — `tasksCompleted`, `tasksTotal`, `workDir`
-- `{currentWork.workDir}/spec.md` — full spec (completed + remaining)
-- `{currentWork.workDir}/plan.md` — task breakdown
+- `{worktreeStateRoot}/session.json` — selected work for this worktree
+- `{repoStateRoot}/work/{selectedWork.id}/workflow.json` — `tasksCompleted`, `tasksTotal`, `workDir`
+- `{workDir}/spec.md` — full spec (completed + remaining)
+- `{workDir}/plan.md` — task breakdown
 - Pivot reason (argument or conversation)
 
 ## Outputs
 
 - `spec.md` — appended with `## Revision` section
 - `plan.md` — appended with `## Pivot Note` section
-- `workflow.json` — remaining tasks updated
+- selected work's `workflow.json` — remaining tasks updated
 - `decisions.md` — pivot decisions recorded
 
 ## Constraints
 
 **Pre-condition (LOW freedom):**
-Status must be `building`. If all tasks done: STOP — "Run /sw-verify."
+Resolve the selected work from the current worktree session. Status must be
+`building`. If all tasks are done: STOP — "Run /sw-verify." If another live
+top-level worktree owns the selected work, STOP with explicit
+adopt/takeover guidance.
 
 **Snapshot (LOW freedom):**
-Read tasksCompleted, present done vs. remaining.
+Read the selected work's `tasksCompleted`, present done vs. remaining.
 
 **Pivot input (MEDIUM freedom):**
 If argument provided, use it as the pivot reason. If no argument, infer from
@@ -56,9 +60,11 @@ completed criteria: reject and re-delegate (max 2 attempts).
 
 **Apply (MEDIUM freedom):**
 Auto-apply revision. Append revision to spec.md and pivot note to plan.md. Update
-workflow.json. Record scope (% tasks changed) and rationale in decisions.md. The
-revised plan is the artifact — sw-build resumes from it, verify validates the result.
-NEVER overwrite existing content — append only.
+the selected work's `workflow.json`. Record scope (% tasks changed) and
+rationale in decisions.md. The revised plan is the artifact — sw-build resumes
+from it, verify validates the result. Mutate only the selected work's
+workflow state; never rewrite unrelated active works. NEVER overwrite existing
+content — append only.
 
 **Stage boundary (LOW freedom):**
 Follow `protocols/stage-boundary.md`. After apply: STOP → "Run `/sw-build`."
@@ -76,6 +82,7 @@ Follow `protocols/stage-boundary.md`. After apply: STOP → "Run `/sw-build`."
 | Condition | Action |
 |-----------|--------|
 | Status not `building` | STOP: "sw-pivot only valid during active sw-build" |
+| Selected work owned by another live top-level worktree | STOP with explicit adopt/takeover guidance |
 | All tasks completed | STOP: "Run /sw-verify" |
 | Architect modifies completed criteria | Reject, re-delegate (max 2) |
-| Compaction during pivot | Read workflow.json, check if revision was applied |
+| Compaction during pivot | Read the selected work's workflow.json, check if revision was applied |

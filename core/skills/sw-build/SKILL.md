@@ -27,9 +27,10 @@ Implement the current work unit with TDD. The per-task loop is RED → GREEN →
 
 ## Inputs
 
-- `.specwright/state/workflow.json`, `{currentWork.workDir}/spec.md`, `{currentWork.workDir}/plan.md`
-- `.specwright/work/{currentWork.id}/design.md`, `{currentWork.workDir}/context.md`
-- `.specwright/CONSTITUTION.md`, `.specwright/config.json`
+- `{worktreeStateRoot}/session.json` -- selected work for this worktree
+- `{repoStateRoot}/work/{selectedWork.id}/workflow.json`, `{workDir}/spec.md`, `{workDir}/plan.md`
+- `{repoStateRoot}/work/{selectedWork.id}/design.md`, `{workDir}/context.md`
+- `{repoStateRoot}/CONSTITUTION.md`, `{repoStateRoot}/config.json`
 
 ## Outputs
 
@@ -42,7 +43,13 @@ Implement the current work unit with TDD. The per-task loop is RED → GREEN →
 
 **Stage boundary (LOW freedom):** Follow `protocols/stage-boundary.md`. Implement only the active unit; never create pull requests, run `gh pr create`, or invoke `/sw-ship`. Before the terminal handoff, write `{workDir}/stage-report.md`; the handoff points at it and the Next line is `Next: /sw-verify`.
 
-**Branch setup (LOW freedom):** First action before coding: check out the feature branch from `config.git.branchPrefix` and sync it per `protocols/git.md`. Use `{git.branchPrefix}{currentWork.unitId}` for multi-unit work and never commit to the base branch.
+**Branch setup (LOW freedom):** First action before coding: resolve the
+session-selected work from the current worktree, verify that no other live
+top-level worktree owns it, then check out the feature branch from
+`config.git.branchPrefix` and sync it per `protocols/git.md`. Use
+`{git.branchPrefix}{selectedWork.unitId}` for multi-unit work and never commit
+to the base branch. If the selected work is already owned elsewhere, STOP with
+explicit adopt/takeover guidance instead of mutating it silently.
 
 **Task loop (MEDIUM freedom):** Work one task at a time. Finish it before starting the next and emit a status card after each task commit.
 
@@ -60,9 +67,9 @@ Per-task integration and regression runs do not happen inside this loop.
 
 **After-build (MEDIUM freedom):** Optional end-of-unit phase only. Delegate post-build review, then run `commands.test` and `commands.test:integration` when configured; integration now runs here once per unit, not per task. On failure, use `specwright-build-fixer` (max 2 attempts); if it still fails, surface it to the user in interactive mode and skip with a recorded note in headless mode.
 
-**Task tracking (LOW freedom):** When Claude Code task tools are available, create and update task records, but keep `workflow.json` as the source of truth. Tracking failures never block the build.
+**Task tracking (LOW freedom):** When Claude Code task tools are available, create and update task records, but keep the selected work's `workflow.json` as the source of truth. Tracking failures never block the build.
 
-**State updates (LOW freedom):** Follow `protocols/state.md`: acquire the lock before mutations, update `tasksCompleted` after each committed task, and append as-built notes before handoff.
+**State updates (LOW freedom):** Follow `protocols/state.md`: acquire the per-work lock on the selected work before mutations, update the selected work's `tasksCompleted` after each committed task, refresh `currentTask`, and append as-built notes before handoff. Mutate only the selected work's `workflow.json` and the current worktree's session state.
 
 **Parallel execution (MEDIUM freedom):** Only use `protocols/parallel-build.md` when the experimental config flag enables it; otherwise ignore it and stay sequential.
 
@@ -82,8 +89,9 @@ Per-task integration and regression runs do not happen inside this loop.
 | Condition | Action |
 |-----------|--------|
 | No active work unit | STOP: "Run /sw-design and /sw-plan first" |
+| Selected work owned by another live top-level worktree | STOP with explicit adopt/takeover guidance |
 | Build/test command not configured | STOP: "Configure commands in config.json or run /sw-init" |
 | Tester writes tests that pass immediately | Re-delegate RED with stronger failing cases |
 | Executor reports a pre-existing type/signature mismatch | STOP and surface the plan mismatch |
 | Build-fixer exhausts 2 attempts | STOP and show the failure |
-| Lock held by another skill | STOP with lock info |
+| Per-work lock held by another skill | STOP with lock info |

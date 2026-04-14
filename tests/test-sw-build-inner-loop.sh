@@ -169,6 +169,26 @@ else
 fi
 
 echo ""
+echo "=== Unit 04 compatibility: selected-work semantics preserved ==="
+if grep -qi "selected work\|session-selected work\|attached work" "$SKILL_FILE"; then
+  pass "sw-build body references the selected work for this worktree"
+else
+  fail "sw-build body references the selected work for this worktree"
+fi
+
+if grep -qi "per-work lock" "$SKILL_FILE"; then
+  pass "sw-build body keeps per-work lock language"
+else
+  fail "sw-build body keeps per-work lock language"
+fi
+
+if grep -qi "adopt/takeover\|owned elsewhere" "$SKILL_FILE"; then
+  pass "sw-build body preserves adopt/takeover guidance"
+else
+  fail "sw-build body preserves adopt/takeover guidance"
+fi
+
+echo ""
 echo "==========================================="
 echo "RESULT: $PASS passed, $FAIL failed"
 echo "==========================================="
