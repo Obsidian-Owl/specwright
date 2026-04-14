@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Tests for the Claude Code build output (AC-1 through AC-13)
+# Tests for the Claude Code build output (AC-1 through AC-14)
 #
 # Runs the actual build and inspects dist/claude-code/ output:
 #   AC-1:  File setup, helpers, build invocation, cleanup
@@ -14,6 +14,7 @@
 #   AC-9:  sw-build content (Task tools, "Task tracking", "Mid-build checks")
 #   AC-10: No opencode artifacts (no commands/, package.json, plugin.ts)
 #   AC-11: Source files not modified by build
+#   AC-14: Configured test path executes the multi-worktree runtime harness
 #   AC-13: Exit 0 with summary showing 0 failures
 #
 # Dependencies: bash, jq, node
@@ -28,6 +29,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_SCRIPT="$ROOT_DIR/build/build.sh"
 DIST_DIR="$ROOT_DIR/dist"
 CC_DIST="$DIST_DIR/claude-code"
+MULTI_WORKTREE_RUNTIME_TEST="$ROOT_DIR/tests/test-multi-worktree-state.sh"
 
 PASS=0
 FAIL=0
@@ -86,9 +88,13 @@ extract_allowed_tools() {
   echo "$fm" | sed -n '/^allowed-tools:/,/^[^ ]/{/^  - /p;}' | sed 's/^  - //'
 }
 
+git_source_status() {
+  git --git-dir="$ROOT_DIR/.git" --work-tree="$ROOT_DIR" status --porcelain -- core/ adapters/
+}
+
 # ─── Pre-flight ──────────────────────────────────────────────────────
 
-echo "=== AC-1 through AC-11, AC-13: Claude Code build integration tests ==="
+echo "=== AC-1 through AC-14: Claude Code build integration tests ==="
 echo ""
 
 if ! command -v jq &>/dev/null; then
@@ -108,7 +114,7 @@ fi
 
 # Capture pre-build source state so AC-11 checks for build-introduced mutations,
 # not intentional edits already present on the current branch.
-PRE_BUILD_SOURCE_STATUS=$(git -C "$ROOT_DIR" status --porcelain -- core/ adapters/)
+PRE_BUILD_SOURCE_STATUS=$(git_source_status)
 
 # ─── Clean pre-existing dist to avoid stale state ────────────────────
 
@@ -1021,6 +1027,36 @@ else
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
+# AC-14: Normal test path executes the runtime harness
+# ═══════════════════════════════════════════════════════════════════════
+
+echo ""
+echo "=== AC-14: Multi-worktree runtime harness ==="
+
+if [ -x "$MULTI_WORKTREE_RUNTIME_TEST" ]; then
+  pass "tests/test-multi-worktree-state.sh is executable"
+else
+  fail "tests/test-multi-worktree-state.sh is missing or not executable"
+fi
+
+HARNESS_OUTPUT="$(bash "$MULTI_WORKTREE_RUNTIME_TEST" 2>&1)" || {
+  fail "tests/test-multi-worktree-state.sh passes under the configured test path"
+  echo "  Harness output:"
+  echo "$HARNESS_OUTPUT" | sed 's/^/    /'
+  echo ""
+  echo "RESULT: $PASS passed, $FAIL failed (runtime harness failed)"
+  rm -rf "$DIST_DIR"
+  exit 1
+}
+
+pass "tests/test-multi-worktree-state.sh passes under the configured test path"
+if echo "$HARNESS_OUTPUT" | grep -Fq "AC-2: same-work attachment surfaces adopt/takeover guidance"; then
+  pass "runtime harness output includes same-work takeover coverage"
+else
+  fail "runtime harness output missing same-work takeover coverage"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
 # AC-11: Source files not modified by build
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -1074,7 +1110,7 @@ fi
 
 echo "--- Core and adapter source integrity (git diff) ---"
 
-POST_BUILD_SOURCE_STATUS=$(git -C "$ROOT_DIR" status --porcelain -- core/ adapters/)
+POST_BUILD_SOURCE_STATUS=$(git_source_status)
 if [ "$POST_BUILD_SOURCE_STATUS" = "$PRE_BUILD_SOURCE_STATUS" ]; then
   pass "build left core/ and adapters/ source state unchanged"
 else
