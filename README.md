@@ -183,6 +183,11 @@ Manual install:
 - Extract it to `~/plugins/specwright` for a user install or `<repo>/plugins/specwright` for a repo install.
 - Add a `specwright` entry to `~/.agents/plugins/marketplace.json` or `<repo>/.agents/plugins/marketplace.json` with `source.path` set to `./plugins/specwright`.
 
+Packaged Codex installs use the prebuilt plugin bundle and its bundled
+slash-command contract. If you are developing Specwright itself and only need
+repo-local skills-only mode, use the source tree directly instead of the
+packaged installer above.
+
 This enables:
 - `/sw-*` slash commands
 - Session hooks (resume context + shipping guard + continuation snapshots)

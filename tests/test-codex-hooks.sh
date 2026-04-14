@@ -16,6 +16,8 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=tests/test-lib.sh
+. "$SCRIPT_DIR/test-lib.sh"
 TEST_TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_TMPDIR"' EXIT
 
@@ -56,33 +58,24 @@ assert_not_contains() {
   fi
 }
 
-init_git_repo() {
-  local dir="$1"
-  mkdir -p "$dir"
-  git -C "$dir" -c core.hooksPath=/dev/null init -q
-  git -C "$dir" -c core.hooksPath=/dev/null config user.name "Specwright Tests"
-  git -C "$dir" -c core.hooksPath=/dev/null config user.email "specwright-tests@example.com"
-  git -C "$dir" -c core.hooksPath=/dev/null checkout -qb main >/dev/null 2>&1 || true
-  printf 'seed\n' > "$dir/README.md"
-  git -C "$dir" -c core.hooksPath=/dev/null add README.md
-  git -C "$dir" -c core.hooksPath=/dev/null commit -qm "test: init repo"
-}
+git_nested_prepare || exit 1
 
 make_project() {
   local dir="$1"
   mkdir -p "$dir/.specwright/state"
 }
 
-git_common_dir() {
-  git -C "$1" rev-parse --path-format=absolute --git-common-dir
-}
-
-git_dir() {
-  git -C "$1" rev-parse --path-format=absolute --git-dir
-}
-
 repo_state_root() {
   printf '%s/specwright\n' "$(git_common_dir "$1")"
+}
+
+run_in_dir() {
+  local dir="$1"
+  shift
+  (
+    cd "$dir" &&
+    "$@"
+  )
 }
 
 worktree_state_root() {
@@ -97,7 +90,7 @@ make_shared_project() {
   local dir="$1"
   local work_id="$2"
   local status="$3"
-  local branch="${4:-$(git -C "$dir" branch --show-current)}"
+  local branch="${4:-$(git_nested -C "$dir" branch --show-current)}"
   local repo_root worktree_root work_dir
 
   repo_root="$(repo_state_root "$dir")"
@@ -172,6 +165,30 @@ if ! command -v jq &>/dev/null; then
   exit 1
 fi
 
+echo "--- Nested git context isolation ---"
+T="$TEST_TMPDIR/hook-env-outer"
+U="$TEST_TMPDIR/hook-env-target"
+V="$TEST_TMPDIR/hook-env-fresh"
+init_git_repo "$T"
+init_git_repo "$U"
+U_REAL="$(cd "$U" && pwd -P)"
+output="$(run_with_outer_git_context "$T" git_common_dir "$U" 2>/dev/null)"
+assert_eq "$output" "$U_REAL/.git" "codex hooks: git_common_dir ignores inherited outer git context"
+output="$(run_with_outer_git_context "$T" git_dir "$U" 2>/dev/null)"
+assert_eq "$output" "$U_REAL/.git" "codex hooks: git_dir ignores inherited outer git context"
+run_with_outer_git_context "$T" init_git_repo "$V" >/dev/null 2>&1
+if git_nested -C "$V" rev-parse HEAD >/dev/null 2>&1; then
+  pass "codex hooks: init_git_repo creates a temp repo under inherited outer git context"
+else
+  fail "codex hooks: init_git_repo creates a temp repo under inherited outer git context"
+fi
+make_shared_project "$U" "outer-codex-start" "building"
+mkdir -p "$U/deep/start"
+output="$(
+  run_with_outer_git_context "$T" run_in_dir "$U/deep/start" node "$SESSION_START_HOOK" 2>/dev/null || true
+)"
+assert_contains "$output" "outer-codex-start (building)" "codex hooks: session-start ignores inherited outer git context"
+
 echo "--- SessionStart ---"
 T="$TEST_TMPDIR/session-start-none"
 mkdir -p "$T"
@@ -241,7 +258,7 @@ assert_contains "$output" "Specwright: Work in progress" "session-start resolves
 T="$TEST_TMPDIR/session-start-linked-primary"
 L="$TEST_TMPDIR/codex-session-start-linked"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b codex-session-start-linked "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b codex-session-start-linked "$L" HEAD
 make_project "$L"
 mkdir -p "$L/.specwright/work/WU-001" "$L/deep/start"
 write_workflow "$L" "building"
@@ -256,7 +273,7 @@ assert_contains "$output" "Specwright: Work in progress" "session-start resolves
 T="$TEST_TMPDIR/session-start-shared-primary"
 L="$TEST_TMPDIR/codex-session-start-shared-linked"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b codex-session-start-shared-linked "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b codex-session-start-shared-linked "$L" HEAD
 make_shared_project "$L" "shared-codex-start" "building"
 mkdir -p "$L/deep/shared"
 output="$(
@@ -276,7 +293,7 @@ fi
 T="$TEST_TMPDIR/session-start-shared-conflict-primary"
 L="$TEST_TMPDIR/codex-session-start-shared-conflict"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b codex-session-start-shared-conflict "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b codex-session-start-shared-conflict "$L" HEAD
 make_shared_project "$T" "shared-codex-conflict" "building"
 mkdir -p "$(worktree_state_root "$L")"
 cat > "$(worktree_state_root "$L")/session.json" <<EOF

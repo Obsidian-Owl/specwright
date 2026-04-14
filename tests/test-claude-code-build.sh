@@ -1076,17 +1076,16 @@ else
   fail "tests/test-multi-worktree-state.sh is missing or not executable"
 fi
 
-HARNESS_OUTPUT="$(bash "$MULTI_WORKTREE_RUNTIME_TEST" 2>&1)" || {
+HARNESS_EXIT=0
+HARNESS_OUTPUT="$(bash "$MULTI_WORKTREE_RUNTIME_TEST" 2>&1)" || HARNESS_EXIT=$?
+
+if [ "$HARNESS_EXIT" -ne 0 ]; then
   fail "tests/test-multi-worktree-state.sh passes under the configured test path"
   echo "  Harness output:"
   printf '    %s\n' "${HARNESS_OUTPUT//$'\n'/$'\n    '}"
-  echo ""
-  echo "RESULT: $PASS passed, $FAIL failed (runtime harness failed)"
-  rm -rf "$DIST_DIR"
-  exit 1
-}
-
-pass "tests/test-multi-worktree-state.sh passes under the configured test path"
+else
+  pass "tests/test-multi-worktree-state.sh passes under the configured test path"
+fi
 if echo "$HARNESS_OUTPUT" | grep -Fq "AC-2: same-work attachment surfaces adopt/takeover guidance"; then
   pass "runtime harness output includes same-work takeover coverage"
 else
@@ -1157,6 +1156,13 @@ if [ "$POST_BUILD_SOURCE_STATUS" = "$PRE_BUILD_SOURCE_STATUS" ]; then
   pass "build left core/ and adapters/ source state unchanged"
 else
   fail "build changed core/ or adapters/ source state relative to pre-build snapshot"
+fi
+
+if [ "$HARNESS_EXIT" -ne 0 ]; then
+  echo ""
+  echo "RESULT: $PASS passed, $FAIL failed (runtime harness failed)"
+  rm -rf "$DIST_DIR"
+  exit 1
 fi
 
 # ─── Cleanup ─────────────────────────────────────────────────────────
