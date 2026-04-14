@@ -41,24 +41,47 @@ assert_contains() {
   fi
 }
 
+git_nested() {
+  local env_cmd=(env)
+  local git_var
+  while IFS= read -r git_var; do
+    env_cmd+=(-u "$git_var")
+  done < <(git rev-parse --local-env-vars)
+  "${env_cmd[@]}" git "$@"
+}
+
 init_git_repo() {
   local dir="$1"
   mkdir -p "$dir"
-  git -C "$dir" -c core.hooksPath=/dev/null init -q
-  git -C "$dir" -c core.hooksPath=/dev/null config user.name "Specwright Tests"
-  git -C "$dir" -c core.hooksPath=/dev/null config user.email "specwright-tests@example.com"
-  git -C "$dir" -c core.hooksPath=/dev/null checkout -qb main >/dev/null 2>&1 || true
+  git_nested -C "$dir" -c core.hooksPath=/dev/null init -q
+  git_nested -C "$dir" -c core.hooksPath=/dev/null config user.name "Specwright Tests"
+  git_nested -C "$dir" -c core.hooksPath=/dev/null config user.email "specwright-tests@example.com"
+  git_nested -C "$dir" -c core.hooksPath=/dev/null checkout -qb main >/dev/null 2>&1 || true
   printf 'seed\n' > "$dir/README.md"
-  git -C "$dir" -c core.hooksPath=/dev/null add README.md
-  git -C "$dir" -c core.hooksPath=/dev/null commit -qm "test: init repo"
+  git_nested -C "$dir" -c core.hooksPath=/dev/null add README.md
+  git_nested -C "$dir" -c core.hooksPath=/dev/null commit -qm "test: init repo"
+}
+
+run_with_outer_git_context() {
+  local outer="$1"
+  shift
+  local outer_git_dir outer_common_dir outer_root
+  outer_git_dir="$(git_nested -C "$outer" rev-parse --path-format=absolute --git-dir)"
+  outer_common_dir="$(git_nested -C "$outer" rev-parse --path-format=absolute --git-common-dir)"
+  outer_root="$(cd "$outer" && pwd -P)"
+  GIT_DIR="$outer_git_dir" \
+  GIT_WORK_TREE="$outer_root" \
+  GIT_COMMON_DIR="$outer_common_dir" \
+  GIT_PREFIX="" \
+  "$@"
 }
 
 git_common_dir() {
-  git -C "$1" rev-parse --path-format=absolute --git-common-dir
+  git_nested -C "$1" rev-parse --path-format=absolute --git-common-dir
 }
 
 git_dir() {
-  git -C "$1" rev-parse --path-format=absolute --git-dir
+  git_nested -C "$1" rev-parse --path-format=absolute --git-dir
 }
 
 repo_state_root() {
@@ -77,7 +100,7 @@ make_shared_project() {
   local dir="$1"
   local work_id="$2"
   local status="${3:-building}"
-  local branch="${4:-$(git -C "$dir" branch --show-current)}"
+  local branch="${4:-$(git_nested -C "$dir" branch --show-current)}"
   local repo_root worktree_root work_dir
 
   repo_root="$(repo_state_root "$dir")"
@@ -172,11 +195,33 @@ EOF
 echo "=== worktree migration regression ==="
 echo ""
 
+echo "--- Nested git context isolation ---"
+T="$TEST_TMPDIR/hook-env-outer"
+U="$TEST_TMPDIR/hook-env-target"
+V="$TEST_TMPDIR/hook-env-fresh"
+init_git_repo "$T"
+init_git_repo "$U"
+U_REAL="$(cd "$U" && pwd -P)"
+output="$(run_with_outer_git_context "$T" git_common_dir "$U" 2>/dev/null)"
+assert_eq "$output" "$U_REAL/.git" "worktree migration: git_common_dir ignores inherited outer git context"
+output="$(run_with_outer_git_context "$T" git_dir "$U" 2>/dev/null)"
+assert_eq "$output" "$U_REAL/.git" "worktree migration: git_dir ignores inherited outer git context"
+run_with_outer_git_context "$T" init_git_repo "$V" >/dev/null 2>&1
+if git_nested -C "$V" rev-parse HEAD >/dev/null 2>&1; then
+  pass "worktree migration: init_git_repo creates a temp repo under inherited outer git context"
+else
+  fail "worktree migration: init_git_repo creates a temp repo under inherited outer git context"
+fi
+make_shared_project "$U" "outer-shared-install"
+mkdir -p "$U/nested/path"
+output="$(run_with_outer_git_context "$T" load_state_json "$U/nested/path" 2>/dev/null)"
+assert_contains "$output" '"workId":"outer-shared-install"' "worktree migration: shared state loading ignores inherited outer git context"
+
 echo "--- Shared new install ---"
 T="$TEST_TMPDIR/shared-primary"
 L="$TEST_TMPDIR/shared-linked"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b shared-linked "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b shared-linked "$L" HEAD
 make_shared_project "$L" "shared-install"
 mkdir -p "$L/nested/path"
 output="$(load_state_json "$L/nested/path")"
@@ -221,7 +266,7 @@ cat > "$(worktree_state_root "$T")/session.json" <<EOF
   "version": "3.0",
   "worktreeId": "test-worktree",
   "worktreePath": "$(cd "$T" && pwd -P)",
-  "branch": "$(git -C "$T" branch --show-current)",
+  "branch": "$(git_nested -C "$T" branch --show-current)",
   "attachedWorkId": "../escape",
   "mode": "top-level",
   "lastSeenAt": "$(fresh_timestamp)"
@@ -250,7 +295,7 @@ cat > "$(repo_state_root "$T")/work/shared-dispatch/workflow.json" <<EOF
   "unitId": "unit-shared-dispatch",
   "tasksCompleted": ["t1"],
   "tasksTotal": 3,
-  "branch": "$(git -C "$T" branch --show-current)",
+  "branch": "$(git_nested -C "$T" branch --show-current)",
   "gates": {
     "build": { "verdict": "PASS" }
   },
@@ -286,7 +331,7 @@ echo "--- Dead session detection ---"
 T="$TEST_TMPDIR/dead-session-primary"
 L="$TEST_TMPDIR/dead-session-linked"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b dead-session-linked "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b dead-session-linked "$L" HEAD
 make_shared_project "$L" "dead-session-work"
 rm -rf "$L"
 output="$(inspect_sessions_json "$T")"

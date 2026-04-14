@@ -7,10 +7,40 @@ const FAILURE_CODE = 'GIT_RESOLUTION_FAILED';
 const PRIMARY_WORKTREE_ID = 'main-worktree';
 const LEGACY_STATE_SEGMENTS = ['.specwright', 'state'];
 const SHARED_CONFIG_FILE = 'config.json';
+const REPO_LOCAL_GIT_ENV_VARS = new Set([
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+  'GIT_COMMON_DIR',
+  'GIT_CONFIG',
+  'GIT_CONFIG_COUNT',
+  'GIT_CONFIG_PARAMETERS',
+  'GIT_DIR',
+  'GIT_GRAFT_FILE',
+  'GIT_IMPLICIT_WORK_TREE',
+  'GIT_INDEX_FILE',
+  'GIT_NO_REPLACE_OBJECTS',
+  'GIT_OBJECT_DIRECTORY',
+  'GIT_PREFIX',
+  'GIT_REPLACE_REF_BASE',
+  'GIT_SHALLOW_FILE',
+  'GIT_WORK_TREE'
+]);
+
+function sanitizedGitEnv(extra = {}) {
+  const env = { ...process.env };
+  for (const key of REPO_LOCAL_GIT_ENV_VARS) {
+    delete env[key];
+  }
+
+  return {
+    ...env,
+    ...extra
+  };
+}
 
 function runGit(args, cwd) {
   return execFileSync('git', args, {
     cwd,
+    env: sanitizedGitEnv(),
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe']
   }).trim();

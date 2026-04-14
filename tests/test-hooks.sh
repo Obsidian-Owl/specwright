@@ -62,6 +62,15 @@ assert_not_contains() {
   fi
 }
 
+git_nested() {
+  local env_cmd=(env)
+  local git_var
+  while IFS= read -r git_var; do
+    env_cmd+=(-u "$git_var")
+  done < <(git rev-parse --local-env-vars)
+  "${env_cmd[@]}" git "$@"
+}
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -75,13 +84,27 @@ make_project() {
 init_git_repo() {
   local dir="$1"
   mkdir -p "$dir"
-  git -C "$dir" -c core.hooksPath=/dev/null init -q
-  git -C "$dir" -c core.hooksPath=/dev/null config user.name "Specwright Tests"
-  git -C "$dir" -c core.hooksPath=/dev/null config user.email "specwright-tests@example.com"
-  git -C "$dir" -c core.hooksPath=/dev/null checkout -qb main >/dev/null 2>&1 || true
+  git_nested -C "$dir" -c core.hooksPath=/dev/null init -q
+  git_nested -C "$dir" -c core.hooksPath=/dev/null config user.name "Specwright Tests"
+  git_nested -C "$dir" -c core.hooksPath=/dev/null config user.email "specwright-tests@example.com"
+  git_nested -C "$dir" -c core.hooksPath=/dev/null checkout -qb main >/dev/null 2>&1 || true
   printf 'seed\n' > "$dir/README.md"
-  git -C "$dir" -c core.hooksPath=/dev/null add README.md
-  git -C "$dir" -c core.hooksPath=/dev/null commit -qm "test: init repo"
+  git_nested -C "$dir" -c core.hooksPath=/dev/null add README.md
+  git_nested -C "$dir" -c core.hooksPath=/dev/null commit -qm "test: init repo"
+}
+
+run_with_outer_git_context() {
+  local outer="$1"
+  shift
+  local outer_git_dir outer_common_dir outer_root
+  outer_git_dir="$(git_nested -C "$outer" rev-parse --path-format=absolute --git-dir)"
+  outer_common_dir="$(git_nested -C "$outer" rev-parse --path-format=absolute --git-common-dir)"
+  outer_root="$(cd "$outer" && pwd -P)"
+  GIT_DIR="$outer_git_dir" \
+  GIT_WORK_TREE="$outer_root" \
+  GIT_COMMON_DIR="$outer_common_dir" \
+  GIT_PREFIX="" \
+  "$@"
 }
 
 run_resolver_json() {
@@ -112,11 +135,11 @@ EOF
 }
 
 git_common_dir() {
-  git -C "$1" rev-parse --path-format=absolute --git-common-dir
+  git_nested -C "$1" rev-parse --path-format=absolute --git-common-dir
 }
 
 git_dir() {
-  git -C "$1" rev-parse --path-format=absolute --git-dir
+  git_nested -C "$1" rev-parse --path-format=absolute --git-dir
 }
 
 repo_state_root() {
@@ -135,7 +158,7 @@ make_shared_project() {
   local dir="$1"
   local work_id="$2"
   local status="${3:-building}"
-  local branch="${4:-$(git -C "$dir" branch --show-current)}"
+  local branch="${4:-$(git_nested -C "$dir" branch --show-current)}"
   local repo_root worktree_root work_dir
 
   repo_root="$(repo_state_root "$dir")"
@@ -184,6 +207,26 @@ EOF
 echo ""
 echo "=== Section 0: specwright-state-paths.mjs ==="
 
+T="$TEST_TMPDIR/t-hook-env-outer"
+U="$TEST_TMPDIR/t-hook-env-target"
+V="$TEST_TMPDIR/t-hook-env-fresh"
+init_git_repo "$T"
+init_git_repo "$U"
+U_REAL="$(cd "$U" && pwd -P)"
+output="$(run_with_outer_git_context "$T" git_common_dir "$U" 2>/dev/null)"
+assert_eq "$output" "$U_REAL/.git" "nested git helpers: git_common_dir ignores inherited outer git context"
+output="$(run_with_outer_git_context "$T" git_dir "$U" 2>/dev/null)"
+assert_eq "$output" "$U_REAL/.git" "nested git helpers: git_dir ignores inherited outer git context"
+run_with_outer_git_context "$T" init_git_repo "$V" >/dev/null 2>&1
+if git_nested -C "$V" rev-parse HEAD >/dev/null 2>&1; then
+  pass "nested git helpers: init_git_repo creates a temp repo under inherited outer git context"
+else
+  fail "nested git helpers: init_git_repo creates a temp repo under inherited outer git context"
+fi
+output="$(run_with_outer_git_context "$T" run_resolver_json "$U" 2>/dev/null)"
+assert_contains "$output" "\"projectRoot\":\"$U_REAL\"" "state-paths: shared resolver ignores inherited outer git context"
+assert_contains "$output" "\"gitDir\":\"$U_REAL/.git\"" "state-paths: shared resolver keeps the target gitDir under inherited outer git context"
+
 T="$TEST_TMPDIR/t-resolver-primary"
 init_git_repo "$T"
 T_REAL="$(cd "$T" && pwd -P)"
@@ -201,7 +244,7 @@ assert_contains "$output" '"worktreeId":"main-worktree"' "state-paths: primary w
 T="$TEST_TMPDIR/t-resolver-linked-primary"
 L="$TEST_TMPDIR/linked-worktree"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b linked-worktree "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b linked-worktree "$L" HEAD
 T_REAL="$(cd "$T" && pwd -P)"
 L_REAL="$(cd "$L" && pwd -P)"
 output=$(run_resolver_json "$L" 2>/dev/null)
@@ -336,7 +379,7 @@ assert_eq "$output" "" "subagent-context: missing agent_type → no output"
 T="$TEST_TMPDIR/t-subagent-linked-primary"
 L="$TEST_TMPDIR/subagent-linked-worktree"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b subagent-linked-worktree "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b subagent-linked-worktree "$L" HEAD
 make_project "$L"
 mkdir -p "$L/.specwright/work/WU-001" "$L/nested/context"
 write_workflow "$L" ".specwright/work/WU-001"
@@ -350,7 +393,7 @@ assert_contains "$output" "additionalContext" "subagent-context: nested linked w
 T="$TEST_TMPDIR/t-subagent-shared-primary"
 L="$TEST_TMPDIR/subagent-shared-linked"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b subagent-shared-linked "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b subagent-shared-linked "$L" HEAD
 make_shared_project "$L" "shared-subagent"
 mkdir -p "$(repo_state_root "$L")/work/shared-subagent" "$L/nested/shared"
 printf '# Repo Map\nshared session content\n' > "$(repo_state_root "$L")/work/shared-subagent/repo-map.md"
@@ -478,7 +521,7 @@ assert_contains "$output" "Work in progress" "session-start: nested primary work
 T="$TEST_TMPDIR/t-ss-linked-primary"
 L="$TEST_TMPDIR/session-start-linked-worktree"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b session-start-linked-worktree "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b session-start-linked-worktree "$L" HEAD
 make_project "$L"
 write_workflow "$L" ".specwright/work/WU-001" "building"
 mkdir -p "$L/deep/nested"
@@ -491,7 +534,7 @@ assert_contains "$output" "Work in progress" "session-start: nested linked workt
 T="$TEST_TMPDIR/t-ss-shared-primary"
 L="$TEST_TMPDIR/session-start-shared-linked"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b session-start-shared-linked "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b session-start-shared-linked "$L" HEAD
 make_shared_project "$L" "shared-session-start" "building"
 mkdir -p "$L/deep/shared"
 output=$(cd "$L/deep/shared" && node "$SESSION_START_HOOK" 2>/dev/null)
