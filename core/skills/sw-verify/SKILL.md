@@ -74,10 +74,32 @@ No fix/skip/abort decisions — the gate handoff presents everything for human r
 Headless: write `headless-result.json`.
 
 **Aggregate report (MEDIUM freedom):**
-After all gates, present: (1) per-finding detail grouped by gate, (2) summary table
-`| Gate | Status | Findings (B/W/I) |`, (3) actionable findings table (WARN → fix
-suggestion, BLOCK → "manual review"). SKIP gates prominently marked. Check escalation
-heuristics per `protocols/evidence.md#verdict-rendering`.
+After all gates, present three tiers:
+1. **Per-finding detail** (first): every BLOCK/WARN grouped by gate — what,
+   why, and recommended action.
+2. **Summary table** (after): `| Gate | Status | Findings (B/W/I) |`
+3. **Actionable Findings** (after summary): only shown when WARN or BLOCK
+   findings exist; omit when all gates PASS. Populate from gate evidence as the
+   source. Include only WARN and BLOCK severity rows, not INFO.
+
+   | # | Gate | Severity | File | Finding | Recommended Fix |
+   |---|------|----------|------|---------|-----------------|
+   | 1 | gate-tests | WARN | src/foo.ts | description | concrete fix suggestion or "manual review" |
+
+   - File column: specific file path from gate evidence, not a vague reference.
+   - Recommended Fix column: WARN rows get concrete, actionable fix suggestions;
+     BLOCK rows that require human judgment get "manual review".
+   - Summary line: state the actionable finding count (`N of M`) and whether any
+     require human judgment before the user proceeds. Wording remains
+     informational — do not imply the skill will perform fixes.
+   - All-manual case: when every actionable finding requires manual review,
+     state that no automated resolution is possible.
+
+SKIP gates prominently marked. Check escalation heuristics per
+`protocols/evidence.md#verdict-rendering`.
+Handoff posture remains three-tiered: BLOCKs → "Fix and re-run `/sw-verify`."
+WARN-only results → "Review, then fix or `/sw-ship`." All PASS →
+"Ready for `/sw-ship`."
 
 **Evidence completeness (LOW freedom):**
 Skip when `--gate=<name>` was used (partial run — only the targeted gate is expected).
@@ -145,6 +167,7 @@ the selected work's `gates` section after each gate completes. Do NOT set
 | Condition | Action |
 |-----------|--------|
 | No active work unit | STOP: "Run /sw-design, /sw-plan, and /sw-build first." |
+| Selected work owned by another live top-level worktree | STOP with explicit adopt/takeover guidance |
 | No gates enabled / all skipped | WARN, proceed to ready-to-ship |
 | Gate skill file not found | ERROR for that gate, continue remaining |
 | Compaction during verification | Read the selected work's workflow.json, resume from next gate without fresh results |
