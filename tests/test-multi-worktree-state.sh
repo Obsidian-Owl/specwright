@@ -6,6 +6,9 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=tests/test-lib.sh
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/test-lib.sh"
 TEST_TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_TMPDIR"' EXIT
 
@@ -44,25 +47,7 @@ assert_not_contains() {
   fi
 }
 
-init_git_repo() {
-  local dir="$1"
-  mkdir -p "$dir"
-  git -C "$dir" -c core.hooksPath=/dev/null init -q
-  git -C "$dir" -c core.hooksPath=/dev/null config user.name "Specwright Tests"
-  git -C "$dir" -c core.hooksPath=/dev/null config user.email "specwright-tests@example.com"
-  git -C "$dir" -c core.hooksPath=/dev/null checkout -qb main >/dev/null 2>&1 || true
-  printf 'seed\n' > "$dir/README.md"
-  git -C "$dir" -c core.hooksPath=/dev/null add README.md
-  git -C "$dir" -c core.hooksPath=/dev/null commit -qm "test: init repo"
-}
-
-git_common_dir() {
-  git -C "$1" rev-parse --path-format=absolute --git-common-dir
-}
-
-git_dir() {
-  git -C "$1" rev-parse --path-format=absolute --git-dir
-}
+git_nested_prepare || exit 1
 
 repo_state_root() {
   printf '%s/specwright\n' "$(git_common_dir "$1")"
@@ -217,7 +202,7 @@ echo "--- AC-1: distinct top-level worktrees keep distinct active works ---"
 T="$TEST_TMPDIR/ac1-primary"
 L="$TEST_TMPDIR/ac1-linked"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b ac1-linked "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b ac1-linked "$L" HEAD
 write_shared_config "$T"
 write_shared_workflow "$T" "work-alpha" "building" "main" "unit-alpha" "main-worktree"
 write_shared_workflow "$T" "work-beta" "building" "ac1-linked" "unit-beta" "ac1-linked"
@@ -246,7 +231,7 @@ echo "--- AC-2: same-work attachment surfaces adopt/takeover guidance ---"
 T="$TEST_TMPDIR/ac2-primary"
 L="$TEST_TMPDIR/ac2-linked"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b ac2-linked "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b ac2-linked "$L" HEAD
 write_shared_config "$T"
 write_shared_workflow "$T" "work-shared" "building" "main" "unit-shared" "main-worktree"
 write_shared_session "$T" "main-worktree" "main" "work-shared"
@@ -266,7 +251,7 @@ echo "--- AC-3: migrated linked worktree resolves without local .specwright/conf
 T="$TEST_TMPDIR/ac3-primary"
 L="$TEST_TMPDIR/ac3-linked"
 init_git_repo "$T"
-git -C "$T" -c core.hooksPath=/dev/null worktree add -q -b ac3-linked "$L" HEAD
+git_nested -C "$T" -c core.hooksPath=/dev/null worktree add -q -b ac3-linked "$L" HEAD
 write_legacy_workflow "$T" "legacy-only"
 write_shared_config "$T"
 write_shared_workflow "$T" "migrated-work" "building" "ac3-linked" "unit-migrated" "ac3-linked"
