@@ -46,7 +46,10 @@ Implement the current work unit with TDD. The per-task loop is RED → GREEN →
 **Branch setup (LOW freedom):** First action before coding: resolve the
 session-selected work from the current worktree, verify that no other live
 top-level worktree owns it, then check out the feature branch from
-`config.git.branchPrefix` and sync it per `protocols/git.md`. Use
+`config.git.branchPrefix` and sync it per `protocols/git.md`. The selected
+work's recorded `targetRef`, when present, is the first branch-resolution
+input via `protocols/git.md`; repo config defaults and the `baseBranch`
+compatibility alias are fallbacks only. Use
 `{git.branchPrefix}{selectedWork.unitId}` for multi-unit work and never commit
 to the base branch. If the selected work is already owned elsewhere, STOP with
 explicit adopt/takeover guidance instead of mutating it silently.

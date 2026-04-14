@@ -65,6 +65,11 @@ targeting and checkpoint policy.
 - `roles.{role}.branch` sets a concrete default branch such as `main` or `develop`
 - `roles.{role}.pattern` allows constrained families such as `release/*`
 
+Pattern-based defaults are templates, not autonomous selectors. `sw-design`
+may resolve a `roles.{role}.pattern` entry automatically only when exactly one
+remote branch matches. Zero or multiple matches require an explicit user choice
+so the work records a concrete `targetRef.branch` instead of guessing.
+
 `git.baseBranch` remains supported as a compatibility alias for the default
 integration branch. Writers should prefer `git.targets.roles.integration.branch`
 when the expanded shape exists, but readers must keep honoring `baseBranch`
@@ -113,14 +118,18 @@ but they must not push, verify, or ship the parent work directly.
 
 ## Branch Lifecycle
 
-If the selected work already records `targetRef`, branch setup uses that concrete target before falling back to `git.targets` defaults or the `baseBranch` compatibility alias.
+If the selected work already records `targetRef`, branch setup uses that
+concrete target before falling back to `git.targets` defaults or the
+`baseBranch` compatibility alias.
 
 **Create** (at build start):
 
 ```bash
-git checkout {config.git.baseBranch}
-git fetch origin
-git pull --ff-only origin {config.git.baseBranch}
+TARGET_REMOTE="{resolved target remote}"
+TARGET_BRANCH="{resolved target branch}"
+git fetch "$TARGET_REMOTE"
+git checkout "$TARGET_BRANCH"
+git pull --ff-only "$TARGET_REMOTE" "$TARGET_BRANCH"
 git checkout -b {config.git.branchPrefix}{work-or-unit-id}
 ```
 
@@ -139,10 +148,10 @@ single remote, or a single unit naming scheme outside the config contract.
 
 At build start, after branch setup:
 
-- compare the local base branch with `origin/{baseBranch}`
-- warn if the base branch is behind
+- compare the resolved local target branch with `{target remote}/{target branch}`
+- warn if the resolved target branch is behind
 - if the feature branch already exists, also check upstream drift for the
-  session-attached branch
+  session-attached branch relative to that same resolved target
 
 This is advisory only unless a skill adds a stricter policy.
 

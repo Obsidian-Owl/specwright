@@ -60,6 +60,10 @@ Per-worktree runtime data lives under the active Git admin directory:
 
 Each top-level work owns its own workflow file.
 
+The schema below shows the populated v3 shape. Legacy workflow files may omit
+`targetRef`, `freshness`, `prNumber`, or `prMergedAt` until migration or later
+stages populate them.
+
 ```json
 {
   "version": "3.0",
@@ -136,6 +140,9 @@ Each top-level work owns its own workflow file.
 - `targetRef` is work-level state for the selected work, not a repo-global
   singleton. `sw-design` records the concrete remote, branch, role, and
   resolution source once so later stages stop guessing what the work targets.
+- `targetRef.resolvedBy` is descriptive provenance such as a config path or
+  user override marker. Readers must treat it as explanatory metadata, not as a
+  stable enum or branching primitive.
 - `baselineCommit` remains the design-time HEAD of the recorded target branch.
   `targetRef` is the live branch target for the work and may stay stable even
   after the remote head advances.
@@ -148,7 +155,7 @@ Each top-level work owns its own workflow file.
   omissions as backward-compatible legacy state.
 - Older workflow files may also omit `targetRef` and `freshness`; readers must
   treat both omissions as backward-compatible legacy state until the new model
-  is populated.
+  is populated, even though the schema block above shows the populated shape.
 - `workDir` remains the unit-local artifact path for the selected unit. Skills
   still resolve unit-local files through `workflow.workDir`, never by guessing
   from IDs.
