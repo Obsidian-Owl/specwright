@@ -110,6 +110,8 @@ jobs:
         run: tests/test-hooks.sh
       - name: Run stage enforcement tests
         run: tests/test-stage-enforcement.sh
+      - name: Run branch freshness target-model regression
+        run: tests/test-branch-freshness-target-model-docs.sh
 
   test-codex:
     runs-on: ubuntu-latest
