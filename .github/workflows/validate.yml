@@ -138,6 +138,8 @@ jobs:
         run: |
           git config --global user.email "ci@specwright.local"
           git config --global user.name "CI"
+      - name: Run workflow YAML regression tests
+        run: bash tests/test-eval-workflows-yaml.sh
       - name: Run eval framework tests
         run: python -m pytest evals/tests/ -v --ignore=evals/tests/test_aggregator.py
 
