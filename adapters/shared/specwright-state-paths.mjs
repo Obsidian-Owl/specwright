@@ -185,6 +185,10 @@ function buildWorkArtifacts(baseDir, workId, workDir) {
   };
 }
 
+function isActiveWorkflowStatus(status) {
+  return Boolean(status) && !['shipped', 'abandoned'].includes(status);
+}
+
 function parseWorktreeList(text) {
   const entries = [];
   let current = null;
@@ -482,4 +486,116 @@ export function findSelectedWorkOwnerConflict(stateInfo, options = {}) {
     ownerBranch: owner.branch ?? null,
     ownerSessionPath: owner.sessionPath
   };
+}
+
+function summarizeActiveWork(work) {
+  if (!work) {
+    return null;
+  }
+
+  return {
+    workId: work.workId,
+    status: work.status ?? null,
+    unitId: work.unitId ?? null,
+    branch: work.branch ?? null
+  };
+}
+
+function summarizeSession(stateInfo) {
+  return {
+    worktreeId: stateInfo?.worktreeId ?? null,
+    branch: stateInfo?.session?.branch ?? null,
+    mode: stateInfo?.session?.mode ?? null,
+    attachedWorkId: stateInfo?.attachedWorkId ?? null
+  };
+}
+
+function resolveWorkflowOwner(workflow, sessionsInfo) {
+  const liveOwner = sessionsInfo?.sessions?.find((session) =>
+    session.live &&
+    isTopLevelSession(session) &&
+    session.attachedWorkId === workflow.id
+  );
+
+  return {
+    ownerWorktreeId: liveOwner?.worktreeId ?? workflow.attachment?.worktreeId ?? null,
+    ownerLive: Boolean(liveOwner),
+    ownerBranch: liveOwner?.branch ?? workflow.branch ?? null,
+    ownerWorktreePath: liveOwner?.worktreePath ?? workflow.attachment?.worktreePath ?? null
+  };
+}
+
+export function buildStatusView(stateInfo, options = {}) {
+  const work = normalizeActiveWork(stateInfo);
+  const view = {
+    roots: {
+      repoStateRoot: stateInfo?.repoStateRoot ?? null,
+      worktreeStateRoot: stateInfo?.worktreeStateRoot ?? null
+    },
+    session: summarizeSession(stateInfo),
+    attachedWork: summarizeActiveWork(work),
+    otherActiveWorks: [],
+    staleAttachments: []
+  };
+
+  if (stateInfo?.layout !== 'shared' || !stateInfo?.repoStateRoot) {
+    return view;
+  }
+
+  const sessionsInfo = inspectWorktreeSessions({
+    cwd: options.cwd ?? stateInfo.projectRoot ?? process.cwd()
+  });
+  if (!sessionsInfo?.ok) {
+    return view;
+  }
+
+  const workRoot = resolve(stateInfo.repoStateRoot, 'work');
+  if (existsSync(workRoot)) {
+    const otherActiveWorks = [];
+
+    for (const entry of readdirSync(workRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+
+      const workflowPath = join(workRoot, entry.name, 'workflow.json');
+      if (!existsSync(workflowPath)) {
+        continue;
+      }
+
+      let workflow;
+      try {
+        workflow = parseJsonFile(workflowPath);
+      } catch {
+        continue;
+      }
+
+      if (!workflow?.id || !isActiveWorkflowStatus(workflow.status) || workflow.id === stateInfo.attachedWorkId) {
+        continue;
+      }
+
+      const owner = resolveWorkflowOwner(workflow, sessionsInfo);
+      otherActiveWorks.push({
+        workId: workflow.id,
+        status: workflow.status ?? null,
+        ownerWorktreeId: owner.ownerWorktreeId,
+        ownerLive: owner.ownerLive,
+        ownerBranch: owner.ownerBranch,
+        ownerWorktreePath: owner.ownerWorktreePath,
+        unitId: workflow.unitId ?? null
+      });
+    }
+
+    view.otherActiveWorks = otherActiveWorks.sort((a, b) => a.workId.localeCompare(b.workId));
+  }
+
+  view.staleAttachments = sessionsInfo.deadSessions
+    .filter((session) => isTopLevelSession(session) && session.attachedWorkId)
+    .map((session) => ({
+      worktreeId: session.worktreeId,
+      attachedWorkId: session.attachedWorkId,
+      deadReason: session.deadReason
+    }));
+
+  return view;
 }

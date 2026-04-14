@@ -195,6 +195,21 @@ EOF
   )
 }
 
+inspect_status_view() {
+  local dir="$1"
+  (
+    cd "$dir" &&
+    STATE_PATHS_MODULE="$STATE_PATHS_MODULE" node --input-type=module <<'EOF'
+const {
+  buildStatusView,
+  loadSpecwrightState
+} = await import(process.env.STATE_PATHS_MODULE);
+const state = loadSpecwrightState();
+process.stdout.write(JSON.stringify(buildStatusView(state)));
+EOF
+  )
+}
+
 echo "=== Multi-worktree runtime state regression ==="
 echo ""
 
@@ -216,6 +231,15 @@ assert_contains "$linked_output" "work-beta (building)" "linked worktree resolve
 assert_not_contains "$linked_output" "work-alpha (building)" "linked worktree does not surface the primary worktree's work"
 assert_contains "$(cat "$(worktree_state_root "$T")/session.json")" '"attachedWorkId": "work-alpha"' "primary session keeps its attached work after linked worktree reads state"
 assert_contains "$(cat "$(worktree_state_root "$L")/session.json")" '"attachedWorkId": "work-beta"' "linked session keeps its attached work after primary worktree reads state"
+
+echo ""
+echo "--- IC-B2: status view reports attached work and repo-active owners ---"
+primary_status_view="$(inspect_status_view "$T")"
+linked_status_view="$(inspect_status_view "$L")"
+assert_contains "$primary_status_view" '"attachedWork":{"workId":"work-alpha"' "primary status view reports the attached work for the current worktree"
+assert_contains "$primary_status_view" '"otherActiveWorks":[{"workId":"work-beta","status":"building","ownerWorktreeId":"ac1-linked","ownerLive":true' "primary status view surfaces the other active work with its owner worktree"
+assert_contains "$linked_status_view" '"attachedWork":{"workId":"work-beta"' "linked status view reports the attached work for that worktree"
+assert_contains "$linked_status_view" '"otherActiveWorks":[{"workId":"work-alpha","status":"building","ownerWorktreeId":"main-worktree","ownerLive":true' "linked status view surfaces the primary worktree's active work and owner"
 
 echo ""
 echo "--- AC-2: same-work attachment surfaces adopt/takeover guidance ---"

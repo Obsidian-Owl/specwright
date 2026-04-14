@@ -387,7 +387,7 @@ assert_file_not_contains "$ROOT_DIR/DESIGN.md" "workflow.json # Current state" "
 
 assert_file_contains "$CC_DIST/CLAUDE.md" "repoStateRoot" "dist CLAUDE.md references the shared repo state root"
 assert_file_contains "$CC_DIST/CLAUDE.md" "worktreeStateRoot" "dist CLAUDE.md references the per-worktree state root"
-assert_file_not_contains "$CC_DIST/CLAUDE.md" '**`.specwright/CONSTITUTION.md`**' "dist CLAUDE.md no longer points anchor docs at checkout-local .specwright/"
+assert_file_not_contains "$CC_DIST/CLAUDE.md" "**\`.specwright/CONSTITUTION.md\`**" "dist CLAUDE.md no longer points anchor docs at checkout-local .specwright/"
 
 # ═══════════════════════════════════════════════════════════════════════
 # AC-3: Identity mapping — tool names unchanged, no lowercased tools
@@ -1079,7 +1079,7 @@ fi
 HARNESS_OUTPUT="$(bash "$MULTI_WORKTREE_RUNTIME_TEST" 2>&1)" || {
   fail "tests/test-multi-worktree-state.sh passes under the configured test path"
   echo "  Harness output:"
-  echo "$HARNESS_OUTPUT" | sed 's/^/    /'
+  printf '    %s\n' "${HARNESS_OUTPUT//$'\n'/$'\n    '}"
   echo ""
   echo "RESULT: $PASS passed, $FAIL failed (runtime harness failed)"
   rm -rf "$DIST_DIR"
@@ -1091,6 +1091,11 @@ if echo "$HARNESS_OUTPUT" | grep -Fq "AC-2: same-work attachment surfaces adopt/
   pass "runtime harness output includes same-work takeover coverage"
 else
   fail "runtime harness output missing same-work takeover coverage"
+fi
+if echo "$HARNESS_OUTPUT" | grep -Fq "IC-B2: status view reports attached work and repo-active owners"; then
+  pass "runtime harness output includes sw-status repo-active ownership coverage"
+else
+  fail "runtime harness output missing sw-status repo-active ownership coverage"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
