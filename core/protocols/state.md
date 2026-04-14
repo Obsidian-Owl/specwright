@@ -72,6 +72,24 @@ Each top-level work owns its own workflow file.
   "tasksCompleted": ["task-id strings"],
   "currentTask": "string | null",
   "baselineCommit": "string | null",
+  "targetRef": {
+    "remote": "string",
+    "branch": "string",
+    "role": "string",
+    "resolvedBy": "string",
+    "resolvedAt": "ISO timestamp"
+  },
+  "freshness": {
+    "validation": "branch-head | queue",
+    "reconcile": "manual | rebase | merge",
+    "checkpoints": {
+      "build": "ignore | warn | require",
+      "verify": "ignore | warn | require",
+      "ship": "ignore | warn | require"
+    },
+    "status": "unknown | fresh | stale | diverged | blocked | queue-managed",
+    "lastCheckedAt": "ISO timestamp | null"
+  },
   "branch": "string | null",
   "lastCommit": "string | null",
   "workUnits": [
@@ -115,10 +133,22 @@ Each top-level work owns its own workflow file.
   to the current terminal session.
 - `attachment` records the current owner of the work. It replaces the old
   repo-global `currentWork`.
+- `targetRef` is work-level state for the selected work, not a repo-global
+  singleton. `sw-design` records the concrete remote, branch, role, and
+  resolution source once so later stages stop guessing what the work targets.
+- `baselineCommit` remains the design-time HEAD of the recorded target branch.
+  `targetRef` is the live branch target for the work and may stay stable even
+  after the remote head advances.
+- `freshness` stores the selected work's resolved validation mode, reconcile
+  policy, checkpoint severities, and latest known checkpoint result. It belongs
+  to the selected work alongside `targetRef`, not to repo-global state.
 - `workUnits[{n}].prNumber` is an optional, nullable, backward-compatible `number | null` field.
 - `workUnits[{n}].prMergedAt` is an optional, nullable, backward-compatible `ISO timestamp | null` field.
 - Older workflow files may omit either field; readers must treat both
   omissions as backward-compatible legacy state.
+- Older workflow files may also omit `targetRef` and `freshness`; readers must
+  treat both omissions as backward-compatible legacy state until the new model
+  is populated.
 - `workDir` remains the unit-local artifact path for the selected unit. Skills
   still resolve unit-local files through `workflow.workDir`, never by guessing
   from IDs.

@@ -10,6 +10,23 @@ hardcoded.
   "git": {
     "strategy": "trunk-based",
     "baseBranch": "main",
+    "targets": {
+      "defaultRole": "integration",
+      "roles": {
+        "integration": { "branch": "main" },
+        "release": { "branch": "main" },
+        "maintenance": { "pattern": "release/*" }
+      }
+    },
+    "freshness": {
+      "validation": "branch-head",
+      "reconcile": "manual",
+      "checkpoints": {
+        "build": "require",
+        "verify": "require",
+        "ship": "require"
+      }
+    },
     "branchPrefix": "feat/",
     "mergeStrategy": "squash",
     "prRequired": true,
@@ -25,7 +42,9 @@ hardcoded.
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `strategy` | enum | `trunk-based` | `trunk-based`, `github-flow`, `gitflow`, `custom` |
-| `baseBranch` | string | `main` | primary integration branch |
+| `baseBranch` | string | `main` | compatibility alias for the default integration branch |
+| `targets` | object | see above | canonical branch-role defaults used to resolve work-level target refs |
+| `freshness` | object | see above | canonical checkpoint policy for build, verify, and ship freshness checks |
 | `branchPrefix` | string | `feat/` | prefix for feature branches |
 | `mergeStrategy` | enum | `squash` | `squash`, `rebase`, `merge` |
 | `prRequired` | boolean | `true` | whether PRs are required for shipping |
@@ -34,6 +53,32 @@ hardcoded.
 | `branchPerWorkUnit` | boolean | `true` | create a branch per work unit |
 | `cleanupBranch` | boolean | `true` | delete branch after merge |
 | `prTool` | string | `gh` | CLI tool for PR creation |
+
+## Branch Role Defaults And Freshness Policy
+
+`git.targets` and `git.freshness` are the canonical config surfaces for branch
+targeting and checkpoint policy.
+
+`git.targets` stays intentionally small:
+
+- `defaultRole` selects the role used when the work does not specify one
+- `roles.{role}.branch` sets a concrete default branch such as `main` or `develop`
+- `roles.{role}.pattern` allows constrained families such as `release/*`
+
+`git.baseBranch` remains supported as a compatibility alias for the default
+integration branch. Writers should prefer `git.targets.roles.integration.branch`
+when the expanded shape exists, but readers must keep honoring `baseBranch`
+during migration.
+
+`git.freshness` defines the lifecycle policy that later stages resolve onto the
+selected work:
+
+- `validation`: `branch-head` or `queue`
+- `reconcile`: `manual`, `rebase`, or `merge`
+- `checkpoints.build|verify|ship`: `ignore`, `warn`, or `require`
+
+This keeps the branch-target model explicit without introducing a custom branch
+DSL.
 
 ## Logical Roots And Selected Work
 
@@ -112,6 +157,11 @@ Read `config.git.strategy`:
 
 For `custom` strategy: prompt the user for operations that are not derivable
 from config.
+
+`sw-init` and `sw-guard` seed or migrate `git.targets` and `git.freshness`
+from the detected workflow strategy. `sw-design` then resolves the selected
+work's concrete `targetRef` from those defaults instead of inferring a target
+from the current checkout alone.
 
 ## Staging Rules
 
