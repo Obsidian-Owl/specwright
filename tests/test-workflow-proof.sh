@@ -13,6 +13,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 BUILD_SKILL="$ROOT_DIR/core/skills/sw-build/SKILL.md"
 VERIFY_SKILL="$ROOT_DIR/core/skills/sw-verify/SKILL.md"
+SHIP_SKILL="$ROOT_DIR/core/skills/sw-ship/SKILL.md"
 GIT_PROTOCOL="$ROOT_DIR/core/protocols/git.md"
 STATE_PATHS_MODULE="$ROOT_DIR/adapters/shared/specwright-state-paths.mjs"
 GIT_FRESHNESS_MODULE="$ROOT_DIR/adapters/shared/specwright-git-freshness.mjs"
@@ -100,6 +101,42 @@ write_shared_config() {
 EOF
 }
 
+write_pattern_config() {
+  local dir="$1"
+  local validation="${2:-branch-head}"
+  local build_checkpoint="${3:-require}"
+  local verify_checkpoint="${4:-require}"
+  local ship_checkpoint="${5:-require}"
+  local repo_root
+
+  repo_root="$(repo_state_root "$dir")"
+  mkdir -p "$repo_root"
+  cat > "$repo_root/config.json" <<EOF
+{
+  "version": "2.0",
+  "git": {
+    "baseBranch": "main",
+    "targets": {
+      "defaultRole": "maintenance",
+      "roles": {
+        "integration": { "branch": "main" },
+        "maintenance": { "pattern": "release/*" }
+      }
+    },
+    "freshness": {
+      "validation": "$validation",
+      "reconcile": "manual",
+      "checkpoints": {
+        "build": "$build_checkpoint",
+        "verify": "$verify_checkpoint",
+        "ship": "$ship_checkpoint"
+      }
+    }
+  }
+}
+EOF
+}
+
 write_shared_workflow() {
   local dir="$1"
   local work_id="$2"
@@ -132,6 +169,45 @@ write_shared_workflow() {
     "resolvedBy": "config.git.targets.roles.integration.branch",
     "resolvedAt": "$(fresh_timestamp)"
   },
+  "freshness": {
+    "validation": "$validation",
+    "reconcile": "manual",
+    "checkpoints": {
+      "build": "$build_checkpoint",
+      "verify": "$verify_checkpoint",
+      "ship": "$ship_checkpoint"
+    },
+    "status": "unknown",
+    "lastCheckedAt": null
+  },
+  "branch": "$branch"
+}
+EOF
+}
+
+write_shared_workflow_without_target() {
+  local dir="$1"
+  local work_id="$2"
+  local branch="$3"
+  local validation="${4:-branch-head}"
+  local build_checkpoint="${5:-require}"
+  local verify_checkpoint="${6:-require}"
+  local ship_checkpoint="${7:-require}"
+  local repo_root work_root
+
+  repo_root="$(repo_state_root "$dir")"
+  work_root="$repo_root/work/$work_id"
+  mkdir -p "$work_root"
+  cat > "$work_root/workflow.json" <<EOF
+{
+  "version": "3.0",
+  "id": "$work_id",
+  "status": "building",
+  "workDir": "work/$work_id",
+  "unitId": "unit-$work_id",
+  "tasksCompleted": [],
+  "tasksTotal": 3,
+  "currentTask": "task-1",
   "freshness": {
     "validation": "$validation",
     "reconcile": "manual",
@@ -207,6 +283,17 @@ advance_main_and_push() {
   git_nested -C "$clone_dir" -c core.hooksPath=/dev/null push -q origin main
 }
 
+create_release_branch_and_push() {
+  local clone_dir="$1"
+  local branch_name="$2"
+  local message="$3"
+  git_nested -C "$clone_dir" checkout -qb "$branch_name" origin/main
+  printf '%s\n' "$message" > "$clone_dir/release.txt"
+  git_nested -C "$clone_dir" -c core.hooksPath=/dev/null add release.txt
+  git_nested -C "$clone_dir" -c core.hooksPath=/dev/null commit -qm "$message"
+  git_nested -C "$clone_dir" -c core.hooksPath=/dev/null push -q origin "$branch_name"
+}
+
 assess_freshness() {
   local dir="$1"
   local fetch_mode="${2:-false}"
@@ -277,6 +364,41 @@ if verify_warn_output="$(assess_freshness "$VERIFY_REPO" true verify)"; then
   assert_output_contains "$verify_warn_output" '"recommendedAction":"warn"' "workflow proof warns for stale verify entry on warn"
 else
   fail "workflow proof returns JSON for stale verify entry"
+fi
+
+echo ""
+echo "--- Queue-managed ship delegates to the queue ---"
+assert_contains "$SHIP_SKILL" "protocols/git-freshness.md" "sw-ship references the shared freshness protocol"
+assert_contains "$SHIP_SKILL" "Queue-managed validation remains distinct" "sw-ship keeps queue-managed shipping distinct from branch-head mode"
+QUEUE_REPO="$TEST_TMPDIR/queue-ship-repo"
+setup_assessed_repo "$REMOTE" "$QUEUE_REPO" "queue-ship-work" "queue" "require" "require" "require"
+if queue_ship_output="$(assess_freshness "$QUEUE_REPO" false ship)"; then
+  assert_output_contains "$queue_ship_output" '"phase":"ship"' "workflow proof tags the queue-managed ship scenario with the ship phase"
+  assert_output_contains "$queue_ship_output" '"validation":"queue"' "workflow proof preserves queue validation for ship"
+  assert_output_contains "$queue_ship_output" '"status":"queue-managed"' "workflow proof covers queue-managed ship behavior"
+  assert_output_contains "$queue_ship_output" '"recommendedAction":"delegate-to-queue"' "workflow proof delegates queue-managed shipping to the queue"
+else
+  fail "workflow proof returns JSON for queue-managed ship entry"
+fi
+
+echo ""
+echo "--- Release target resolution uses the configured pattern ---"
+RELEASE_PUSHER="$TEST_TMPDIR/release-target-pusher"
+RELEASE_REPO="$TEST_TMPDIR/release-target-repo"
+clone_repo "$REMOTE" "$RELEASE_PUSHER"
+create_release_branch_and_push "$RELEASE_PUSHER" "release/2026.04" "test: publish release target"
+clone_repo "$REMOTE" "$RELEASE_REPO"
+git_nested -C "$RELEASE_REPO" checkout -qb feature origin/main
+write_pattern_config "$RELEASE_REPO" "branch-head" "require" "require" "require"
+write_shared_workflow_without_target "$RELEASE_REPO" "release-target-work" "feature" "branch-head" "require" "require" "require"
+write_shared_session "$RELEASE_REPO" "feature" "release-target-work"
+if release_target_output="$(assess_freshness "$RELEASE_REPO" false build)"; then
+  assert_output_contains "$release_target_output" '"branch":"release/2026.04"' "workflow proof resolves a concrete release target branch"
+  assert_output_contains "$release_target_output" '"role":"maintenance"' "workflow proof preserves the maintenance target role"
+  assert_output_contains "$release_target_output" '"resolvedBy":"config.git.targets.roles.maintenance.pattern"' "workflow proof records pattern-based target resolution"
+  assert_output_contains "$release_target_output" '"status":"stale"' "workflow proof treats a newer release target as stale from the feature branch"
+else
+  fail "workflow proof returns JSON for release-target resolution"
 fi
 
 echo ""
