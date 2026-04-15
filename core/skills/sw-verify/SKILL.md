@@ -28,6 +28,7 @@ gate handoff using `protocols/decision.md` template.
 - `{repoStateRoot}/config.json` -- gate configuration (object or array format)
 - `{workDir}/spec.md` -- for spec compliance gate
 - `{workDir}/implementation-rationale.md` -- curated build-time reasoning when present
+- `{workArtifactsRoot}/{selectedWork.id}/integration-criteria.md` -- behavioral IC list for packet and final-unit conformance summary (when present)
 - Gate skill files in `skills/gate-*/SKILL.md`
 
 ## Outputs

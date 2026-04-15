@@ -52,13 +52,18 @@ Implement the current work unit with TDD. The per-task loop is RED → GREEN →
 
 **Task loop (MEDIUM freedom):** Work one task at a time. Finish it before starting the next and emit a status card after each task commit.
 
-**Implementation rationale (LOW freedom) — after each task commit:** Update
-`{workDir}/implementation-rationale.md` as an append-only curated artifact with
-one section per completed task. Each task entry must record the task ID,
-relevant AC references, changed files, tests added or updated, why this
-approach was chosen, any deviation from the approved unit artifacts, the
-execution path (`executor` or `build-fixer`), and the commit SHA. This artifact
-captures rationale, not transcript excerpts.
+**Implementation rationale (LOW freedom) — at each task commit boundary:**
+Maintain `{workDir}/implementation-rationale.md` as an append-only curated
+artifact with one section per completed task. In `tracked` work-artifact mode,
+stage the task's rationale content before creating the task commit so the
+tracked tree stays clean; if the resulting commit SHA is only known after the
+commit is created, capture that SHA in the next synchronized rationale update
+instead of leaving tracked artifacts dirty between tasks. Each task entry must
+record the task ID, relevant AC references, changed files, tests added or
+updated, why this approach was chosen, any deviation from the approved unit
+artifacts, the execution path (`executor` or `build-fixer`), and the task
+commit SHA once it is known. This artifact captures rationale, not transcript
+excerpts.
 
 **TDD cycle (LOW freedom for sequence):**
 1. **RED:** delegate to `specwright-tester`, write hard-to-pass tests, and confirm they fail.
@@ -86,6 +91,7 @@ Per-task integration and regression runs do not happen inside this loop.
 - `protocols/git.md` -- branch lifecycle and commit discipline
 - `protocols/git-freshness.md` -- build-entry freshness checkpoint
 - `protocols/approvals.md` -- spec approval capture and validation
+- `protocols/review-packet.md` -- rationale artifact contract consumed by the reviewer packet
 - `protocols/delegation.md` -- tester/executor/build-fixer context handoff
 - `protocols/build-quality.md` -- post-build review and as-built notes
 - `protocols/decision.md` -- late discoveries and error handling

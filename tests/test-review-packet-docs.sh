@@ -74,6 +74,7 @@ assert_contains "$REVIEW_PACKET_PROTOCOL" "## Remaining Attention" "review-packe
 assert_contains "$REVIEW_PACKET_PROTOCOL" "must not depend on local-only file links" "review-packet protocol guards clone-local reviewer visibility"
 assert_contains "$REVIEW_PACKET_PROTOCOL" "a transcript archive" "review-packet protocol rejects transcript storage"
 assert_contains "$REVIEW_PACKET_PROTOCOL" "a second gate engine" "review-packet protocol rejects duplicated gate logic"
+assert_contains "$REVIEW_PACKET_PROTOCOL" "support-surface" "review-packet protocol marks ship/review consumer wiring as deferred"
 
 echo ""
 echo "--- Evidence synthesis contract ---"
@@ -87,13 +88,16 @@ assert_contains "$EVIDENCE_PROTOCOL" "canonical AC / IC proof surface" "evidence
 echo ""
 echo "--- Build and verify lifecycle surfaces ---"
 assert_contains "$BUILD_SKILL" "{workDir}/implementation-rationale.md" "sw-build outputs the implementation rationale artifact"
-assert_contains "$BUILD_SKILL" "append-only curated artifact" "sw-build keeps rationale append-only and curated"
+assert_contains "$BUILD_SKILL" "append-only curated" "sw-build keeps rationale append-only and curated"
+assert_contains "$BUILD_SKILL" "tracked tree stays clean" "sw-build guards tracked work-artifact cleanliness for rationale updates"
 assert_contains "$BUILD_SKILL" "relevant AC references" "sw-build requires AC references in rationale"
-assert_contains "$BUILD_SKILL" "tests added or updated" "sw-build requires test-summary rationale coverage"
+assert_contains "$BUILD_SKILL" "tests added or" "sw-build requires test-summary rationale coverage"
 assert_contains "$BUILD_SKILL" "execution path (\`executor\` or \`build-fixer\`)" "sw-build records executor vs build-fixer path"
-assert_contains "$BUILD_SKILL" "captures rationale, not transcript excerpts" "sw-build forbids transcript-style rationale capture"
+assert_contains "$BUILD_SKILL" "captures rationale, not transcript" "sw-build forbids transcript-style rationale capture"
+assert_contains "$BUILD_SKILL" "protocols/review-packet.md" "sw-build protocol references include review-packet"
 assert_contains "$VERIFY_SKILL" "{workDir}/review-packet.md" "sw-verify outputs the review packet artifact"
 assert_contains "$VERIFY_SKILL" "implementation-rationale.md" "sw-verify consumes implementation rationale"
+assert_contains "$VERIFY_SKILL" "integration-criteria.md" "sw-verify inputs include conditional packet integration criteria"
 assert_contains "$VERIFY_SKILL" "canonical gate-spec compliance matrix" "sw-verify keeps gate-spec as the proof source"
 assert_contains "$VERIFY_SKILL" "not a second gate engine" "sw-verify forbids duplicate gate logic in the packet"
 assert_contains "$VERIFY_SKILL" "local-only file links" "sw-verify carries the clone-local reviewer guardrail"
@@ -107,8 +111,8 @@ assert_contains "$ROOT_CLAUDE" "review-packet.md" "root CLAUDE.md indexes the re
 assert_contains "$ADAPTER_CLAUDE" "review-packet.md" "adapter CLAUDE.md indexes the review-packet protocol"
 
 echo ""
-emit_coverage_marker "review-packet.clone-local-guard"
 echo "RESULT: $PASS passed, $FAIL failed"
 if [ "$FAIL" -ne 0 ]; then
   exit 1
 fi
+emit_coverage_marker "review-packet.clone-local-guard"
