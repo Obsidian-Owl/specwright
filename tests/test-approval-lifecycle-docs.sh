@@ -9,6 +9,10 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 APPROVALS_PROTOCOL="$ROOT_DIR/core/protocols/approvals.md"
 APPROVALS_HELPER="$ROOT_DIR/adapters/shared/specwright-approvals.mjs"
+DESIGN_SKILL="$ROOT_DIR/core/skills/sw-design/SKILL.md"
+PLAN_SKILL="$ROOT_DIR/core/skills/sw-plan/SKILL.md"
+BUILD_SKILL="$ROOT_DIR/core/skills/sw-build/SKILL.md"
+VERIFY_SKILL="$ROOT_DIR/core/skills/sw-verify/SKILL.md"
 TEST_TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_TMPDIR"' EXIT
 
@@ -46,7 +50,7 @@ assert_output_contains() {
 echo "=== approval lifecycle ==="
 echo ""
 
-for file in "$APPROVALS_PROTOCOL" "$APPROVALS_HELPER"; do
+for file in "$APPROVALS_PROTOCOL" "$APPROVALS_HELPER" "$DESIGN_SKILL" "$PLAN_SKILL" "$BUILD_SKILL" "$VERIFY_SKILL"; do
   if [ -f "$file" ]; then
     pass "exists: ${file#"$ROOT_DIR"/}"
   else
@@ -147,6 +151,19 @@ assert_output_contains "$HELPER_OUTPUT" '"supersededFirst":"SUPERSEDED"' "helper
 assert_output_contains "$HELPER_OUTPUT" '"latestStatus":"APPROVED"' "helper records new approvals as APPROVED"
 assert_output_contains "$HELPER_OUTPUT" '"roundTripEntries":2' "helper round-trips approvals.md through disk"
 assert_output_contains "$HELPER_OUTPUT" '"headlessApprovedRejected":true' "headless approval source cannot produce APPROVED entries"
+
+echo ""
+echo "--- Lifecycle skill wiring ---"
+assert_contains "$DESIGN_SKILL" "artifact set awaiting approval" "sw-design identifies the design approval target"
+assert_contains "$DESIGN_SKILL" "does not write \`APPROVED\` entries itself" "sw-design stays pending until a later stage records approval"
+assert_contains "$PLAN_SKILL" "Interactive \`/sw-plan\` runs may write an \`APPROVED\` \`design\` entry" "sw-plan records design approval on entry"
+assert_contains "$PLAN_SKILL" "headless runs must validate existing human approval" "sw-plan forbids headless design approval fabrication"
+assert_contains "$BUILD_SKILL" "Interactive \`/sw-build\` runs may record an \`APPROVED\` \`unit-spec\` entry" "sw-build records unit-spec approval on entry"
+assert_contains "$BUILD_SKILL" "Never move approval truth into \`workflow.json\`" "sw-build keeps approval truth out of workflow.json"
+assert_contains "$VERIFY_SKILL" "Missing, \`STALE\`, or" "sw-verify checks approval freshness states"
+assert_contains "$VERIFY_SKILL" "\`SUPERSEDED\` lineage becomes a distinct approval finding" "sw-verify treats superseded approval lineage distinctly"
+assert_contains "$VERIFY_SKILL" "Approval Lineage" "sw-verify reports approval lineage separately from gate findings"
+assert_contains "$VERIFY_SKILL" "never create \`APPROVED\` entries" "sw-verify preserves headless non-approval behavior"
 
 echo ""
 echo "RESULT: $PASS passed, $FAIL failed"

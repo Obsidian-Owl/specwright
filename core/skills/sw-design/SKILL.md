@@ -89,6 +89,12 @@ NEVER write specs, decompose, implement, branch, or test. After gate handoff, ST
 - `design.md` exists + no argument: apply DISAMBIGUATION — if the user's prior message
   implies a change, treat as change request. Otherwise, present status at the gate.
 
+**Approval target (LOW freedom):**
+Per `protocols/approvals.md`, identify the design artifact set awaiting approval
+for `/sw-plan`: `design.md`, `context.md`, `decisions.md`, the design
+assumptions artifact, and any optional design supplements written in this run.
+`sw-design` does not write `APPROVED` entries itself.
+
 **Gate handoff (LOW freedom):**
 On completion, emit the three-line handoff per the `protocols/decision.md`
 Gate Handoff section. Write `{repoStateRoot}/work/{id}/stage-report.md`
@@ -133,6 +139,7 @@ Follow `protocols/state.md` for read-modify-write mechanics. Postconditions:
 - `protocols/landscape.md` -- codebase reference document format
 - `protocols/audit.md` -- codebase health findings format
 - `protocols/backlog.md` -- backlog item format and write targets
+- `protocols/approvals.md` -- pending design artifact set and approval contract
 - `protocols/research.md` -- external research brief format and consumption
 
 ## Failure Modes
