@@ -1220,16 +1220,18 @@ else
 fi
 
 WORKFLOW_PROOF_EXIT=0
-WORKFLOW_PROOF_OUTPUT="$(bash "$WORKFLOW_PROOF_TEST" 2>&1)" || WORKFLOW_PROOF_EXIT=$?
+# Smoke mode keeps the default structural path fast while still proving that
+# workflow-proof coverage executes and carries queue-managed shipping markers.
+WORKFLOW_PROOF_OUTPUT="$(SPECWRIGHT_WORKFLOW_PROOF_MODE=smoke bash "$WORKFLOW_PROOF_TEST" 2>&1)" || WORKFLOW_PROOF_EXIT=$?
 
 if [ "$WORKFLOW_PROOF_EXIT" -ne 0 ]; then
-  fail "tests/test-workflow-proof.sh passes under the configured test path"
+  fail "tests/test-workflow-proof.sh fails under the configured test path"
   echo "  Regression output:"
   printf '    %s\n' "${WORKFLOW_PROOF_OUTPUT//$'\n'/$'\n    '}"
 else
   pass "tests/test-workflow-proof.sh passes under the configured test path"
 fi
-if echo "$WORKFLOW_PROOF_OUTPUT" | grep -Fq "PASS: workflow proof covers queue-managed ship behavior"; then
+if [ "$WORKFLOW_PROOF_EXIT" -eq 0 ] && echo "$WORKFLOW_PROOF_OUTPUT" | grep -Fq "COVERAGE: workflow-proof.queue-managed-ship"; then
   pass "workflow-proof regression output includes queue-managed ship coverage"
 else
   fail "workflow-proof regression output missing queue-managed ship coverage"
