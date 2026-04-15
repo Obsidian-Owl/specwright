@@ -1197,7 +1197,7 @@ CONFIG_VISIBILITY_EXIT=0
 CONFIG_VISIBILITY_OUTPUT="$(bash "$CONFIG_VISIBILITY_DOCS_TEST" 2>&1)" || CONFIG_VISIBILITY_EXIT=$?
 
 if [ "$CONFIG_VISIBILITY_EXIT" -ne 0 ]; then
-  fail "tests/test-config-validation-visibility-docs.sh passes under the configured test path"
+  fail "tests/test-config-validation-visibility-docs.sh fails under the configured test path"
   echo "  Regression output:"
   printf '    %s\n' "${CONFIG_VISIBILITY_OUTPUT//$'\n'/$'\n    '}"
 else

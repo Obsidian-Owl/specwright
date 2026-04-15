@@ -160,8 +160,8 @@ The helper is an assessor, not a mutator.
 ## Caller Responsibilities
 
 - lifecycle skills decide whether a result blocks, warns, or proceeds
-- publication mode for optional auditable work artifacts is configured outside
-  this helper
+- publication mode for optional auditable work artifacts comes from
+  `config.git.workArtifacts` in `protocols/git.md`, not from this helper
 - redaction or safe publication of evidence is handled by the surfaces that
   expose or commit those artifacts
 

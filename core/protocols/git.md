@@ -27,6 +27,10 @@ hardcoded.
         "ship": "require"
       }
     },
+    "workArtifacts": {
+      "mode": "clone-local",
+      "trackedRoot": null
+    },
     "branchPrefix": "feat/",
     "mergeStrategy": "squash",
     "prRequired": true,
@@ -45,6 +49,7 @@ hardcoded.
 | `baseBranch` | string | `main` | compatibility alias for the default integration branch |
 | `targets` | object | see above | canonical branch-role defaults used to resolve work-level target refs |
 | `freshness` | object | see above | canonical checkpoint policy for build, verify, and ship freshness checks |
+| `workArtifacts` | object or null | `null` (`clone-local`) | optional publication mode for auditable work artifacts |
 | `branchPrefix` | string | `feat/` | prefix for feature branches |
 | `mergeStrategy` | enum | `squash` | `squash`, `rebase`, `merge` |
 | `prRequired` | boolean | `true` | whether PRs are required for shipping |
@@ -84,6 +89,29 @@ selected work:
 
 This keeps the branch-target model explicit without introducing a custom branch
 DSL.
+
+## Work-Artifact Publication Mode
+
+`git.workArtifacts` is the canonical config surface for optional auditable work
+artifacts. It is optional; when omitted, those artifacts remain clone-local.
+
+Supported shape:
+
+- `mode`: `clone-local` or `tracked`
+- `trackedRoot`: repo-relative path required when `mode = tracked`
+
+Semantics:
+
+- `clone-local` keeps optional auditable work artifacts under clone-local
+  Specwright state. They do not become tracked project files by default.
+- `tracked` publishes only the optional auditable work artifacts under an
+  explicit tracked root inside `projectRoot`.
+- `trackedRoot` must not point at `.git`, `repoStateRoot`,
+  `worktreeStateRoot`, session state, or a symlinked mirror of those runtime
+  roots.
+- This setting does not move project-level artifacts such as `CONSTITUTION.md`,
+  `CHARTER.md`, or `TESTING.md`; those remain project artifacts regardless of
+  work-artifact publication mode.
 
 ## Logical Roots And Selected Work
 

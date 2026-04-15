@@ -74,6 +74,9 @@ Within the Config pass, check all of the following and report them by name:
   session state, or symlinked `.git` mirrors instead of an explicit tracked
   artifact path
 
+CONFIG_MISMATCH findings must name the offending config key and print the
+corrective action.
+
 STATE_DRIFT findings must print the inline remediation command
 `sw-status --repair {unitId}` and include the owning work ID.
 

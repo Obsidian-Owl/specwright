@@ -34,6 +34,15 @@ claimed by a live Specwright session or a subordinate helper worktree.
 - Summary report: branches fetched, removed, skipped, protected, and any stale
   active works detected
 
+## Advisory Reporting
+
+- After fetch/prune completes, `sw-sync` may report stale active works against
+  their recorded targets and latest known freshness state.
+- This report is advisory only and does not take ownership of
+  reconcile-or-ship decisions away from the lifecycle skills.
+- `sw-sync` never rebases, merges, retargets, or clears a freshness block on
+  behalf of `sw-build`, `sw-verify`, or `sw-ship`.
+
 ## Constraints
 
 **Fetch (HIGH freedom):**
@@ -49,14 +58,6 @@ claimed by a live Specwright session or a subordinate helper worktree.
 - Treat subordinate helper worktrees discovered via `git worktree list --porcelain`
   as protected branch owners even when they are not user-facing sessions.
 - Never delete a branch that appears in that protection set.
-
-**Stale active work visibility (MEDIUM freedom):**
-- After fetch/prune completes, `sw-sync` may report stale active works against
-  their recorded targets and latest known freshness state.
-- This report is advisory only and does not take ownership of
-  reconcile-or-ship decisions away from the lifecycle skills.
-- `sw-sync` never rebases, merges, retargets, or clears a freshness block on
-  behalf of `sw-build`, `sw-verify`, or `sw-ship`.
 
 **Stale branch detection (HIGH freedom):**
 - Primary signal: `git branch -vv` entries with `[gone]`
@@ -95,6 +96,7 @@ claimed by a live Specwright session or a subordinate helper worktree.
 ## Protocol References
 
 - `protocols/git.md` -- branch lifecycle and cleanup rules
+- `protocols/git-freshness.md` -- freshness result shape and status semantics for advisory reporting
 - `protocols/context.md` -- logical roots and session loading
 - `protocols/state.md` -- per-work workflow fields used for protection
 - `protocols/headless.md` -- non-interactive behavior

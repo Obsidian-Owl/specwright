@@ -8,6 +8,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+GIT_PROTOCOL="$ROOT_DIR/core/protocols/git.md"
 INIT_SKILL="$ROOT_DIR/core/skills/sw-init/SKILL.md"
 GUARD_SKILL="$ROOT_DIR/core/skills/sw-guard/SKILL.md"
 DOCTOR_SKILL="$ROOT_DIR/core/skills/sw-doctor/SKILL.md"
@@ -50,24 +51,32 @@ for file in "$INIT_SKILL" "$GUARD_SKILL" "$DOCTOR_SKILL" "$STATUS_SKILL" "$SYNC_
 done
 
 echo ""
+# These literal-match sentinels intentionally guard the published support
+# surface, but use short phrases so punctuation-only rewrites do not cause
+# false failures.
 echo "--- Task 1: init and guard configuration surfaces ---"
 assert_contains "$INIT_SKILL" "target-role defaults and freshness checkpoints" "sw-init confirms target defaults and checkpoint policy together"
-assert_contains "$INIT_SKILL" "optional auditable work artifacts stay clone-local or are published under a tracked work-artifact root" "sw-init asks for optional work-artifact publication mode"
-assert_contains "$INIT_SKILL" "Project-level anchor docs remain project artifacts and runtime session state stays local-only" "sw-init preserves the storage boundary split"
-assert_contains "$GUARD_SKILL" "target-role defaults, freshness checkpoints, and any optional work-artifact publication mode" "sw-guard keeps the Git policy surface explicit"
+assert_contains "$INIT_SKILL" "optional auditable work artifacts" "sw-init asks for optional work-artifact publication mode"
+assert_contains "$INIT_SKILL" "runtime session state stays local-only" "sw-init preserves the storage boundary split"
+assert_contains "$GUARD_SKILL" "target-role defaults, freshness checkpoints" "sw-guard keeps the Git policy surface explicit"
 assert_contains "$GUARD_SKILL" "separately from clone-local runtime state" "sw-guard distinguishes publication policy from runtime-local state"
 
 echo ""
 echo "--- Task 2: doctor and status visibility surfaces ---"
-assert_contains "$DOCTOR_SKILL" "queue validation without the required provider-aware configuration surface" "sw-doctor rejects queue mode without provider-aware config"
+assert_contains "$DOCTOR_SKILL" "provider-aware configuration surface" "sw-doctor rejects queue mode without provider-aware config"
 assert_contains "$DOCTOR_SKILL" "work-artifact publication mode" "sw-doctor validates artifact publication mode safely"
-assert_contains "$STATUS_SKILL" "selected work's target branch and latest freshness state" "sw-status surfaces target branch plus freshness state"
+assert_contains "$DOCTOR_SKILL" "CONFIG_MISMATCH findings must name the offending config key" "sw-doctor makes config remediation explicit"
+assert_contains "$STATUS_SKILL" "target branch and latest freshness state" "sw-status surfaces target branch plus freshness state"
 assert_contains "$STATUS_SKILL" "work-artifact publication mode when present" "sw-status surfaces publication mode when present"
 
 echo ""
-echo "--- Task 3: sync boundaries ---"
+echo "--- Task 3: protocol anchor and sync boundaries ---"
+assert_contains "$GIT_PROTOCOL" '"workArtifacts": {' "git protocol adds a canonical workArtifacts config surface"
+assert_contains "$GIT_PROTOCOL" '"mode": "clone-local"' "git protocol names clone-local publication mode"
+assert_contains "$GIT_PROTOCOL" '"trackedRoot": null' "git protocol names the tracked artifact root field"
 assert_contains "$SYNC_SKILL" "report stale active works against" "sw-sync can report stale active works"
 assert_contains "$SYNC_SKILL" "reconcile-or-ship decisions away from the lifecycle skills" "sw-sync stays advisory on reconcile and ship decisions"
+assert_contains "$SYNC_SKILL" "protocols/git-freshness.md" "sw-sync references the shared freshness protocol"
 
 echo ""
 echo "RESULT: $PASS passed, $FAIL failed"
