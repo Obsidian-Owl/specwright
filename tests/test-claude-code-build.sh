@@ -334,6 +334,12 @@ else
   fail "dist/shared/specwright-state-paths.mjs missing"
 fi
 
+if [ -f "$DIST_DIR/shared/specwright-git-freshness.mjs" ]; then
+  pass "dist/shared/specwright-git-freshness.mjs exists"
+else
+  fail "dist/shared/specwright-git-freshness.mjs missing"
+fi
+
 # ─── .claude-plugin/ directory ────────────────────────────────────────
 
 echo "--- .claude-plugin/ directory ---"
