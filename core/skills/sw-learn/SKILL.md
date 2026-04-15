@@ -28,19 +28,22 @@ work benefits.
 - `{worktreeStateRoot}/session.json` -- selected work for this worktree
 - `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- current work unit (should be shipped)
 - `{workDir}/evidence/` -- gate evidence files
+- `{workDir}/implementation-rationale.md` -- curated build-time reasoning when present
+- `{workDir}/review-packet.md` -- reviewer-facing audit synthesis when present
 - `{workDir}/plan.md` -- architecture decisions
-- `{repoStateRoot}/CONSTITUTION.md` -- existing practices
-- `.specwright/learnings/` -- prior work unit learnings (for retrospective)
+- `{workArtifactsRoot}/{selectedWork.id}/approvals.md` -- approval lineage for the work
+- `{projectArtifactsRoot}/CONSTITUTION.md` -- existing practices
+- `{projectArtifactsRoot}/learnings/` -- prior work unit learnings (for retrospective)
 - Git log for the work unit's commits
 
 ## Outputs
 
 - Learnings presented to user in categories
 - User-approved patterns promoted to one of:
-  - `.specwright/CONSTITUTION.md` (new practice rule)
+  - `{projectArtifactsRoot}/CONSTITUTION.md` (new practice rule)
   - Auto-memory MEMORY.md (compact pattern entry, loaded every session)
-  - `.specwright/patterns.md` (reusable pattern library)
-- `.specwright/learnings/{work-id}.json` -- written when any finding is promoted OR when gateCalibration data is available. When only calibration is present (no promoted findings), write with an empty `findings` array.
+  - `{projectArtifactsRoot}/patterns.md` (reusable pattern library)
+- `{projectArtifactsRoot}/learnings/{work-id}.json` -- written when any finding is promoted OR when gateCalibration data is available. When only calibration is present (no promoted findings), write with an empty `findings` array.
 
 ## Constraints
 
@@ -52,7 +55,8 @@ work benefits.
   - If no more units: "All work units complete. Learnings captured."
 
 **Discovery (HIGH freedom):**
-- Scan evidence files, git log, and plan.md for patterns worth remembering.
+- Scan evidence files, git log, plan.md, `implementation-rationale.md`,
+  `review-packet.md`, and approval lineage for patterns worth remembering.
 - Look for: what broke, what was hard, what worked well.
 - Check as-built notes for discovered behaviors per `protocols/build-quality.md`.
 - If `commands.test:integration` is configured in config.json: check gate-build evidence
@@ -74,23 +78,23 @@ work benefits.
 **Promotion (LOW freedom):**
 - Constitution: add practice with ID (e.g., S6, Q5).
 - Auto-memory: write compact entry to MEMORY.md per `protocols/learning-lifecycle.md`.
-- Patterns: append to `.specwright/patterns.md` (create if missing). Also write a compact one-liner to auto-memory (dual-write rule per protocol).
-- Testing strategy: update `.specwright/TESTING.md` (if it exists). The `testing` category maps here. Add new boundary classifications, mock allowances, or test infrastructure notes discovered during build. If TESTING.md does not exist, fall back to patterns.md.
+- Patterns: append to `{projectArtifactsRoot}/patterns.md` (create if missing). Also write a compact one-liner to auto-memory (dual-write rule per protocol).
+- Testing strategy: update `{projectArtifactsRoot}/TESTING.md` (if it exists). The `testing` category maps here. Add new boundary classifications, mock allowances, or test infrastructure notes discovered during build. If TESTING.md does not exist, fall back to patterns.md.
 - User approves exact wording before saving.
 
 **Retrospective (MEDIUM freedom):**
 - When 2+ prior learning files exist, surface recurring patterns across units.
 
 **Persistence (LOW freedom):**
-- Write `.specwright/learnings/{work-id}.json` when any finding is promoted OR when gateCalibration data is available (mandatory per `protocols/evidence.md#verdict-rendering`). When only calibration is present, write with an empty `findings` array.
+- Write `{projectArtifactsRoot}/learnings/{work-id}.json` when any finding is promoted OR when gateCalibration data is available (mandatory per `protocols/evidence.md#verdict-rendering`). When only calibration is present, write with an empty `findings` array.
 - Schema: `{ workId, timestamp, findings: [{ category, source, description, proposedRule, disposition }] }`
 
 **Landscape update (MEDIUM freedom):**
-- After persistence, if `.specwright/LANDSCAPE.md` exists: identify affected modules from evidence and plan artifacts, re-scan those modules, merge updates. Show diff, user approves. Update `Snapshot:` timestamp.
+- After persistence, if `{projectArtifactsRoot}/LANDSCAPE.md` exists: identify affected modules from evidence, `implementation-rationale.md`, `review-packet.md`, and plan artifacts, re-scan those modules, merge updates. Show diff, user approves. Update `Snapshot:` timestamp.
 - If LANDSCAPE.md doesn't exist: silently skip.
 
 **Audit resolution (MEDIUM freedom):**
-- After landscape update, if `.specwright/AUDIT.md` exists: check if work unit's changed files overlap with open finding locations. If finding is addressed, move to `## Resolved` with work unit ID. User approves.
+- After landscape update, if `{projectArtifactsRoot}/AUDIT.md` exists: check if work unit's changed files overlap with open finding locations. If finding is addressed, move to `## Resolved` with work unit ID. User approves.
 - If AUDIT.md doesn't exist: silently skip.
 
 **Enrichment (MEDIUM freedom):**
@@ -129,6 +133,8 @@ work benefits.
 - `protocols/audit.md` -- codebase health findings format
 - `protocols/backlog.md` -- backlog item format and write targets
 - `protocols/build-quality.md` -- as-built notes and discovered behaviors
+- `protocols/approvals.md` -- approval lineage consumption
+- `protocols/review-packet.md` -- reviewer packet consumption
 - `protocols/evidence.md#verdict-rendering` -- gate calibration data recording
 
 ## Failure Modes

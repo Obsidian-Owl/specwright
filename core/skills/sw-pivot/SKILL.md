@@ -29,6 +29,8 @@ and recorded in decisions.md — the revised plan is the artifact.
 - `{repoStateRoot}/work/{selectedWork.id}/workflow.json` — `tasksCompleted`, `tasksTotal`, `workDir`
 - `{workDir}/spec.md` — full spec (completed + remaining)
 - `{workDir}/plan.md` — task breakdown
+- `{workDir}/context.md` — unit context that downstream build and verify consume
+- `{workArtifactsRoot}/{selectedWork.id}/approvals.md` — durable approval ledger for design and unit lineage
 - Pivot reason (argument or conversation)
 
 ## Outputs
@@ -66,6 +68,14 @@ from it, verify validates the result. Mutate only the selected work's
 workflow state; never rewrite unrelated active works. NEVER overwrite existing
 content — append only.
 
+**Approval lineage (LOW freedom):**
+If the pivot changes `spec.md`, `plan.md`, or `context.md`, the current
+`unit-spec` approval lineage becomes stale against the revised artifact set.
+Use `protocols/approvals.md` and the shared helper to assess and preserve that
+stale lineage rather than erasing it. Never fabricate a replacement
+`APPROVED` entry during `/sw-pivot`; the next human-triggered `/sw-build`
+records the replacement approval that supersedes the stale lineage.
+
 **Stage boundary (LOW freedom):**
 Follow `protocols/stage-boundary.md`. After apply: STOP → "Run `/sw-build`."
 
@@ -74,6 +84,7 @@ Follow `protocols/stage-boundary.md`. After apply: STOP → "Run `/sw-build`."
 - `protocols/stage-boundary.md` -- scope and handoff
 - `protocols/decision.md` -- autonomous decision framework (scope assessment)
 - `protocols/state.md` -- workflow state updates
+- `protocols/approvals.md` -- approval lineage invalidation and stale-state handling
 - `protocols/delegation.md` -- architect delegation
 - `protocols/git.md` -- branch context
 

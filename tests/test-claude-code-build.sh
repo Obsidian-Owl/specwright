@@ -39,6 +39,7 @@ CONFIG_VISIBILITY_DOCS_TEST="$ROOT_DIR/tests/test-config-validation-visibility-d
 AUDIT_CHAIN_ROOT_MODEL_TEST="$ROOT_DIR/tests/test-audit-chain-root-model.sh"
 APPROVAL_LIFECYCLE_TEST="$ROOT_DIR/tests/test-approval-lifecycle-docs.sh"
 REVIEW_PACKET_DOCS_TEST="$ROOT_DIR/tests/test-review-packet-docs.sh"
+SUPPORT_SURFACE_CUTOVER_TEST="$ROOT_DIR/tests/test-support-surface-cutover-docs.sh"
 
 PASS=0
 FAIL=0
@@ -213,6 +214,11 @@ run_smoke_checks() {
     "approval lifecycle" \
     "SPECWRIGHT_APPROVAL_LIFECYCLE_MODE=smoke bash \"$APPROVAL_LIFECYCLE_TEST\"" \
     "COVERAGE: approval-lifecycle.fail-closed"
+
+  run_smoke_regression \
+    "support-surface cutover" \
+    "bash \"$SUPPORT_SURFACE_CUTOVER_TEST\"" \
+    "COVERAGE: support-surface.publication-mode-cutover"
 
   POST_BUILD_SOURCE_STATUS=$(git_source_status)
   if [ "$POST_BUILD_SOURCE_STATUS" = "$PRE_BUILD_SOURCE_STATUS" ]; then
@@ -1443,6 +1449,31 @@ if echo "$REVIEW_PACKET_OUTPUT" | grep -Fq "COVERAGE: review-packet.clone-local-
   pass "review-packet regression output includes clone-local reviewer guard coverage"
 else
   fail "review-packet regression output missing clone-local reviewer guard coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Support surface cutover docs ==="
+
+if [ -x "$SUPPORT_SURFACE_CUTOVER_TEST" ]; then
+  pass "tests/test-support-surface-cutover-docs.sh is executable"
+else
+  fail "tests/test-support-surface-cutover-docs.sh is missing or not executable"
+fi
+
+SUPPORT_SURFACE_EXIT=0
+SUPPORT_SURFACE_OUTPUT="$(bash "$SUPPORT_SURFACE_CUTOVER_TEST" 2>&1)" || SUPPORT_SURFACE_EXIT=$?
+
+if [ "$SUPPORT_SURFACE_EXIT" -ne 0 ]; then
+  fail "tests/test-support-surface-cutover-docs.sh passes under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${SUPPORT_SURFACE_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-support-surface-cutover-docs.sh passes under the configured test path"
+fi
+if [ "$SUPPORT_SURFACE_EXIT" -eq 0 ] && echo "$SUPPORT_SURFACE_OUTPUT" | grep -Fq "COVERAGE: support-surface.publication-mode-cutover"; then
+  pass "support-surface regression output includes publication-mode cutover coverage"
+else
+  fail "support-surface regression output missing publication-mode cutover coverage"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════

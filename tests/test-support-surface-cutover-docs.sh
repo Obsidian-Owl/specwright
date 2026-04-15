@@ -91,6 +91,15 @@ assert_contains "$GUARD_SKILL" "Git-admin session state remains local-only" "sw-
 
 echo ""
 echo "--- Task 3: pivot and learn preserve lineage ---"
+assert_contains "$PIVOT_SKILL" "approvals.md" "sw-pivot reads the approval ledger"
+assert_contains "$PIVOT_SKILL" "approval lineage becomes stale" "sw-pivot marks approval lineage stale after plan changes"
+assert_contains "$PIVOT_SKILL" "Never fabricate a replacement" "sw-pivot refuses to invent replacement approval"
+assert_contains "$LEARN_SKILL" "{workDir}/implementation-rationale.md" "sw-learn reads implementation rationale"
+assert_contains "$LEARN_SKILL" "{workDir}/review-packet.md" "sw-learn reads the review packet"
+assert_contains "$LEARN_SKILL" "{workArtifactsRoot}/{selectedWork.id}/approvals.md" "sw-learn reads approval lineage"
+assert_contains "$LEARN_SKILL" "{projectArtifactsRoot}/CONSTITUTION.md" "sw-learn uses tracked constitution path"
+assert_contains "$LEARN_SKILL" "{projectArtifactsRoot}/learnings/{work-id}.json" "sw-learn writes learnings to tracked project artifacts"
+assert_contains "$LEARN_SKILL" "{projectArtifactsRoot}/patterns.md" "sw-learn promotes patterns on the tracked project surface"
 
 echo ""
 echo "RESULT: $PASS passed, $FAIL failed"
