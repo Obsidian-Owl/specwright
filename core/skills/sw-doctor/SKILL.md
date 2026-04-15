@@ -68,6 +68,12 @@ Within the State pass, check all of the following and report them by name:
 - legacy-write drift where the shared layout exists but checkout-local legacy
   state files are still being treated as writable sources
 
+Within the Config pass, check all of the following and report them by name:
+- queue validation without the required provider-aware configuration surface
+- work-artifact publication mode that points at clone-local runtime roots,
+  session state, or symlinked `.git` mirrors instead of an explicit tracked
+  artifact path
+
 STATE_DRIFT findings must print the inline remediation command
 `sw-status --repair {unitId}` and include the owning work ID.
 
