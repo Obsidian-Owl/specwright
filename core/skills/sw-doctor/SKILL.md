@@ -17,15 +17,18 @@ allowed-tools:
 
 ## Goal
 
-Validate that a Specwright installation is coherent under the shared repo-state
-and per-worktree session model, then print actionable repair hints.
+Validate that a Specwright installation is coherent across the tracked
+project-artifact root, shared repo-state root, and per-worktree session model,
+then print actionable repair hints.
 
 ## Inputs
 
-- `{repoStateRoot}/config.json`
-- `{repoStateRoot}/CONSTITUTION.md` and `{repoStateRoot}/CHARTER.md`
+- `{projectArtifactsRoot}/config.json`
+- `{projectArtifactsRoot}/CONSTITUTION.md` and `{projectArtifactsRoot}/CHARTER.md`
 - `{worktreeStateRoot}/session.json` when present
 - `{repoStateRoot}/work/*/workflow.json`
+- `{workArtifactsRoot}/{workId}/approvals.md` and `{workDir}/review-packet.md`
+  when present
 - gate skill files, hook config, and configured commands
 
 ## Outputs
@@ -43,8 +46,8 @@ and per-worktree session model, then print actionable repair hints.
   `missing`.
 
 **Checks (LOW freedom — run all 13 in order):**
-1. **Anchor docs** — shared Constitution and Charter exist and are non-empty
-2. **Config** — shared config parses and contains `gates` and `git`
+1. **Anchor docs** — tracked Constitution and Charter exist and are non-empty
+2. **Config** — tracked config parses and contains `gates` and `git`
 3. **State** — current session parses when present, every discovered workflow
    parses with a null or fresh per-work lock, and layout status is explicit
 4. **Gates** — enabled gate skills exist
@@ -61,12 +64,17 @@ and per-worktree session model, then print actionable repair hints.
 
 Within the State pass, check all of the following and report them by name:
 - layout status for the current checkout
+- resolved `projectArtifactsRoot` and `workArtifactsRoot` for the current
+  checkout
 - session attachment consistency between `session.json` and the owning
   `workflow.json`
 - dead sessions where a recorded attachment points at a missing or removed
   worktree
 - legacy-write drift where the shared layout exists but checkout-local legacy
   state files are still being treated as writable sources
+- approval freshness for the selected unit when approvals exist
+- review-packet presence for the selected unit when verify or ship artifacts
+  should exist
 
 Within the Config pass, check all of the following and report them by name:
 - queue validation without the required provider-aware configuration surface
@@ -101,7 +109,10 @@ STATE_DRIFT findings must print the inline remediation command
 - The only allowed mutation is STATE_DRIFT backfill.
 - When mutating a work's `workflow.json`, follow `protocols/state.md`.
 - Doctor never modifies `status`; only `prNumber` and `prMergedAt` may change.
-- Any repair guidance beyond PR backfill must remain bounded to the documented migration surface: shared docs/config under `{repoStateRoot}`, split per-work workflows, and this worktree's `{worktreeStateRoot}/session.json`.
+- Any repair guidance beyond PR backfill must remain bounded to the documented
+  migration surface: tracked docs/config under `{projectArtifactsRoot}`, split
+  per-work workflows under `{repoStateRoot}`, and this worktree's
+  `{worktreeStateRoot}/session.json`.
 
 ## Protocol References
 

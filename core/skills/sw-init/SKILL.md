@@ -19,7 +19,9 @@ allowed-tools:
 
 Set up Specwright in this project by understanding how the user works,
 what they're building, and what quality standards they expect. Produce
-configuration and anchor documents that will guide all future work.
+configuration and anchor documents that will guide all future work. Tracked
+project artifacts should be shared across developers and agent sessions via
+Git; runtime session state stays local to each clone or worktree.
 
 ## Inputs
 
@@ -30,15 +32,15 @@ configuration and anchor documents that will guide all future work.
 
 When complete, ALL of the following exist:
 
-- `{repoStateRoot}/config.json` -- detected + configured project settings
-- `{repoStateRoot}/CONSTITUTION.md` -- development practices the AI must follow
-- `{repoStateRoot}/CHARTER.md` -- technology vision and project identity
+- `{projectArtifactsRoot}/config.json` -- detected + configured project settings
+- `{projectArtifactsRoot}/CONSTITUTION.md` -- development practices the AI must follow
+- `{projectArtifactsRoot}/CHARTER.md` -- technology vision and project identity
 - `{repoStateRoot}/work/` -- shared work root, initialized and empty
 - `{worktreeStateRoot}/session.json` -- initialized detached top-level session for
   the current worktree
 
 Optional (created if the user opts in):
-- `{repoStateRoot}/TESTING.md` -- testing strategy: boundaries,
+- `{projectArtifactsRoot}/TESTING.md` -- testing strategy: boundaries,
   infrastructure, mock allowances
 - Hooks set up if the user wants them
 
@@ -48,12 +50,17 @@ Quality gates are configured in config (all six default to enabled; user may dis
 
 **Worktree context (LOW freedom):**
 - Check `worktreeContext` per `protocols/context.md`.
-- If `linked`, explain that shared Specwright state lives under `{repoStateRoot}` and that a linked worktree can bootstrap its local session root against shared repo state.
-- If the shared layout already exists, reuse it and create or repair only this
-  worktree's `{worktreeStateRoot}/session.json`.
+- If `linked`, explain that tracked project artifacts under
+  `{projectArtifactsRoot}` are shared across developers and agent sessions via
+  Git, while runtime session state stays local to each clone or worktree under
+  `{repoStateRoot}` and `{worktreeStateRoot}`.
+- If the shared layout already exists, reuse the tracked project artifacts and
+  shared runtime roots, then create or repair only this worktree's
+  `{worktreeStateRoot}/session.json`.
 - If the shared layout does not exist yet, say that `/sw-init` will create the
-  repo-level state under the Git common dir plus a session root for the current
-  worktree. This is a warning, not a block.
+  tracked project-artifact root plus repo-level runtime state under the Git
+  common dir and a session root for the current worktree. This is a warning,
+  not a block.
 
 **Detection (MEDIUM freedom):**
 - Scan codebase: language(s), framework(s), package manager, test runner, linting/formatting, git workflow, CI/CD. Read dependency manifests. Don't guess what you can detect.
@@ -120,16 +127,19 @@ Quality gates are configured in config (all six default to enabled; user may dis
 - If old git schema detected: offer migration with sensible defaults.
 
 **Configuration (LOW freedom):**
-- Write `{repoStateRoot}/config.json` with detected and configured values.
-- Create `{repoStateRoot}/work/`, `{repoStateRoot}/research/`, and
-  `{repoStateRoot}/learnings/`. If survey produced LANDSCAPE.md, write it
-  under `{repoStateRoot}`.
+- Write `{projectArtifactsRoot}/config.json` with detected and configured values.
+- Create `{projectArtifactsRoot}/research/` and
+  `{projectArtifactsRoot}/learnings/`. If survey produced LANDSCAPE.md, write
+  it under `{projectArtifactsRoot}`.
+- Create `{repoStateRoot}/work/` for shared runtime work records and
+  `{worktreeStateRoot}/` for the current worktree session.
 - Create `{worktreeStateRoot}/session.json` as a detached top-level session for
   the current worktree. Initialize `attachedWorkId: null`, current branch when
   available, `mode: "top-level"`, and fresh `lastSeenAt`.
-- If a legacy checkout-local `.specwright/` install exists, treat it as
-  migration input only: import the shared docs/config the user keeps, then
-  write all repaired state to `{repoStateRoot}` and `{worktreeStateRoot}` only.
+- If a prior runtime-only install exists, treat it as migration input only:
+  import the tracked docs/config the user keeps back into
+  `{projectArtifactsRoot}`, then write repaired runtime state to
+  `{repoStateRoot}` and `{worktreeStateRoot}`.
 - Follow `protocols/state.md` for state file format.
 
 **Gate configuration (MEDIUM freedom):**

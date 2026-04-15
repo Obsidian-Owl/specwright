@@ -77,6 +77,17 @@ assert_contains "$REVIEW_SKILL" "diff-only fallback" "sw-review documents fallba
 
 echo ""
 echo "--- Task 2: audit visibility surfaces ---"
+assert_contains "$STATUS_SKILL" "\`projectArtifactsRoot\`, \`repoStateRoot\`" "sw-status prints all logical roots"
+assert_contains "$STATUS_SKILL" "approval freshness" "sw-status surfaces approval freshness"
+assert_contains "$STATUS_SKILL" "review-packet presence" "sw-status surfaces review-packet presence"
+assert_contains "$DOCTOR_SKILL" "{projectArtifactsRoot}/config.json" "sw-doctor reads tracked project config"
+assert_contains "$DOCTOR_SKILL" "approval freshness for the selected unit" "sw-doctor validates approval freshness explicitly"
+assert_contains "$DOCTOR_SKILL" "review-packet presence for the selected unit" "sw-doctor validates review-packet presence explicitly"
+assert_contains "$INIT_SKILL" "{projectArtifactsRoot}/config.json" "sw-init writes tracked project config under projectArtifactsRoot"
+assert_contains "$INIT_SKILL" "shared across developers and agent sessions via" "sw-init explains the shared project-artifact experience"
+assert_contains "$INIT_SKILL" "runtime session state stays local to each clone or worktree" "sw-init preserves local runtime state"
+assert_contains "$GUARD_SKILL" "shared project-level" "sw-guard treats config as a shared project policy surface"
+assert_contains "$GUARD_SKILL" "Git-admin session state remains local-only" "sw-guard preserves runtime-local session state"
 
 echo ""
 echo "--- Task 3: pivot and learn preserve lineage ---"

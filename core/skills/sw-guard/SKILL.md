@@ -66,6 +66,9 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
   standalone recommendations with explicit "detected via heuristics" labeling.
 - When Git workflow config is present or inferred, seed or migrate `git.targets` and `git.freshness` from the detected Git workflow strategy without requiring users to define a custom branch DSL.
 - Detect or confirm target-role defaults, freshness checkpoints, and any optional work-artifact publication mode as one explicit Git policy surface, but keep the publication choice separately from clone-local runtime state.
+- Treat `.specwright/config.json` and the anchor docs as a shared project-level
+  policy surface across developers and agent sessions, not as clone-local
+  runtime state.
 - For unfamiliar stacks or niche tools, use WebSearch to identify tooling conventions.
 - Detect existing guardrails before recommending. Show delta on re-runs.
 
@@ -90,6 +93,8 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
 - Update config.json with detected tool commands if `.specwright/` exists.
 - When present, update the approved work-artifact publication choice in config separately from clone-local runtime state.
   Follow `protocols/context.md` for config updates.
+- Preserve the root split: tracked project policy stays under `.specwright/`,
+  while Git-admin session state remains local-only under the runtime roots.
 - Never modify CONSTITUTION.md (sw-learn's responsibility).
 
 **Headless (LOW freedom):**
