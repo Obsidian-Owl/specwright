@@ -51,6 +51,13 @@ Scan the design assumptions artifact from the design-level directory. Check
 ACCEPTED/VERIFIED assumptions still hold against current code. Invalid → WARN in
 aggregate report. Runs silently.
 
+**Freshness checkpoint (LOW freedom) — before any gate runs:**
+Use `protocols/git-freshness.md` to assess the selected work's verify
+checkpoint from the recorded target and policy. For branch-head validation,
+branch-head `require` blocks stale, diverged, and blocked freshness results.
+queue-managed mode remains a distinct validation path and does not prescribe a
+local rebase before verification.
+
 **Gate execution order (LOW freedom):**
 Determine enabled gates from config. Two formats exist — support both:
 - **Object format**: `config.gates.{gateName}` exists and `.enabled === true`
@@ -157,6 +164,7 @@ the selected work's `gates` section after each gate completes. Do NOT set
 - `protocols/stage-boundary.md` -- scope, termination, and handoff
 - `protocols/decision.md` -- autonomous decision framework and gate handoff
 - `protocols/state.md` -- workflow state and locking
+- `protocols/git-freshness.md` -- pre-gate freshness checkpoint
 - `protocols/evidence.md` -- evidence freshness and storage
 - `protocols/evidence.md#verdict-rendering` -- verdict rendering and escalation
 - `protocols/headless.md` -- non-interactive execution defaults

@@ -50,6 +50,9 @@ work, run builds, or begin next unit. After PR: show URL, suggest `/sw-learn`, h
   without a verdict → STOP: "Gate {name} has no verdict. Run /sw-verify first."
 - No gate verdict may be `FAIL` or `ERROR`. FAIL/ERROR → STOP: "Gate {name} failed.
   Fix and re-run /sw-verify."
+- Re-check shipping freshness during pre-flight via `protocols/git-freshness.md`.
+  For branch-head validation, branch-head `require` blocks stale, diverged, and blocked freshness results.
+  queue-managed validation remains distinct and must not force a local rebase by default.
 - Evidence files must exist at `{workDir}/evidence/{gate-name}-report.md` for each
   gate with a non-SKIP verdict. Missing evidence file → STOP: "Evidence missing for
   gate {name}. Re-run /sw-verify."
@@ -103,6 +106,7 @@ stays machine-parseable). Examples: `Next: /sw-build` or `Next: /sw-learn`.
 - `protocols/stage-boundary.md` -- scope, termination, and handoff
 - `protocols/decision.md` -- autonomous decision framework
 - `protocols/git.md` -- branch, push, PR creation
+- `protocols/git-freshness.md` -- shipping freshness pre-flight
 - `protocols/state.md` -- workflow state updates
 - `protocols/evidence.md` -- evidence references for PR body
 - `protocols/headless.md` -- non-interactive execution defaults
