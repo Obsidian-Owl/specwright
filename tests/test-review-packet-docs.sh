@@ -74,7 +74,8 @@ assert_contains "$REVIEW_PACKET_PROTOCOL" "## Remaining Attention" "review-packe
 assert_contains "$REVIEW_PACKET_PROTOCOL" "must not depend on local-only file links" "review-packet protocol guards clone-local reviewer visibility"
 assert_contains "$REVIEW_PACKET_PROTOCOL" "a transcript archive" "review-packet protocol rejects transcript storage"
 assert_contains "$REVIEW_PACKET_PROTOCOL" "a second gate engine" "review-packet protocol rejects duplicated gate logic"
-assert_contains "$REVIEW_PACKET_PROTOCOL" "support-surface" "review-packet protocol marks ship/review consumer wiring as deferred"
+assert_contains "$REVIEW_PACKET_PROTOCOL" "reviewer-facing PR body" "review-packet protocol makes sw-ship a live consumer"
+assert_contains "$REVIEW_PACKET_PROTOCOL" "packet, approvals, and evidence" "review-packet protocol makes sw-review a live consumer"
 
 echo ""
 echo "--- Evidence synthesis contract ---"

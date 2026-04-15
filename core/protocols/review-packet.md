@@ -127,6 +127,9 @@ The review packet is not:
 
 - `sw-build` produces the rationale artifact that the packet digests.
 - `sw-verify` assembles `review-packet.md` after gate execution.
-- `sw-ship` and `sw-review` adopt this packet in the later support-surface
-  cutover work. Until that wiring lands, this protocol defines their target
-  interface rather than claiming the consumer behavior already exists.
+- `sw-ship` derives the reviewer-facing PR body from `review-packet.md`,
+  adapting tracked links versus clone-local inline summaries from the packet's
+  publication-mode contract.
+- `sw-review` uses the packet, approvals, and evidence as its primary reply
+  context when the associated work is available, falling back to diff-only
+  reasoning only when no work match can be resolved safely.
