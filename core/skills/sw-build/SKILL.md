@@ -54,6 +54,12 @@ compatibility alias are fallbacks only. Use
 to the base branch. If the selected work is already owned elsewhere, STOP with
 explicit adopt/takeover guidance instead of mutating it silently.
 
+**Build freshness checkpoint (LOW freedom) — after branch setup:**
+Evaluate the build checkpoint via `protocols/git-freshness.md` using the
+selected work's recorded `targetRef` and `freshness`. `require` blocks stale,
+diverged, and blocked freshness results; `warn` surfaces advisory drift;
+queue-managed results do not trigger hidden rebases or other branch rewrites.
+
 **Task loop (MEDIUM freedom):** Work one task at a time. Finish it before starting the next and emit a status card after each task commit.
 
 **TDD cycle (LOW freedom for sequence):**
@@ -80,6 +86,7 @@ Per-task integration and regression runs do not happen inside this loop.
 
 - `protocols/stage-boundary.md` -- scope and final handoff
 - `protocols/git.md` -- branch lifecycle and commit discipline
+- `protocols/git-freshness.md` -- build-entry freshness checkpoint
 - `protocols/delegation.md` -- tester/executor/build-fixer context handoff
 - `protocols/build-quality.md` -- post-build review and as-built notes
 - `protocols/decision.md` -- late discoveries and error handling

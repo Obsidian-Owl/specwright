@@ -32,6 +32,7 @@ CC_DIST="$DIST_DIR/claude-code"
 MULTI_WORKTREE_RUNTIME_TEST="$ROOT_DIR/tests/test-multi-worktree-state.sh"
 TARGET_MODEL_DOCS_TEST="$ROOT_DIR/tests/test-branch-freshness-target-model-docs.sh"
 GIT_FRESHNESS_ENGINE_TEST="$ROOT_DIR/tests/test-git-freshness-engine.sh"
+LIFECYCLE_FRESHNESS_TEST="$ROOT_DIR/tests/test-lifecycle-freshness-checkpoints.sh"
 
 PASS=0
 FAIL=0
@@ -392,9 +393,11 @@ assert_file_contains "$ROOT_DIR/DESIGN.md" "{repoStateRoot}" "DESIGN.md describe
 assert_file_contains "$ROOT_DIR/DESIGN.md" "{worktreeStateRoot}" "DESIGN.md describes the per-worktree state root"
 assert_file_not_contains "$ROOT_DIR/DESIGN.md" ".specwright/worktrees/" "DESIGN.md no longer describes helper worktrees under .specwright/worktrees/"
 assert_file_not_contains "$ROOT_DIR/DESIGN.md" "workflow.json # Current state" "DESIGN.md no longer describes a singleton .specwright/state/workflow.json layout"
+assert_file_contains "$ROOT_DIR/CLAUDE.md" "git-freshness.md" "root CLAUDE.md lists git-freshness.md in the protocol index"
 
 assert_file_contains "$CC_DIST/CLAUDE.md" "repoStateRoot" "dist CLAUDE.md references the shared repo state root"
 assert_file_contains "$CC_DIST/CLAUDE.md" "worktreeStateRoot" "dist CLAUDE.md references the per-worktree state root"
+assert_file_contains "$CC_DIST/CLAUDE.md" "git-freshness.md" "dist CLAUDE.md lists git-freshness.md in the protocol index"
 assert_file_not_contains "$CC_DIST/CLAUDE.md" "**\`.specwright/CONSTITUTION.md\`**" "dist CLAUDE.md no longer points anchor docs at checkout-local .specwright/"
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1153,6 +1156,31 @@ if echo "$GIT_FRESHNESS_OUTPUT" | grep -Fq "protocol names clone-local runtime s
   pass "git-freshness regression output includes storage-boundary coverage"
 else
   fail "git-freshness regression output missing storage-boundary coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Lifecycle freshness checkpoints ==="
+
+if [ -x "$LIFECYCLE_FRESHNESS_TEST" ]; then
+  pass "tests/test-lifecycle-freshness-checkpoints.sh is executable"
+else
+  fail "tests/test-lifecycle-freshness-checkpoints.sh is missing or not executable"
+fi
+
+LIFECYCLE_FRESHNESS_EXIT=0
+LIFECYCLE_FRESHNESS_OUTPUT="$(bash "$LIFECYCLE_FRESHNESS_TEST" 2>&1)" || LIFECYCLE_FRESHNESS_EXIT=$?
+
+if [ "$LIFECYCLE_FRESHNESS_EXIT" -ne 0 ]; then
+  fail "tests/test-lifecycle-freshness-checkpoints.sh passes under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${LIFECYCLE_FRESHNESS_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-lifecycle-freshness-checkpoints.sh passes under the configured test path"
+fi
+if echo "$LIFECYCLE_FRESHNESS_OUTPUT" | grep -Fq "PASS: sw-build forbids hidden branch rewrites"; then
+  pass "lifecycle regression output includes rewrite-guard coverage"
+else
+  fail "lifecycle regression output missing rewrite-guard coverage"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════

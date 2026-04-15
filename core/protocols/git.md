@@ -144,16 +144,28 @@ When a branch becomes the active branch for a work:
 Branch names remain config-driven. Specwright must not hardcode `main`, a
 single remote, or a single unit naming scheme outside the config contract.
 
-## Sync Check
+## Lifecycle Freshness Checkpoints
 
-At build start, after branch setup:
+Lifecycle skills consume the shared freshness contract from
+`protocols/git-freshness.md`; this protocol defines when each stage performs the
+check and which target it uses.
 
-- compare the resolved local target branch with `{target remote}/{target branch}`
-- warn if the resolved target branch is behind
-- if the feature branch already exists, also check upstream drift for the
-  session-attached branch relative to that same resolved target
+- `sw-build` consumes the `build` checkpoint after branch setup, using the
+  selected work's recorded target before any fallback defaults.
+- `sw-verify` consumes the `verify` checkpoint before gate execution.
+- `sw-ship` consumes the `ship` checkpoint during shipping pre-flight, before
+  push or PR creation.
 
-This is advisory only unless a skill adds a stricter policy.
+For `branch-head` validation, the stage interprets stale, diverged, and blocked
+results according to the checkpoint policy:
+
+- `require` stops the stage
+- `warn` records advisory drift and continues
+- `ignore` continues without escalation
+
+Queue-managed results stay distinct from local rewrite policy. Skills may
+surface queue status, but they must not silently rebase or merge the selected
+work just to satisfy queue validation.
 
 ## Strategy: Branch + PR Targets
 
