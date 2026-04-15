@@ -26,22 +26,22 @@ applying `protocols/decision.md` for all decisions. Gate handoff at the end.
 
 - `{worktreeStateRoot}/session.json` -- selected work for this worktree
 - `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work state
-- `{repoStateRoot}/work/{selectedWork.id}/design.md` -- approved solution design
-- `{repoStateRoot}/work/{selectedWork.id}/context.md` -- research findings from sw-design
-- `{repoStateRoot}/work/{selectedWork.id}/decisions.md` -- design-phase decisions
+- `{workArtifactsRoot}/{selectedWork.id}/design.md` -- approved solution design
+- `{workArtifactsRoot}/{selectedWork.id}/context.md` -- research findings from sw-design
+- `{workArtifactsRoot}/{selectedWork.id}/decisions.md` -- design-phase decisions
 - Conditional design artifacts: `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`
 - `{repoStateRoot}/CONSTITUTION.md` -- practices to follow
 - `{repoStateRoot}/config.json` -- project configuration
 
 ## Outputs
 
-**Single-unit work**: `spec.md` + `plan.md` in `{repoStateRoot}/work/{selectedWork.id}/` (flat layout).
+**Single-unit work**: `spec.md` + `plan.md` in `{workArtifactsRoot}/{selectedWork.id}/` (flat layout).
 
-**Multi-unit work**: For each unit in `{repoStateRoot}/work/{selectedWork.id}/units/{unit-id}/`:
+**Multi-unit work**: For each unit in `{workArtifactsRoot}/{selectedWork.id}/units/{unit-id}/`:
 `spec.md` + `plan.md` + `context.md`. `workUnits` array in workflow.json.
-Also: `integration-criteria.md` in the design-level directory (`{repoStateRoot}/work/{selectedWork.id}/`).
+Also: `integration-criteria.md` in the design-level directory (`{workArtifactsRoot}/{selectedWork.id}/`).
 
-Also: `{workDir}/stage-report.md` for the planning handoff.
+Also: `{repoStateRoot}/work/{selectedWork.id}/stage-report.md` for the planning handoff.
 
 Also: `decisions.md` updated with planning-phase autonomous decisions.
 
@@ -66,7 +66,7 @@ Resolve the selected work from the current worktree session. Check that
 
 **Integration criteria (MEDIUM freedom, multi-unit only):**
 - When decomposing into multiple work units, also write `integration-criteria.md` in
-  the design-level directory (`{repoStateRoot}/work/{selectedWork.id}/`). Not generated for
+  the design-level directory (`{workArtifactsRoot}/{selectedWork.id}/`). Not generated for
   single-unit work.
 - Two IC types coexist in `integration-criteria.md`: structural (IC-{n}) and behavioral
   (IC-B{n}). Both types go to the same file.
@@ -121,11 +121,13 @@ directory structure, config examples. NOT allowed: function bodies, algorithm lo
 
 **Gate handoff (LOW freedom):**
 On completion, emit the three-line handoff per the `protocols/decision.md`
-Gate Handoff section. Write `{workDir}/stage-report.md` before the handoff.
-The Artifacts line points at `Artifacts: {workDir}/stage-report.md`. Detail
-lives in the artifact files (`spec.md` / `plan.md` / `context.md` for each
-unit, `integration-criteria.md` for multi-unit work). The Next line remains
-machine-parseable: `Next: /sw-build`.
+Gate Handoff section. Write `{repoStateRoot}/work/{selectedWork.id}/stage-report.md`
+before the handoff. The Artifacts line points at
+`Artifacts: {repoStateRoot}/work/{selectedWork.id}/stage-report.md`. Detail
+lives in the auditable artifact files under
+`{workArtifactsRoot}/{selectedWork.id}/` (`spec.md` / `plan.md` / `context.md`
+for each unit, `integration-criteria.md` for multi-unit work). The Next line
+remains machine-parseable: `Next: /sw-build`.
 
 **State mutations (LOW freedom):**
 Follow `protocols/state.md`. Mutate only the selected work's `workflow.json` and

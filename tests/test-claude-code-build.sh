@@ -35,6 +35,7 @@ GIT_FRESHNESS_ENGINE_TEST="$ROOT_DIR/tests/test-git-freshness-engine.sh"
 LIFECYCLE_FRESHNESS_TEST="$ROOT_DIR/tests/test-lifecycle-freshness-checkpoints.sh"
 WORKFLOW_PROOF_TEST="$ROOT_DIR/tests/test-workflow-proof.sh"
 CONFIG_VISIBILITY_DOCS_TEST="$ROOT_DIR/tests/test-config-validation-visibility-docs.sh"
+AUDIT_CHAIN_ROOT_MODEL_TEST="$ROOT_DIR/tests/test-audit-chain-root-model.sh"
 
 PASS=0
 FAIL=0
@@ -1235,6 +1236,31 @@ if [ "$WORKFLOW_PROOF_EXIT" -eq 0 ] && echo "$WORKFLOW_PROOF_OUTPUT" | grep -Fq 
   pass "workflow-proof regression output includes queue-managed ship coverage"
 else
   fail "workflow-proof regression output missing queue-managed ship coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Audit-chain root model ==="
+
+if [ -x "$AUDIT_CHAIN_ROOT_MODEL_TEST" ]; then
+  pass "tests/test-audit-chain-root-model.sh is executable"
+else
+  fail "tests/test-audit-chain-root-model.sh is missing or not executable"
+fi
+
+AUDIT_CHAIN_ROOT_MODEL_EXIT=0
+AUDIT_CHAIN_ROOT_MODEL_OUTPUT="$(bash "$AUDIT_CHAIN_ROOT_MODEL_TEST" 2>&1)" || AUDIT_CHAIN_ROOT_MODEL_EXIT=$?
+
+if [ "$AUDIT_CHAIN_ROOT_MODEL_EXIT" -ne 0 ]; then
+  fail "tests/test-audit-chain-root-model.sh passes under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${AUDIT_CHAIN_ROOT_MODEL_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-audit-chain-root-model.sh passes under the configured test path"
+fi
+if echo "$AUDIT_CHAIN_ROOT_MODEL_OUTPUT" | grep -Fq "PASS: tracked mode routes spec paths through configured workArtifactsRoot"; then
+  pass "audit-chain root-model regression output includes tracked-root coverage"
+else
+  fail "audit-chain root-model regression output missing tracked-root coverage"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════

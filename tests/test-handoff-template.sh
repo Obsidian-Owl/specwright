@@ -59,8 +59,8 @@ assert_file_contains "core/protocols/decision.md" "^## Gate Handoff" \
   "decision.md has '## Gate Handoff' heading"
 assert_file_contains "core/protocols/decision.md" "Done\. \{one-line outcome\}" \
   "decision.md template includes 'Done. {one-line outcome}.'"
-assert_file_contains "core/protocols/decision.md" "Artifacts: \{workDir\}/stage-report\.md" \
-  "decision.md template includes 'Artifacts: {workDir}/stage-report.md'"
+assert_file_contains "core/protocols/decision.md" "Artifacts: \{stageReportPath\}" \
+  "decision.md template includes 'Artifacts: {stageReportPath}'"
 assert_file_contains "core/protocols/decision.md" "Next: /sw-\{next-skill\}" \
   "decision.md template includes 'Next: /sw-{next-skill}'"
 

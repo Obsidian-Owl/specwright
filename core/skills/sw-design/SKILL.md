@@ -34,14 +34,14 @@ between research and gate handoff, applying `protocols/decision.md` for all deci
 
 ## Outputs
 
-When complete, ALL of the following exist in `{repoStateRoot}/work/{id}/`:
+When complete, runtime and auditable artifacts exist in both locations:
 
-- `stage-report.md` -- design handoff digest with attention-required at the top
-- `design.md` -- solution overview, approach, integration points, risk assessment
+- `{repoStateRoot}/work/{id}/stage-report.md` -- runtime-local design handoff digest with attention-required at the top
+- `{workArtifactsRoot}/{id}/design.md` -- solution overview, approach, integration points, risk assessment
   - Required section: `## Blast Radius` listing: modules/files the design touches, failure propagation scope for each (local/adjacent/systemic), and what the design does NOT change.
-- `context.md` -- research findings, file paths, gotchas (travels with downstream agents)
-- design assumptions artifact -- classified assumptions with resolution status
-- `decisions.md` -- all autonomous decisions recorded per `protocols/decision.md`
+- `{workArtifactsRoot}/{id}/context.md` -- research findings, file paths, gotchas (travels with downstream agents)
+- design assumptions artifact under `{workArtifactsRoot}/{id}/` -- classified assumptions with resolution status
+- `{workArtifactsRoot}/{id}/decisions.md` -- all autonomous decisions recorded per `protocols/decision.md`
 
 When warranted: `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`.
 
@@ -91,10 +91,12 @@ NEVER write specs, decompose, implement, branch, or test. After gate handoff, ST
 
 **Gate handoff (LOW freedom):**
 On completion, emit the three-line handoff per the `protocols/decision.md`
-Gate Handoff section. Write `{workDir}/stage-report.md` before the handoff.
-The Artifacts line points at `Artifacts: {workDir}/stage-report.md`. Detail
-lives in the artifact files (`design.md`, `decisions.md`, design assumptions
-artifact, `context.md`). The Next line remains machine-parseable: `Next: /sw-plan`.
+Gate Handoff section. Write `{repoStateRoot}/work/{id}/stage-report.md`
+before the handoff. The Artifacts line points at
+`Artifacts: {repoStateRoot}/work/{id}/stage-report.md`. Detail lives in the
+auditable artifact files under `{workArtifactsRoot}/{id}/` (`design.md`,
+`decisions.md`, design assumptions artifact, `context.md`). The Next line
+remains machine-parseable: `Next: /sw-plan`.
 
 **State mutations (LOW freedom):**
 Follow `protocols/state.md` for read-modify-write mechanics. Postconditions:

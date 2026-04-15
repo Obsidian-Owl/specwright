@@ -2,45 +2,58 @@
 
 ## Logical Roots
 
-Every skill, hook, and adapter resolves the same three logical roots on every
+Every skill, hook, and adapter resolves the same five logical roots on every
 invocation:
 
 | Root | Resolution | Purpose |
 |---|---|---|
 | `projectRoot` | `git rev-parse --show-toplevel` | source tree and user-facing cwd |
-| `repoStateRoot` | `git rev-parse --git-common-dir` + `/specwright` | shared repo-level Specwright state |
+| `projectArtifactsRoot` | `{projectRoot}/.specwright` | tracked project artifacts and shared agent guidance |
+| `repoStateRoot` | `git rev-parse --git-common-dir` + `/specwright` | shared clone-local runtime state |
 | `worktreeStateRoot` | `git rev-parse --git-dir` + `/specwright` | per-worktree session and continuation state |
+| `workArtifactsRoot` | `{repoStateRoot}/work` by default; `{projectRoot}/{config.git.workArtifacts.trackedRoot}` when tracked mode is configured | auditable work artifacts |
 
-Callers must prefer those logical roots over checkout-local `.specwright/...`
-path concatenation.
+Callers must prefer those logical roots over hardcoded `.specwright/...` or
+`.git/specwright/...` path concatenation.
 
 ## Standard Context Documents
 
-### Shared repo documents
+### Tracked project artifacts
 
-Load from `repoStateRoot` when needed for alignment or verification:
+Load from `projectArtifactsRoot` when needed for alignment or verification:
 
-- `{repoStateRoot}/config.json` — project settings, commands, gates, git,
-  integration, backlog settings
-- `{repoStateRoot}/CONSTITUTION.md` — development practices and principles
-- `{repoStateRoot}/CHARTER.md` — technology vision and project purpose
-- `{repoStateRoot}/TESTING.md` — testing strategy (optional; if absent,
+- `{projectArtifactsRoot}/config.json` — tracked project settings, commands,
+  gates, git, integration, and backlog settings
+- `{projectArtifactsRoot}/CONSTITUTION.md` — development practices and
+  principles
+- `{projectArtifactsRoot}/CHARTER.md` — technology vision and project purpose
+- `{projectArtifactsRoot}/TESTING.md` — testing strategy (optional; if absent,
   Constitution testing rules remain authoritative)
-- `{repoStateRoot}/LANDSCAPE.md` — codebase architecture and module knowledge
-  (optional)
-- `{repoStateRoot}/AUDIT.md` — codebase health findings and tech debt tracking
-  (optional)
-- `{repoStateRoot}/research/*.md` — external research briefs (loaded by
+- `{projectArtifactsRoot}/LANDSCAPE.md` — codebase architecture and module
+  knowledge (optional)
+- `{projectArtifactsRoot}/AUDIT.md` — codebase health findings and tech debt
+  tracking (optional)
+- `{projectArtifactsRoot}/research/*.md` — external research briefs (loaded by
   `sw-design` on demand; warn if stale per `protocols/research.md`)
 
-### Per-work documents
+### Runtime work records
 
 Load from the selected work under `repoStateRoot/work/{workId}`:
 
 - `workflow.json` — lifecycle, gates, units, attachment, per-work lock
+- `stage-report.md` — runtime-local stage handoff digest
+- `units/{unitId}/stage-report.md` — runtime-local unit handoff digest
+
+### Auditable work artifacts
+
+Load from the selected work under `{workArtifactsRoot}/{workId}`:
+
 - `design.md`, `context.md`, `decisions.md`, `assumptions.md`
-- `units/{unitId}/spec.md`, `plan.md`, `context.md`, `stage-report.md`,
-  `evidence/`
+- `approvals.md`, `integration-criteria.md`
+- `units/{unitId}/spec.md`, `plan.md`, `context.md`
+- `units/{unitId}/implementation-rationale.md`
+- `units/{unitId}/review-packet.md`
+- `units/{unitId}/evidence/`
 
 ### Per-worktree documents
 
@@ -55,20 +68,40 @@ Load from `worktreeStateRoot`:
 Run this sequence before loading Specwright state:
 
 1. resolve `projectRoot`
-2. resolve `gitDir`
-3. resolve `gitCommonDir`
-4. derive `repoStateRoot`
-5. derive `worktreeStateRoot`
+2. derive `projectArtifactsRoot`
+3. resolve `gitDir`
+4. resolve `gitCommonDir`
+5. derive `repoStateRoot`
+6. derive `worktreeStateRoot`
+7. resolve `workArtifactsRoot`: read `config.git.workArtifacts` from
+   `{projectArtifactsRoot}/config.json` when present, else from
+   `{repoStateRoot}/config.json`; default to `{repoStateRoot}/work` when
+   neither config exists or the mode is not `tracked`
 
 If Git root resolution fails, report which root failed and whether the problem
 is local to this worktree or repo-wide.
 
 ## Loading Mode
 
-### Preferred mode: shared/session layout
+### Tracked project-artifact root
 
-If `{repoStateRoot}/config.json` exists, the repository is using the shared
-state layout. That is the normal path for both primary and linked worktrees.
+If `{projectArtifactsRoot}/config.json` exists, that path is authoritative for
+tracked project config and anchor docs.
+
+If only `{repoStateRoot}/config.json` exists, callers may read it as a
+compatibility bridge for migrated runtime state, but they should warn that the
+tracked config has not yet been moved back to `projectArtifactsRoot`.
+
+If callers fall all the way back to `{projectArtifactsRoot}/state/`, they
+should explicitly say the repository is using the legacy working-tree Specwright layout.
+
+### Preferred mode: shared/session runtime layout
+
+If `{projectArtifactsRoot}/config.json` exists, `{worktreeStateRoot}/session.json`
+exists, `{repoStateRoot}/work/` exists, or `{repoStateRoot}/config.json`
+exists, the repository is using the shared/session root model. Tracked project
+config alone is enough to opt into that model even before any work or session
+file exists. That is the normal path for both primary and linked worktrees.
 
 **Important:** a linked worktree is not degraded merely because the checkout
 lacks a working-tree `.specwright/` directory. Shared repo state lives under
@@ -76,23 +109,25 @@ lacks a working-tree `.specwright/` directory. Shared repo state lives under
 
 ### Migration fallback: legacy working-tree layout
 
-If the shared/session layout is absent, callers may read legacy files from
-`{projectRoot}/.specwright/` during migration:
+If the shared/session runtime layout is absent, callers may read legacy runtime
+files from `{projectArtifactsRoot}/state/` during migration:
 
-- `{projectRoot}/.specwright/config.json`
-- `{projectRoot}/.specwright/CONSTITUTION.md`
-- `{projectRoot}/.specwright/CHARTER.md`
-- `{projectRoot}/.specwright/TESTING.md`
-- `{projectRoot}/.specwright/state/workflow.json`
-- `{projectRoot}/.specwright/state/continuation.md`
+- `{projectArtifactsRoot}/state/workflow.json`
+- `{projectArtifactsRoot}/state/continuation.md`
 
 Legacy `workflow.json` remains a migration-only bridge. It still uses the v2
 `currentWork` wrapper, so work-aware callers must normalize that wrapper
 explicitly or stop and direct the user to `/sw-init` before relying on work
 status, branch, or unit fields.
 
-Once either new logical root exists, writes go only to the new layout. Mixed
-read/write behavior is forbidden.
+Once the new roots exist, writes go only to their authoritative surface:
+
+- tracked project artifacts -> `projectArtifactsRoot`
+- auditable work artifacts -> `workArtifactsRoot`
+- runtime work state -> `repoStateRoot`
+- runtime session state -> `worktreeStateRoot`
+
+Mixed read/write behavior is forbidden.
 
 ## Session And Work Resolution
 
@@ -119,11 +154,11 @@ Before any operation:
 ```javascript
 resolveLogicalRoots();
 
-if (exists(repoStateRoot + "/config.json")) {
-  config = read(repoStateRoot + "/config.json");
-} else if (exists(projectRoot + "/.specwright/config.json")) {
-  config = read(projectRoot + "/.specwright/config.json"); // migration only
-  warn("Using legacy working-tree Specwright layout — run /sw-init to migrate shared/session roots.");
+if (exists(projectArtifactsRoot + "/config.json")) {
+  config = read(projectArtifactsRoot + "/config.json");
+} else if (exists(repoStateRoot + "/config.json")) {
+  config = read(repoStateRoot + "/config.json"); // compatibility bridge only
+  warn("Using runtime-local config compatibility path — run /sw-init to migrate tracked config back to projectArtifactsRoot.");
 } else {
   error("Run /sw-init first.");
 }
@@ -170,7 +205,9 @@ Load on demand:
 
 - the selected work's `workflow.json`
 - `CONSTITUTION.md`, `CHARTER.md`, `TESTING.md`
-- work-local artifacts for the selected work and unit
+- runtime `stage-report.md` digests from `repoStateRoot`
+- auditable work artifacts for the selected work and unit from
+  `workArtifactsRoot`
 
 Read-only repo-wide views such as `sw-status`, `sw-sync`, and `sw-doctor` may
 enumerate all works from `{repoStateRoot}/work/*/workflow.json` in addition to

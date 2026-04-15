@@ -292,8 +292,8 @@ CCR-reviewed decisions also add `**CCR verdict**` and `**CCR findings**`.
 
 ## Stage Report
 
-Every pipeline skill handoff writes `{workDir}/stage-report.md` before emitting
-the terminal three-line handoff.
+Every pipeline skill handoff writes `{stageReportPath}` before emitting the
+terminal three-line handoff.
 
 **Top line:** `Attention required: {single-sentence summary}`
 
@@ -317,7 +317,7 @@ When a pipeline skill finishes, emit exactly three lines:
 
 ```text
 Done. {one-line outcome}.
-Artifacts: {workDir}/stage-report.md
+Artifacts: {stageReportPath}
 Next: /sw-{next-skill}
 ```
 

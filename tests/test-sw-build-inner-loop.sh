@@ -162,10 +162,10 @@ for heading in "Mid-build checks" "Task tracking" "Parallel execution"; do
   fi
 done
 
-if grep -q "stage-report.md" "$SKILL_FILE" && grep -q "/sw-verify" "$SKILL_FILE"; then
-  pass "handoff still points at stage-report.md and /sw-verify"
+if grep -q "{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md" "$SKILL_FILE" && grep -q "/sw-verify" "$SKILL_FILE"; then
+  pass "handoff still points at the runtime stage-report path and /sw-verify"
 else
-  fail "handoff still points at stage-report.md and /sw-verify"
+  fail "handoff still points at the runtime stage-report path and /sw-verify"
 fi
 
 echo ""
