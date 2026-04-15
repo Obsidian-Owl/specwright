@@ -35,7 +35,7 @@ Implement the current work unit with TDD. The per-task loop is RED → GREEN →
 
 ## Outputs
 
-- After each task: failing tests, passing implementation, task commit, workflow progress, refreshed `{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md`
+- After each task: failing tests, passing implementation, task commit, workflow progress, updated `{workDir}/implementation-rationale.md`, refreshed `{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md`
 - After all tasks: as-built notes in `plan.md`, three-line handoff to `/sw-verify`, ready-to-verify build state; the handoff points at `Artifacts: {repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md`
 
 ## Constraints
@@ -51,6 +51,14 @@ Implement the current work unit with TDD. The per-task loop is RED → GREEN →
 **Approval checkpoint (LOW freedom) — before task loop:** Use `protocols/approvals.md` and the shared helper with the current unit artifact set (`spec.md`, `plan.md`, `context.md`). Interactive `/sw-build` runs may record an `APPROVED` `unit-spec` entry in `{workArtifactsRoot}/{selectedWork.id}/approvals.md` with source classification `command`; headless runs must validate existing human approval instead. Never move approval truth into `workflow.json`.
 
 **Task loop (MEDIUM freedom):** Work one task at a time. Finish it before starting the next and emit a status card after each task commit.
+
+**Implementation rationale (LOW freedom) — after each task commit:** Update
+`{workDir}/implementation-rationale.md` as an append-only curated artifact with
+one section per completed task. Each task entry must record the task ID,
+relevant AC references, changed files, tests added or updated, why this
+approach was chosen, any deviation from the approved unit artifacts, the
+execution path (`executor` or `build-fixer`), and the commit SHA. This artifact
+captures rationale, not transcript excerpts.
 
 **TDD cycle (LOW freedom for sequence):**
 1. **RED:** delegate to `specwright-tester`, write hard-to-pass tests, and confirm they fail.

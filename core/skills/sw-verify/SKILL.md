@@ -27,12 +27,14 @@ gate handoff using `protocols/decision.md` template.
 - `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit and previous gate results
 - `{repoStateRoot}/config.json` -- gate configuration (object or array format)
 - `{workDir}/spec.md` -- for spec compliance gate
+- `{workDir}/implementation-rationale.md` -- curated build-time reasoning when present
 - Gate skill files in `skills/gate-*/SKILL.md`
 
 ## Outputs
 
 - `{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md` -- verify handoff digest with attention-at-top
 - Evidence files in `{workDir}/evidence/`, one per gate
+- `{workDir}/review-packet.md` -- reviewer-focused synthesis built from approvals, rationale, proof, and gate outcomes
 - Selected work's `workflow.json` gates section updated; status set to `verifying` during run
 - Aggregate report presented at gate handoff
 
@@ -82,6 +84,15 @@ Gates are internal skills — load SKILL.md and execute inline. Pass work unit c
 
 **Gate Re-Run Policy (LOW freedom):**
 Always re-run all gates regardless of existing results or age.
+
+**Review packet synthesis (LOW freedom) — after gate execution, before
+handoff:** Use `protocols/review-packet.md` to assemble
+`{workDir}/review-packet.md` from approval lineage, `implementation-rationale.md`,
+gate evidence, and the canonical gate-spec compliance matrix. This is a
+synthesis step, not a second gate engine: do not rerun gates, recreate proof
+logic, or backfill rationale from transcripts. In `clone-local`
+work-artifact mode, keep the packet reviewer-usable without relying on
+local-only file links.
 
 **Failure handling (MEDIUM freedom):**
 Gate FAIL or ERROR: continue. Run ALL remaining gates, record all results.
@@ -177,6 +188,7 @@ the selected work's `gates` section after each gate completes. Do NOT set
 - `protocols/state.md` -- workflow state and locking
 - `protocols/git-freshness.md` -- pre-gate freshness checkpoint
 - `protocols/approvals.md` -- approval freshness and lineage validation
+- `protocols/review-packet.md` -- reviewer packet synthesis contract
 - `protocols/evidence.md` -- evidence freshness and storage
 - `protocols/evidence.md#verdict-rendering` -- verdict rendering and escalation
 - `protocols/headless.md` -- non-interactive execution defaults
