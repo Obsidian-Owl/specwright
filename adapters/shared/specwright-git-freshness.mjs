@@ -86,7 +86,11 @@ function tryGit(args, cwd) {
 }
 
 function parseJsonFile(path) {
-  return JSON.parse(readFileSync(path, 'utf8'));
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 function normalizeString(value) {
@@ -125,7 +129,8 @@ function loadConfig(stateInfo) {
       continue;
     }
 
-    return parseJsonFile(candidate);
+    const raw = parseJsonFile(candidate);
+    return raw ?? {};
   }
 
   return {};
@@ -436,6 +441,7 @@ export function assessGitFreshness(stateInfo, options = {}) {
     return buildResult(context, {
       status: 'blocked',
       currentHead: null,
+      fetched: false,
       reason: `Unable to resolve HEAD: ${currentHeadResult.message}`
     });
   }
@@ -449,7 +455,7 @@ export function assessGitFreshness(stateInfo, options = {}) {
       return buildResult(context, {
         status: 'blocked',
         currentHead,
-        fetched: true,
+        fetched: false,
         reason: `Unable to fetch ${context.targetRef.remote}/${context.targetRef.branch}: ${fetchResult.message}`
       });
     }

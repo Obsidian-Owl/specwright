@@ -82,6 +82,7 @@ fresh_timestamp() {
 write_shared_config() {
   local dir="$1"
   local validation="${2:-branch-head}"
+  local checkpoint="${3:-require}"
   local repo_root
   repo_root="$(repo_state_root "$dir")"
   mkdir -p "$repo_root"
@@ -100,9 +101,9 @@ write_shared_config() {
       "validation": "$validation",
       "reconcile": "manual",
       "checkpoints": {
-        "build": "require",
-        "verify": "require",
-        "ship": "require"
+        "build": "$checkpoint",
+        "verify": "$checkpoint",
+        "ship": "$checkpoint"
       }
     }
   }
@@ -117,6 +118,7 @@ write_shared_workflow() {
   local validation="${4:-branch-head}"
   local target_branch="${5:-main}"
   local target_remote="${6:-origin}"
+  local checkpoint="${7:-require}"
   local repo_root work_root
 
   repo_root="$(repo_state_root "$dir")"
@@ -143,9 +145,9 @@ write_shared_workflow() {
     "validation": "$validation",
     "reconcile": "manual",
     "checkpoints": {
-      "build": "require",
-      "verify": "require",
-      "ship": "require"
+      "build": "$checkpoint",
+      "verify": "$checkpoint",
+      "ship": "$checkpoint"
     },
     "status": "unknown",
     "lastCheckedAt": null
@@ -179,7 +181,7 @@ EOF
 init_bare_remote() {
   local remote_dir="$1"
   mkdir -p "$remote_dir"
-  git_nested -C "$remote_dir" -c core.hooksPath=/dev/null init --bare -q
+  git_nested -C "$remote_dir" -c core.hooksPath=/dev/null init --bare --initial-branch=main -q
 }
 
 clone_repo() {
@@ -195,10 +197,11 @@ setup_assessed_repo() {
   local repo_dir="$2"
   local work_id="$3"
   local validation="${4:-branch-head}"
+  local checkpoint="${5:-require}"
   clone_repo "$remote_dir" "$repo_dir"
   git_nested -C "$repo_dir" checkout -qb feature origin/main
-  write_shared_config "$repo_dir" "$validation"
-  write_shared_workflow "$repo_dir" "$work_id" "feature" "$validation"
+  write_shared_config "$repo_dir" "$validation" "$checkpoint"
+  write_shared_workflow "$repo_dir" "$work_id" "feature" "$validation" "main" "origin" "$checkpoint"
   write_shared_session "$repo_dir" "feature" "$work_id"
 }
 
@@ -322,6 +325,7 @@ setup_assessed_repo "$REMOTE" "$BLOCKED_REPO" "blocked-work"
 write_shared_workflow "$BLOCKED_REPO" "blocked-work" "feature" "branch-head" "release/missing"
 if blocked_output="$(assess_freshness "$BLOCKED_REPO" true)"; then
   assert_output_contains "$blocked_output" '"status":"blocked"' "helper reports missing target refs as blocked"
+  assert_output_contains "$blocked_output" '"fetched":false' "failed fetches do not claim the target was refreshed"
   assert_output_contains "$blocked_output" '"recommendedAction":"stop"' "blocked result recommends stop for require checkpoints"
 else
   fail "helper returns JSON for a blocked assessment"
@@ -333,10 +337,39 @@ QUEUE_REPO="$TEST_TMPDIR/queue-repo"
 setup_assessed_repo "$REMOTE" "$QUEUE_REPO" "queue-work" "queue"
 if queue_output="$(assess_freshness "$QUEUE_REPO" false)"; then
   assert_output_contains "$queue_output" '"status":"queue-managed"' "helper reports queue-managed validation distinctly"
+  assert_output_contains "$queue_output" '"fetched":false' "queue-managed assessment reports that no fetch was needed"
   assert_output_contains "$queue_output" '"recommendedAction":"delegate-to-queue"' "queue-managed result delegates authority to the queue"
   assert_output_contains "$queue_output" '"validation":"queue"' "queue-managed result preserves queue validation mode"
 else
   fail "helper returns JSON for a queue-managed assessment"
+fi
+
+echo ""
+echo "--- Helper warn checkpoint assessment ---"
+WARN_REPO="$TEST_TMPDIR/warn-repo"
+WARN_PUSHER="$TEST_TMPDIR/warn-pusher"
+setup_assessed_repo "$REMOTE" "$WARN_REPO" "warn-work" "branch-head" "warn"
+clone_repo "$REMOTE" "$WARN_PUSHER"
+advance_main_and_push "$WARN_PUSHER" "test: warn checkpoint sees drift"
+if warn_output="$(assess_freshness "$WARN_REPO" true)"; then
+  assert_output_contains "$warn_output" '"status":"stale"' "helper still reports stale under warn checkpoints"
+  assert_output_contains "$warn_output" '"recommendedAction":"warn"' "warn checkpoints downgrade stale guidance to warn"
+else
+  fail "helper returns JSON for a warn checkpoint assessment"
+fi
+
+echo ""
+echo "--- Helper malformed config assessment ---"
+INVALID_CONFIG_REPO="$TEST_TMPDIR/invalid-config-repo"
+setup_assessed_repo "$REMOTE" "$INVALID_CONFIG_REPO" "invalid-config-work"
+cat > "$(repo_state_root "$INVALID_CONFIG_REPO")/config.json" <<'EOF'
+{ invalid json
+EOF
+if malformed_config_output="$(assess_freshness "$INVALID_CONFIG_REPO" false)"; then
+  assert_output_contains "$malformed_config_output" '"status":"fresh"' "malformed config degrades cleanly to workflow-backed assessment"
+  assert_output_contains "$malformed_config_output" '"validation":"branch-head"' "malformed config does not drop workflow freshness settings"
+else
+  fail "helper tolerates malformed shared config"
 fi
 
 echo ""
