@@ -33,6 +33,7 @@ MULTI_WORKTREE_RUNTIME_TEST="$ROOT_DIR/tests/test-multi-worktree-state.sh"
 TARGET_MODEL_DOCS_TEST="$ROOT_DIR/tests/test-branch-freshness-target-model-docs.sh"
 GIT_FRESHNESS_ENGINE_TEST="$ROOT_DIR/tests/test-git-freshness-engine.sh"
 LIFECYCLE_FRESHNESS_TEST="$ROOT_DIR/tests/test-lifecycle-freshness-checkpoints.sh"
+WORKFLOW_PROOF_TEST="$ROOT_DIR/tests/test-workflow-proof.sh"
 CONFIG_VISIBILITY_DOCS_TEST="$ROOT_DIR/tests/test-config-validation-visibility-docs.sh"
 
 PASS=0
@@ -1207,6 +1208,31 @@ if echo "$CONFIG_VISIBILITY_OUTPUT" | grep -Fq "PASS: sw-sync stays advisory on 
   pass "config-visibility regression output includes sync-boundary coverage"
 else
   fail "config-visibility regression output missing sync-boundary coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Workflow proof ==="
+
+if [ -x "$WORKFLOW_PROOF_TEST" ]; then
+  pass "tests/test-workflow-proof.sh is executable"
+else
+  fail "tests/test-workflow-proof.sh is missing or not executable"
+fi
+
+WORKFLOW_PROOF_EXIT=0
+WORKFLOW_PROOF_OUTPUT="$(bash "$WORKFLOW_PROOF_TEST" 2>&1)" || WORKFLOW_PROOF_EXIT=$?
+
+if [ "$WORKFLOW_PROOF_EXIT" -ne 0 ]; then
+  fail "tests/test-workflow-proof.sh passes under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${WORKFLOW_PROOF_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-workflow-proof.sh passes under the configured test path"
+fi
+if echo "$WORKFLOW_PROOF_OUTPUT" | grep -Fq "PASS: workflow proof covers queue-managed ship behavior"; then
+  pass "workflow-proof regression output includes queue-managed ship coverage"
+else
+  fail "workflow-proof regression output missing queue-managed ship coverage"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
