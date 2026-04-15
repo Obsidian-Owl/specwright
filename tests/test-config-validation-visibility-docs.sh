@@ -12,6 +12,7 @@ INIT_SKILL="$ROOT_DIR/core/skills/sw-init/SKILL.md"
 GUARD_SKILL="$ROOT_DIR/core/skills/sw-guard/SKILL.md"
 DOCTOR_SKILL="$ROOT_DIR/core/skills/sw-doctor/SKILL.md"
 STATUS_SKILL="$ROOT_DIR/core/skills/sw-status/SKILL.md"
+SYNC_SKILL="$ROOT_DIR/core/skills/sw-sync/SKILL.md"
 
 PASS=0
 FAIL=0
@@ -40,7 +41,7 @@ assert_contains() {
 echo "=== config validation and visibility docs ==="
 echo ""
 
-for file in "$INIT_SKILL" "$GUARD_SKILL" "$DOCTOR_SKILL" "$STATUS_SKILL"; do
+for file in "$INIT_SKILL" "$GUARD_SKILL" "$DOCTOR_SKILL" "$STATUS_SKILL" "$SYNC_SKILL"; do
   if [ -f "$file" ]; then
     pass "exists: ${file#"$ROOT_DIR"/}"
   else
@@ -62,6 +63,11 @@ assert_contains "$DOCTOR_SKILL" "queue validation without the required provider-
 assert_contains "$DOCTOR_SKILL" "work-artifact publication mode" "sw-doctor validates artifact publication mode safely"
 assert_contains "$STATUS_SKILL" "selected work's target branch and latest freshness state" "sw-status surfaces target branch plus freshness state"
 assert_contains "$STATUS_SKILL" "work-artifact publication mode when present" "sw-status surfaces publication mode when present"
+
+echo ""
+echo "--- Task 3: sync boundaries ---"
+assert_contains "$SYNC_SKILL" "report stale active works against" "sw-sync can report stale active works"
+assert_contains "$SYNC_SKILL" "reconcile-or-ship decisions away from the lifecycle skills" "sw-sync stays advisory on reconcile and ship decisions"
 
 echo ""
 echo "RESULT: $PASS passed, $FAIL failed"
