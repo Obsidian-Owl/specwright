@@ -81,6 +81,12 @@ assert_contains "$SHIP_SKILL" "must not force a local rebase by default" "sw-shi
 assert_contains "$SHIP_SKILL" "protocols/git-freshness.md" "sw-ship references the shared freshness protocol"
 
 echo ""
+echo "--- Rewrite guards ---"
+assert_contains "$BUILD_SKILL" "trigger hidden rebases or other branch rewrites" "sw-build forbids hidden branch rewrites"
+assert_contains "$VERIFY_SKILL" "local rebase before verification" "sw-verify keeps queue-managed verification distinct from local rebasing"
+assert_contains "$SHIP_SKILL" "must not force a local rebase by default" "sw-ship keeps shipping freshness distinct from forced local rebasing"
+
+echo ""
 echo "--- Git lifecycle contract ---"
 assert_contains "$GIT_PROTOCOL" "## Lifecycle Freshness Checkpoints" "git protocol adds a lifecycle checkpoint section"
 assert_contains "$GIT_PROTOCOL" "\`sw-build\` consumes the \`build\` checkpoint" "git protocol describes build checkpoint consumption"
