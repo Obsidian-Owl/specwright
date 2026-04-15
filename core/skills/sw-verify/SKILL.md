@@ -51,6 +51,12 @@ Scan the design assumptions artifact from the design-level directory. Check
 ACCEPTED/VERIFIED assumptions still hold against current code. Invalid → WARN in
 aggregate report. Runs silently.
 
+**Approval lineage check (LOW freedom) — before gate execution:**
+Use `protocols/approvals.md` and the shared helper to validate the recorded
+`design` and current `unit-spec` approval hashes. Missing, `STALE`, or
+`SUPERSEDED` lineage becomes a distinct approval finding; headless verify may
+report it but never create `APPROVED` entries.
+
 **Freshness checkpoint (LOW freedom) — before any gate runs:**
 Use `protocols/git-freshness.md` to assess the selected work's verify
 checkpoint from the recorded target and policy. For branch-head validation,
@@ -83,7 +89,9 @@ No fix/skip/abort decisions — the gate handoff presents everything for human r
 Headless: write `headless-result.json`.
 
 **Aggregate report (MEDIUM freedom):**
-After all gates, present three tiers:
+After all gates, present three tiers. When approval findings exist, prepend an
+`Approval Lineage` subsection before tier 1 and keep it separate from
+gate-specific counts.
 1. **Per-finding detail** (first): every BLOCK/WARN grouped by gate — what,
    why, and recommended action.
 2. **Summary table** (after): `| Gate | Status | Findings (B/W/I) |`
@@ -168,6 +176,7 @@ the selected work's `gates` section after each gate completes. Do NOT set
 - `protocols/decision.md` -- autonomous decision framework and gate handoff
 - `protocols/state.md` -- workflow state and locking
 - `protocols/git-freshness.md` -- pre-gate freshness checkpoint
+- `protocols/approvals.md` -- approval freshness and lineage validation
 - `protocols/evidence.md` -- evidence freshness and storage
 - `protocols/evidence.md#verdict-rendering` -- verdict rendering and escalation
 - `protocols/headless.md` -- non-interactive execution defaults

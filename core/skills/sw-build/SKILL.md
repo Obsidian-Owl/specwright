@@ -30,6 +30,7 @@ Implement the current work unit with TDD. The per-task loop is RED → GREEN →
 - `{worktreeStateRoot}/session.json` -- selected work for this worktree
 - `{repoStateRoot}/work/{selectedWork.id}/workflow.json`, `{workDir}/spec.md`, `{workDir}/plan.md`
 - `{workArtifactsRoot}/{selectedWork.id}/design.md`, `{workDir}/context.md`
+- `{workArtifactsRoot}/{selectedWork.id}/approvals.md` -- durable design and unit approval ledger when present
 - `{repoStateRoot}/CONSTITUTION.md`, `{repoStateRoot}/config.json`
 
 ## Outputs
@@ -46,6 +47,8 @@ Implement the current work unit with TDD. The per-task loop is RED → GREEN →
 **Branch setup (LOW freedom):** First action before coding: resolve the session-selected work from the current worktree, verify that no other live top-level worktree owns it, then check out the feature branch from `config.git.branchPrefix` and sync it per `protocols/git.md`. The selected work's recorded `targetRef`, when present, is the first branch-resolution input via `protocols/git.md`; repo config defaults and the `baseBranch` compatibility alias are fallbacks only. Use `{git.branchPrefix}{selectedWork.unitId}` for multi-unit work and never commit to the base branch. If the selected work is already owned elsewhere, STOP with explicit adopt/takeover guidance instead of mutating it silently.
 
 **Build freshness checkpoint (LOW freedom) — after branch setup:** Evaluate the build checkpoint via `protocols/git-freshness.md` using the selected work's recorded `targetRef` and `freshness`. `require` blocks stale, diverged, and blocked freshness results; `warn` surfaces advisory drift; queue-managed results do not trigger hidden rebases or other branch rewrites.
+
+**Approval checkpoint (LOW freedom) — before task loop:** Use `protocols/approvals.md` and the shared helper with the current unit artifact set (`spec.md`, `plan.md`, `context.md`). Interactive `/sw-build` runs may record an `APPROVED` `unit-spec` entry in `{workArtifactsRoot}/{selectedWork.id}/approvals.md` with source classification `command`; headless runs must validate existing human approval instead. Never move approval truth into `workflow.json`.
 
 **Task loop (MEDIUM freedom):** Work one task at a time. Finish it before starting the next and emit a status card after each task commit.
 
@@ -74,6 +77,7 @@ Per-task integration and regression runs do not happen inside this loop.
 - `protocols/stage-boundary.md` -- scope and final handoff
 - `protocols/git.md` -- branch lifecycle and commit discipline
 - `protocols/git-freshness.md` -- build-entry freshness checkpoint
+- `protocols/approvals.md` -- spec approval capture and validation
 - `protocols/delegation.md` -- tester/executor/build-fixer context handoff
 - `protocols/build-quality.md` -- post-build review and as-built notes
 - `protocols/decision.md` -- late discoveries and error handling

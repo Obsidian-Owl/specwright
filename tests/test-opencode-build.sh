@@ -306,7 +306,7 @@ if [ -d "$OC_DIST/protocols" ]; then
   assert_eq "$PROTO_COUNT" "$EXPECTED_PROTO_COUNT" "protocols/ mirrors the core protocol set"
 
   # Spot-check specific protocol files
-  for proto in state.md git.md git-freshness.md delegation.md recovery.md evidence.md; do
+  for proto in state.md git.md git-freshness.md approvals.md delegation.md recovery.md evidence.md; do
     if [ -f "$OC_DIST/protocols/$proto" ]; then
       pass "protocols/$proto exists"
     else

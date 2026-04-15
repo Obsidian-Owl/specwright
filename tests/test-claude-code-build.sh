@@ -29,6 +29,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_SCRIPT="$ROOT_DIR/build/build.sh"
 DIST_DIR="$ROOT_DIR/dist"
 CC_DIST="$DIST_DIR/claude-code"
+CLAUDE_BUILD_MODE="${SPECWRIGHT_CLAUDE_BUILD_MODE:-full}"
 MULTI_WORKTREE_RUNTIME_TEST="$ROOT_DIR/tests/test-multi-worktree-state.sh"
 TARGET_MODEL_DOCS_TEST="$ROOT_DIR/tests/test-branch-freshness-target-model-docs.sh"
 GIT_FRESHNESS_ENGINE_TEST="$ROOT_DIR/tests/test-git-freshness-engine.sh"
@@ -36,6 +37,7 @@ LIFECYCLE_FRESHNESS_TEST="$ROOT_DIR/tests/test-lifecycle-freshness-checkpoints.s
 WORKFLOW_PROOF_TEST="$ROOT_DIR/tests/test-workflow-proof.sh"
 CONFIG_VISIBILITY_DOCS_TEST="$ROOT_DIR/tests/test-config-validation-visibility-docs.sh"
 AUDIT_CHAIN_ROOT_MODEL_TEST="$ROOT_DIR/tests/test-audit-chain-root-model.sh"
+APPROVAL_LIFECYCLE_TEST="$ROOT_DIR/tests/test-approval-lifecycle-docs.sh"
 
 PASS=0
 FAIL=0
@@ -48,6 +50,16 @@ pass() {
 fail() {
   echo "  FAIL: $1"
   FAIL=$((FAIL + 1))
+}
+
+assert_path_exists() {
+  local path="$1"
+  local label="$2"
+  if [ -e "$path" ]; then
+    pass "$label"
+  else
+    fail "$label"
+  fi
 }
 
 assert_eq() {
@@ -120,10 +132,107 @@ git_source_status() {
   git --git-dir="$ROOT_DIR/.git" --work-tree="$ROOT_DIR" status --porcelain -- core/ adapters/
 }
 
+run_smoke_regression() {
+  local label="$1"
+  local command="$2"
+  local coverage_marker="$3"
+  local exit_code=0
+  local output
+
+  echo ""
+  echo "=== Smoke regression: $label ==="
+
+  output="$(sh -lc "$command" 2>&1)" || exit_code=$?
+
+  if [ "$exit_code" -ne 0 ]; then
+    fail "$label smoke regression fails"
+    echo "  Regression output:"
+    printf '    %s\n' "${output//$'\n'/$'\n    '}"
+    return
+  fi
+
+  pass "$label smoke regression passes"
+
+  if printf '%s' "$output" | grep -Fq "$coverage_marker"; then
+    pass "$label smoke regression emits $coverage_marker"
+  else
+    fail "$label smoke regression missing $coverage_marker"
+  fi
+}
+
+run_smoke_checks() {
+  echo ""
+  echo "=== Smoke: Claude Code structural packaging ==="
+
+  assert_path_exists "$CC_DIST" "smoke build writes dist/claude-code"
+  assert_path_exists "$CC_DIST/skills/sw-build/SKILL.md" "smoke build includes sw-build skill"
+  assert_path_exists "$CC_DIST/skills/sw-verify/SKILL.md" "smoke build includes sw-verify skill"
+  assert_path_exists "$CC_DIST/protocols/context.md" "smoke build includes context protocol"
+  assert_path_exists "$CC_DIST/protocols/state.md" "smoke build includes state protocol"
+  assert_path_exists "$CC_DIST/protocols/git-freshness.md" "smoke build includes git-freshness protocol"
+  assert_path_exists "$CC_DIST/protocols/approvals.md" "smoke build includes approvals protocol"
+  assert_path_exists "$CC_DIST/agents/specwright-executor.md" "smoke build includes executor agent"
+  assert_path_exists "$CC_DIST/hooks/session-start.mjs" "smoke build includes session-start hook"
+  assert_path_exists "$CC_DIST/.claude-plugin/plugin.json" "smoke build includes plugin manifest"
+
+  if jq -e '.name == "specwright" and (.version | type == "string" and length > 0)' "$CC_DIST/.claude-plugin/plugin.json" >/dev/null; then
+    pass "smoke plugin manifest preserves required fields"
+  else
+    fail "smoke plugin manifest preserves required fields"
+  fi
+
+  if node --check "$CC_DIST/hooks/session-start.mjs" >/dev/null 2>&1; then
+    pass "smoke hook payload parses as JavaScript"
+  else
+    fail "smoke hook payload parses as JavaScript"
+  fi
+
+  if rg -n '<!-- platform:' "$CC_DIST" >/dev/null 2>&1; then
+    fail "smoke dist does not contain platform markers"
+  else
+    pass "smoke dist does not contain platform markers"
+  fi
+
+  assert_file_contains "$CC_DIST/CLAUDE.md" "approvals.md" "smoke CLAUDE.md indexes approvals protocol"
+  assert_file_contains "$CC_DIST/skills/sw-build/SKILL.md" "Approval checkpoint" "smoke sw-build includes approval checkpoint"
+  assert_file_contains "$CC_DIST/skills/sw-verify/SKILL.md" "Approval Lineage" "smoke sw-verify includes approval lineage"
+  assert_file_contains "$CC_DIST/protocols/context.md" "projectArtifactsRoot" "smoke context protocol preserves project artifact root"
+  assert_file_contains "$CC_DIST/protocols/context.md" "workArtifactsRoot" "smoke context protocol preserves work artifact root"
+  assert_file_contains "$CC_DIST/protocols/state.md" "stage-report.md" "smoke state protocol preserves runtime stage report classification"
+  assert_file_contains "$CC_DIST/protocols/decision.md" "{stageReportPath}" "smoke decision protocol uses stageReportPath handoff"
+
+  run_smoke_regression \
+    "workflow proof" \
+    "SPECWRIGHT_WORKFLOW_PROOF_MODE=smoke bash \"$WORKFLOW_PROOF_TEST\"" \
+    "COVERAGE: workflow-proof.queue-managed-ship"
+
+  run_smoke_regression \
+    "approval lifecycle" \
+    "SPECWRIGHT_APPROVAL_LIFECYCLE_MODE=smoke bash \"$APPROVAL_LIFECYCLE_TEST\"" \
+    "COVERAGE: approval-lifecycle.fail-closed"
+
+  POST_BUILD_SOURCE_STATUS=$(git_source_status)
+  if [ "$POST_BUILD_SOURCE_STATUS" = "$PRE_BUILD_SOURCE_STATUS" ]; then
+    pass "smoke build leaves tracked source unchanged"
+  else
+    fail "smoke build leaves tracked source unchanged"
+  fi
+
+  printf 'COVERAGE: claude-build.smoke-structural\n'
+}
+
 # ─── Pre-flight ──────────────────────────────────────────────────────
 
 echo "=== AC-1 through AC-14: Claude Code build integration tests ==="
 echo ""
+
+case "$CLAUDE_BUILD_MODE" in
+  full|smoke) ;;
+  *)
+    echo "ABORT: unknown SPECWRIGHT_CLAUDE_BUILD_MODE=$CLAUDE_BUILD_MODE"
+    exit 1
+    ;;
+esac
 
 if ! command -v jq &>/dev/null; then
   echo "ABORT: jq is required but not installed"
@@ -167,6 +276,14 @@ BUILD_OUTPUT=$("$BUILD_SCRIPT" claude-code 2>&1) || {
 }
 
 pass "build.sh claude-code exits successfully"
+
+if [ "$CLAUDE_BUILD_MODE" = "smoke" ]; then
+  run_smoke_checks
+  echo ""
+  echo "RESULT: $PASS passed, $FAIL failed"
+  [ "$FAIL" -eq 0 ] || exit 1
+  exit 0
+fi
 
 # ═══════════════════════════════════════════════════════════════════════
 # AC-2: Build produces correct Claude Code output structure
@@ -272,11 +389,13 @@ if [ -d "$CC_DIST/agents" ]; then
   done
 fi
 
-# ─── protocols/ directory: exactly 24 .md files ──────────────────────
+# ─── protocols/ directory ─────────────────────────────────────────────
 
 echo "--- protocols/ directory ---"
 
-EXPECTED_PROTO_COUNT=24
+# Keep the mirror-count check dynamic because protocol additions are frequent.
+# Required protocol names are still explicitly spot-checked below.
+EXPECTED_PROTO_COUNT=$(find "$ROOT_DIR/core/protocols" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
 
 if [ -d "$CC_DIST/protocols" ]; then
   pass "protocols/ directory exists"
@@ -286,10 +405,10 @@ fi
 
 if [ -d "$CC_DIST/protocols" ]; then
   PROTO_COUNT=$(find "$CC_DIST/protocols" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
-  assert_eq "$PROTO_COUNT" "$EXPECTED_PROTO_COUNT" "protocols/ has exactly $EXPECTED_PROTO_COUNT .md files"
+  assert_eq "$PROTO_COUNT" "$EXPECTED_PROTO_COUNT" "protocols/ mirrors the core protocol set"
 
   # Spot-check specific protocol files
-  for proto in state.md git.md git-freshness.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md; do
+  for proto in state.md git.md git-freshness.md approvals.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md; do
     if [ -f "$CC_DIST/protocols/$proto" ]; then
       pass "protocols/$proto exists"
     else
@@ -342,6 +461,12 @@ if [ -f "$DIST_DIR/shared/specwright-git-freshness.mjs" ]; then
   pass "dist/shared/specwright-git-freshness.mjs exists"
 else
   fail "dist/shared/specwright-git-freshness.mjs missing"
+fi
+
+if [ -f "$DIST_DIR/shared/specwright-approvals.mjs" ]; then
+  pass "dist/shared/specwright-approvals.mjs exists"
+else
+  fail "dist/shared/specwright-approvals.mjs missing"
 fi
 
 # ─── .claude-plugin/ directory ────────────────────────────────────────
@@ -397,10 +522,12 @@ assert_file_contains "$ROOT_DIR/DESIGN.md" "{worktreeStateRoot}" "DESIGN.md desc
 assert_file_not_contains "$ROOT_DIR/DESIGN.md" ".specwright/worktrees/" "DESIGN.md no longer describes helper worktrees under .specwright/worktrees/"
 assert_file_not_contains "$ROOT_DIR/DESIGN.md" "workflow.json # Current state" "DESIGN.md no longer describes a singleton .specwright/state/workflow.json layout"
 assert_file_contains "$ROOT_DIR/CLAUDE.md" "git-freshness.md" "root CLAUDE.md lists git-freshness.md in the protocol index"
+assert_file_contains "$ROOT_DIR/CLAUDE.md" "approvals.md" "root CLAUDE.md lists approvals.md in the protocol index"
 
 assert_file_contains "$CC_DIST/CLAUDE.md" "repoStateRoot" "dist CLAUDE.md references the shared repo state root"
 assert_file_contains "$CC_DIST/CLAUDE.md" "worktreeStateRoot" "dist CLAUDE.md references the per-worktree state root"
 assert_file_contains "$CC_DIST/CLAUDE.md" "git-freshness.md" "dist CLAUDE.md lists git-freshness.md in the protocol index"
+assert_file_contains "$CC_DIST/CLAUDE.md" "approvals.md" "dist CLAUDE.md lists approvals.md in the protocol index"
 assert_file_not_contains "$CC_DIST/CLAUDE.md" "**\`.specwright/CONSTITUTION.md\`**" "dist CLAUDE.md no longer points anchor docs at checkout-local .specwright/"
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1261,6 +1388,31 @@ if echo "$AUDIT_CHAIN_ROOT_MODEL_OUTPUT" | grep -Fq "PASS: tracked mode routes s
   pass "audit-chain root-model regression output includes tracked-root coverage"
 else
   fail "audit-chain root-model regression output missing tracked-root coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Approval lifecycle ==="
+
+if [ -x "$APPROVAL_LIFECYCLE_TEST" ]; then
+  pass "tests/test-approval-lifecycle-docs.sh is executable"
+else
+  fail "tests/test-approval-lifecycle-docs.sh is missing or not executable"
+fi
+
+APPROVAL_LIFECYCLE_EXIT=0
+APPROVAL_LIFECYCLE_OUTPUT="$(SPECWRIGHT_APPROVAL_LIFECYCLE_MODE=smoke bash "$APPROVAL_LIFECYCLE_TEST" 2>&1)" || APPROVAL_LIFECYCLE_EXIT=$?
+
+if [ "$APPROVAL_LIFECYCLE_EXIT" -ne 0 ]; then
+  fail "tests/test-approval-lifecycle-docs.sh fails under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${APPROVAL_LIFECYCLE_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-approval-lifecycle-docs.sh passes under the configured test path"
+fi
+if [ "$APPROVAL_LIFECYCLE_EXIT" -eq 0 ] && echo "$APPROVAL_LIFECYCLE_OUTPUT" | grep -Fq "COVERAGE: approval-lifecycle.fail-closed"; then
+  pass "approval-lifecycle regression output includes fail-closed approval coverage"
+else
+  fail "approval-lifecycle regression output missing fail-closed approval coverage"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════

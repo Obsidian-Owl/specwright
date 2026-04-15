@@ -56,6 +56,13 @@ Resolve the selected work from the current worktree session. Check that
 `selectedWork.status` is `designing` or `planning` and `design.md` exists.
 `sw-plan` operates on the current worktree's attached work only.
 
+**Design approval capture (LOW freedom) — on entry:**
+Use `protocols/approvals.md` and the shared helper to record the current design
+artifact set in `{workArtifactsRoot}/{selectedWork.id}/approvals.md`.
+Interactive `/sw-plan` runs may write an `APPROVED` `design` entry with source
+classification `command`; headless runs must validate existing human approval
+instead of fabricating one.
+
 **Decompose (MEDIUM freedom, only if large):**
 - Assess whether the design requires multiple work units. Apply autonomously — use
   design blast radius to determine boundaries. High-blast-radius (systemic) components
@@ -147,6 +154,8 @@ top-level worktrees.
 - `protocols/state.md` -- workflow state updates and locking
 - `protocols/context.md` -- anchor doc and config loading
 - `protocols/recovery.md` -- compaction recovery
+- `protocols/approvals.md` -- design approval capture and validation
+- `protocols/headless.md` -- non-interactive approval behavior
 - `protocols/spec-review.md` -- spec quality review
 - `protocols/testing-strategy.md` -- tier tagging for ACs crossing TESTING.md boundaries
 
