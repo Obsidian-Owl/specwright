@@ -89,9 +89,9 @@ No fix/skip/abort decisions — the gate handoff presents everything for human r
 Headless: write `headless-result.json`.
 
 **Aggregate report (MEDIUM freedom):**
-After all gates, present three tiers:
-When approval findings exist, add an `Approval Lineage` subsection before the
-per-gate detail and keep it separate from gate-specific counts.
+After all gates, present three tiers. When approval findings exist, prepend an
+`Approval Lineage` subsection before tier 1 and keep it separate from
+gate-specific counts.
 1. **Per-finding detail** (first): every BLOCK/WARN grouped by gate — what,
    why, and recommended action.
 2. **Summary table** (after): `| Gate | Status | Findings (B/W/I) |`

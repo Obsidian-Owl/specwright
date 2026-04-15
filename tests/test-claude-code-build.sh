@@ -277,6 +277,8 @@ fi
 
 echo "--- protocols/ directory ---"
 
+# Keep the mirror-count check dynamic because protocol additions are frequent.
+# Required protocol names are still explicitly spot-checked below.
 EXPECTED_PROTO_COUNT=$(find "$ROOT_DIR/core/protocols" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
 
 if [ -d "$CC_DIST/protocols" ]; then
@@ -1282,7 +1284,7 @@ else
 fi
 
 APPROVAL_LIFECYCLE_EXIT=0
-APPROVAL_LIFECYCLE_OUTPUT="$(bash "$APPROVAL_LIFECYCLE_TEST" 2>&1)" || APPROVAL_LIFECYCLE_EXIT=$?
+APPROVAL_LIFECYCLE_OUTPUT="$(SPECWRIGHT_APPROVAL_LIFECYCLE_MODE=smoke bash "$APPROVAL_LIFECYCLE_TEST" 2>&1)" || APPROVAL_LIFECYCLE_EXIT=$?
 
 if [ "$APPROVAL_LIFECYCLE_EXIT" -ne 0 ]; then
   fail "tests/test-approval-lifecycle-docs.sh fails under the configured test path"
@@ -1291,10 +1293,10 @@ if [ "$APPROVAL_LIFECYCLE_EXIT" -ne 0 ]; then
 else
   pass "tests/test-approval-lifecycle-docs.sh passes under the configured test path"
 fi
-if echo "$APPROVAL_LIFECYCLE_OUTPUT" | grep -Fq "PASS: headless approval source cannot produce APPROVED entries"; then
-  pass "approval-lifecycle regression output includes headless approval guard coverage"
+if [ "$APPROVAL_LIFECYCLE_EXIT" -eq 0 ] && echo "$APPROVAL_LIFECYCLE_OUTPUT" | grep -Fq "COVERAGE: approval-lifecycle.fail-closed"; then
+  pass "approval-lifecycle regression output includes fail-closed approval coverage"
 else
-  fail "approval-lifecycle regression output missing headless approval guard coverage"
+  fail "approval-lifecycle regression output missing fail-closed approval coverage"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════

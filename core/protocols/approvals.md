@@ -8,8 +8,7 @@ artifacts.
 - Work-level approval ledger: `{workArtifactsRoot}/{workId}/approvals.md`
 - Approval state travels with auditable artifacts, not runtime-only session
   state.
-- `workflow.json` is never approval truth. `workflow.json is never approval truth`
-  is a hard invariant, not guidance.
+- `workflow.json` is never approval truth — this is a hard invariant, not guidance.
 
 ## Approval Scopes
 
@@ -61,7 +60,7 @@ artifact changes or disappears, the approval becomes `STALE`.
 `approvals.md` stays human-readable, but the machine-readable source of truth is
 the fenced JSON ledger between the approval markers.
 
-```markdown
+````markdown
 # Approvals
 
 Durable human approval checkpoints for this work.
@@ -88,7 +87,7 @@ Durable human approval checkpoints for this work.
 }
 ```
 <!-- approvals-ledger:end -->
-```
+````
 
 ## Lifecycle Responsibilities
 

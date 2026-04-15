@@ -9,6 +9,10 @@ export const APPROVAL_SOURCE_CLASSIFICATIONS = [
   'external-record',
   'headless-check'
 ];
+export const APPROVAL_ASSESSMENT_STATUS_VALUES = [
+  ...APPROVAL_STATUS_VALUES,
+  'MISSING'
+];
 
 const LEDGER_START = '<!-- approvals-ledger:start -->';
 const LEDGER_END = '<!-- approvals-ledger:end -->';
@@ -26,18 +30,44 @@ function normalizeString(value) {
   return trimmed ? trimmed : null;
 }
 
-function normalizeStatus(value) {
-  return APPROVAL_STATUS_VALUES.includes(value) ? value : 'APPROVED';
-}
+function normalizeEnumValue(value, allowedValues, fieldName) {
+  if (value === undefined || value === null) {
+    return null;
+  }
 
-function normalizeSourceClassification(value) {
-  return APPROVAL_SOURCE_CLASSIFICATIONS.includes(value) ? value : 'command';
+  if (typeof value !== 'string') {
+    throw new Error(`${fieldName} must be a string.`);
+  }
+
+  const normalizedValue = value.trim();
+  if (!normalizedValue || !allowedValues.includes(normalizedValue)) {
+    throw new Error(
+      `Unknown ${fieldName}: ${JSON.stringify(value)}. Expected one of: ${allowedValues.join(', ')}`
+    );
+  }
+
+  return normalizedValue;
 }
 
 function normalizeArtifactPath(baseDir, artifactPath) {
-  const resolvedPath = resolve(baseDir, artifactPath);
+  if (typeof artifactPath !== 'string') {
+    throw new Error('Artifact paths must be strings.');
+  }
+
+  const trimmedPath = artifactPath.trim();
+  if (!trimmedPath) {
+    throw new Error('Artifact paths must be non-empty strings.');
+  }
+
+  const resolvedPath = resolve(baseDir, trimmedPath);
   const relativePath = relative(baseDir, resolvedPath).replace(/[\\]/gu, '/');
-  return relativePath.replace(/^\.\//u, '');
+  const normalizedPath = relativePath.replace(/^\.\//u, '');
+
+  if (!normalizedPath || normalizedPath === '.' || normalizedPath === '..' || normalizedPath.startsWith('../')) {
+    throw new Error(`Artifact path escapes baseDir: ${JSON.stringify(artifactPath)}`);
+  }
+
+  return normalizedPath;
 }
 
 function cloneDocument(document) {
@@ -90,8 +120,16 @@ export function createApprovalEntry(options = {}) {
   const baseDir = options.baseDir ?? process.cwd();
   const scope = normalizeString(options.scope) ?? 'design';
   const unitId = normalizeString(options.unitId);
-  const status = normalizeStatus(options.status);
-  const sourceClassification = normalizeSourceClassification(options.sourceClassification);
+  const status = normalizeEnumValue(
+    options.status,
+    APPROVAL_STATUS_VALUES,
+    'approval status'
+  ) ?? 'APPROVED';
+  const sourceClassification = normalizeEnumValue(
+    options.sourceClassification,
+    APPROVAL_SOURCE_CLASSIFICATIONS,
+    'source classification'
+  ) ?? 'command';
   const sourceRef = normalizeString(options.sourceRef);
 
   validateApprovalSource(status, sourceClassification);
@@ -137,7 +175,22 @@ export function recordApproval(document, options = {}) {
 }
 
 export function assessApprovalEntry(entry, options = {}) {
-  const normalizedStatus = normalizeStatus(entry?.status);
+  if (entry == null) {
+    return {
+      status: 'MISSING',
+      artifactSetHash: null
+    };
+  }
+
+  const normalizedStatus = normalizeEnumValue(
+    entry.status,
+    APPROVAL_STATUS_VALUES,
+    'approval status'
+  );
+  if (normalizedStatus == null) {
+    throw new Error('Approval entries must record a status.');
+  }
+
   if (normalizedStatus === 'SUPERSEDED') {
     return {
       status: 'SUPERSEDED',
@@ -159,7 +212,7 @@ export function assessApprovalEntry(entry, options = {}) {
   }
 
   return {
-    status: normalizedStatus === 'STALE' ? 'STALE' : 'APPROVED',
+    status: 'APPROVED',
     artifactSetHash: current.artifactSetHash
   };
 }
@@ -200,12 +253,18 @@ export function parseApprovalsMarkdown(markdown) {
 
   try {
     const parsed = JSON.parse(match[1]);
+    if (parsed == null || typeof parsed !== 'object' || !Array.isArray(parsed.entries)) {
+      throw new Error('Malformed approvals ledger JSON.');
+    }
+
     return {
       version: normalizeString(parsed.version) ?? '1.0',
       entries: Array.isArray(parsed.entries) ? parsed.entries : []
     };
-  } catch {
-    return defaultApprovalsDocument();
+  } catch (error) {
+    throw new Error(
+      `Malformed approvals ledger JSON.${error instanceof Error && error.message ? ` ${error.message}` : ''}`.trim()
+    );
   }
 }
 
