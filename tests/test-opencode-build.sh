@@ -115,7 +115,7 @@ echo "--- Running: build.sh opencode ---"
 BUILD_OUTPUT=$("$BUILD_SCRIPT" opencode 2>&1) || {
   fail "build.sh opencode exited with non-zero status"
   echo "  Build output:"
-  echo "$BUILD_OUTPUT" | sed 's/^/    /'
+  printf '    %s\n' "${BUILD_OUTPUT//$'\n'/$'\n    '}"
   echo ""
   echo "RESULT: $PASS passed, $FAIL failed (build failed, cannot continue)"
   # Clean up
@@ -196,10 +196,11 @@ else
   fail "commands/ directory missing from dist/opencode/"
 fi
 
-# Exactly 14 command files
+# Command files mirror the adapter
 if [ -d "$OC_DIST/commands" ]; then
+  EXPECTED_CMD_COUNT=$(find "$ROOT_DIR/adapters/opencode/commands" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
   CMD_COUNT=$(find "$OC_DIST/commands" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
-  assert_eq "$CMD_COUNT" "14" "commands/ has exactly 14 .md files"
+  assert_eq "$CMD_COUNT" "$EXPECTED_CMD_COUNT" "commands/ mirrors the adapter command set"
 
   # Spot-check specific command files exist
   for cmd in sw-init sw-build sw-verify sw-ship sw-guard; do
@@ -229,22 +230,27 @@ else
 fi
 
 if [ -d "$OC_DIST/skills" ]; then
-  # 19 skill directories
+  EXPECTED_SKILL_DIR_COUNT=$(find "$ROOT_DIR/core/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+  EXPECTED_SKILL_FILE_COUNT=$(find "$ROOT_DIR/core/skills" -mindepth 2 -maxdepth 2 -name 'SKILL.md' -type f | wc -l | tr -d ' ')
   SKILL_DIR_COUNT=$(find "$OC_DIST/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
-  assert_eq "$SKILL_DIR_COUNT" "19" "skills/ has exactly 19 subdirectories"
+  assert_eq "$SKILL_DIR_COUNT" "$EXPECTED_SKILL_DIR_COUNT" "skills/ mirrors the core skill directory set"
 
-  # Each has SKILL.md
+  # Each distributable skill has SKILL.md
   SKILL_FILE_COUNT=0
   MISSING_SKILLS=""
   for skill_dir in "$OC_DIST"/skills/*/; do
     skill_name=$(basename "$skill_dir")
+    if [ ! -f "$ROOT_DIR/core/skills/$skill_name/SKILL.md" ]; then
+      continue
+    fi
+
     if [ -f "$skill_dir/SKILL.md" ]; then
       SKILL_FILE_COUNT=$((SKILL_FILE_COUNT + 1))
     else
       MISSING_SKILLS="$MISSING_SKILLS $skill_name"
     fi
   done
-  assert_eq "$SKILL_FILE_COUNT" "19" "all 19 skill directories contain SKILL.md"
+  assert_eq "$SKILL_FILE_COUNT" "$EXPECTED_SKILL_FILE_COUNT" "all distributable skill directories contain SKILL.md"
   if [ -n "$MISSING_SKILLS" ]; then
     fail "skills missing SKILL.md:$MISSING_SKILLS"
   fi
@@ -270,11 +276,12 @@ else
 fi
 
 if [ -d "$OC_DIST/agents" ]; then
+  EXPECTED_AGENT_COUNT=$(find "$ROOT_DIR/core/agents" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
   AGENT_COUNT=$(find "$OC_DIST/agents" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
-  assert_eq "$AGENT_COUNT" "6" "agents/ has exactly 6 .md files"
+  assert_eq "$AGENT_COUNT" "$EXPECTED_AGENT_COUNT" "agents/ mirrors the core agent set"
 
   # Verify specific agent files
-  for agent in specwright-architect specwright-build-fixer specwright-executor specwright-researcher specwright-reviewer specwright-tester; do
+  for agent in specwright-architect specwright-build-fixer specwright-executor specwright-integration-tester specwright-researcher specwright-reviewer specwright-tester; do
     if [ -f "$OC_DIST/agents/${agent}.md" ]; then
       pass "agents/${agent}.md exists"
     else
@@ -294,11 +301,12 @@ else
 fi
 
 if [ -d "$OC_DIST/protocols" ]; then
+  EXPECTED_PROTO_COUNT=$(find "$ROOT_DIR/core/protocols" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
   PROTO_COUNT=$(find "$OC_DIST/protocols" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
-  assert_eq "$PROTO_COUNT" "24" "protocols/ has exactly 24 .md files"
+  assert_eq "$PROTO_COUNT" "$EXPECTED_PROTO_COUNT" "protocols/ mirrors the core protocol set"
 
   # Spot-check specific protocol files
-  for proto in state.md git.md delegation.md recovery.md evidence.md; do
+  for proto in state.md git.md git-freshness.md delegation.md recovery.md evidence.md; do
     if [ -f "$OC_DIST/protocols/$proto" ]; then
       pass "protocols/$proto exists"
     else
@@ -664,7 +672,7 @@ for skill_dir in "$OC_DIST"/skills/*/; do
   REFS=$(grep -oE '\.specwright/protocols/[a-z-]+\.md' "$skill_file" 2>/dev/null || true)
   if [ -n "$REFS" ]; then
     while IFS= read -r ref; do
-      PROTO_NAME=$(echo "$ref" | sed 's|\.specwright/protocols/||')
+      PROTO_NAME="${ref#.specwright/protocols/}"
       if ! echo "$DISTINCT_PROTOCOLS" | grep -qF "$PROTO_NAME"; then
         DISTINCT_PROTOCOLS="$DISTINCT_PROTOCOLS $PROTO_NAME"
         REWRITTEN_PROTOCOLS=$((REWRITTEN_PROTOCOLS + 1))
@@ -904,7 +912,7 @@ echo "--- Running: build.sh claude-code ---"
 CC_BUILD_OUTPUT=$("$BUILD_SCRIPT" claude-code 2>&1) || {
   fail "build.sh claude-code exited with non-zero status (REGRESSION)"
   echo "  Build output:"
-  echo "$CC_BUILD_OUTPUT" | sed 's/^/    /'
+  printf '    %s\n' "${CC_BUILD_OUTPUT//$'\n'/$'\n    '}"
 }
 
 if [ -d "$CC_DIST" ]; then
@@ -916,17 +924,17 @@ fi
 echo "--- Claude Code output validation ---"
 
 if [ -d "$CC_DIST" ]; then
-  # skills/ with 19 dirs
+  EXPECTED_CC_SKILL_COUNT=$(find "$ROOT_DIR/core/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
   CC_SKILL_COUNT=$(find "$CC_DIST/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
-  assert_eq "$CC_SKILL_COUNT" "19" "claude-code skills/ has 19 subdirectories"
+  assert_eq "$CC_SKILL_COUNT" "$EXPECTED_CC_SKILL_COUNT" "claude-code skills/ mirrors the core skill directory set"
 
-  # agents/ with 6 files
+  EXPECTED_CC_AGENT_COUNT=$(find "$ROOT_DIR/core/agents" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
   CC_AGENT_COUNT=$(find "$CC_DIST/agents" -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
-  assert_eq "$CC_AGENT_COUNT" "6" "claude-code agents/ has 6 files"
+  assert_eq "$CC_AGENT_COUNT" "$EXPECTED_CC_AGENT_COUNT" "claude-code agents/ mirrors the core agent set"
 
-  # protocols/ with 20 files
+  EXPECTED_CC_PROTO_COUNT=$(find "$ROOT_DIR/core/protocols" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
   CC_PROTO_COUNT=$(find "$CC_DIST/protocols" -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
-  assert_eq "$CC_PROTO_COUNT" "24" "claude-code protocols/ has 24 files"
+  assert_eq "$CC_PROTO_COUNT" "$EXPECTED_CC_PROTO_COUNT" "claude-code protocols/ mirrors the core protocol set"
 
   # Claude Code-specific: hooks/ and .claude-plugin/ exist
   if [ -d "$CC_DIST/hooks" ]; then
@@ -1002,6 +1010,8 @@ rm -rf "$DIST_DIR"
 
 ALL_BUILD_OUTPUT=$("$BUILD_SCRIPT" all 2>&1) || {
   fail "build.sh all exited with non-zero status"
+  echo "  Build output:"
+  printf '    %s\n' "${ALL_BUILD_OUTPUT//$'\n'/$'\n    '}"
 }
 
 if [ -d "$OC_DIST" ]; then
