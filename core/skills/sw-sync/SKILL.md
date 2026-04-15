@@ -31,7 +31,17 @@ claimed by a live Specwright session or a subordinate helper worktree.
 - Remotes fetched and pruned
 - Base branch fast-forwarded when safe
 - Candidate stale branches previewed, then deleted only after confirmation
-- Summary report: branches fetched, removed, skipped, and protected
+- Summary report: branches fetched, removed, skipped, protected, and any stale
+  active works detected
+
+## Advisory Reporting
+
+- After fetch/prune completes, `sw-sync` may report stale active works against
+  their recorded targets and latest known freshness state.
+- This report is advisory only and does not take ownership of
+  reconcile-or-ship decisions away from the lifecycle skills.
+- `sw-sync` never rebases, merges, retargets, or clears a freshness block on
+  behalf of `sw-build`, `sw-verify`, or `sw-ship`.
 
 ## Constraints
 
@@ -86,6 +96,7 @@ claimed by a live Specwright session or a subordinate helper worktree.
 ## Protocol References
 
 - `protocols/git.md` -- branch lifecycle and cleanup rules
+- `protocols/git-freshness.md` -- freshness result shape and status semantics for advisory reporting
 - `protocols/context.md` -- logical roots and session loading
 - `protocols/state.md` -- per-work workflow fields used for protection
 - `protocols/headless.md` -- non-interactive behavior

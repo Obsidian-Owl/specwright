@@ -39,8 +39,10 @@ other works are active in the repository, and what the next action should be.
   summary so hidden `.git` state is inspectable.
 - Show the current session first: `worktreeId`, mode, branch, and
   `attachedWorkId`.
-- If the session is attached, show that work's status, unit/task progress,
-  gates, and per-work lock freshness.
+- If the session is attached, show that work's status, unit/task progress, the
+  selected work's target branch and latest freshness state, configured
+  work-artifact publication mode when present, gates, and per-work lock
+  freshness.
 - Enumerate other active works discovered under `repoStateRoot/work/*`, along
   with their recorded owner worktrees and whether the owner still has a live
   top-level session.

@@ -33,6 +33,7 @@ MULTI_WORKTREE_RUNTIME_TEST="$ROOT_DIR/tests/test-multi-worktree-state.sh"
 TARGET_MODEL_DOCS_TEST="$ROOT_DIR/tests/test-branch-freshness-target-model-docs.sh"
 GIT_FRESHNESS_ENGINE_TEST="$ROOT_DIR/tests/test-git-freshness-engine.sh"
 LIFECYCLE_FRESHNESS_TEST="$ROOT_DIR/tests/test-lifecycle-freshness-checkpoints.sh"
+CONFIG_VISIBILITY_DOCS_TEST="$ROOT_DIR/tests/test-config-validation-visibility-docs.sh"
 
 PASS=0
 FAIL=0
@@ -1181,6 +1182,31 @@ if echo "$LIFECYCLE_FRESHNESS_OUTPUT" | grep -Fq "PASS: sw-build forbids hidden 
   pass "lifecycle regression output includes rewrite-guard coverage"
 else
   fail "lifecycle regression output missing rewrite-guard coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Config validation and visibility docs ==="
+
+if [ -x "$CONFIG_VISIBILITY_DOCS_TEST" ]; then
+  pass "tests/test-config-validation-visibility-docs.sh is executable"
+else
+  fail "tests/test-config-validation-visibility-docs.sh is missing or not executable"
+fi
+
+CONFIG_VISIBILITY_EXIT=0
+CONFIG_VISIBILITY_OUTPUT="$(bash "$CONFIG_VISIBILITY_DOCS_TEST" 2>&1)" || CONFIG_VISIBILITY_EXIT=$?
+
+if [ "$CONFIG_VISIBILITY_EXIT" -ne 0 ]; then
+  fail "tests/test-config-validation-visibility-docs.sh fails under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${CONFIG_VISIBILITY_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-config-validation-visibility-docs.sh passes under the configured test path"
+fi
+if echo "$CONFIG_VISIBILITY_OUTPUT" | grep -Fq "PASS: sw-sync stays advisory on reconcile and ship decisions"; then
+  pass "config-visibility regression output includes sync-boundary coverage"
+else
+  fail "config-visibility regression output missing sync-boundary coverage"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
