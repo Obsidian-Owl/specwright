@@ -7,8 +7,10 @@ State is resolved through logical Git roots, not checkout-local path literals.
 | Root | Resolution | Purpose |
 |---|---|---|
 | `projectRoot` | `git rev-parse --show-toplevel` | Source tree and user-facing command cwd |
-| `repoStateRoot` | `git rev-parse --git-common-dir` + `/specwright` | Shared repo-wide Specwright state |
+| `projectArtifactsRoot` | `{projectRoot}/.specwright` | Tracked project artifacts and guidance |
+| `repoStateRoot` | `git rev-parse --git-common-dir` + `/specwright` | Shared clone-local runtime state |
 | `worktreeStateRoot` | `git rev-parse --git-dir` + `/specwright` | Per-worktree runtime session state |
+| `workArtifactsRoot` | `{repoStateRoot}/work` by default; tracked root from `config.git.workArtifacts` when configured | Auditable work artifacts |
 
 Callers must not treat `cwd/.specwright/...` as authoritative once the new
 layout exists. Legacy working-tree `.specwright/` remains a migration fallback
@@ -23,34 +25,53 @@ Two state files now exist:
 | `{repoStateRoot}/work/{workId}/workflow.json` | one work | lifecycle, units, gates, task progress, attachment, lock | skills operating on that selected work |
 | `{worktreeStateRoot}/session.json` | one worktree | local work selection and session mode | skills running in that worktree |
 
-Shared work artifacts live beside the per-work workflow file:
+Tracked project artifacts live under the project root:
 
 ```text
-{repoStateRoot}/
+{projectArtifactsRoot}/
   config.json
   CONSTITUTION.md
   CHARTER.md
   TESTING.md
+  LANDSCAPE.md
+  AUDIT.md
+  patterns.md
+  research/
+```
+
+Auditable work artifacts live under the selected work root:
+
+```text
+{workArtifactsRoot}/
+  {workId}/
+    design.md
+    context.md
+    decisions.md
+    assumptions.md
+    approvals.md
+    integration-criteria.md
+    units/
+      {unitId}/
+        spec.md
+        plan.md
+        context.md
+        implementation-rationale.md
+        review-packet.md
+        evidence/
+```
+
+Runtime work and session data stay under the Git admin directories:
+
+```text
+{repoStateRoot}/
   work/
     {workId}/
       workflow.json
-      design.md
-      context.md
-      decisions.md
-      assumptions.md
       stage-report.md
       units/
         {unitId}/
-          spec.md
-          plan.md
-          context.md
           stage-report.md
-          evidence/
-```
 
-Per-worktree runtime data lives under the active Git admin directory:
-
-```text
 {worktreeStateRoot}/
   session.json
   continuation.md
@@ -70,7 +91,7 @@ stages populate them.
   "id": "string, kebab-case",
   "description": "string",
   "status": "designing | planning | building | verifying | shipping | shipped | abandoned",
-  "workDir": "work/{workId}/units/{unitId} or work/{workId}",
+  "workDir": "relative path under workArtifactsRoot/{workId} (legacy work/{workId}/... allowed during migration)",
   "unitId": "string | null",
   "tasksTotal": "number | null",
   "tasksCompleted": ["task-id strings"],
@@ -102,7 +123,7 @@ stages populate them.
       "description": "string",
       "status": "pending | planned | building | verifying | shipping | shipped | abandoned",
       "order": "number",
-      "workDir": "relative path under repoStateRoot/work/{workId}",
+      "workDir": "relative path under workArtifactsRoot/{workId} (legacy work/{workId}/... allowed during migration)",
       "prNumber": "number | null",
       "prMergedAt": "ISO timestamp | null"
     }
@@ -156,9 +177,14 @@ stages populate them.
 - Older workflow files may also omit `targetRef` and `freshness`; readers must
   treat both omissions as backward-compatible legacy state until the new model
   is populated, even though the schema block above shows the populated shape.
-- `workDir` remains the unit-local artifact path for the selected unit. Skills
-  still resolve unit-local files through `workflow.workDir`, never by guessing
-  from IDs.
+- `workDir` remains the unit-local auditable artifact path for the selected
+  unit. Skills still resolve unit-local files through `workflow.workDir`,
+  never by guessing from IDs.
+- Readers must accept existing `work/`-prefixed `workDir` values during
+  migration and normalize them before joining against `workArtifactsRoot`.
+- `stage-report.md` files are runtime-only handoff digests. They resolve from
+  `repoStateRoot/work/{workId}` and are not part of the auditable
+  `workArtifactsRoot` tree.
 - `lock` is per-work. A lock on work A must not block mutations to work B.
 
 ## Session Schema
@@ -273,15 +299,18 @@ No repo-global active-work registry is required in the first version.
 
 ## Path Resolution Convention
 
-Two artifact scopes remain:
+Four artifact scopes remain:
 
 | Scope | How to resolve | Contains |
 |---|---|---|
-| Unit-local | `workflow.workDir` under `{repoStateRoot}` | `spec.md`, `plan.md`, `context.md`, unit `stage-report.md`, `evidence/` |
-| Work-level | `{repoStateRoot}/work/{workId}/` | `workflow.json`, `design.md`, `decisions.md`, `assumptions.md`, work `stage-report.md` |
+| Project-level tracked | `{projectArtifactsRoot}/` | `config.json`, anchor docs, research, learnings |
+| Work-level auditable | `{workArtifactsRoot}/{workId}/` | `design.md`, `context.md`, `decisions.md`, `assumptions.md`, `approvals.md`, `integration-criteria.md` |
+| Unit-local auditable | `workflow.workDir` under `{workArtifactsRoot}` | `spec.md`, `plan.md`, `context.md`, `implementation-rationale.md`, `review-packet.md`, `evidence/` |
+| Runtime work/session | `{repoStateRoot}/work/{workId}/` and `{worktreeStateRoot}/` | `workflow.json`, work and unit `stage-report.md` files, attachment/lock/task state, `session.json`, `continuation.md` |
 
-For single-unit work, both scopes may refer to the same work directory. For
-multi-unit work, `workflow.workDir` points at `units/{unitId}/`.
+For single-unit work, the work-level and unit-local auditable scopes may point
+at the same work directory. For multi-unit work, `workflow.workDir` points at
+`{workId}/units/{unitId}/` after normalization.
 
 ## Read-Modify-Write Sequence
 
@@ -324,15 +353,15 @@ construction because each `session.json` belongs to one worktree.
 ## Legacy Compatibility
 
 During migration, callers may still read legacy checkout-local `.specwright/`
-artifacts only when the new layout is absent. Once `{repoStateRoot}` or
-`{worktreeStateRoot}` exists, writes go only to the new shared/session layout.
-Mixed writes are forbidden.
+artifacts only when the new layout is absent. Once the new roots exist, writes
+go only to their authoritative surface. Mixed writes are forbidden.
 
 ## Critical Rules
 
 - **NEVER** treat one repo-global `workflow.json` as the source of truth in the
   new model
-- **ALWAYS** resolve paths through `repoStateRoot` and `worktreeStateRoot`
+- **ALWAYS** resolve paths through the documented logical roots instead of
+  concatenating checkout-local literals
 - **NEVER** let subordinate sessions claim top-level ownership
 - **ALWAYS** preserve existing fields not being changed
 - **NEVER** partially update a JSON state file

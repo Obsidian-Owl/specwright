@@ -102,16 +102,18 @@ Supported shape:
 
 Semantics:
 
-- `clone-local` keeps optional auditable work artifacts under clone-local
-  Specwright state. They do not become tracked project files by default.
-- `tracked` publishes only the optional auditable work artifacts under an
-  explicit tracked root inside `projectRoot`.
+- `clone-local` resolves `workArtifactsRoot = {repoStateRoot}/work` and keeps
+  optional auditable work artifacts under clone-local Specwright state. They do
+  not become tracked project files by default.
+- `tracked` resolves `workArtifactsRoot = {projectRoot}/{trackedRoot}` and
+  publishes only the optional auditable work artifacts under that explicit
+  tracked root inside `projectRoot`.
 - `trackedRoot` must not point at `.git`, `repoStateRoot`,
   `worktreeStateRoot`, session state, or a symlinked mirror of those runtime
   roots.
-- This setting does not move project-level artifacts such as `CONSTITUTION.md`,
-  `CHARTER.md`, or `TESTING.md`; those remain project artifacts regardless of
-  work-artifact publication mode.
+- This setting does not move project-level artifacts such as `config.json`,
+  `CONSTITUTION.md`, `CHARTER.md`, or `TESTING.md`; those remain under
+  `projectArtifactsRoot` regardless of work-artifact publication mode.
 
 ## Logical Roots And Selected Work
 
@@ -121,8 +123,10 @@ roots as `protocols/context.md` and `protocols/state.md`:
 | Root | Resolution | Purpose |
 |---|---|---|
 | `projectRoot` | `git rev-parse --show-toplevel` | checkout path and command cwd |
-| `repoStateRoot` | `git rev-parse --git-common-dir` + `/specwright` | shared work records |
+| `projectArtifactsRoot` | `{projectRoot}/.specwright` | tracked config and anchor docs |
+| `repoStateRoot` | `git rev-parse --git-common-dir` + `/specwright` | shared runtime work records |
 | `worktreeStateRoot` | `git rev-parse --git-dir` + `/specwright` | current session record |
+| `workArtifactsRoot` | `{repoStateRoot}/work` or `{projectRoot}/{trackedRoot}` | auditable work artifacts for the selected work |
 
 The selected work comes from `worktreeStateRoot/session.json.attachedWorkId`
 unless a later skill introduces an explicit selector.

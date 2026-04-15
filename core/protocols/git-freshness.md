@@ -41,6 +41,7 @@ This clone-local runtime state is never treated as a publishable audit trail.
 These project-level artifacts describe how the project is supposed to work and
 may need to be reviewed or pushed with normal Git history. They include:
 
+- `config.json`
 - `CONSTITUTION.md`
 - `CHARTER.md`
 - `TESTING.md`
@@ -55,14 +56,18 @@ publication decision from runtime orchestration. Examples include:
 - `context.md`
 - `decisions.md`
 - `assumptions.md`
+- `approvals.md`
+- `integration-criteria.md`
 - `spec.md`
 - `plan.md`
-- `stage-report.md`
+- `implementation-rationale.md`
+- `review-packet.md`
 - evidence artifacts
 
 These optional auditable work artifacts may remain clone-local in one mode and
-be published in another. The helper contract must not assume one universal
-storage backend for them.
+be published in another. They resolve under `workArtifactsRoot`, not under
+runtime-only `repoStateRoot`. The helper contract must not assume one
+universal storage backend for them.
 
 ## Resolution Rules
 
