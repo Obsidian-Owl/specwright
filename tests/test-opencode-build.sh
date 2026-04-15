@@ -115,7 +115,7 @@ echo "--- Running: build.sh opencode ---"
 BUILD_OUTPUT=$("$BUILD_SCRIPT" opencode 2>&1) || {
   fail "build.sh opencode exited with non-zero status"
   echo "  Build output:"
-  echo "$BUILD_OUTPUT" | sed 's/^/    /'
+  printf '    %s\n' "${BUILD_OUTPUT//$'\n'/$'\n    '}"
   echo ""
   echo "RESULT: $PASS passed, $FAIL failed (build failed, cannot continue)"
   # Clean up
@@ -295,10 +295,10 @@ fi
 
 if [ -d "$OC_DIST/protocols" ]; then
   PROTO_COUNT=$(find "$OC_DIST/protocols" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
-  assert_eq "$PROTO_COUNT" "24" "protocols/ has exactly 24 .md files"
+  assert_eq "$PROTO_COUNT" "25" "protocols/ has exactly 25 .md files"
 
   # Spot-check specific protocol files
-  for proto in state.md git.md delegation.md recovery.md evidence.md; do
+  for proto in state.md git.md git-freshness.md delegation.md recovery.md evidence.md; do
     if [ -f "$OC_DIST/protocols/$proto" ]; then
       pass "protocols/$proto exists"
     else
@@ -664,7 +664,7 @@ for skill_dir in "$OC_DIST"/skills/*/; do
   REFS=$(grep -oE '\.specwright/protocols/[a-z-]+\.md' "$skill_file" 2>/dev/null || true)
   if [ -n "$REFS" ]; then
     while IFS= read -r ref; do
-      PROTO_NAME=$(echo "$ref" | sed 's|\.specwright/protocols/||')
+      PROTO_NAME="${ref#.specwright/protocols/}"
       if ! echo "$DISTINCT_PROTOCOLS" | grep -qF "$PROTO_NAME"; then
         DISTINCT_PROTOCOLS="$DISTINCT_PROTOCOLS $PROTO_NAME"
         REWRITTEN_PROTOCOLS=$((REWRITTEN_PROTOCOLS + 1))
@@ -904,7 +904,7 @@ echo "--- Running: build.sh claude-code ---"
 CC_BUILD_OUTPUT=$("$BUILD_SCRIPT" claude-code 2>&1) || {
   fail "build.sh claude-code exited with non-zero status (REGRESSION)"
   echo "  Build output:"
-  echo "$CC_BUILD_OUTPUT" | sed 's/^/    /'
+  printf '    %s\n' "${CC_BUILD_OUTPUT//$'\n'/$'\n    '}"
 }
 
 if [ -d "$CC_DIST" ]; then
@@ -1002,6 +1002,8 @@ rm -rf "$DIST_DIR"
 
 ALL_BUILD_OUTPUT=$("$BUILD_SCRIPT" all 2>&1) || {
   fail "build.sh all exited with non-zero status"
+  echo "  Build output:"
+  printf '    %s\n' "${ALL_BUILD_OUTPUT//$'\n'/$'\n    '}"
 }
 
 if [ -d "$OC_DIST" ]; then

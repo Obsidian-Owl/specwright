@@ -31,6 +31,7 @@ DIST_DIR="$ROOT_DIR/dist"
 CC_DIST="$DIST_DIR/claude-code"
 MULTI_WORKTREE_RUNTIME_TEST="$ROOT_DIR/tests/test-multi-worktree-state.sh"
 TARGET_MODEL_DOCS_TEST="$ROOT_DIR/tests/test-branch-freshness-target-model-docs.sh"
+GIT_FRESHNESS_ENGINE_TEST="$ROOT_DIR/tests/test-git-freshness-engine.sh"
 
 PASS=0
 FAIL=0
@@ -267,11 +268,11 @@ if [ -d "$CC_DIST/agents" ]; then
   done
 fi
 
-# ─── protocols/ directory: exactly 23 .md files ──────────────────────
+# ─── protocols/ directory: exactly 24 .md files ──────────────────────
 
 echo "--- protocols/ directory ---"
 
-EXPECTED_PROTO_COUNT=23
+EXPECTED_PROTO_COUNT=24
 
 if [ -d "$CC_DIST/protocols" ]; then
   pass "protocols/ directory exists"
@@ -284,7 +285,7 @@ if [ -d "$CC_DIST/protocols" ]; then
   assert_eq "$PROTO_COUNT" "$EXPECTED_PROTO_COUNT" "protocols/ has exactly $EXPECTED_PROTO_COUNT .md files"
 
   # Spot-check specific protocol files
-  for proto in state.md git.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md; do
+  for proto in state.md git.md git-freshness.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md; do
     if [ -f "$CC_DIST/protocols/$proto" ]; then
       pass "protocols/$proto exists"
     else
@@ -1121,6 +1122,31 @@ if echo "$TARGET_MODEL_OUTPUT" | grep -Fq "workflow schema adds targetRef object
   pass "target-model regression output includes targetRef schema coverage"
 else
   fail "target-model regression output missing targetRef schema coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Git freshness engine ==="
+
+if [ -x "$GIT_FRESHNESS_ENGINE_TEST" ]; then
+  pass "tests/test-git-freshness-engine.sh is executable"
+else
+  fail "tests/test-git-freshness-engine.sh is missing or not executable"
+fi
+
+GIT_FRESHNESS_EXIT=0
+GIT_FRESHNESS_OUTPUT="$(bash "$GIT_FRESHNESS_ENGINE_TEST" 2>&1)" || GIT_FRESHNESS_EXIT=$?
+
+if [ "$GIT_FRESHNESS_EXIT" -ne 0 ]; then
+  fail "tests/test-git-freshness-engine.sh passes under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${GIT_FRESHNESS_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-git-freshness-engine.sh passes under the configured test path"
+fi
+if echo "$GIT_FRESHNESS_OUTPUT" | grep -Fq "protocol names clone-local runtime state explicitly"; then
+  pass "git-freshness regression output includes storage-boundary coverage"
+else
+  fail "git-freshness regression output missing storage-boundary coverage"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
