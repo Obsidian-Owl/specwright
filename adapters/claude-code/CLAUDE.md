@@ -55,6 +55,7 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - `state.md` -- Workflow state, work unit queue, and transition validation
 - `git.md` -- Strategy-aware git operations (branch lifecycle, commits, PRs)
 - `git-freshness.md` -- Shared branch freshness checkpoint contract and result semantics
+- `approvals.md` -- Durable human approval scopes, hashing, freshness, and headless constraints
 - `recovery.md` -- Compaction recovery
 - `evidence.md` -- Gate evidence format, freshness, and verdict rendering
 - `context.md` -- Anchor doc and config loading

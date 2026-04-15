@@ -13,6 +13,9 @@ DESIGN_SKILL="$ROOT_DIR/core/skills/sw-design/SKILL.md"
 PLAN_SKILL="$ROOT_DIR/core/skills/sw-plan/SKILL.md"
 BUILD_SKILL="$ROOT_DIR/core/skills/sw-build/SKILL.md"
 VERIFY_SKILL="$ROOT_DIR/core/skills/sw-verify/SKILL.md"
+ROOT_CLAUDE="$ROOT_DIR/CLAUDE.md"
+ADAPTER_CLAUDE="$ROOT_DIR/adapters/claude-code/CLAUDE.md"
+ROOT_AGENTS="$ROOT_DIR/AGENTS.md"
 TEST_TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_TMPDIR"' EXIT
 
@@ -50,7 +53,7 @@ assert_output_contains() {
 echo "=== approval lifecycle ==="
 echo ""
 
-for file in "$APPROVALS_PROTOCOL" "$APPROVALS_HELPER" "$DESIGN_SKILL" "$PLAN_SKILL" "$BUILD_SKILL" "$VERIFY_SKILL"; do
+for file in "$APPROVALS_PROTOCOL" "$APPROVALS_HELPER" "$DESIGN_SKILL" "$PLAN_SKILL" "$BUILD_SKILL" "$VERIFY_SKILL" "$ROOT_CLAUDE" "$ADAPTER_CLAUDE" "$ROOT_AGENTS"; do
   if [ -f "$file" ]; then
     pass "exists: ${file#"$ROOT_DIR"/}"
   else
@@ -164,6 +167,12 @@ assert_contains "$VERIFY_SKILL" "Missing, \`STALE\`, or" "sw-verify checks appro
 assert_contains "$VERIFY_SKILL" "\`SUPERSEDED\` lineage becomes a distinct approval finding" "sw-verify treats superseded approval lineage distinctly"
 assert_contains "$VERIFY_SKILL" "Approval Lineage" "sw-verify reports approval lineage separately from gate findings"
 assert_contains "$VERIFY_SKILL" "never create \`APPROVED\` entries" "sw-verify preserves headless non-approval behavior"
+
+echo ""
+echo "--- Protocol index visibility ---"
+assert_contains "$ROOT_CLAUDE" "approvals.md" "root CLAUDE.md lists approvals.md in the protocol index"
+assert_contains "$ADAPTER_CLAUDE" "approvals.md" "adapter CLAUDE.md lists approvals.md in the protocol index"
+assert_contains "$ROOT_AGENTS" "approvals.md" "AGENTS.md lists approvals.md in the protocol index"
 
 echo ""
 echo "RESULT: $PASS passed, $FAIL failed"
