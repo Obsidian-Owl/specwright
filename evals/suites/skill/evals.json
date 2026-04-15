@@ -340,7 +340,7 @@
     {
       "id": "structural-skill-validation",
       "type": "structural",
-      "command": "bash tests/test-claude-code-build.sh",
+      "command": "env SPECWRIGHT_CLAUDE_BUILD_MODE=smoke bash tests/test-claude-code-build.sh",
       "smoke": true,
       "expectations": [],
       "tags": ["skill", "smoke", "structural", "build-validation", "legibility-recovery", "unit-02d"]
