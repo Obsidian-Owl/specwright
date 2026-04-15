@@ -163,7 +163,7 @@ results according to the checkpoint policy:
 - `warn` records advisory drift and continues
 - `ignore` continues without escalation
 
-queue-managed results stay distinct from local rewrite policy. Skills may
+Queue-managed results stay distinct from local rewrite policy. Skills may
 surface queue status, but they must not silently rebase or merge the selected
 work just to satisfy queue validation.
 

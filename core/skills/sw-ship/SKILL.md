@@ -52,7 +52,7 @@ work, run builds, or begin next unit. After PR: show URL, suggest `/sw-learn`, h
   Fix and re-run /sw-verify."
 - Re-check shipping freshness during pre-flight via `protocols/git-freshness.md`.
   For branch-head validation, branch-head `require` blocks stale, diverged, and blocked freshness results.
-  queue-managed validation remains distinct and must not force a local rebase by default.
+  Queue-managed validation remains distinct and must not force a local rebase by default.
 - Evidence files must exist at `{workDir}/evidence/{gate-name}-report.md` for each
   gate with a non-SKIP verdict. Missing evidence file → STOP: "Evidence missing for
   gate {name}. Re-run /sw-verify."

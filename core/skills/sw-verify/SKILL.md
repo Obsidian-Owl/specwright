@@ -55,8 +55,10 @@ aggregate report. Runs silently.
 Use `protocols/git-freshness.md` to assess the selected work's verify
 checkpoint from the recorded target and policy. For branch-head validation,
 branch-head `require` blocks stale, diverged, and blocked freshness results.
-queue-managed mode remains a distinct validation path and does not prescribe a
-local rebase before verification.
+Queue-managed mode remains a distinct validation path and does not prescribe a
+local rebase before verification. In headless mode, follow
+`protocols/headless.md`: skip freshness blocking, continue gate execution, and
+report the freshness result alongside the gate findings.
 
 **Gate execution order (LOW freedom):**
 Determine enabled gates from config. Two formats exist — support both:
@@ -72,7 +74,7 @@ Load calibration notes per `protocols/evidence.md#verdict-rendering`.
 **Gate invocation (MEDIUM freedom):**
 Gates are internal skills — load SKILL.md and execute inline. Pass work unit context.
 
-**Freshness (LOW freedom):**
+**Gate Re-Run Policy (LOW freedom):**
 Always re-run all gates regardless of existing results or age.
 
 **Failure handling (MEDIUM freedom):**
