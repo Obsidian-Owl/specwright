@@ -54,6 +54,25 @@ Not for:
 - Primary communication
 - User decision-making
 
+## Reviewer Synthesis
+
+`review-packet.md` is a sibling audit artifact, not another gate report.
+
+- Location: `{workDir}/review-packet.md`
+- Producer: `sw-verify`, after the standard gate run completes
+- Inputs: approvals, `implementation-rationale.md`, gate evidence files, and
+  the gate-spec compliance matrix
+
+Rules:
+
+- The packet synthesizes evidence for reviewer consumption; it does not rerun
+  gates or duplicate gate logic.
+- Gate evidence files remain canonical for detailed findings and proof.
+- `spec-compliance.md` remains the canonical AC / IC proof surface.
+- In `clone-local` work-artifact mode, the packet or downstream PR body must
+  inline reviewer-usable summaries instead of depending on local-only file
+  links.
+
 ## Verdict Rendering
 
 ### Default Stance
