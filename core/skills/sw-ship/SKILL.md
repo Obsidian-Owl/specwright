@@ -30,7 +30,7 @@ human gate — reviewers verify before merge.
 
 ## Outputs
 
-- `{workDir}/stage-report.md` -- shipping handoff digest with attention-at-top
+- `{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md` -- shipping handoff digest with attention-at-top
 - Pull request created with evidence-mapped body
 - Selected work's `workflow.json` status set to `shipped`
 
@@ -93,8 +93,9 @@ next `planned` unit
 **Gate handoff (LOW freedom):**
 On completion, emit the three-line handoff per the `protocols/decision.md`
 Gate Handoff section. The one-line outcome names the PR (e.g.,
-"PR #142 created"). Write `{workDir}/stage-report.md` before the handoff, and
-the Artifacts: line points at that file (`Artifacts: {workDir}/stage-report.md`).
+"PR #142 created"). Write `{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md`
+before the handoff, and the Artifacts: line points at that file
+(`Artifacts: {repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md`).
 The Next: line ALWAYS contains a `/sw-...` slash command — never prose.
 When more units are queued, Next points to `/sw-build`. When the work is
 complete, Next points to `/sw-learn` (sw-learn remains optional; the

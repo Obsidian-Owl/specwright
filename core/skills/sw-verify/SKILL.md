@@ -31,7 +31,7 @@ gate handoff using `protocols/decision.md` template.
 
 ## Outputs
 
-- `{workDir}/stage-report.md` -- verify handoff digest with attention-at-top
+- `{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md` -- verify handoff digest with attention-at-top
 - Evidence files in `{workDir}/evidence/`, one per gate
 - Selected work's `workflow.json` gates section updated; status set to `verifying` during run
 - Aggregate report presented at gate handoff
@@ -127,7 +127,7 @@ six gates complete.
 
 When activated:
 - Load `integration-criteria.md` from the design-level directory
-  (`{repoStateRoot}/work/{selectedWork.id}/`). If the file does not exist → SKIP with
+  (`{workArtifactsRoot}/{selectedWork.id}/`). If the file does not exist → SKIP with
   INFO note ("No integration-criteria.md found"). Identify behavioral ICs
   (IC-B{n} entries).
 - For each IC-B, search for test evidence: a test file exercising the described
@@ -150,8 +150,9 @@ On completion, emit the three-line handoff per the `protocols/decision.md`
 Gate Handoff section. The one-line outcome reflects the aggregate gate
 verdict (e.g., "all gates PASS", "2 WARN, 0 BLOCK", "gate-spec FAIL").
 Detail lives in the per-gate evidence files under `{workDir}/evidence/`.
-Write `{workDir}/stage-report.md` before the handoff, and point the
-Artifacts line at `Artifacts: {workDir}/stage-report.md`.
+Write `{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md`
+before the handoff, and point the Artifacts line at
+`Artifacts: {repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md`.
 The Next: line points to `/sw-build` (on BLOCK) or `/sw-ship` (on PASS
 or WARN). Example: `Next: /sw-ship`.
 

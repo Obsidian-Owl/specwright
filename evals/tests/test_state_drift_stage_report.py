@@ -235,7 +235,7 @@ class TestStageReportProtocol(unittest.TestCase):
             self.assertIn(required, self.stage_report)
 
     def test_gate_handoff_points_to_stage_report(self):
-        self.assertIn("Artifacts: {workDir}/stage-report.md", self.gate_handoff)
+        self.assertIn("Artifacts: {stageReportPath}", self.gate_handoff)
 
 
 class TestPipelineSkillsReferenceStageReport(unittest.TestCase):

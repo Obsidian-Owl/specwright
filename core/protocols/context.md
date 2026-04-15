@@ -73,8 +73,10 @@ Run this sequence before loading Specwright state:
 4. resolve `gitCommonDir`
 5. derive `repoStateRoot`
 6. derive `worktreeStateRoot`
-7. resolve `workArtifactsRoot` from tracked config when present; otherwise
-   default to `{repoStateRoot}/work`
+7. resolve `workArtifactsRoot`: read `config.git.workArtifacts` from
+   `{projectArtifactsRoot}/config.json` when present, else from
+   `{repoStateRoot}/config.json`; default to `{repoStateRoot}/work` when
+   neither config exists or the mode is not `tracked`
 
 If Git root resolution fails, report which root failed and whether the problem
 is local to this worktree or repo-wide.
@@ -95,10 +97,11 @@ should explicitly say the repository is using the legacy working-tree Specwright
 
 ### Preferred mode: shared/session runtime layout
 
-If `{worktreeStateRoot}/session.json` exists, `{repoStateRoot}/work/` exists,
-or `{repoStateRoot}/config.json` exists, the repository is using the
-shared/session runtime layout. That is the normal path for both primary and
-linked worktrees.
+If `{projectArtifactsRoot}/config.json` exists, `{worktreeStateRoot}/session.json`
+exists, `{repoStateRoot}/work/` exists, or `{repoStateRoot}/config.json`
+exists, the repository is using the shared/session root model. Tracked project
+config alone is enough to opt into that model even before any work or session
+file exists. That is the normal path for both primary and linked worktrees.
 
 **Important:** a linked worktree is not degraded merely because the checkout
 lacks a working-tree `.specwright/` directory. Shared repo state lives under

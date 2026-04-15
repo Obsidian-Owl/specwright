@@ -1,6 +1,6 @@
 import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
-import { existsSync, readFileSync, readdirSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, realpathSync } from 'fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'path';
 
 const FAILURE_CODE = 'GIT_RESOLUTION_FAILED';
@@ -150,7 +150,7 @@ export function resolveSpecwrightRoots(options = {}) {
     gitCommonDir,
     repoStateRoot,
     worktreeStateRoot,
-    workArtifactsRoot: resolveWorkArtifactsRoot(projectRoot, projectArtifactsRoot, repoStateRoot),
+    workArtifactsRoot: resolveWorkArtifactsRoot(projectRoot, projectArtifactsRoot, repoStateRoot, worktreeStateRoot),
     worktreeId: deriveWorktreeId(gitDir, gitCommonDir)
   };
 }
@@ -197,6 +197,34 @@ function isPathWithin(basePath, targetPath) {
   return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath));
 }
 
+function pathsOverlap(pathA, pathB) {
+  return isPathWithin(pathA, pathB) || isPathWithin(pathB, pathA);
+}
+
+function resolvePathThroughExistingAncestors(basePath, targetPath) {
+  const relativePath = relative(basePath, targetPath);
+  if (!relativePath || relativePath.startsWith('..') || isAbsolute(relativePath)) {
+    return targetPath;
+  }
+
+  let currentPath = basePath;
+  for (const segment of relativePath.split(/[\\/]/u)) {
+    const candidatePath = join(currentPath, segment);
+    if (existsSync(candidatePath)) {
+      try {
+        currentPath = realpathSync(candidatePath);
+        continue;
+      } catch {
+        // Fall back to lexical resolution when an existing path cannot be resolved.
+      }
+    }
+
+    currentPath = resolve(currentPath, segment);
+  }
+
+  return currentPath;
+}
+
 function loadResolvedConfig(projectArtifactsRoot, repoStateRoot) {
   const candidates = [
     join(projectArtifactsRoot, SHARED_CONFIG_FILE),
@@ -223,7 +251,7 @@ function loadResolvedConfig(projectArtifactsRoot, repoStateRoot) {
   };
 }
 
-function resolveWorkArtifactsRoot(projectRoot, projectArtifactsRoot, repoStateRoot) {
+function resolveWorkArtifactsRoot(projectRoot, projectArtifactsRoot, repoStateRoot, worktreeStateRoot) {
   const { config } = loadResolvedConfig(projectArtifactsRoot, repoStateRoot);
   const workArtifacts = config?.git?.workArtifacts ?? {};
   const mode = workArtifacts?.mode === 'tracked' ? 'tracked' : 'clone-local';
@@ -231,10 +259,19 @@ function resolveWorkArtifactsRoot(projectRoot, projectArtifactsRoot, repoStateRo
 
   if (mode === 'tracked' && trackedRoot) {
     const trackedPath = resolve(projectRoot, trackedRoot);
+    const effectiveTrackedPath = resolvePathThroughExistingAncestors(projectRoot, trackedPath);
     const trackedRelative = relative(projectRoot, trackedPath);
     const firstSegment = trackedRelative.split(/[\\/]/u)[0];
 
-    if (isPathWithin(projectRoot, trackedPath) && firstSegment !== '.git') {
+    if (
+      isPathWithin(projectRoot, trackedPath) &&
+      isPathWithin(projectRoot, effectiveTrackedPath) &&
+      firstSegment !== '.git' &&
+      !pathsOverlap(trackedPath, repoStateRoot) &&
+      !pathsOverlap(trackedPath, worktreeStateRoot) &&
+      !pathsOverlap(effectiveTrackedPath, repoStateRoot) &&
+      !pathsOverlap(effectiveTrackedPath, worktreeStateRoot)
+    ) {
       return trackedPath;
     }
   }
@@ -306,13 +343,23 @@ function summarizeGates(gates) {
 
 function buildWorkArtifacts(baseDir, workId, workDir, options = {}) {
   const defaultWorkDir = options.defaultWorkDir ?? `work/${workId}`;
-  let relativeWorkDir = workDir || defaultWorkDir;
+  const normalizedDefaultWorkDir = defaultWorkDir.replace(/[\\]/gu, '/');
+  let relativeWorkDir = (workDir || defaultWorkDir).replace(/[\\]/gu, '/');
 
   if (options.stripLegacyWorkPrefix && relativeWorkDir.startsWith('work/')) {
     relativeWorkDir = relativeWorkDir.slice('work/'.length);
   }
 
-  const workDirPath = resolve(baseDir, relativeWorkDir);
+  let fallbackWorkDir = normalizedDefaultWorkDir;
+  if (options.stripLegacyWorkPrefix && fallbackWorkDir.startsWith('work/')) {
+    fallbackWorkDir = fallbackWorkDir.slice('work/'.length);
+  }
+
+  let workDirPath = resolve(baseDir, relativeWorkDir);
+  if (!isPathWithin(baseDir, workDirPath)) {
+    relativeWorkDir = fallbackWorkDir;
+    workDirPath = resolve(baseDir, relativeWorkDir);
+  }
 
   return {
     workDir: relativeWorkDir,
@@ -420,7 +467,7 @@ export function loadSpecwrightState(options = {}) {
   const sharedConfigPath = projectConfigExists
     ? projectConfigPath
     : (repoConfigExists ? repoConfigPath : null);
-  const usingSharedLayout = Boolean(repoConfigExists || sessionExists || sharedWorkExists);
+  const usingSharedLayout = Boolean(projectConfigExists || repoConfigExists || sessionExists || sharedWorkExists);
 
   if (usingSharedLayout) {
     const continuationPath = join(legacy.worktreeStateRoot, 'continuation.md');
@@ -504,8 +551,9 @@ export function normalizeActiveWork(stateInfo) {
     return null;
   }
 
+  const workArtifactsRoot = stateInfo.workArtifactsRoot ?? resolve(stateInfo.repoStateRoot, 'work');
   const artifacts = buildWorkArtifacts(
-    stateInfo.workArtifactsRoot ?? resolve(stateInfo.repoStateRoot, 'work'),
+    workArtifactsRoot,
     workflow.id,
     workflow.workDir,
     {
@@ -528,7 +576,7 @@ export function normalizeActiveWork(stateInfo) {
     workDirPath: artifacts.workDirPath,
     specPath: artifacts.specPath,
     planPath: artifacts.planPath,
-    artifactsRoot: stateInfo.workArtifactsRoot ?? resolve(stateInfo.repoStateRoot, 'work'),
+    artifactsRoot: workArtifactsRoot,
     gates: workflow.gates ?? {},
     gatesSummary: summarizeGates(workflow.gates),
     lock: workflow.lock ?? null,

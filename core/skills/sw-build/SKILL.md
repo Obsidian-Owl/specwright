@@ -29,36 +29,23 @@ Implement the current work unit with TDD. The per-task loop is RED → GREEN →
 
 - `{worktreeStateRoot}/session.json` -- selected work for this worktree
 - `{repoStateRoot}/work/{selectedWork.id}/workflow.json`, `{workDir}/spec.md`, `{workDir}/plan.md`
-- `{repoStateRoot}/work/{selectedWork.id}/design.md`, `{workDir}/context.md`
+- `{workArtifactsRoot}/{selectedWork.id}/design.md`, `{workDir}/context.md`
 - `{repoStateRoot}/CONSTITUTION.md`, `{repoStateRoot}/config.json`
 
 ## Outputs
 
-- After each task: failing tests, passing implementation, task commit, workflow progress, refreshed `{workDir}/stage-report.md`
-- After all tasks: as-built notes in `plan.md`, three-line handoff to `/sw-verify`, ready-to-verify build state; the handoff points at `Artifacts: {workDir}/stage-report.md`
+- After each task: failing tests, passing implementation, task commit, workflow progress, refreshed `{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md`
+- After all tasks: as-built notes in `plan.md`, three-line handoff to `/sw-verify`, ready-to-verify build state; the handoff points at `Artifacts: {repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md`
 
 ## Constraints
 
 **Execution model (LOW freedom):** Run in the foreground in the current turn. "Autonomous" means unattended decisions inside this build, not background execution.
 
-**Stage boundary (LOW freedom):** Follow `protocols/stage-boundary.md`. Implement only the active unit; never create pull requests, run `gh pr create`, or invoke `/sw-ship`. Before the terminal handoff, write `{workDir}/stage-report.md`; the handoff points at it and the Next line is `Next: /sw-verify`.
+**Stage boundary (LOW freedom):** Follow `protocols/stage-boundary.md`. Implement only the active unit; never create pull requests, run `gh pr create`, or invoke `/sw-ship`. Before the terminal handoff, write `{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md`; the handoff points at it and the Next line is `Next: /sw-verify`.
 
-**Branch setup (LOW freedom):** First action before coding: resolve the
-session-selected work from the current worktree, verify that no other live
-top-level worktree owns it, then check out the feature branch from
-`config.git.branchPrefix` and sync it per `protocols/git.md`. The selected
-work's recorded `targetRef`, when present, is the first branch-resolution
-input via `protocols/git.md`; repo config defaults and the `baseBranch`
-compatibility alias are fallbacks only. Use
-`{git.branchPrefix}{selectedWork.unitId}` for multi-unit work and never commit
-to the base branch. If the selected work is already owned elsewhere, STOP with
-explicit adopt/takeover guidance instead of mutating it silently.
+**Branch setup (LOW freedom):** First action before coding: resolve the session-selected work from the current worktree, verify that no other live top-level worktree owns it, then check out the feature branch from `config.git.branchPrefix` and sync it per `protocols/git.md`. The selected work's recorded `targetRef`, when present, is the first branch-resolution input via `protocols/git.md`; repo config defaults and the `baseBranch` compatibility alias are fallbacks only. Use `{git.branchPrefix}{selectedWork.unitId}` for multi-unit work and never commit to the base branch. If the selected work is already owned elsewhere, STOP with explicit adopt/takeover guidance instead of mutating it silently.
 
-**Build freshness checkpoint (LOW freedom) — after branch setup:**
-Evaluate the build checkpoint via `protocols/git-freshness.md` using the
-selected work's recorded `targetRef` and `freshness`. `require` blocks stale,
-diverged, and blocked freshness results; `warn` surfaces advisory drift;
-queue-managed results do not trigger hidden rebases or other branch rewrites.
+**Build freshness checkpoint (LOW freedom) — after branch setup:** Evaluate the build checkpoint via `protocols/git-freshness.md` using the selected work's recorded `targetRef` and `freshness`. `require` blocks stale, diverged, and blocked freshness results; `warn` surfaces advisory drift; queue-managed results do not trigger hidden rebases or other branch rewrites.
 
 **Task loop (MEDIUM freedom):** Work one task at a time. Finish it before starting the next and emit a status card after each task commit.
 

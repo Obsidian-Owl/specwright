@@ -13,8 +13,14 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 CONTEXT_PROTOCOL="$ROOT_DIR/core/protocols/context.md"
 STATE_PROTOCOL="$ROOT_DIR/core/protocols/state.md"
+DECISION_PROTOCOL="$ROOT_DIR/core/protocols/decision.md"
 GIT_PROTOCOL="$ROOT_DIR/core/protocols/git.md"
 GIT_FRESHNESS_PROTOCOL="$ROOT_DIR/core/protocols/git-freshness.md"
+DESIGN_SKILL="$ROOT_DIR/core/skills/sw-design/SKILL.md"
+PLAN_SKILL="$ROOT_DIR/core/skills/sw-plan/SKILL.md"
+BUILD_SKILL="$ROOT_DIR/core/skills/sw-build/SKILL.md"
+VERIFY_SKILL="$ROOT_DIR/core/skills/sw-verify/SKILL.md"
+SHIP_SKILL="$ROOT_DIR/core/skills/sw-ship/SKILL.md"
 STATE_PATHS_MODULE="$ROOT_DIR/adapters/shared/specwright-state-paths.mjs"
 TEST_TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_TMPDIR"' EXIT
@@ -178,8 +184,14 @@ echo ""
 for file in \
   "$CONTEXT_PROTOCOL" \
   "$STATE_PROTOCOL" \
+  "$DECISION_PROTOCOL" \
   "$GIT_PROTOCOL" \
-  "$GIT_FRESHNESS_PROTOCOL"; do
+  "$GIT_FRESHNESS_PROTOCOL" \
+  "$DESIGN_SKILL" \
+  "$PLAN_SKILL" \
+  "$BUILD_SKILL" \
+  "$VERIFY_SKILL" \
+  "$SHIP_SKILL"; do
   if [ -f "$file" ]; then
     pass "exists: ${file#"$ROOT_DIR"/}"
   else
@@ -195,11 +207,31 @@ assert_contains "$CONTEXT_PROTOCOL" '{projectArtifactsRoot}/config.json' "contex
 assert_contains "$CONTEXT_PROTOCOL" '{workArtifactsRoot}/{workId}' "context protocol loads auditable work artifacts from workArtifactsRoot"
 assert_contains "$STATE_PROTOCOL" "work and unit \`stage-report.md\` files" "state protocol treats stage-report files as runtime-only"
 assert_contains "$STATE_PROTOCOL" 'relative path under workArtifactsRoot/{workId}' "state protocol moves workDir under workArtifactsRoot"
+assert_contains "$DECISION_PROTOCOL" 'Artifacts: {stageReportPath}' "decision protocol parameterizes stage report handoff path"
 assert_contains "$GIT_PROTOCOL" "\`workArtifactsRoot = {repoStateRoot}/work\`" "git protocol maps clone-local mode to repoStateRoot/work"
 assert_contains "$GIT_PROTOCOL" "\`projectArtifactsRoot\`" "git protocol keeps project artifacts on the tracked root"
 assert_contains "$GIT_FRESHNESS_PROTOCOL" "\`implementation-rationale.md\`" "git-freshness protocol names implementation rationale as auditable"
 assert_contains "$GIT_FRESHNESS_PROTOCOL" "\`review-packet.md\`" "git-freshness protocol names review packet as auditable"
 assert_not_contains "$GIT_FRESHNESS_PROTOCOL" "- \`stage-report.md\`" "git-freshness protocol no longer treats stage-report.md as auditable"
+assert_contains "$DESIGN_SKILL" '{repoStateRoot}/work/{id}/stage-report.md' "sw-design routes stage reports through runtime state"
+assert_contains "$PLAN_SKILL" '{repoStateRoot}/work/{selectedWork.id}/stage-report.md' "sw-plan routes stage reports through runtime state"
+assert_contains "$BUILD_SKILL" '{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md' "sw-build routes unit stage reports through runtime state"
+assert_contains "$VERIFY_SKILL" '{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md' "sw-verify routes unit stage reports through runtime state"
+assert_contains "$SHIP_SKILL" '{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md' "sw-ship routes unit stage reports through runtime state"
+assert_contains "$PLAN_SKILL" '{workArtifactsRoot}/{selectedWork.id}/design.md' "sw-plan reads auditable design artifacts from workArtifactsRoot"
+assert_contains "$BUILD_SKILL" '{workArtifactsRoot}/{selectedWork.id}/design.md' "sw-build reads auditable design artifacts from workArtifactsRoot"
+assert_contains "$VERIFY_SKILL" '{workArtifactsRoot}/{selectedWork.id}/' "sw-verify reads integration criteria from workArtifactsRoot"
+
+echo ""
+echo "--- Config-only shared root model ---"
+CONFIG_ONLY_REPO="$TEST_TMPDIR/config-only"
+init_git_repo "$CONFIG_ONLY_REPO"
+write_project_config "$CONFIG_ONLY_REPO" "clone-local"
+CONFIG_ONLY_REAL="$(cd "$CONFIG_ONLY_REPO" && pwd -P)"
+CONFIG_ONLY_OUTPUT="$(inspect_state_json "$CONFIG_ONLY_REPO")"
+assert_output_contains "$CONFIG_ONLY_OUTPUT" "\"layout\":\"shared\"" "tracked project config alone opts into the shared root model"
+assert_output_contains "$CONFIG_ONLY_OUTPUT" "\"sharedConfigPath\":\"$CONFIG_ONLY_REAL/.specwright/config.json\"" "config-only repo still resolves the tracked shared config path"
+assert_output_contains "$CONFIG_ONLY_OUTPUT" "\"workArtifactsRoot\":\"$(repo_state_root "$CONFIG_ONLY_REPO")/work\"" "config-only repo falls back to repoStateRoot/work for clone-local artifacts"
 
 echo ""
 echo "--- Clone-local work-artifact mode ---"
@@ -228,6 +260,45 @@ assert_output_contains "$TRACKED_OUTPUT" "\"workArtifactsRoot\":\"$TRACKED_REAL/
 assert_output_contains "$TRACKED_OUTPUT" "\"artifactsRoot\":\"$TRACKED_REAL/.specwright/audit-work\"" "tracked mode keeps normalized work artifacts on the tracked root"
 assert_output_contains "$TRACKED_OUTPUT" "\"specPath\":\"$TRACKED_REAL/.specwright/audit-work/root-proof/spec.md\"" "tracked mode routes spec paths through configured workArtifactsRoot"
 assert_output_contains "$TRACKED_OUTPUT" "\"workflowPath\":\"$(repo_state_root "$TRACKED_REPO")/work/root-proof/workflow.json\"" "tracked mode keeps workflow.json in runtime state"
+
+echo ""
+echo "--- Tracked work-artifact safety boundaries ---"
+GIT_ROOT_REPO="$TEST_TMPDIR/git-root"
+init_git_repo "$GIT_ROOT_REPO"
+write_project_config "$GIT_ROOT_REPO" "tracked" ".git/specwright"
+GIT_ROOT_OUTPUT="$(inspect_state_json "$GIT_ROOT_REPO")"
+assert_output_contains "$GIT_ROOT_OUTPUT" "\"workArtifactsRoot\":\"$(repo_state_root "$GIT_ROOT_REPO")/work\"" "trackedRoot under .git is rejected in favor of repoStateRoot/work"
+
+OUTSIDE_ROOT_REPO="$TEST_TMPDIR/outside-root"
+init_git_repo "$OUTSIDE_ROOT_REPO"
+write_project_config "$OUTSIDE_ROOT_REPO" "tracked" "../../outside"
+OUTSIDE_ROOT_OUTPUT="$(inspect_state_json "$OUTSIDE_ROOT_REPO")"
+assert_output_contains "$OUTSIDE_ROOT_OUTPUT" "\"workArtifactsRoot\":\"$(repo_state_root "$OUTSIDE_ROOT_REPO")/work\"" "trackedRoot outside the project is rejected in favor of repoStateRoot/work"
+
+REPO_ROOT_REPO="$TEST_TMPDIR/repo-root"
+init_git_repo "$REPO_ROOT_REPO"
+write_project_config "$REPO_ROOT_REPO" "tracked" "."
+REPO_ROOT_OUTPUT="$(inspect_state_json "$REPO_ROOT_REPO")"
+assert_output_contains "$REPO_ROOT_OUTPUT" "\"workArtifactsRoot\":\"$(repo_state_root "$REPO_ROOT_REPO")/work\"" "trackedRoot overlapping the repo root is rejected in favor of repoStateRoot/work"
+
+SYMLINK_ROOT_REPO="$TEST_TMPDIR/symlink-root"
+init_git_repo "$SYMLINK_ROOT_REPO"
+mkdir -p "$SYMLINK_ROOT_REPO/.specwright" "$(repo_state_root "$SYMLINK_ROOT_REPO")/work"
+ln -s "$(repo_state_root "$SYMLINK_ROOT_REPO")/work" "$SYMLINK_ROOT_REPO/.specwright/audit-link"
+write_project_config "$SYMLINK_ROOT_REPO" "tracked" ".specwright/audit-link"
+SYMLINK_ROOT_OUTPUT="$(inspect_state_json "$SYMLINK_ROOT_REPO")"
+assert_output_contains "$SYMLINK_ROOT_OUTPUT" "\"workArtifactsRoot\":\"$(repo_state_root "$SYMLINK_ROOT_REPO")/work\"" "trackedRoot symlinked into runtime state is rejected in favor of repoStateRoot/work"
+
+echo ""
+echo "--- Malformed workDir containment ---"
+ESCAPE_REPO="$TEST_TMPDIR/escape-workdir"
+init_git_repo "$ESCAPE_REPO"
+write_project_config "$ESCAPE_REPO" "tracked" ".specwright/audit-work"
+write_runtime_work "$ESCAPE_REPO" "root-proof" "../escape"
+ESCAPE_REAL="$(cd "$ESCAPE_REPO" && pwd -P)"
+ESCAPE_OUTPUT="$(inspect_state_json "$ESCAPE_REPO")"
+assert_output_contains "$ESCAPE_OUTPUT" "\"workDirPath\":\"$ESCAPE_REAL/.specwright/audit-work/root-proof\"" "escaped workDir falls back to a contained tracked work directory"
+assert_output_contains "$ESCAPE_OUTPUT" "\"specPath\":\"$ESCAPE_REAL/.specwright/audit-work/root-proof/spec.md\"" "escaped workDir cannot push spec paths outside workArtifactsRoot"
 
 echo ""
 echo "RESULT: $PASS passed, $FAIL failed"
