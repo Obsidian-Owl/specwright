@@ -38,6 +38,7 @@ WORKFLOW_PROOF_TEST="$ROOT_DIR/tests/test-workflow-proof.sh"
 CONFIG_VISIBILITY_DOCS_TEST="$ROOT_DIR/tests/test-config-validation-visibility-docs.sh"
 AUDIT_CHAIN_ROOT_MODEL_TEST="$ROOT_DIR/tests/test-audit-chain-root-model.sh"
 APPROVAL_LIFECYCLE_TEST="$ROOT_DIR/tests/test-approval-lifecycle-docs.sh"
+REVIEW_PACKET_DOCS_TEST="$ROOT_DIR/tests/test-review-packet-docs.sh"
 
 PASS=0
 FAIL=0
@@ -171,6 +172,7 @@ run_smoke_checks() {
   assert_path_exists "$CC_DIST/protocols/state.md" "smoke build includes state protocol"
   assert_path_exists "$CC_DIST/protocols/git-freshness.md" "smoke build includes git-freshness protocol"
   assert_path_exists "$CC_DIST/protocols/approvals.md" "smoke build includes approvals protocol"
+  assert_path_exists "$CC_DIST/protocols/review-packet.md" "smoke build includes review-packet protocol"
   assert_path_exists "$CC_DIST/agents/specwright-executor.md" "smoke build includes executor agent"
   assert_path_exists "$CC_DIST/hooks/session-start.mjs" "smoke build includes session-start hook"
   assert_path_exists "$CC_DIST/.claude-plugin/plugin.json" "smoke build includes plugin manifest"
@@ -194,6 +196,7 @@ run_smoke_checks() {
   fi
 
   assert_file_contains "$CC_DIST/CLAUDE.md" "approvals.md" "smoke CLAUDE.md indexes approvals protocol"
+  assert_file_contains "$CC_DIST/CLAUDE.md" "review-packet.md" "smoke CLAUDE.md indexes review-packet protocol"
   assert_file_contains "$CC_DIST/skills/sw-build/SKILL.md" "Approval checkpoint" "smoke sw-build includes approval checkpoint"
   assert_file_contains "$CC_DIST/skills/sw-verify/SKILL.md" "Approval Lineage" "smoke sw-verify includes approval lineage"
   assert_file_contains "$CC_DIST/protocols/context.md" "projectArtifactsRoot" "smoke context protocol preserves project artifact root"
@@ -408,7 +411,7 @@ if [ -d "$CC_DIST/protocols" ]; then
   assert_eq "$PROTO_COUNT" "$EXPECTED_PROTO_COUNT" "protocols/ mirrors the core protocol set"
 
   # Spot-check specific protocol files
-  for proto in state.md git.md git-freshness.md approvals.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md; do
+  for proto in state.md git.md git-freshness.md approvals.md review-packet.md delegation.md recovery.md evidence.md stage-boundary.md context.md repo-map.md; do
     if [ -f "$CC_DIST/protocols/$proto" ]; then
       pass "protocols/$proto exists"
     else
@@ -523,11 +526,13 @@ assert_file_not_contains "$ROOT_DIR/DESIGN.md" ".specwright/worktrees/" "DESIGN.
 assert_file_not_contains "$ROOT_DIR/DESIGN.md" "workflow.json # Current state" "DESIGN.md no longer describes a singleton .specwright/state/workflow.json layout"
 assert_file_contains "$ROOT_DIR/CLAUDE.md" "git-freshness.md" "root CLAUDE.md lists git-freshness.md in the protocol index"
 assert_file_contains "$ROOT_DIR/CLAUDE.md" "approvals.md" "root CLAUDE.md lists approvals.md in the protocol index"
+assert_file_contains "$ROOT_DIR/CLAUDE.md" "review-packet.md" "root CLAUDE.md lists review-packet.md in the protocol index"
 
 assert_file_contains "$CC_DIST/CLAUDE.md" "repoStateRoot" "dist CLAUDE.md references the shared repo state root"
 assert_file_contains "$CC_DIST/CLAUDE.md" "worktreeStateRoot" "dist CLAUDE.md references the per-worktree state root"
 assert_file_contains "$CC_DIST/CLAUDE.md" "git-freshness.md" "dist CLAUDE.md lists git-freshness.md in the protocol index"
 assert_file_contains "$CC_DIST/CLAUDE.md" "approvals.md" "dist CLAUDE.md lists approvals.md in the protocol index"
+assert_file_contains "$CC_DIST/CLAUDE.md" "review-packet.md" "dist CLAUDE.md lists review-packet.md in the protocol index"
 assert_file_not_contains "$CC_DIST/CLAUDE.md" "**\`.specwright/CONSTITUTION.md\`**" "dist CLAUDE.md no longer points anchor docs at checkout-local .specwright/"
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1413,6 +1418,31 @@ if [ "$APPROVAL_LIFECYCLE_EXIT" -eq 0 ] && echo "$APPROVAL_LIFECYCLE_OUTPUT" | g
   pass "approval-lifecycle regression output includes fail-closed approval coverage"
 else
   fail "approval-lifecycle regression output missing fail-closed approval coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Review packet docs ==="
+
+if [ -x "$REVIEW_PACKET_DOCS_TEST" ]; then
+  pass "tests/test-review-packet-docs.sh is executable"
+else
+  fail "tests/test-review-packet-docs.sh is missing or not executable"
+fi
+
+REVIEW_PACKET_EXIT=0
+REVIEW_PACKET_OUTPUT="$(bash "$REVIEW_PACKET_DOCS_TEST" 2>&1)" || REVIEW_PACKET_EXIT=$?
+
+if [ "$REVIEW_PACKET_EXIT" -ne 0 ]; then
+  fail "tests/test-review-packet-docs.sh passes under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${REVIEW_PACKET_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-review-packet-docs.sh passes under the configured test path"
+fi
+if echo "$REVIEW_PACKET_OUTPUT" | grep -Fq "COVERAGE: review-packet.clone-local-guard"; then
+  pass "review-packet regression output includes clone-local reviewer guard coverage"
+else
+  fail "review-packet regression output missing clone-local reviewer guard coverage"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════

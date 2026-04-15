@@ -33,6 +33,8 @@ that closes the loop.
 - Evidence file at `{workDir}/evidence/spec-compliance.md`
 - Compliance matrix: each criterion → implementation ref + test ref + status
 - Gate status in the selected work's `workflow.json`
+- The compliance matrix remains the canonical AC / IC proof surface that
+  downstream `review-packet.md` synthesis summarizes or references
 
 ## Constraints
 
@@ -75,6 +77,11 @@ that closes the loop.
 |---|-----------|---------------|------|--------|
 | AC-1 | Description | file:line | test_name at file:line | PASS |
 ```
+
+**Matrix stability (LOW freedom):**
+Preserve the five-column compliance matrix shape above. `sw-verify` may digest
+or quote it in `review-packet.md`, but gate-spec remains the canonical proof
+surface for AC / IC conformance.
 
 ## Protocol References
 
