@@ -70,7 +70,7 @@ to disk so the calling system can read it.
 Specifically:
 - Gate evidence files → written to `{currentWork.workDir}/evidence/` (already happens)
 - Aggregate report → written to evidence directory (already happens)
-- Status cards → written to `.specwright/state/continuation.md` (already happens)
+- Status cards → written to `{worktreeStateRoot}/continuation.md` (already happens)
 - Build task progress → written to `workflow.json` (already happens)
 
 ## Result Summary File

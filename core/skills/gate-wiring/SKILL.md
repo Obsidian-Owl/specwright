@@ -23,7 +23,7 @@ can still be wired incorrectly.
 
 ## Inputs
 
-- `.specwright/config.json` -- architecture layers, project structure
+- `{projectArtifactsRoot}/config.json` -- architecture layers, project structure
 - `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit
 - Changed files (via `git diff`)
 

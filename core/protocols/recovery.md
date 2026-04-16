@@ -37,11 +37,11 @@ If no work can be resolved for a work-aware recovery path, stop with:
 
 ### 3. Load Anchor Context
 ```
-Read {repoStateRoot}/CHARTER.md
-Read {repoStateRoot}/CONSTITUTION.md
+Read {projectArtifactsRoot}/CHARTER.md
+Read {projectArtifactsRoot}/CONSTITUTION.md
 ```
 
-Read `{repoStateRoot}/TESTING.md` only when the resumed skill needs testing
+Read `{projectArtifactsRoot}/TESTING.md` only when the resumed skill needs testing
 boundaries and the file exists.
 
 ### 4. Resume Active Work

@@ -16,7 +16,7 @@ Read dependency manifests at the project root (or workspace roots for monorepos)
 | `go.mod` | Go | Presence → `go test`, `gofmt`/`goimports` built into toolchain |
 | `pom.xml` | Java | `<artifactId>` under `<plugins>` identifies Maven plugins |
 
-If `.specwright/config.json` exists, read `commands.*` fields as authoritative
+If `{projectArtifactsRoot}/config.json` exists, read `commands.*` fields as authoritative
 overrides — they take precedence over detected tools.
 
 ### Step 2: Config File Scan

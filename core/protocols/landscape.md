@@ -2,7 +2,7 @@
 
 ## Format
 
-`.specwright/LANDSCAPE.md` is a reference document (not an anchor document). Optional. Never blocks workflow.
+`{projectArtifactsRoot}/LANDSCAPE.md` is a reference document (not an anchor document). Optional. Never blocks workflow.
 
 Required metadata header:
 ```

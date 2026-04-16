@@ -4,7 +4,7 @@ Continuation snapshots, status cards, and context nudge for sw-build.
 
 ## Continuation Snapshot
 
-After each task commit, write `.specwright/state/continuation.md`: current unit, task just completed, key files modified, remaining tasks. Overwrites each time.
+After each task commit, write `{worktreeStateRoot}/continuation.md`: current unit, task just completed, key files modified, remaining tasks. Overwrites each time.
 
 ## Status Card
 
@@ -90,7 +90,7 @@ Unique violations seen in this build (avoid these patterns):
 - bare-except (1 occurrence): Use specific exception types
 ```
 
-**Injection point:** Written to `.specwright/state/continuation.md` during PreCompact.
+**Injection point:** Written to `{worktreeStateRoot}/continuation.md` during PreCompact.
 Read and injected by the SessionStart hook on the `compact` trigger.
 
 **When feedback-log.md is absent or empty:** No Correction Summary section is written.

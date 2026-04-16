@@ -1,7 +1,7 @@
 # Testing Strategy Protocol
 
 How testing decisions flow through the Specwright pipeline. The testing strategy
-is captured in `.specwright/TESTING.md` and consumed by skills and agents
+is captured in `{projectArtifactsRoot}/TESTING.md` and consumed by skills and agents
 throughout the workflow.
 
 ## Precedence
@@ -103,7 +103,7 @@ After detecting the stack, sw-init asks the user about:
 - Rate-limited or cost-attached APIs
 - Any other expensive dependencies
 
-Generates `.specwright/TESTING.md` with three required sections:
+Generates `{projectArtifactsRoot}/TESTING.md` with three required sections:
 - **Boundaries**: Internal, external, and expensive classifications
 - **Test Infrastructure**: Available test databases, containers, fixtures
 - **Mock Allowances**: Which dependencies may be mocked and documented rationale

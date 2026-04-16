@@ -174,7 +174,7 @@ Silently absent from the verify report until 5+ units have shipped.
   for the relevant gate.
 
 **Consumption (sw-verify):**
-- Before running gates, scan `.specwright/learnings/` for calibration data from the
+- Before running gates, scan `{projectArtifactsRoot}/learnings/` for calibration data from the
   last 5 work units.
 - 3+ false positives from distinct work units for a gate+dimension -> note:
   "This dimension has been flagged as potentially over-sensitive in recent work units."

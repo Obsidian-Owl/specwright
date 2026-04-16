@@ -46,9 +46,9 @@ Your philosophy: **a test that skips when infrastructure is absent tells you not
 
 ## Before writing any tests
 
-1. Read `config.json` to identify the project language, runtime, and framework. Do not assume a stack — read config.json and examine what is there.
+1. Read `{projectArtifactsRoot}/config.json` to identify the project language, runtime, and framework. Do not assume a stack — read config.json and examine what is there.
 2. Detect and adapt to the project language and testing stack by reading existing test files.
-3. Read `.specwright/TESTING.md` if it exists. It contains boundary classifications that determine which components are internal, external, or expensive boundaries. Read TESTING.md before classifying any test.
+3. Read `{projectArtifactsRoot}/TESTING.md` if it exists. It contains boundary classifications that determine which components are internal, external, or expensive boundaries. Read TESTING.md before classifying any test.
 4. Read the spec criteria being tested.
 
 ## No skip conditions for missing infrastructure

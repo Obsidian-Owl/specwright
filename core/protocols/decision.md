@@ -43,7 +43,7 @@ Resolve ambiguity in order:
 
 ### CURATION
 - Promote to `patterns.md` when the pattern recurs across 2+ units or matches a known failure class.
-- Promote to `.specwright/TESTING.md` when the learning is a boundary classification or test-infra discovery.
+- Promote to `{projectArtifactsRoot}/TESTING.md` when the learning is a boundary classification or test-infra discovery.
 - Never auto-promote to the constitution or auto-memory; that is Type 1.
 - Record all auto-promotions in `decisions.md`.
 
@@ -133,7 +133,7 @@ Design assumptions are statements treated as true without verification. Untracke
 
 ### Artifact
 
-**Location:** the design assumptions artifact in `.specwright/work/{id}/`
+**Location:** the design assumptions artifact in `{workArtifactsRoot}/{id}/`
 
 Produced by `sw-design` during the critic phase. Travels with the design to `sw-plan` and downstream stages.
 

@@ -21,7 +21,7 @@ claimed by a live Specwright session or a subordinate helper worktree.
 
 ## Inputs
 
-- `{repoStateRoot}/config.json`
+- `{projectArtifactsRoot}/config.json`
 - `{worktreeStateRoot}/session.json`
 - `{repoStateRoot}/work/*/workflow.json`
 - `git worktree list --porcelain`
