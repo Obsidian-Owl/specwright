@@ -21,7 +21,7 @@ sw-init → sw-design → sw-plan → sw-build → sw-verify → sw-ship
 | `sw-ship` | Strategy-aware merge via PR. |
 | `sw-debug` | Investigation-first debugging. Scope → investigate → diagnose → fix/log/defer. |
 | `sw-pivot` | Mid-build course correction. Revises remaining tasks via architect; append-only. |
-| `sw-doctor` | Read-only installation health check. 9 checks, repair hints. |
+| `sw-doctor` | Read-only installation health check. 13 checks, repair hints. |
 | `sw-guard` | Detect stack and interactively configure guardrails. |
 | `sw-status` | Current state and progress. |
 | `sw-learn` | Post-ship capture of patterns and learnings. |
@@ -31,7 +31,8 @@ sw-init → sw-design → sw-plan → sw-build → sw-verify → sw-ship
 
 ## Anchor Documents
 
-Three persistent documents drive all decisions:
+Three persistent tracked documents drive all decisions. By default they live
+under `.specwright/`, the tracked `projectArtifactsRoot`:
 
 - **`.specwright/CONSTITUTION.md`** -- Development practices. How the user wants code written. The AI MUST follow these.
 - **`.specwright/CHARTER.md`** -- Technology vision. What this repo is, who consumes it, architectural invariants.
@@ -45,7 +46,9 @@ Constitution and Charter are created during init. TESTING.md is created during i
 - `core/protocols/` -- Shared protocols for fragile operations (loaded on demand)
 - `core/agents/` -- Agent prompt definitions
 - `adapters/` -- Platform-specific packaging (Claude Code, Opencode, Codex CLI, etc.)
-- `.specwright/` -- Runtime state, config, anchor docs, work artifacts
+- `.specwright/` -- tracked project artifacts (`projectArtifactsRoot`): `config.json`, anchor docs, research, learnings
+- Git admin roots (`repoStateRoot` / `worktreeStateRoot`, usually under `.git/specwright/`) -- clone-local runtime workflow/session state, continuation, runtime `stage-report.md`
+- `workArtifactsRoot/` -- auditable work artifacts; clone-local under `repoStateRoot/work/` by default, optionally published to a tracked root via `config.git.workArtifacts`
 
 See `DESIGN.md` for the full architecture document.
 

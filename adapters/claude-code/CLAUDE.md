@@ -19,7 +19,7 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | `sw-ship` | Strategy-aware merge via PR. |
 | `sw-debug` | Investigation-first debugging. Scope → investigate → diagnose → fix/log/defer. |
 | `sw-pivot` | Mid-build course correction. Revises remaining tasks via architect; append-only. |
-| `sw-doctor` | Read-only installation health check. 12 checks, repair hints. |
+| `sw-doctor` | Read-only installation health check. 13 checks, repair hints. |
 | `sw-guard` | Detect stack, gap-analyze against 10 quality dimensions, configure guardrails across 4 layers. |
 | `sw-status` | Current state and progress. Supports `--cleanup` to remove orphaned work directories. |
 | `sw-learn` | Post-ship capture of patterns and learnings. Clears workflow state after persistence. |
@@ -29,11 +29,11 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 
 ## Anchor Documents
 
-Three persistent documents drive all decisions:
+Three persistent tracked documents drive all decisions:
 
-- **`{repoStateRoot}/CONSTITUTION.md`** -- Development practices. How the user wants code written. The AI MUST follow these.
-- **`{repoStateRoot}/CHARTER.md`** -- Technology vision. What this repo is, who consumes it, architectural invariants.
-- **`{repoStateRoot}/TESTING.md`** -- Testing strategy. How the project should be tested, what boundaries exist, what may be mocked. Optional — created during init if the user opts in.
+- **`{projectArtifactsRoot}/CONSTITUTION.md`** -- Development practices. How the user wants code written. The AI MUST follow these.
+- **`{projectArtifactsRoot}/CHARTER.md`** -- Technology vision. What this repo is, who consumes it, architectural invariants.
+- **`{projectArtifactsRoot}/TESTING.md`** -- Testing strategy. How the project should be tested, what boundaries exist, what may be mocked. Optional — created during init if the user opts in.
 
 Constitution and Charter are created during init. TESTING.md is created during init if the user opts in. All are referenced during design and plan, validated during verify. Precedence: Constitution (rules) > Testing Strategy (approach) > patterns.md (reference). Constitution always wins on conflict.
 
@@ -42,8 +42,10 @@ Constitution and Charter are created during init. TESTING.md is created during i
 - `skills/` -- SKILL.md files (goal + constraints, not procedures)
 - `protocols/` -- Shared protocols for fragile operations (loaded on demand)
 - `agents/` -- Agent prompt definitions (7 agents: architect, tester, integration-tester, executor, reviewer, build-fixer, researcher)
-- `repoStateRoot` (`git rev-parse --git-common-dir` + `/specwright`) -- shared config, anchor docs, research, and per-work artifacts
+- `projectArtifactsRoot` (`{projectRoot}/.specwright`) -- tracked project artifacts: config, anchor docs, research, learnings
+- `repoStateRoot` (`git rev-parse --git-common-dir` + `/specwright`) -- shared clone-local runtime state: workflow records and runtime `stage-report.md`
 - `worktreeStateRoot` (`git rev-parse --git-dir` + `/specwright`) -- current worktree session and continuation state
+- `workArtifactsRoot` -- auditable work artifacts; defaults to `{repoStateRoot}/work`, or a tracked root when `config.git.workArtifacts` enables publication
 
 See `DESIGN.md` for the full architecture document.
 

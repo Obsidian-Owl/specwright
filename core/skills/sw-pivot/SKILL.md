@@ -71,10 +71,11 @@ content — append only.
 **Approval lineage (LOW freedom):**
 If the pivot changes `spec.md`, `plan.md`, or `context.md`, the current
 `unit-spec` approval lineage becomes stale against the revised artifact set.
-Use `protocols/approvals.md` and the shared helper to assess and preserve that
-stale lineage rather than erasing it. Never fabricate a replacement
-`APPROVED` entry during `/sw-pivot`; the next human-triggered `/sw-build`
-records the replacement approval that supersedes the stale lineage.
+Use `protocols/approvals.md` and the shared approval helper implemented in
+`adapters/shared/specwright-approvals.mjs` to assess and preserve that stale
+lineage rather than erasing it. Never fabricate a replacement `APPROVED`
+entry during `/sw-pivot`; the next human-triggered `/sw-build` records the
+replacement approval that supersedes the stale lineage.
 
 **Stage boundary (LOW freedom):**
 Follow `protocols/stage-boundary.md`. After apply: STOP → "Run `/sw-build`."

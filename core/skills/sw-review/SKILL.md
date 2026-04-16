@@ -131,9 +131,11 @@ associated work can be matched, say so explicitly and use a diff-only fallback.
 **Stateless utility (LOW freedom):**
 - This skill is stateless with respect to Specwright state. It never writes
   workflow.json, never claims exclusive workflow ownership, and makes no state
-  changes to the Specwright workflow. It is a read-only utility skill for
-  GitHub review comments only.
-- Reading config.json for `prTool` is permitted. No writes to `.specwright/`.
+  changes to the Specwright workflow. GitHub comment replies and resolutions
+  are allowed, but the skill never writes Specwright project or runtime state.
+- Reading config.json for `prTool` is permitted. No writes to
+  `{projectArtifactsRoot}`, `{workArtifactsRoot}`, `{repoStateRoot}`, or
+  `{worktreeStateRoot}`.
 
 ## Protocol References
 

@@ -67,7 +67,7 @@ Quality gates are configured in config (all six default to enabled; user may dis
 
 **Survey (MEDIUM freedom):**
 - After detection, survey the codebase using Glob/Grep/Read: directory structure, entry points, module dependencies, conventions, integration points, gotchas.
-- Produce `.specwright/LANDSCAPE.md` per `protocols/landscape.md` format. User approves before saving.
+- Produce `{projectArtifactsRoot}/LANDSCAPE.md` per `protocols/landscape.md` format. User approves before saving.
 - Optional — if user declines, skip. LANDSCAPE.md is never required.
 
 **User conversation (HIGH freedom):**
@@ -96,7 +96,7 @@ Quality gates are configured in config (all six default to enabled; user may dis
 - The user must approve the charter before it's saved.
 
 **Testing strategy creation (HIGH freedom):**
-- After constitution and charter are approved, generate `.specwright/TESTING.md`.
+- After constitution and charter are approved, generate `{projectArtifactsRoot}/TESTING.md`.
 - Follow `protocols/testing-strategy.md` for document structure and boundary classifications.
 - Ask the user about testing boundaries using AskUserQuestion:
   - "What external services does this project call?" (payment APIs, email, auth providers, etc.)
@@ -158,7 +158,7 @@ Quality gates are configured in config (all six default to enabled; user may dis
 **Backlog configuration (MEDIUM freedom):**
 - Batch with gate configuration question (both are quality infrastructure).
 - Ask: "Where should Specwright track tech debt, deferred work, debug findings, and audit items?"
-  - `markdown` — writes to `.specwright/BACKLOG.md` (default, always available)
+  - `markdown` — writes to `{projectArtifactsRoot}/BACKLOG.md` (default, always available)
   - `github-issues` — creates GitHub Issues via `gh` CLI (requires `gh auth login`)
 - If `github-issues` selected: ask for label name (default: `specwright-backlog`).
 - Store as `backlog.type` and `backlog.label` in `config.json`.
@@ -180,7 +180,7 @@ Quality gates are configured in config (all six default to enabled; user may dis
 
 | Condition | Action |
 |-----------|--------|
-| .specwright/ already exists | Ask user: reconfigure, or abort |
+| Existing Specwright tracked/runtime roots detected | Ask user: repair or reconfigure the existing install, or abort |
 | No dependency manifest found | Ask user about language and framework directly |
 | User unsure about practices | Suggest sensible defaults based on detected stack, let them adjust |
 | Old config.json git schema detected | Show diff of old vs new fields. Offer migration with AskUserQuestion. Preserve existing values, add new fields with defaults. |

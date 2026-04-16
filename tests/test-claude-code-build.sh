@@ -1464,7 +1464,7 @@ SUPPORT_SURFACE_EXIT=0
 SUPPORT_SURFACE_OUTPUT="$(bash "$SUPPORT_SURFACE_CUTOVER_TEST" 2>&1)" || SUPPORT_SURFACE_EXIT=$?
 
 if [ "$SUPPORT_SURFACE_EXIT" -ne 0 ]; then
-  fail "tests/test-support-surface-cutover-docs.sh passes under the configured test path"
+  fail "tests/test-support-surface-cutover-docs.sh fails under the configured test path"
   echo "  Regression output:"
   printf '    %s\n' "${SUPPORT_SURFACE_OUTPUT//$'\n'/$'\n    '}"
 else
