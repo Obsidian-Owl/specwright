@@ -37,6 +37,8 @@ LIFECYCLE_FRESHNESS_TEST="$ROOT_DIR/tests/test-lifecycle-freshness-checkpoints.s
 WORKFLOW_PROOF_TEST="$ROOT_DIR/tests/test-workflow-proof.sh"
 CONFIG_VISIBILITY_DOCS_TEST="$ROOT_DIR/tests/test-config-validation-visibility-docs.sh"
 AUDIT_CHAIN_ROOT_MODEL_TEST="$ROOT_DIR/tests/test-audit-chain-root-model.sh"
+AUDIT_CHAIN_WORKFLOW_PROOF_TEST="$ROOT_DIR/tests/test-audit-chain-workflow-proof.sh"
+AUDIT_CHAIN_MIGRATION_SURFACES_TEST="$ROOT_DIR/tests/test-audit-chain-migration-surfaces.sh"
 APPROVAL_LIFECYCLE_TEST="$ROOT_DIR/tests/test-approval-lifecycle-docs.sh"
 REVIEW_PACKET_DOCS_TEST="$ROOT_DIR/tests/test-review-packet-docs.sh"
 SUPPORT_SURFACE_CUTOVER_TEST="$ROOT_DIR/tests/test-support-surface-cutover-docs.sh"
@@ -214,6 +216,16 @@ run_smoke_checks() {
     "approval lifecycle" \
     "SPECWRIGHT_APPROVAL_LIFECYCLE_MODE=smoke bash \"$APPROVAL_LIFECYCLE_TEST\"" \
     "COVERAGE: approval-lifecycle.fail-closed"
+
+  run_smoke_regression \
+    "audit-chain workflow proof" \
+    "bash \"$AUDIT_CHAIN_WORKFLOW_PROOF_TEST\"" \
+    "COVERAGE: audit-chain.workflow-proof"
+
+  run_smoke_regression \
+    "audit-chain migration surfaces" \
+    "bash \"$AUDIT_CHAIN_MIGRATION_SURFACES_TEST\"" \
+    "COVERAGE: audit-chain.migration-surfaces"
 
   run_smoke_regression \
     "support-surface cutover" \
@@ -1232,7 +1244,7 @@ HARNESS_EXIT=0
 HARNESS_OUTPUT="$(bash "$MULTI_WORKTREE_RUNTIME_TEST" 2>&1)" || HARNESS_EXIT=$?
 
 if [ "$HARNESS_EXIT" -ne 0 ]; then
-  fail "tests/test-multi-worktree-state.sh passes under the configured test path"
+  fail "tests/test-multi-worktree-state.sh fails under the configured test path"
   echo "  Harness output:"
   printf '    %s\n' "${HARNESS_OUTPUT//$'\n'/$'\n    '}"
 else
@@ -1262,7 +1274,7 @@ TARGET_MODEL_EXIT=0
 TARGET_MODEL_OUTPUT="$(bash "$TARGET_MODEL_DOCS_TEST" 2>&1)" || TARGET_MODEL_EXIT=$?
 
 if [ "$TARGET_MODEL_EXIT" -ne 0 ]; then
-  fail "tests/test-branch-freshness-target-model-docs.sh passes under the configured test path"
+  fail "tests/test-branch-freshness-target-model-docs.sh fails under the configured test path"
   echo "  Regression output:"
   printf '    %s\n' "${TARGET_MODEL_OUTPUT//$'\n'/$'\n    '}"
 else
@@ -1287,7 +1299,7 @@ GIT_FRESHNESS_EXIT=0
 GIT_FRESHNESS_OUTPUT="$(bash "$GIT_FRESHNESS_ENGINE_TEST" 2>&1)" || GIT_FRESHNESS_EXIT=$?
 
 if [ "$GIT_FRESHNESS_EXIT" -ne 0 ]; then
-  fail "tests/test-git-freshness-engine.sh passes under the configured test path"
+  fail "tests/test-git-freshness-engine.sh fails under the configured test path"
   echo "  Regression output:"
   printf '    %s\n' "${GIT_FRESHNESS_OUTPUT//$'\n'/$'\n    '}"
 else
@@ -1312,7 +1324,7 @@ LIFECYCLE_FRESHNESS_EXIT=0
 LIFECYCLE_FRESHNESS_OUTPUT="$(bash "$LIFECYCLE_FRESHNESS_TEST" 2>&1)" || LIFECYCLE_FRESHNESS_EXIT=$?
 
 if [ "$LIFECYCLE_FRESHNESS_EXIT" -ne 0 ]; then
-  fail "tests/test-lifecycle-freshness-checkpoints.sh passes under the configured test path"
+  fail "tests/test-lifecycle-freshness-checkpoints.sh fails under the configured test path"
   echo "  Regression output:"
   printf '    %s\n' "${LIFECYCLE_FRESHNESS_OUTPUT//$'\n'/$'\n    '}"
 else
@@ -1389,7 +1401,7 @@ AUDIT_CHAIN_ROOT_MODEL_EXIT=0
 AUDIT_CHAIN_ROOT_MODEL_OUTPUT="$(bash "$AUDIT_CHAIN_ROOT_MODEL_TEST" 2>&1)" || AUDIT_CHAIN_ROOT_MODEL_EXIT=$?
 
 if [ "$AUDIT_CHAIN_ROOT_MODEL_EXIT" -ne 0 ]; then
-  fail "tests/test-audit-chain-root-model.sh passes under the configured test path"
+  fail "tests/test-audit-chain-root-model.sh fails under the configured test path"
   echo "  Regression output:"
   printf '    %s\n' "${AUDIT_CHAIN_ROOT_MODEL_OUTPUT//$'\n'/$'\n    '}"
 else
@@ -1399,6 +1411,56 @@ if echo "$AUDIT_CHAIN_ROOT_MODEL_OUTPUT" | grep -Fq "PASS: tracked mode routes s
   pass "audit-chain root-model regression output includes tracked-root coverage"
 else
   fail "audit-chain root-model regression output missing tracked-root coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Audit-chain workflow proof ==="
+
+if [ -x "$AUDIT_CHAIN_WORKFLOW_PROOF_TEST" ]; then
+  pass "tests/test-audit-chain-workflow-proof.sh is executable"
+else
+  fail "tests/test-audit-chain-workflow-proof.sh is missing or not executable"
+fi
+
+AUDIT_CHAIN_WORKFLOW_EXIT=0
+AUDIT_CHAIN_WORKFLOW_OUTPUT="$(bash "$AUDIT_CHAIN_WORKFLOW_PROOF_TEST" 2>&1)" || AUDIT_CHAIN_WORKFLOW_EXIT=$?
+
+if [ "$AUDIT_CHAIN_WORKFLOW_EXIT" -ne 0 ]; then
+  fail "tests/test-audit-chain-workflow-proof.sh fails under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${AUDIT_CHAIN_WORKFLOW_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-audit-chain-workflow-proof.sh passes under the configured test path"
+fi
+if [ "$AUDIT_CHAIN_WORKFLOW_EXIT" -eq 0 ] && echo "$AUDIT_CHAIN_WORKFLOW_OUTPUT" | grep -Fq "COVERAGE: audit-chain.workflow-proof"; then
+  pass "audit-chain workflow proof output includes lifecycle coverage"
+else
+  fail "audit-chain workflow proof output missing lifecycle coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Audit-chain migration surfaces ==="
+
+if [ -x "$AUDIT_CHAIN_MIGRATION_SURFACES_TEST" ]; then
+  pass "tests/test-audit-chain-migration-surfaces.sh is executable"
+else
+  fail "tests/test-audit-chain-migration-surfaces.sh is missing or not executable"
+fi
+
+AUDIT_CHAIN_MIGRATION_EXIT=0
+AUDIT_CHAIN_MIGRATION_OUTPUT="$(bash "$AUDIT_CHAIN_MIGRATION_SURFACES_TEST" 2>&1)" || AUDIT_CHAIN_MIGRATION_EXIT=$?
+
+if [ "$AUDIT_CHAIN_MIGRATION_EXIT" -ne 0 ]; then
+  fail "tests/test-audit-chain-migration-surfaces.sh fails under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${AUDIT_CHAIN_MIGRATION_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-audit-chain-migration-surfaces.sh passes under the configured test path"
+fi
+if [ "$AUDIT_CHAIN_MIGRATION_EXIT" -eq 0 ] && echo "$AUDIT_CHAIN_MIGRATION_OUTPUT" | grep -Fq "COVERAGE: audit-chain.migration-surfaces"; then
+  pass "audit-chain migration surfaces output includes publication-mode coverage"
+else
+  fail "audit-chain migration surfaces output missing publication-mode coverage"
 fi
 
 echo ""
@@ -1439,7 +1501,7 @@ REVIEW_PACKET_EXIT=0
 REVIEW_PACKET_OUTPUT="$(bash "$REVIEW_PACKET_DOCS_TEST" 2>&1)" || REVIEW_PACKET_EXIT=$?
 
 if [ "$REVIEW_PACKET_EXIT" -ne 0 ]; then
-  fail "tests/test-review-packet-docs.sh passes under the configured test path"
+  fail "tests/test-review-packet-docs.sh fails under the configured test path"
   echo "  Regression output:"
   printf '    %s\n' "${REVIEW_PACKET_OUTPUT//$'\n'/$'\n    '}"
 else

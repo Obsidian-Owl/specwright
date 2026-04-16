@@ -315,6 +315,44 @@ if [ -d "$OC_DIST/protocols" ]; then
   done
 fi
 
+echo "--- Audit-chain root split spot-checks ---"
+
+if grep -Fq "{projectArtifactsRoot}/config.json" "$OC_DIST/skills/sw-sync/SKILL.md"; then
+  pass "dist sw-sync preserves projectArtifactsRoot config path"
+else
+  fail "dist sw-sync preserves projectArtifactsRoot config path"
+fi
+
+if grep -Fq "{projectArtifactsRoot}/research/" "$OC_DIST/skills/sw-research/SKILL.md"; then
+  pass "dist sw-research preserves tracked research root"
+else
+  fail "dist sw-research preserves tracked research root"
+fi
+
+if grep -Fq "{worktreeStateRoot}/continuation.md" "$OC_DIST/protocols/build-context.md"; then
+  pass "dist build-context preserves worktree-local continuation path"
+else
+  fail "dist build-context preserves worktree-local continuation path"
+fi
+
+if grep -Fq "{projectArtifactsRoot}/learnings/" "$OC_DIST/protocols/evidence.md"; then
+  pass "dist evidence protocol preserves tracked learnings path"
+else
+  fail "dist evidence protocol preserves tracked learnings path"
+fi
+
+if grep -Fq "{projectArtifactsRoot}/TESTING.md" "$OC_DIST/agents/specwright-integration-tester.md"; then
+  pass "dist integration tester preserves tracked TESTING path"
+else
+  fail "dist integration tester preserves tracked TESTING path"
+fi
+
+if grep -Fq ".specwright/state/continuation.md" "$OC_DIST/protocols/build-context.md"; then
+  fail "dist build-context removes legacy continuation path"
+else
+  pass "dist build-context removes legacy continuation path"
+fi
+
 # ─── README.md ────────────────────────────────────────────────────────
 
 echo "--- README.md ---"
