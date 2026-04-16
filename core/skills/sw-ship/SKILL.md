@@ -17,21 +17,24 @@ allowed-tools:
 ## Goal
 
 Merge the current work unit to main via a pull request. The PR body maps
-evidence to acceptance criteria so reviewers can verify. The PR itself is the
-human gate — reviewers verify before merge.
+evidence to acceptance criteria and derives its reviewer-facing audit summary
+from `review-packet.md` so reviewers can verify without opening raw transcripts
+or reconstructing rationale from the diff alone. The PR itself is the human
+gate — reviewers verify before merge.
 
 ## Inputs
 
 - `{worktreeStateRoot}/session.json` -- selected work for this worktree
 - `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit, gate results
 - `{workDir}/spec.md` -- acceptance criteria for PR body
+- `{workDir}/review-packet.md` -- reviewer-facing audit summary assembled by `/sw-verify`
 - `{workDir}/evidence/` -- gate evidence files
-- `{repoStateRoot}/config.json` -- git config (PR tool, branch prefix, main branch)
+- `{projectArtifactsRoot}/config.json` -- git config (PR tool, branch prefix, main branch)
 
 ## Outputs
 
 - `{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md` -- shipping handoff digest with attention-at-top
-- Pull request created with evidence-mapped body
+- Pull request created with a review-packet-grounded, evidence-mapped body
 - Selected work's `workflow.json` status set to `shipped`
 
 ## Constraints
@@ -53,6 +56,8 @@ work, run builds, or begin next unit. After PR: show URL, suggest `/sw-learn`, h
 - Re-check shipping freshness during pre-flight via `protocols/git-freshness.md`.
   For branch-head validation, branch-head `require` blocks stale, diverged, and blocked freshness results.
   Queue-managed validation remains distinct and must not force a local rebase by default.
+- `review-packet.md` must exist at `{workDir}/review-packet.md`. Missing packet
+  → STOP: "Review packet missing for {unitId}. Re-run /sw-verify."
 - Evidence files must exist at `{workDir}/evidence/{gate-name}-report.md` for each
   gate with a non-SKIP verdict. Missing evidence file → STOP: "Evidence missing for
   gate {name}. Re-run /sw-verify."
@@ -63,6 +68,9 @@ work, run builds, or begin next unit. After PR: show URL, suggest `/sw-learn`, h
 - Follow `protocols/git.md` for push and PR operations.
 - Always create PR (both interactive and headless — PRs are the universal review gate).
 - PR title follows `config.git.commitFormat` style.
+- `review-packet.md` is the primary reviewer-facing synthesis. Derive approval
+  lineage, implementation rationale digest, conformance summary, and remaining
+  attention from the packet instead of reconstructing them from the raw diff.
 - PR body gate results MUST be sourced from the selected work's `workflow.json` gate verdicts and
   `{workDir}/evidence/` files. For each enabled gate: read the verdict from
   the selected work's `workflow.json`. For non-SKIP gates: read the evidence file. Never infer
@@ -70,8 +78,15 @@ work, run builds, or begin next unit. After PR: show URL, suggest `/sw-learn`, h
   and backed by an evidence file. SKIP gates show "SKIP".
   (Pre-flight has already verified that all non-SKIP gates have evidence files,
   so this reading step is guaranteed to succeed.)
-- PR body structure: Summary, Acceptance Criteria (status + evidence per criterion),
-  Blast Radius, Gate Results (sourced from evidence), Evidence links.
+- In clone-local work-artifact mode, inline reviewer-usable approval lineage,
+  rationale digest, conformance summary, and remaining attention into the PR
+  body instead of depending on local-only file links.
+- In tracked work-artifact mode, the PR body may reference the tracked review
+  packet or tracked evidence files directly in addition to the inline summary.
+- PR body structure: Summary, Approval Lineage, What Changed, Why The Agent
+  Implemented It This Way, Acceptance Criteria (status + evidence per
+  criterion), Spec Conformance, Gate Summary, Remaining Attention, Evidence
+  links.
 - Use HEREDOC for PR body.
 
 **State updates (LOW freedom):**
@@ -110,6 +125,7 @@ stays machine-parseable). Examples: `Next: /sw-build` or `Next: /sw-learn`.
 - `protocols/git-freshness.md` -- shipping freshness pre-flight
 - `protocols/state.md` -- workflow state updates
 - `protocols/evidence.md` -- evidence references for PR body
+- `protocols/review-packet.md` -- reviewer-facing audit packet contract
 - `protocols/headless.md` -- non-interactive execution defaults
 
 ## Failure Modes
@@ -123,6 +139,7 @@ stays machine-parseable). Examples: `Next: /sw-build` or `Next: /sw-learn`.
 | Push fails during shipping | Revert status to `verifying`, keep `prNumber` null. Show error. |
 | PR creation fails during shipping | Revert status to `verifying`, keep `prNumber` null. Show error. |
 | `prNumber` write fails after PR creation | Revert status to `verifying`, keep `prNumber` null, surface rollback failure. |
+| Review packet missing (pre-flight) | STOP: "Review packet missing for {unitId}. Re-run /sw-verify." |
 | Evidence files missing (pre-flight) | STOP: "Evidence missing for gate {name}. Re-run /sw-verify." |
 | gh CLI not installed | STOP: "Install gh CLI" |
 | Selected work owned elsewhere | STOP with explicit adopt/takeover guidance |

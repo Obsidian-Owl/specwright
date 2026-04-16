@@ -22,9 +22,11 @@ other works are active in the repository, and what the next action should be.
 
 ## Inputs
 
-- `{repoStateRoot}/config.json`
+- `{projectArtifactsRoot}/config.json`
 - `{worktreeStateRoot}/session.json`
 - `{repoStateRoot}/work/*/workflow.json`
+- `{workArtifactsRoot}/{selectedWork.id}/approvals.md` when a work is attached
+- `{workDir}/review-packet.md` when the selected unit has reached verify or ship artifacts
 
 ## Outputs
 
@@ -35,14 +37,16 @@ other works are active in the repository, and what the next action should be.
 ## Constraints
 
 **Display (HIGH freedom):**
-- Print the resolved `repoStateRoot` and `worktreeStateRoot` before the session
-  summary so hidden `.git` state is inspectable.
+- Print the resolved `projectArtifactsRoot`, `repoStateRoot`,
+  `worktreeStateRoot`, and `workArtifactsRoot` before the session summary so
+  tracked project artifacts and hidden `.git` runtime state are both
+  inspectable.
 - Show the current session first: `worktreeId`, mode, branch, and
   `attachedWorkId`.
 - If the session is attached, show that work's status, unit/task progress, the
   selected work's target branch and latest freshness state, configured
-  work-artifact publication mode when present, gates, and per-work lock
-  freshness.
+  work-artifact publication mode when present, approval freshness,
+  review-packet presence, gates, and per-work lock freshness.
 - Enumerate other active works discovered under `repoStateRoot/work/*`, along
   with their recorded owner worktrees and whether the owner still has a live
   top-level session.

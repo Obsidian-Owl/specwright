@@ -6,6 +6,7 @@ allowed-tools:
   - Read
   - Bash
   - Grep
+  - AskUserQuestion
 ---
 
 # Specwright Review
@@ -13,8 +14,11 @@ allowed-tools:
 ## Goal
 
 Surface PR review comments, triage autonomously per Google severity framework
-(`protocols/decision.md`), draft replies, and present for approval before posting.
-Stateless with respect to Specwright state — never modifies workflow.json.
+(`protocols/decision.md`), draft replies, and present for approval before
+posting. When the associated Specwright work can be resolved safely, use
+`review-packet.md`, `approvals.md`, and unit evidence as the primary reply
+context instead of reasoning from the diff alone. Stateless with respect to
+Specwright state — never modifies workflow.json.
 
 Fetch all comment types, group by status, apply autonomous triage:
 - Functional issues (API misuse, missing validation): fix code and draft reply
@@ -22,14 +26,20 @@ Fetch all comment types, group by status, apply autonomous triage:
 - Suggestions: apply if they improve code health, push back with reasoning if not
 - Conflicting comments: follow the one most aligned with constitution/spec
 
-The PR itself is the review surface — reviewers see replies directly.
+The PR itself is the review surface — reviewers see replies directly. When no
+associated work can be matched, say so explicitly and use a diff-only fallback.
 
 ## Inputs
 
-- `.specwright/config.json` — `git.prTool` and `git.baseBranch` settings
+- `{projectArtifactsRoot}/config.json` — `git.prTool` and `git.baseBranch` settings
 - Current branch: detected via `git branch --show-current`
 - GitHub PR: discovered via `gh pr list --head {branch}`
 - PR comments fetched via `gh api` REST and GraphQL endpoints
+- Associated Specwright work when it can be matched safely from PR number or branch:
+  - `{repoStateRoot}/work/*/workflow.json`
+  - `{workDir}/review-packet.md`
+  - `{workArtifactsRoot}/{workId}/approvals.md`
+  - `{workDir}/evidence/*.md`
 
 ## Outputs
 
@@ -38,6 +48,8 @@ The PR itself is the review surface — reviewers see replies directly.
   - Open issue comments (general PR conversation)
   - Resolved or addressed threads (shown last)
 - Each comment shows: author, timestamp, file path, line number (where applicable), and body
+- When associated work is available, replies and findings use the review packet,
+  approval lineage, and evidence as first-class context
 - User responses posted via `gh api` POST to the appropriate endpoint
 - Resolved threads marked via `resolveReviewThread` GraphQL mutation
 
@@ -48,7 +60,9 @@ The PR itself is the review surface — reviewers see replies directly.
   is empty or HEAD is detached, report the detached HEAD condition and stop.
 - Discover the associated PR using `gh pr list --head {branch} --json number,title,url`.
   If no open PR is found, retry with `--state merged` as a fallback for merged PRs.
-- If multiple PRs are returned, use the most recent. Record the choice in output.
+- If multiple PRs are returned and interactive questioning is available, use
+  AskUserQuestion to disambiguate. In headless mode, use the most recent and
+  record the fallback choice in output.
 - If a PR number is passed as an argument, use it directly instead of detecting
   from the current branch.
 - Read `config.git.prTool` before invoking `gh`; if the value is not `gh` or is
@@ -76,6 +90,20 @@ The PR itself is the review surface — reviewers see replies directly.
 - Within each group, order by timestamp (newest first for unresolved, oldest
   first for general comments).
 
+**Associated work context (MEDIUM freedom):**
+- Resolve the associated work from PR context by matching the explicit PR
+  number when provided, then `workUnits[].prNumber`, then the PR head branch
+  against `workflow.json.branch`. If more than one work matches, report the
+  ambiguity and fall back instead of picking one silently.
+- When a unique associated work is found, load `review-packet.md`,
+  `approvals.md`, and unit evidence before drafting replies or validating bot
+  comments.
+- Use `review-packet.md` as the primary reviewer-response context. Use
+  `approvals.md` to verify approval lineage claims and evidence files to verify
+  gate-status claims. Do not default to diff-only reasoning when these audit
+  artifacts are available.
+- If no work match is available, say so explicitly and use diff-only fallback.
+
 **Responding and resolving (MEDIUM freedom):**
 - To post a reply to a review comment, use `gh api` with an HTTP POST:
   `gh api --method POST /repos/{owner}/{repo}/pulls/{n}/comments/{id}/replies`.
@@ -85,6 +113,10 @@ The PR itself is the review surface — reviewers see replies directly.
 - To resolve a review thread, call the `resolveReviewThread` GraphQL mutation
   via `gh api graphql`. The `gh pr edit` command is for PR metadata only — it
   cannot post replies or resolve threads; always use `gh api` instead.
+- In clone-local work-artifact mode, replies must quote or paraphrase the
+  relevant packet/evidence summary instead of depending on local-only file
+  links. In tracked work-artifact mode, replies may reference tracked audit
+  artifact paths or sections when that improves reviewer navigation.
 - After the user responds, re-fetch the relevant comment to confirm the reply
   was posted.
 
@@ -99,16 +131,21 @@ The PR itself is the review surface — reviewers see replies directly.
 **Stateless utility (LOW freedom):**
 - This skill is stateless with respect to Specwright state. It never writes
   workflow.json, never claims exclusive workflow ownership, and makes no state
-  changes to the Specwright workflow. It is a read-only utility skill for
-  GitHub review comments only.
-- Reading config.json for `prTool` is permitted. No writes to `.specwright/`.
+  changes to the Specwright workflow. GitHub comment replies and resolutions
+  are allowed, but the skill never writes Specwright project or runtime state.
+- Reading config.json for `prTool` is permitted. No writes to
+  `{projectArtifactsRoot}`, `{workArtifactsRoot}`, `{repoStateRoot}`, or
+  `{worktreeStateRoot}`.
 
 ## Protocol References
 
 - `protocols/decision.md` — autonomous decision framework (Google severity triage, external reply gate)
 - `protocols/git.md` — PR operations, remote URL conventions, gh CLI patterns
+- `protocols/evidence.md` — gate evidence as canonical detail
+- `protocols/approvals.md` — approval lineage contract
+- `protocols/review-packet.md` — reviewer packet contract for reply context
 - `protocols/headless.md` — non-interactive execution and result file format
-- `protocols/context.md` — config loading from `.specwright/config.json`
+- `protocols/context.md` — logical-root config loading
 
 ## Failure Modes
 
