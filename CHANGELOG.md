@@ -39,6 +39,23 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.30.0] - 2026-04-16
+
+### Changed
+
+- docs(audit-chain): prove workflow and finish migration (#181)
+- docs(audit-chain): cut support surfaces to audit chain (#180)
+- docs(audit-chain): add rationale and review packet workflow (#179)
+- feat(audit-chain): add durable approval lifecycle (#178)
+- feat(audit-chain): establish tracked artifact root model (#177)
+- test(workflow-proof): prove branch freshness lifecycle coverage (#176)
+- docs(04-config-validation-and-visibility): ship unit 04 config validation and visibility (#175)
+- docs(03-lifecycle-checkpoint-cutover): ship unit 03 lifecycle checkpoint cutover (#174)
+- feat(02-git-freshness-engine): ship unit 02 git freshness engine (#173)
+- feat(01-target-model-foundation): ship unit 01 target model foundation (#172)
+- ci(release): stabilize npm publish in release-finalize (#171)
+
 ## [0.29.0] - 2026-04-14
 
 ### Changed

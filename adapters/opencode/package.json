@@ -1,6 +1,6 @@
 {
   "name": "@obsidian-owl/opencode-specwright",
-  "version": "0.29.0",
+  "version": "0.30.0",
   "main": "plugin.ts",
   "description": "Specwright adapter for Opencode. Spec-driven development with quality gates.",
   "publishConfig": {
