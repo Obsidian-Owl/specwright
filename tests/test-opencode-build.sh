@@ -348,7 +348,7 @@ else
 fi
 
 if grep -Fq ".specwright/state/continuation.md" "$OC_DIST/protocols/build-context.md"; then
-  fail "dist build-context removes legacy continuation path"
+  fail "dist build-context still contains legacy continuation path (.specwright/state/continuation.md)"
 else
   pass "dist build-context removes legacy continuation path"
 fi

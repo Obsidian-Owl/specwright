@@ -95,8 +95,14 @@ assert_contains "$SHIP_SKILL" "{workDir}/review-packet.md" "sw-ship consumes rev
 
 echo ""
 echo "--- Approval and stale-chain proof ---"
-HELPER_OUTPUT="$(
-  APPROVALS_HELPER="$APPROVALS_HELPER" TEST_TMPDIR="$TEST_TMPDIR" node --input-type=module <<'EOF'
+HELPER_OUTPUT=""
+HELPER_EXIT=0
+
+if ! command -v node >/dev/null 2>&1; then
+  fail "node is required for the approval-helper proof but was not found"
+else
+  HELPER_OUTPUT="$(
+    APPROVALS_HELPER="$APPROVALS_HELPER" TEST_TMPDIR="$TEST_TMPDIR" node --input-type=module <<'EOF'
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { pathToFileURL } from 'url';
@@ -188,14 +194,20 @@ process.stdout.write(JSON.stringify({
   rationaleArtifactHashPresent: Boolean(rationaleHash.artifactSetHash)
 }));
 EOF
-)"
-assert_output_contains "$HELPER_OUTPUT" '"designStatus":"APPROVED"' "design approval stays approved when artifact set matches"
-assert_output_contains "$HELPER_OUTPUT" '"unitStatusBefore":"APPROVED"' "unit-spec approval stays approved when artifact set matches"
-assert_output_contains "$HELPER_OUTPUT" '"unitStatusAfter":"STALE"' "unit-spec approval becomes stale when spec changes"
-assert_output_contains "$HELPER_OUTPUT" '"missingDesignStatus":"MISSING"' "missing design lineage is distinguishable from stale lineage"
-assert_output_contains "$HELPER_OUTPUT" '"headlessApprovedRejected":true' "headless approval fabrication is rejected"
-assert_output_contains "$HELPER_OUTPUT" '"roundTripEntries":2' "approvals ledger round-trips both design and unit approvals"
-assert_output_contains "$HELPER_OUTPUT" '"rationaleArtifactHashPresent":true' "workflow proof fixture includes rationale as an auditable artifact"
+  )" || HELPER_EXIT=$?
+
+  if [ "$HELPER_EXIT" -ne 0 ]; then
+    fail "approvals helper node script exited with code $HELPER_EXIT"
+  else
+    assert_output_contains "$HELPER_OUTPUT" '"designStatus":"APPROVED"' "design approval stays approved when artifact set matches"
+    assert_output_contains "$HELPER_OUTPUT" '"unitStatusBefore":"APPROVED"' "unit-spec approval stays approved when artifact set matches"
+    assert_output_contains "$HELPER_OUTPUT" '"unitStatusAfter":"STALE"' "unit-spec approval becomes stale when spec changes"
+    assert_output_contains "$HELPER_OUTPUT" '"missingDesignStatus":"MISSING"' "missing design lineage is distinguishable from stale lineage"
+    assert_output_contains "$HELPER_OUTPUT" '"headlessApprovedRejected":true' "headless approval fabrication is rejected"
+    assert_output_contains "$HELPER_OUTPUT" '"roundTripEntries":2' "approvals ledger round-trips both design and unit approvals"
+    assert_output_contains "$HELPER_OUTPUT" '"rationaleArtifactHashPresent":true' "workflow proof fixture includes rationale as an auditable artifact"
+  fi
+fi
 
 echo ""
 echo "RESULT: $PASS passed, $FAIL failed"

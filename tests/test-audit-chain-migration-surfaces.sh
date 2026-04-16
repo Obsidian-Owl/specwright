@@ -12,6 +12,9 @@ AUDIT_SKILL="$ROOT_DIR/core/skills/sw-audit/SKILL.md"
 GUARD_SKILL="$ROOT_DIR/core/skills/sw-guard/SKILL.md"
 RESEARCH_SKILL="$ROOT_DIR/core/skills/sw-research/SKILL.md"
 DEBUG_SKILL="$ROOT_DIR/core/skills/sw-debug/SKILL.md"
+PLAN_SKILL="$ROOT_DIR/core/skills/sw-plan/SKILL.md"
+BUILD_SKILL="$ROOT_DIR/core/skills/sw-build/SKILL.md"
+VERIFY_SKILL="$ROOT_DIR/core/skills/sw-verify/SKILL.md"
 GATE_BUILD_SKILL="$ROOT_DIR/core/skills/gate-build/SKILL.md"
 GATE_SECURITY_SKILL="$ROOT_DIR/core/skills/gate-security/SKILL.md"
 GATE_TESTS_SKILL="$ROOT_DIR/core/skills/gate-tests/SKILL.md"
@@ -75,6 +78,9 @@ for file in \
   "$GUARD_SKILL" \
   "$RESEARCH_SKILL" \
   "$DEBUG_SKILL" \
+  "$PLAN_SKILL" \
+  "$BUILD_SKILL" \
+  "$VERIFY_SKILL" \
   "$GATE_BUILD_SKILL" \
   "$GATE_SECURITY_SKILL" \
   "$GATE_TESTS_SKILL" \
@@ -112,6 +118,11 @@ assert_contains "$RESEARCH_SKILL" "{projectArtifactsRoot}/CHARTER.md" "sw-resear
 assert_contains "$DEBUG_SKILL" "{projectArtifactsRoot}/config.json" "sw-debug reads tracked config from projectArtifactsRoot"
 assert_contains "$DEBUG_SKILL" "{workArtifactsRoot}/{id}/diagnosis.md" "sw-debug writes diagnosis to auditable work artifacts"
 assert_contains "$DEBUG_SKILL" "{workArtifactsRoot}/{id}/spec.md" "sw-debug writes spec to auditable work artifacts"
+assert_contains "$PLAN_SKILL" "{projectArtifactsRoot}/CONSTITUTION.md" "sw-plan reads constitution from projectArtifactsRoot"
+assert_contains "$PLAN_SKILL" "{projectArtifactsRoot}/config.json" "sw-plan reads tracked config from projectArtifactsRoot"
+assert_contains "$BUILD_SKILL" "{projectArtifactsRoot}/CONSTITUTION.md" "sw-build reads constitution from projectArtifactsRoot"
+assert_contains "$BUILD_SKILL" "{projectArtifactsRoot}/config.json" "sw-build reads tracked config from projectArtifactsRoot"
+assert_contains "$VERIFY_SKILL" "{projectArtifactsRoot}/config.json" "sw-verify reads tracked config from projectArtifactsRoot"
 assert_contains "$GATE_BUILD_SKILL" "{projectArtifactsRoot}/config.json" "gate-build reads tracked config from projectArtifactsRoot"
 assert_contains "$GATE_SECURITY_SKILL" "{projectArtifactsRoot}/config.json" "gate-security reads tracked config from projectArtifactsRoot"
 assert_contains "$GATE_TESTS_SKILL" "{projectArtifactsRoot}/config.json" "gate-tests reads tracked config from projectArtifactsRoot"
