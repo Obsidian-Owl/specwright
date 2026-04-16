@@ -25,7 +25,7 @@ gate handoff using `protocols/decision.md` template.
 
 - `{worktreeStateRoot}/session.json` -- selected work for this worktree
 - `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit and previous gate results
-- `{repoStateRoot}/config.json` -- gate configuration (object or array format)
+- `{projectArtifactsRoot}/config.json` -- gate configuration (object or array format)
 - `{workDir}/spec.md` -- for spec compliance gate
 - `{workDir}/implementation-rationale.md` -- curated build-time reasoning when present
 - `{workArtifactsRoot}/{selectedWork.id}/integration-criteria.md` -- behavioral IC list for packet and final-unit conformance summary (when present)

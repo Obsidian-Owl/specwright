@@ -31,7 +31,7 @@ Implement the current work unit with TDD. The per-task loop is RED → GREEN →
 - `{repoStateRoot}/work/{selectedWork.id}/workflow.json`, `{workDir}/spec.md`, `{workDir}/plan.md`
 - `{workArtifactsRoot}/{selectedWork.id}/design.md`, `{workDir}/context.md`
 - `{workArtifactsRoot}/{selectedWork.id}/approvals.md` -- durable design and unit approval ledger when present
-- `{repoStateRoot}/CONSTITUTION.md`, `{repoStateRoot}/config.json`
+- `{projectArtifactsRoot}/CONSTITUTION.md`, `{projectArtifactsRoot}/config.json`
 
 ## Outputs
 
