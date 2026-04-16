@@ -23,8 +23,8 @@ test quality, not just pass/fail.
 
 ## Inputs
 
-- `.specwright/config.json` -- test commands, project language
-- `.specwright/TESTING.md` -- testing strategy with boundary classifications (optional)
+- `{projectArtifactsRoot}/config.json` -- test commands, project language
+- `{projectArtifactsRoot}/TESTING.md` -- testing strategy with boundary classifications (optional)
 - `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit
 - Test files in the codebase
 

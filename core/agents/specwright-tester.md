@@ -52,7 +52,7 @@ coverage (one test per function instead of per behavior).
 
 ## Testing strategy awareness
 
-If `.specwright/TESTING.md` exists, read it for boundary classifications per
+If `{projectArtifactsRoot}/TESTING.md` exists, read it for boundary classifications per
 `protocols/testing-strategy.md`. Constitution overrides TESTING.md.
 
 - **Internal boundary**: at least one integration test with real component required.

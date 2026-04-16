@@ -22,7 +22,7 @@ judgment for analysis that tools can't do.
 
 ## Inputs
 
-- `.specwright/config.json` -- `commands.lint`, SAST tool config if available
+- `{projectArtifactsRoot}/config.json` -- `commands.lint`, SAST tool config if available
 - `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit
 - Changed files (detected via `git diff`)
 

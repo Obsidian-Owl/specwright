@@ -25,14 +25,14 @@ and persist findings for future design cycles.
 ## Inputs
 
 - The codebase itself
-- `.specwright/CONSTITUTION.md` -- practices to check against
-- `.specwright/AUDIT.md` -- prior findings (if exists, for ID matching)
-- `.specwright/LANDSCAPE.md` -- module structure (if exists, for triage)
-- `.specwright/config.json` -- audit config (optional `audit` section)
+- `{projectArtifactsRoot}/CONSTITUTION.md` -- practices to check against
+- `{projectArtifactsRoot}/AUDIT.md` -- prior findings (if exists, for ID matching)
+- `{projectArtifactsRoot}/LANDSCAPE.md` -- module structure (if exists, for triage)
+- `{projectArtifactsRoot}/config.json` -- audit config (optional `audit` section)
 
 ## Outputs
 
-- `.specwright/AUDIT.md` -- findings per `protocols/audit.md` format
+- `{projectArtifactsRoot}/AUDIT.md` -- findings per `protocols/audit.md` format
 - Findings presented to user grouped by dimension before saving
 
 ## Constraints

@@ -30,8 +30,8 @@ applying `protocols/decision.md` for all decisions. Gate handoff at the end.
 - `{workArtifactsRoot}/{selectedWork.id}/context.md` -- research findings from sw-design
 - `{workArtifactsRoot}/{selectedWork.id}/decisions.md` -- design-phase decisions
 - Conditional design artifacts: `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.md`, `migrations.md`
-- `{repoStateRoot}/CONSTITUTION.md` -- practices to follow
-- `{repoStateRoot}/config.json` -- project configuration
+- `{projectArtifactsRoot}/CONSTITUTION.md` -- practices to follow
+- `{projectArtifactsRoot}/config.json` -- project configuration
 
 ## Outputs
 

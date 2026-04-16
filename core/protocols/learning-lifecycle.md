@@ -12,11 +12,11 @@ Three targets, ordered by durability:
 | **Auto-memory** | Project-specific patterns, common gotchas | Every session (first 200 lines of MEMORY.md) |
 | **patterns.md** | Detailed patterns with source and rationale | On demand (sw-design, sw-plan read it) |
 
-**Constitution** (`.specwright/CONSTITUTION.md`): Most durable. Add a practice with an ID (e.g., S6, Q5). User approves exact wording. Referenced by CLAUDE.md, loaded by skills, validated by gates.
+**Constitution** (`{projectArtifactsRoot}/CONSTITUTION.md`): Most durable. Add a practice with an ID (e.g., S6, Q5). User approves exact wording. Referenced by CLAUDE.md, loaded by skills, validated by gates.
 
 **Auto-memory** (MEMORY.md in Claude Code's auto-memory directory): Loaded automatically every session. Write compact entries under a `## Specwright Patterns` section. Fire-and-forget — patterns.md is the canonical record.
 
-**patterns.md** (`.specwright/patterns.md`): Full pattern library. Detailed descriptions with source and rationale. Create if missing on first promotion. Grouped by theme, not fixed categories.
+**patterns.md** (`{projectArtifactsRoot}/patterns.md`): Full pattern library. Detailed descriptions with source and rationale. Create if missing on first promotion. Grouped by theme, not fixed categories.
 
 ## Dual-Write Rule
 
@@ -37,7 +37,7 @@ When promoting to patterns.md, also write a compact one-liner to auto-memory. Th
 
 ## Raw File Retention
 
-`.specwright/learnings/{work-id}.json` — raw learning files. Archive only, never deleted. Schema: `{ workId, timestamp, findings: [{ category, source, description, proposedRule, disposition }] }`. Only written when at least one finding is promoted (not all dismissed).
+`{projectArtifactsRoot}/learnings/{work-id}.json` — raw learning files. Archive only, never deleted. Schema: `{ workId, timestamp, findings: [{ category, source, description, proposedRule, disposition }] }`. Only written when at least one finding is promoted (not all dismissed).
 
 ## Graceful Degradation
 

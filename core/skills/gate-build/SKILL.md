@@ -21,7 +21,7 @@ else matters.
 
 ## Inputs
 
-- `.specwright/config.json` -- `commands.build`, `commands.test`,
+- `{projectArtifactsRoot}/config.json` -- `commands.build`, `commands.test`,
   `commands.test:integration`, `commands.test:smoke`
 - `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit for evidence path
 

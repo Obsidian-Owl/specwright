@@ -25,9 +25,9 @@ between research and gate handoff, applying `protocols/decision.md` for all deci
 ## Inputs
 
 - The user's request (argument or conversation)
-- `{repoStateRoot}/CONSTITUTION.md` -- practices to follow
-- `{repoStateRoot}/CHARTER.md` -- vision and invariants
-- `{repoStateRoot}/config.json` -- project configuration
+- `{projectArtifactsRoot}/CONSTITUTION.md` -- practices to follow
+- `{projectArtifactsRoot}/CHARTER.md` -- vision and invariants
+- `{projectArtifactsRoot}/config.json` -- project configuration
 - `{worktreeStateRoot}/session.json` -- current worktree attachment, when present
 - `{repoStateRoot}/work/*/workflow.json` -- other active works for collision checks
 - The codebase itself

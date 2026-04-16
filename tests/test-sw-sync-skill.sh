@@ -118,7 +118,7 @@ done
 
 echo ""
 echo "--- Shared/session inputs ---"
-assert_contains "$SKILL_FILE" '{repoStateRoot}/config.json' "uses shared config path"
+assert_contains "$SKILL_FILE" '{projectArtifactsRoot}/config.json' "uses tracked project config path"
 assert_contains "$SKILL_FILE" '{worktreeStateRoot}/session.json' "uses per-worktree session path"
 assert_contains "$SKILL_FILE" '{repoStateRoot}/work/*/workflow.json' "uses per-work workflow enumeration"
 
@@ -136,6 +136,7 @@ assert_contains "$SKILL_FILE" 'skip deletion and report candidates only' "docume
 
 echo ""
 echo "--- Singleton drift guards ---"
+assert_not_contains "$SKILL_FILE" '.specwright/config.json' "does not reference legacy tracked config path directly"
 assert_not_contains "$SKILL_FILE" '.specwright/state/workflow.json' "does not reference legacy singleton workflow path"
 assert_not_contains "$SKILL_FILE" 'currentWork.branch' "does not rely on currentWork.branch"
 assert_not_contains "$SKILL_FILE" 'active feature branch reference' "does not describe the old active-feature-branch shortcut"

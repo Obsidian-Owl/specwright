@@ -2,7 +2,7 @@
 
 ## Format
 
-`.specwright/AUDIT.md` — optional reference document. Never blocks workflow.
+`{projectArtifactsRoot}/AUDIT.md` — optional reference document. Never blocks workflow.
 
 Header: `Snapshot:` (ISO 8601), `Scope:` (full | focused: {path}), `Dimensions:` (list), `Findings:` (count, B/W/I).
 

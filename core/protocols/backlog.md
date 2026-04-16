@@ -21,7 +21,7 @@ If `backlog` is absent from `config.json`, default to `markdown`.
 
 ### markdown
 
-Writes to `.specwright/BACKLOG.md`. Creates the file if it doesn't exist.
+Writes to `{projectArtifactsRoot}/BACKLOG.md`. Creates the file if it doesn't exist.
 
 ### github-issues
 
@@ -36,13 +36,13 @@ gh issue create --title "{BL-n} {title}" --body "{detail}" --label "{backlog.lab
 2. Auth is active (`gh auth status`)
 
 If either check fails: emit one warning ("GitHub Issues unavailable — writing to
-BACKLOG.md instead"), then write to markdown. Never silently drop items.
+`{projectArtifactsRoot}/BACKLOG.md` instead"), then write to markdown. Never silently drop items.
 
 ## ID Generation
 
 IDs are `BL-{n}` where `n` is a zero-padded three-digit integer (BL-001, BL-002, …).
 
-**For markdown target:** Read `.specwright/BACKLOG.md`, find the highest existing
+**For markdown target:** Read `{projectArtifactsRoot}/BACKLOG.md`, find the highest existing
 `BL-{n}` ID, increment by 1. If BACKLOG.md is missing or has no IDs, start at BL-001.
 
 **For github-issues target:** List open issues with the backlog label (`gh issue list

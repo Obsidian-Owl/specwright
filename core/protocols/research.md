@@ -43,7 +43,7 @@ Confidence measures **source quality**, not design risk:
 ## File Naming
 
 ```
-.specwright/research/{topic-id}-{YYYYMMDD}.md
+{projectArtifactsRoot}/research/{topic-id}-{YYYYMMDD}.md
 ```
 
 Topic ID: kebab-case, descriptive, 2-4 words (e.g., `stripe-api-webhooks`, `react-server-components`, `oauth2-pkce-flow`).
@@ -61,11 +61,14 @@ Consumers (sw-design) must warn when loading stale briefs. The brief itself is n
 
 ## Size Limits
 
-- Maximum **10 briefs** in `.specwright/research/`
+- Maximum **10 briefs** in `{projectArtifactsRoot}/research/`
 - Maximum **20 findings** per brief (keep highest-confidence if more)
 
 ## Consumption by sw-design
 
-During its research phase, sw-design checks `.specwright/research/` for briefs relevant to the current request. Relevant findings are incorporated into `context.md` with brief references (e.g., "per research brief `stripe-api-webhooks-20260301`").
+During its research phase, sw-design checks `{projectArtifactsRoot}/research/`
+for briefs relevant to the current request. Relevant findings are incorporated
+into `context.md` with brief references (e.g., "per research brief
+`stripe-api-webhooks-20260301`").
 
 Stale briefs are surfaced with a warning. sw-design may suggest re-running `/sw-research` to refresh.

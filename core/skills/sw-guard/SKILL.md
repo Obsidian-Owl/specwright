@@ -27,8 +27,8 @@ independently approvable. Existing guardrails are preserved during re-runs.
 ## Inputs
 
 - The codebase (dependency manifests, config files, existing hooks)
-- `.specwright/config.json` -- project configuration (optional -- not required)
-- `.specwright/CONSTITUTION.md` -- practices to follow (if present)
+- `{projectArtifactsRoot}/config.json` -- project configuration (optional -- not required)
+- `{projectArtifactsRoot}/CONSTITUTION.md` -- practices to follow (if present)
 - Existing agent hooks, git hooks, CI workflows
 
 ## Outputs
@@ -47,7 +47,7 @@ When complete, user-approved guardrails are configured. Artifacts may include:
 - Pre-commit hook configurations (framework chosen by user)
 - Pre-push hook configurations (test runner, coverage thresholds)
 - CI/CD workflow files (backstop checks, integration tests, security scanning)
-- `.specwright/config.json` -- updated with detected tool commands (if present)
+- `{projectArtifactsRoot}/config.json` -- updated with detected tool commands (if present)
 
 Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibility of sw-learn.
 
@@ -59,9 +59,9 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
 - Detection scope includes traditional tools (linters, formatters, test runners) and
   semantic analysis tools: ast-grep (`sg`), OpenGrep (`opengrep`), and platform LSP
   (Claude Code `.lsp.json`, Opencode built-in, `cli-lsp-client` standalone).
-- If `.specwright/config.json` exists, read `commands.*` fields as authoritative;
+- If `{projectArtifactsRoot}/config.json` exists, read `commands.*` fields as authoritative;
   supplement with detection for unconfigured dimensions.
-- If `.specwright/config.json` does not exist, rely entirely on detection.
+- If `{projectArtifactsRoot}/config.json` does not exist, rely entirely on detection.
   Validate detected tools by running them (e.g., `--version` check). Present
   standalone recommendations with explicit "detected via heuristics" labeling.
 - When Git workflow config is present or inferred, seed or migrate `git.targets` and `git.freshness` from the detected Git workflow strategy without requiring users to define a custom branch DSL.
@@ -90,10 +90,11 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
 
 **Configuration (LOW freedom):**
 - External file writes: diff-show-approve. Installation commands require explicit approval.
-- Update config.json with detected tool commands if `.specwright/` exists.
+- Update `{projectArtifactsRoot}/config.json` with detected tool commands when the tracked
+  project-artifact root exists.
 - When present, update the approved work-artifact publication choice in config separately from clone-local runtime state.
   Follow `protocols/context.md` for config updates.
-- Preserve the root split: tracked project policy stays under `.specwright/`,
+- Preserve the root split: tracked project policy stays under `{projectArtifactsRoot}`,
   while Git-admin session state remains local-only under the runtime roots.
 - Never modify CONSTITUTION.md (sw-learn's responsibility).
 

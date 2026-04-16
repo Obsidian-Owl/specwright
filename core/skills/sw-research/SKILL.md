@@ -24,12 +24,12 @@ briefs are consumed by sw-design (which has its own gate).
 ## Inputs
 
 - Research topic(s) from argument or conversation context
-- `.specwright/research/` — existing briefs (for deepening or refresh)
-- `.specwright/CHARTER.md` — technology vision (for relevance filtering)
+- `{projectArtifactsRoot}/research/` — existing briefs (for deepening or refresh)
+- `{projectArtifactsRoot}/CHARTER.md` — technology vision (for relevance filtering)
 
 ## Outputs
 
-- `.specwright/research/{topic-id}-{YYYYMMDD}.md` per `protocols/research.md`
+- `{projectArtifactsRoot}/research/{topic-id}-{YYYYMMDD}.md` per `protocols/research.md`
 
 ## Constraints
 
@@ -58,7 +58,7 @@ Low-confidence tracks noted in the brief for consumer awareness. Briefs are
 consumed by sw-design which validates findings at its own gate.
 
 **Persistence (LOW freedom):**
-Write to `.specwright/research/{topic-id}-{YYYYMMDD}.md`. Overwrite same topic+date.
+Write to `{projectArtifactsRoot}/research/{topic-id}-{YYYYMMDD}.md`. Overwrite same topic+date.
 Max 10 briefs. If at cap: log warning, list by date, suggest cleanup.
 Briefs older than 90 days are STALE — warn when loading.
 

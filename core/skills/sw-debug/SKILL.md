@@ -25,14 +25,14 @@ autonomously, applying `protocols/decision.md` for the fix/log/defer decision.
 
 - Problem description (argument or recent error context)
 - Initial evidence: error messages, logs, failing test output
-- `.specwright/config.json` — `backlog.type` and `backlog.label`
+- `{projectArtifactsRoot}/config.json` — `backlog.type` and `backlog.label`
 - Codebase files — read during investigation
 
 ## Outputs
 
-- `diagnosis.md` at `.specwright/work/{id}/` — always produced
-- `spec.md` at `.specwright/work/{id}/` — Fix path only (2-3 acceptance criteria)
-- `decisions.md` — fix/log/defer decision recorded per `protocols/decision.md`
+- `diagnosis.md` at `{workArtifactsRoot}/{id}/diagnosis.md` — always produced
+- `spec.md` at `{workArtifactsRoot}/{id}/spec.md` — Fix path only (2-3 acceptance criteria)
+- `decisions.md` at `{workArtifactsRoot}/{id}/decisions.md` — fix/log/defer decision recorded per `protocols/decision.md`
 
 ## Constraints
 
