@@ -1,0 +1,131 @@
+{
+  "version": "2.0",
+  "project": {
+    "name": "specwright",
+    "type": "claude-code-plugin",
+    "languages": ["markdown", "javascript", "python", "shell", "typescript"],
+    "framework": "claude-code-plugin-system",
+    "packageManager": null,
+    "testRunner": "pytest",
+    "linter": null,
+    "formatter": null
+  },
+  "commands": {
+    "build": "bash build/build.sh",
+    "test": "python -m pytest evals/tests/ -v && bash tests/test-claude-code-build.sh",
+    "lint": null,
+    "format": null
+  },
+  "git": {
+    "defaultBranch": "main",
+    "baseBranch": "main",
+    "strategy": "trunk-based",
+    "targets": {
+      "defaultRole": "integration",
+      "roles": {
+        "integration": { "branch": "main" },
+        "release": { "branch": "main" },
+        "maintenance": { "pattern": "release/*" }
+      }
+    },
+    "freshness": {
+      "validation": "branch-head",
+      "reconcile": "manual",
+      "checkpoints": {
+        "build": "require",
+        "verify": "require",
+        "ship": "require"
+      }
+    },
+    "workArtifacts": {
+      "mode": "clone-local",
+      "trackedRoot": null
+    },
+    "prTool": "gh",
+    "branchPrefix": "work/",
+    "mergeStrategy": "squash",
+    "prRequired": true,
+    "commitFormat": "conventional",
+    "commitTemplate": null,
+    "branchPerWorkUnit": true,
+    "cleanupBranch": true,
+    "conventionalCommits": true
+  },
+  "gates": {
+    "build": {
+      "enabled": true,
+      "command": "bash build/build.sh",
+      "description": "Validates plugin structure and manifest consistency"
+    },
+    "security": {
+      "enabled": true,
+      "scanSecrets": true,
+      "checkInjection": true,
+      "checkDataExposure": true
+    },
+    "spec": {
+      "enabled": true,
+      "requireEvidence": true
+    },
+    "tests": {
+      "enabled": true,
+      "philosophy": "tdd-strict",
+      "coverageThreshold": null,
+      "mutation": {
+        "mode": "auto",
+        "detectedTool": null,
+        "explicitTool": null,
+        "thresholds": {
+          "break": 50,
+          "low": 65,
+          "high": 80
+        },
+        "timeoutSeconds": 600,
+        "llmFallback": {
+          "mode": "auto-on-zero-mutants",
+          "maxMutantsPerChange": 10,
+          "redactSecrets": true
+        },
+        "equivalentTriage": {
+          "enabled": true
+        },
+        "nondeterminism": {
+          "pinSeed": true,
+          "seed": 42
+        },
+        "acceptedMutants": []
+      }
+    },
+    "wiring": {
+      "enabled": true,
+      "checkOrphans": true,
+      "checkCircularDeps": true,
+      "checkLayerViolations": true
+    },
+    "semantic": {
+      "enabled": true,
+      "description": "Tiered semantic analysis with progressive tool enhancement",
+      "categories": [
+        "error-path-cleanup",
+        "unchecked-errors",
+        "fail-open-handling",
+        "error-data-leakage",
+        "resource-lifecycle"
+      ],
+      "tools": {
+        "ast-grep": { "command": "sg", "detected": true },
+        "opengrep": { "command": "opengrep", "detected": false },
+        "lsp": { "source": "none", "detected": false }
+      }
+    }
+  },
+  "backlog": {
+    "type": "github-issues",
+    "label": "specwright-backlog"
+  },
+  "practices": {
+    "testing": "tdd-strict",
+    "conventions": "strict",
+    "security": "elevated"
+  }
+}
