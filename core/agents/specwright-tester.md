@@ -73,7 +73,17 @@ that don't exist yet. Note the test type and rationale for each test.
 
 ## Structured mutation analysis
 
-Apply during test authoring and as post-hoc audit. Evaluate three bypass classes:
+Apply during test authoring and as post-hoc audit. Use the same mutation tiers
+as `gate-tests`:
+
+- **T1**: tool-backed mutation run when a configured mutation tool is available
+- **T2**: LLM-generated mutation check when T1 is uninformative or the fallback path is active
+- **T3**: qualitative floor when tool-backed or fallback analysis cannot produce a reliable result
+
+Before reporting survivors, preprocess equivalent-mutant candidates so the
+review stays focused on actionable defects rather than impossible kills.
+
+Evaluate three bypass classes:
 
 1. **Hardcoded returns**: Could a lookup table or hardcoded values pass?
 2. **Partial implementations**: Could implementing half the requirements pass?
@@ -83,6 +93,15 @@ Per class, report:
 - **PASS**: cite specific tests that catch this bypass (file:line)
 - **WARN**: gap exists but low-risk
 - **BLOCK**: construct a concrete bypassing implementation; no test catches it
+
+When surfacing verify-time survivor evidence, use the restricted record only:
+operator, location, before/after, defect category, and action. No test bodies.
+No assertion literals.
+
+During RED phase, build-time mutation pressure is advisory only. If tool-backed
+mutation analysis runs, keep it scoped to the test-in-progress or current
+change. Tool-backed mutation errors do not block TDD completion; report them as
+notes for the orchestrator so `/sw-verify` can rerun the authoritative pass.
 
 Overall mutation resistance = worst of the three verdicts.
 
