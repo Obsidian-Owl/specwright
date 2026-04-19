@@ -1,0 +1,41 @@
+{
+  "workId": "codebase-audit",
+  "timestamp": "2026-02-16T00:10:00.000Z",
+  "findings": [
+    {
+      "category": "architecture",
+      "source": "gate-evidence",
+      "description": "Adversarial critic caught that READ-ONLY agents cannot write AUDIT.md. Skill must aggregate and write persistent artifacts itself.",
+      "proposedRule": "P10: Persistent artifacts need a skill-level synthesis step",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "architecture",
+      "source": "plan",
+      "description": "AUDIT.md follows identical structural pattern to LANDSCAPE.md: optional, timestamped, freshness-checked, consumer-agnostic protocol, loaded on demand.",
+      "proposedRule": "P11: Reference documents follow a reusable template",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "build",
+      "source": "gate-evidence",
+      "description": "Audit protocol first pass was 214 words (43% over ~150 target). Structural rewrite to 123 words worked; word trimming alone would not.",
+      "proposedRule": "P15: Protocol compression requires structural rewrite, not word trimming",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "build",
+      "source": "gate-evidence",
+      "description": "Both sw-design (+14 vs <=10) and sw-learn (+36 vs <=15) exceeded spec word-count limits on first pass, requiring fix commit.",
+      "proposedRule": "P16: Measure baseline word counts before implementing spec word-count limits",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "friction",
+      "source": "gate-evidence",
+      "description": "Dedicated docs task as final build task yielded 0 WARN/BLOCK wiring findings (19/19 passed) vs 6+ in previous units.",
+      "proposedRule": "P17: Dedicate a documentation task as the final build task",
+      "disposition": "promoted-patterns"
+    }
+  ]
+}

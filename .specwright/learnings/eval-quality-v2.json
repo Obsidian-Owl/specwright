@@ -1,0 +1,49 @@
+{
+  "workId": "eval-quality-v2",
+  "timestamp": "2026-04-06T22:45:00Z",
+  "findings": [
+    {
+      "category": "testing",
+      "source": "calibration run 1 vs run 2",
+      "description": "Protocol schema mismatches (status/verdict, currentWorkUnit/currentWork) cause silent false eval failures",
+      "proposedRule": "P40: grep all protocols for old field names after any rename",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "tooling",
+      "source": "model_grader calibration failure",
+      "description": "LLM output parsing must handle fences, preamble, and braces-in-strings",
+      "proposedRule": "P41: multi-strategy extraction for LLM JSON output",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "testing",
+      "source": "PR #142 review (greptile)",
+      "description": "Debug fixture BUG comment revealed root cause, undermining eval discriminative power",
+      "proposedRule": "P42: fixtures present symptoms, never diagnoses",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "testing",
+      "source": "gate-security CWE regex failure",
+      "description": "file_contains regex on free-text evidence scored 0.0; model_grade scored 1.0 on same content",
+      "proposedRule": "P43: model_grade for prose evidence, file_contains for structural assertions",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "process",
+      "source": "calibration run sequence",
+      "description": "Without calibration run, would have spent effort fixing working gates instead of broken grader",
+      "proposedRule": null,
+      "disposition": "dismissed"
+    }
+  ],
+  "gateCalibration": {
+    "build": { "verdict": "PASS", "totalFindings": 0, "falsePositives": [] },
+    "tests": { "verdict": "PASS", "totalFindings": 0, "falsePositives": [] },
+    "security": { "verdict": "PASS", "totalFindings": 0, "falsePositives": [] },
+    "wiring": { "verdict": "PASS", "totalFindings": 0, "falsePositives": [] },
+    "semantic": { "verdict": "PASS", "totalFindings": 0, "falsePositives": [] },
+    "spec": { "verdict": "PASS", "totalFindings": 0, "falsePositives": [] }
+  }
+}

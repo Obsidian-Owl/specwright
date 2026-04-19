@@ -1,0 +1,79 @@
+{
+  "workId": "testing-inner-loop",
+  "timestamp": "2026-03-26T12:35:00.000Z",
+  "findings": [
+    {
+      "category": "architecture",
+      "source": "tiered-test-execution build process",
+      "description": "Compressing existing skills before adding content freed 390 words in sw-build, enabling net reduction while adding functionality",
+      "proposedRule": "P30: Compress existing skills before adding content",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "category": "testing",
+      "source": "PR #112 + #113 review threads",
+      "description": "Reviewers consistently catch omissions and ordering (15 threads), not logic errors",
+      "proposedRule": "P31: PR reviewers catch omissions and ordering",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "category": "architecture",
+      "source": "PR #112 review thread #7",
+      "description": "Integration tests run in both build inner-loop and verify gate-build, flagged as redundant until documented",
+      "proposedRule": "P32: Document why a command runs in both build and verify",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "category": "testing",
+      "source": "test-discipline verify gate-spec",
+      "description": "Unit 2 had 0 tests for prompt wording changes; accepted because grep-testing prompt phrases is brittle",
+      "proposedRule": "P33: Test behavioral constraints, not prompt wording",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "category": "architecture",
+      "source": "test-discipline verify gate-spec",
+      "description": "AGENTS.md was 5 protocols and 1 anchor doc behind CLAUDE.md",
+      "proposedRule": "P26 updated: include AGENTS.md protocol list in documentation surface checks",
+      "disposition": "promoted:patterns(P26-update)"
+    }
+  ],
+  "gateCalibration": {
+    "build": {
+      "verdict": "PASS",
+      "findingCount": 0,
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    "tests": {
+      "verdict": "PASS",
+      "findingCount": 0,
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    "security": {
+      "verdict": "PASS",
+      "findingCount": 0,
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    "wiring": {
+      "verdict": "PASS",
+      "findingCount": 11,
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    "semantic": {
+      "verdict": "SKIP",
+      "findingCount": 0,
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    "spec": {
+      "verdict": "PASS",
+      "findingCount": 3,
+      "falsePositives": [],
+      "falseNegatives": []
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "workId": "workflow-hardening",
+  "timestamp": "2026-03-19T12:00:00.000Z",
+  "findings": [
+    {
+      "category": "architecture",
+      "source": "adversarial critic pre-mortem during design",
+      "description": "Critic predicted 6 failure modes (approval fatigue, ensemble tax, pre-mortem dedup, formulaic lenses, rotation backfire, no off-switch) that reshaped the entire design from 13 additions to 8 with 0 new interaction points",
+      "proposedRule": "Always run pre-mortem before finalizing designs with user-facing mechanisms",
+      "disposition": "promoted:auto-memory"
+    },
+    {
+      "category": "architecture",
+      "source": "design revision after critic rejection",
+      "description": "Original design added 9 new user interaction points (14-17 total per workflow). Revised design achieves all 8 quality gaps with 0 new interaction points by embedding into existing checkpoints",
+      "proposedRule": "Embed quality in existing checkpoints rather than adding new interaction points",
+      "disposition": "promoted:auto-memory"
+    },
+    {
+      "category": "process",
+      "source": "user decision during design review",
+      "description": "User chose to remove intensity toggle entirely. Rationale: escape hatches get used to avoid quality mechanisms. Self-calibration handles trivial changes (fast convergence)",
+      "proposedRule": "If a quality mechanism is optional, users skip it when it matters most — remove escape hatches",
+      "disposition": "promoted:auto-memory"
+    }
+  ]
+}

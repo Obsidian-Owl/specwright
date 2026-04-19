@@ -1,0 +1,52 @@
+{
+  "workId": "semantic-gate-reliability",
+  "timestamp": "2026-03-27T13:50:00.000Z",
+  "findings": [
+    {
+      "category": "architecture",
+      "source": "research + cross-project evidence",
+      "description": "LLM bias labels (experimental, opt-in) suppress execution even when config says enabled",
+      "proposedRule": "P34",
+      "disposition": "promoted-to-patterns"
+    },
+    {
+      "category": "testing",
+      "source": "PR #119 review (claude[bot] + greptile)",
+      "description": "Enforcement constraints need carve-outs for partial-run modes (--gate=<name>)",
+      "proposedRule": "P35",
+      "disposition": "promoted-to-patterns"
+    }
+  ],
+  "gateCalibration": {
+    "build": {
+      "totalFindings": 0,
+      "totalFalsePositives": 0,
+      "falsePositives": []
+    },
+    "tests": {
+      "totalFindings": 6,
+      "totalFalsePositives": 0,
+      "falsePositives": []
+    },
+    "security": {
+      "totalFindings": 0,
+      "totalFalsePositives": 0,
+      "falsePositives": []
+    },
+    "wiring": {
+      "totalFindings": 2,
+      "totalFalsePositives": 0,
+      "falsePositives": []
+    },
+    "semantic": {
+      "totalFindings": 0,
+      "totalFalsePositives": 0,
+      "falsePositives": []
+    },
+    "spec": {
+      "totalFindings": 0,
+      "totalFalsePositives": 0,
+      "falsePositives": []
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "workId": "workflow-commands",
+  "timestamp": "2026-03-24T10:05:00.000Z",
+  "findings": [
+    {
+      "category": "workflow",
+      "source": "sw-sync wiring gate WARNs",
+      "description": "Missing AGENTS.md and opencode adapter when adding sw-sync. Fixed after review. sw-review avoided by applying lesson.",
+      "proposedRule": "P26: Wire all 5 documentation surfaces when adding a new skill",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "category": "testing",
+      "source": "PR reviews across all 3 units",
+      "description": "Stale RED-phase comments, orphaned markdown list items, GNU-only \\s in grep. Tests catch content but miss structure.",
+      "proposedRule": "P27: Test for markdown structure, not just content keywords",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "category": "design",
+      "source": "architect rejection of sw-verify --fix",
+      "description": "Stage boundary violation caught at design, saving a build cycle. Enriched handoff was simpler alternative.",
+      "proposedRule": "P28: Challenge stage boundary violations at design time, not build time",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "category": "design",
+      "source": "verify enriched handoff design decision",
+      "description": "Two-step verify→resolve solved by information flow (enriched handoff) not a new tool (/sw-fix).",
+      "proposedRule": "P29: Prefer context-flow improvements over new tools",
+      "disposition": "promoted:patterns"
+    }
+  ],
+  "gateCalibration": {
+    "build": { "runs": 3, "pass": 3, "fail": 0, "falsePositives": [] },
+    "tests": { "runs": 3, "pass": 3, "fail": 0, "falsePositives": [] },
+    "security": { "runs": 3, "pass": 3, "fail": 0, "falsePositives": [] },
+    "wiring": { "runs": 3, "pass": 3, "fail": 0, "falsePositives": [] },
+    "spec": { "runs": 3, "pass": 3, "fail": 0, "falsePositives": [] },
+    "semantic": { "runs": 0, "pass": 0, "fail": 0, "falsePositives": [], "note": "skipped — markdown-only changes" }
+  }
+}

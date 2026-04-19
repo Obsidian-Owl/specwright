@@ -1,0 +1,61 @@
+{
+  "workId": "audit-remediation",
+  "timestamp": "2026-03-17T04:15:00Z",
+  "findings": [
+    {
+      "category": "security",
+      "source": "work-lifecycle PR review (greptile + claude)",
+      "description": "Destructive operations in SKILL.md constraints need explicit realpath canonicalization — 'resolves to' is ambiguous to AI agents",
+      "proposedRule": "Require realpath canonicalization and parent-path validation for rm -rf in skill constraints",
+      "disposition": "promoted:constitution"
+    },
+    {
+      "category": "architecture",
+      "source": "platform-markers unit — eliminated sw-build adapter override",
+      "description": "Platform markers in core skills eliminate adapter duplication for body-only differences",
+      "proposedRule": "Use platform markers for body differences, reserve overrides for fundamentally different skills",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "category": "testing",
+      "source": "claude-code-tests unit — 3 rounds of hardening across gate-tests and PR review",
+      "description": "Bash test suites need EXIT traps, parser sanity checks, and git diff for source integrity",
+      "proposedRule": "EXIT trap, parser sanity check, git diff --exit-code for bash test scripts",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "category": "process",
+      "source": "all 3 units — PR review comments",
+      "description": "PR reviewers consistently find issues that gates miss (protocol adherence, edge cases, ambiguous wording)",
+      "proposedRule": null,
+      "disposition": "dismissed:observation"
+    },
+    {
+      "category": "architecture",
+      "source": "work-lifecycle unit — state cleanup design decision",
+      "description": "State cleanup belongs in sw-learn (not sw-ship) to preserve workDir access during learn phase",
+      "proposedRule": null,
+      "disposition": "dismissed:documented-in-plan"
+    }
+  ],
+  "gateCalibration": {
+    "security": {
+      "verdict": "WARN",
+      "findingCount": 1,
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    "wiring": {
+      "verdict": "PASS",
+      "findingCount": 1,
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    "spec": {
+      "verdict": "PASS",
+      "findingCount": 0,
+      "falsePositives": [],
+      "falseNegatives": []
+    }
+  }
+}

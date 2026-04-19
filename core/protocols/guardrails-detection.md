@@ -48,6 +48,15 @@ Check for known config filenames. Presence maps to a specific tool:
 - `.gitleaks.toml` → gitleaks
 - `.secrets.baseline` → detect-secrets
 
+**Mutation testing (cross-language):**
+- `stryker.conf.*`, `.stryker*.json`, `.stryker*.js` → Stryker
+- `pitest.xml`, `pom.xml` / `build.gradle*` with PIT plugin coordinates → PIT
+- `mutmut_config.py`, `[tool.mutmut]` in `pyproject.toml` → mutmut
+- `Cargo.toml` with `cargo-mutants` in dependencies, install docs, or scripts → cargo-mutants
+- `composer.json` with `infection/infection`, `infection.json*` → Infection
+- `.gremlins.yml`, `.gremlins.yaml` → Gremlins
+- `gomu*.yml`, `gomu*.yaml`, `.gomu.yml`, `.gomu.yaml` → gomu
+
 **Semantic analysis (cross-language):**
 - `.ast-grep/` directory, `sgconfig.yml` → ast-grep
 - `.opengrep/` directory → OpenGrep
@@ -59,6 +68,18 @@ Config presence without the binary means the tool is configured but not installe
 **Semantic analysis tools on PATH:**
 - `sg` → ast-grep (validate with `sg --version 2>&1 | grep -iq 'ast-grep'` — plain `which sg` is insufficient because `/usr/bin/sg` from shadow-utils exists on most Linux distros)
 - `opengrep` → OpenGrep (validate with `which opengrep`)
+
+**Mutation-tool detection states:**
+
+| State | Signal | Resulting tier |
+|-------|--------|----------------|
+| Configured | Tool installed plus matching config file or manifest signal present | T1 tool-backed mutation |
+| Installed but unconfigured | Binary or package signal present, but no config file | T1 tool-backed mutation with WARN remediation to configure the tool |
+| Absent | No tool signal, no config signal, or neither present | Mutation falls back to T2/T3 instead of silently skipping |
+
+When fallback reaches `T3`, the run is the qualitative bypass-class floor:
+hardcoded returns, partial implementations, and boundary skips, with one
+verdict per bypass class.
 
 For unfamiliar stacks or tools not in these mappings, use WebSearch to identify
 the project's tooling conventions.

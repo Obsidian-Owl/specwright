@@ -1,0 +1,35 @@
+{
+  "workId": "language-building-skills",
+  "timestamp": "2026-04-06T15:00:00.000Z",
+  "findings": [
+    {
+      "category": "process",
+      "source": "User correction during build phase",
+      "description": "Skipped verify/ship stages, jumped from build directly to PR creation. Stage boundary violation.",
+      "proposedRule": "Never create PRs during build. Workflow is build → verify → ship.",
+      "disposition": "promoted:auto-memory"
+    },
+    {
+      "category": "building",
+      "source": "PR #140 pre-push failure",
+      "description": "Non-skill directories under core/skills/ trigger CI validation failures (count mismatch + missing SKILL.md). 4th occurrence of CI count pattern.",
+      "proposedRule": "P38: Non-skill directories under core/skills/ require CI test exclusions.",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "category": "architecture",
+      "source": "Design D-1, D-2 across testing-quality-infrastructure and language-building-skills",
+      "description": "Orchestrator reads reference files and includes content in delegation prompts. Proven across 2 designs. No dynamic injection, no agent modification.",
+      "proposedRule": "P39: Orchestrator-level prompt composition is the standard pattern for language-specific agent behavior.",
+      "disposition": "promoted:patterns"
+    }
+  ],
+  "gateCalibration": {
+    "build": { "status": "PASS", "findings": { "block": 0, "warn": 0, "info": 0 }, "falsePositives": [] },
+    "tests": { "status": "PASS", "findings": { "block": 0, "warn": 0, "info": 1 }, "falsePositives": [] },
+    "security": { "status": "PASS", "findings": { "block": 0, "warn": 0, "info": 0 }, "falsePositives": [] },
+    "wiring": { "status": "PASS", "findings": { "block": 0, "warn": 0, "info": 0 }, "falsePositives": [] },
+    "semantic": { "status": "PASS", "findings": { "block": 0, "warn": 0, "info": 0 }, "falsePositives": [] },
+    "spec": { "status": "PASS", "findings": { "block": 0, "warn": 0, "info": 0 }, "falsePositives": [] }
+  }
+}

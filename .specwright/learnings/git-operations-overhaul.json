@@ -1,0 +1,41 @@
+{
+  "workId": "git-operations-overhaul",
+  "timestamp": "2026-02-12T08:30:00Z",
+  "findings": [
+    {
+      "category": "build",
+      "source": "git-log",
+      "description": "Premature commit of a removal (backward compat) based on quick user feedback, then immediate revert when user reconsidered. 3 commits for net-zero change.",
+      "proposedRule": "When a user suggests removing a feature, confirm the reasoning before committing the removal.",
+      "disposition": "learning"
+    },
+    {
+      "category": "wiring",
+      "source": "gate-evidence",
+      "description": "Rewrote protocols/git.md and skills but forgot CLAUDE.md still said 'Trunk-based'. Wiring gate caught 2 stale descriptions. CLAUDE.md is the entry point Claude reads first.",
+      "proposedRule": "When modifying a protocol or skill, check CLAUDE.md and DESIGN.md for stale descriptions.",
+      "disposition": "promoted-constitution"
+    },
+    {
+      "category": "architecture",
+      "source": "user-feedback",
+      "description": "WU1 and WU2 evidence both wrote to shared feature directory, overwriting WU1 files. Each work unit needs its own work directory for evidence isolation.",
+      "proposedRule": "Each work unit gets its own work directory at .specwright/work/{work-unit-id}/.",
+      "disposition": "learning"
+    },
+    {
+      "category": "wiring",
+      "source": "gate-evidence",
+      "description": "sw-init constraints referenced AskUserQuestion but it wasn't in allowed-tools frontmatter. Wiring gate caught it.",
+      "proposedRule": "When adding tool references to a skill's constraints, update the allowed-tools frontmatter.",
+      "disposition": "learning"
+    },
+    {
+      "category": "architecture",
+      "source": "plan",
+      "description": "Config-driven protocol pattern: git.md reads all behavior from config.json with a strategy enum. Skills don't hardcode variation. Protocol becomes a decision tree, config is the input.",
+      "proposedRule": "When a protocol needs to support variation, parameterize via config.json with a strategy enum and per-field defaults.",
+      "disposition": "learning"
+    }
+  ]
+}

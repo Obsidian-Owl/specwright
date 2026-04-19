@@ -1,0 +1,41 @@
+{
+  "workId": "eval-orchestrator",
+  "timestamp": "2026-03-19T04:00:00.000Z",
+  "findings": [
+    {
+      "category": "integration",
+      "source": "first real run (3 bugs found)",
+      "description": "claude -p --output-format stream-json requires --verbose flag. All runs silently failed without it.",
+      "proposedRule": "Test CLI flag combinations with real binary, not just mocks.",
+      "disposition": "dismissed"
+    },
+    {
+      "category": "architecture",
+      "source": "design gap discovered during first run",
+      "description": "Plugin loading requires --plugin-dir for skill availability in non-standard dirs.",
+      "proposedRule": "Verify plugin availability early in design for non-standard Claude Code contexts.",
+      "disposition": "dismissed"
+    },
+    {
+      "category": "testing",
+      "source": "recurring across 3 work units (3 occurrences)",
+      "description": "Eval JSON field names silently mismatch handler dispatch keys: state_check/state, sequence/expected_sequence, seed.type not branched",
+      "proposedRule": "Add schema validation that checks all JSON field names against registered handlers before execution.",
+      "disposition": "promoted:auto-memory"
+    },
+    {
+      "category": "testing",
+      "source": "393 tests passed but 3 bugs found in first real run",
+      "description": "All tests mock subprocess — integration seams between components untested. Bugs at path resolution, flag combinations, field name mismatches.",
+      "proposedRule": "Include at least one non-mocked smoke test for subprocess pipelines.",
+      "disposition": "promoted:auto-memory"
+    },
+    {
+      "category": "process",
+      "source": "PR review bots (claude[bot] + greptile)",
+      "description": "Review caught: silent exception swallow, workdir leaks, hardcoded paths, unguarded getattr — patterns tests couldn't catch.",
+      "proposedRule": "Post-build PR review is a critical quality gate.",
+      "disposition": "dismissed"
+    }
+  ]
+}

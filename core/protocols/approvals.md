@@ -14,8 +14,12 @@ artifacts.
 
 - `design` — approves the design artifact set that `/sw-plan` consumes
 - `unit-spec` — approves one unit's `spec.md` / `plan.md` / `context.md`
+- `accepted-mutant` — approves one accepted-mutant lineage record for the
+  planned `/sw-verify --accept-mutant` flow
 
-Use one approval entry per scope. `unit-spec` entries also carry `unitId`.
+Use one active approval entry per design or unit-spec scope. `unit-spec`
+entries also carry `unitId`. `accepted-mutant` uses one active entry per
+`mutantId`.
 
 ## Approval Status Vocabulary
 
@@ -42,6 +46,27 @@ Only these source classifications are valid:
 
 `headless-check` may report `STALE` or missing lineage, but it MUST NOT create
 an `APPROVED` entry.
+
+## Accepted-Mutant Lineage
+
+Accepted mutants are not silent config waivers. The config list is only the
+lookup surface for the current branch; durable approval truth lives in
+`approvals.md`. The canonical config linkage is
+`config.gates.tests.mutation.acceptedMutants[]`.
+
+Each `accepted-mutant` entry is an auditable approval record tied to the mutant
+lineage and carries:
+
+- `unitId`
+- `mutantId`
+- `reason`
+- `configPath` or equivalent config linkage
+- `approvedAt`
+- `expiresAt`
+
+Default expiry is 90 days from approval. Once `expiresAt` passes, or the
+underlying mutant lineage no longer matches the current artifact set, the
+approval becomes `STALE` and verify must surface it again.
 
 ## Artifact Set Hashing
 
@@ -82,6 +107,21 @@ Durable human approval checkpoints for this work.
       "artifacts": ["design.md", "context.md", "decisions.md"],
       "approvedAt": "2026-04-15T00:00:00Z",
       "notes": null
+    },
+    {
+      "scope": "accepted-mutant",
+      "unitId": "01-mutation-contract-foundation",
+      "mutantId": "mut-123",
+      "status": "APPROVED",
+      "source": {
+        "classification": "command",
+        "ref": "/sw-verify --accept-mutant mut-123 --reason \"equivalent defensive branch\" (planned command shape)"
+      },
+      "artifactSetHash": "sha256:...",
+      "artifacts": ["spec.md", "plan.md", "context.md"],
+      "approvedAt": "2026-04-15T00:00:00Z",
+      "expiresAt": "2026-07-14T00:00:00Z",
+      "notes": "Accepted mutant lineage; not a silent waiver"
     }
   ]
 }
@@ -100,6 +140,9 @@ Durable human approval checkpoints for this work.
   current unit artifact set.
 - `sw-verify` validates approval freshness before gate execution and reports
   approval lineage separately from ordinary code-quality findings.
+- `sw-verify --accept-mutant {id}` _(planned — implemented in a later unit)_
+  will record an `accepted-mutant` approval entry with expiry instead of
+  relying on a silent config-only waiver.
 
 ## Shared Helper Contract
 
@@ -109,6 +152,8 @@ Shared approval helpers must provide deterministic support for:
 - parsing and serializing `approvals.md`
 - recording a new approval entry while marking older entries for the same scope
   as `SUPERSEDED`
+- recording or refreshing `accepted-mutant` entries without collapsing them
+  into a silent config-only waiver
 - validating approval freshness against current artifacts
 - rejecting any attempt to create `APPROVED` approval state from
   `headless-check`
