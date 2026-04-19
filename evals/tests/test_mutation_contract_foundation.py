@@ -7,8 +7,9 @@ supported mutation tools and three detection states.
 
 import json
 import os
-import re
 import unittest
+
+from evals.tests._text_helpers import assert_multiline_regex, load_text
 
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,20 +23,8 @@ _BUILD_QUALITY_PATH = os.path.join(
 
 
 def _load_json(path):
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
-
-
-def _load_text(path):
-    with open(path, "r") as f:
-        return f.read()
-
-
-def _assert_multiline_regex(testcase, text, pattern):
-    testcase.assertIsNotNone(
-        re.search(pattern, text, re.DOTALL),
-        f"pattern not found: {pattern}",
-    )
 
 
 class TestMutationConfigExists(unittest.TestCase):
@@ -115,7 +104,7 @@ class TestMutationDetectionProtocol(unittest.TestCase):
     """AC-2 + AC-6: detection protocol names supported tools and states."""
 
     def setUp(self):
-        self.content = _load_text(_DETECTION_PATH)
+        self.content = load_text(_DETECTION_PATH)
         self.lower = self.content.lower()
 
     def test_lists_supported_mutation_tools(self):
@@ -132,21 +121,21 @@ class TestMutationDetectionProtocol(unittest.TestCase):
                 self.assertIn(tool, self.lower)
 
     def test_mentions_configured_state(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"(installed|tool).{0,40}(config|configured).{0,80}(t1|tool-backed|mutation)",
         )
 
     def test_mentions_installed_but_unconfigured_state(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"(installed|binary).{0,80}(no config|unconfigured|without config)",
         )
 
     def test_mentions_absent_state(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"(no tool|tool absent|neither present|not installed)",
@@ -159,10 +148,10 @@ class TestMutationDetectionProtocol(unittest.TestCase):
             r"(no tool|tool absent|neither present|not installed)",
         ]
         for pattern in patterns:
-            _assert_multiline_regex(self, self.lower, pattern)
+            assert_multiline_regex(self, self.lower, pattern)
 
     def test_t3_fallback_names_the_qualitative_bypass_classes(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"t3.{0,80}hardcoded returns.+partial implementations.+boundary skips",
@@ -173,35 +162,35 @@ class TestMutationEvidenceProtocol(unittest.TestCase):
     """AC-3 + AC-6: evidence protocol documents tiered mutation disclosures."""
 
     def setUp(self):
-        self.content = _load_text(_EVIDENCE_PATH)
+        self.content = load_text(_EVIDENCE_PATH)
         self.lower = self.content.lower()
 
     def test_removes_r2_not_implemented_carve_out(self):
         self.assertNotIn("r2 is not implemented", self.lower)
 
     def test_documents_tier_aware_escalation_signal(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"mutation resistance.+50%\+ of test files.+t1/t2.+2\+\s+bypass classes.+t3",
         )
 
     def test_requires_mutation_evidence_to_disclose_the_tier(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"mutation evidence.+disclose.+tier",
         )
 
     def test_t2_disclosure_notes_redaction_without_secret_values(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"t2.+redact.+without.+reveal.+secret",
         )
 
     def test_t3_definition_names_preserved_bypass_classes(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"t3.+hardcoded returns.+partial.+implementations.+boundary skips",
@@ -212,7 +201,7 @@ class TestMutationApprovalProtocol(unittest.TestCase):
     """AC-4 + AC-6: approvals protocol captures accepted-mutant lineage."""
 
     def setUp(self):
-        self.content = _load_text(_APPROVALS_PATH)
+        self.content = load_text(_APPROVALS_PATH)
         self.lower = self.content.lower()
 
     def test_preserves_standard_status_vocabulary(self):
@@ -221,21 +210,21 @@ class TestMutationApprovalProtocol(unittest.TestCase):
                 self.assertIn(status, self.content)
 
     def test_defines_accepted_mutant_lineage_as_auditable_record(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"accepted[- ]mutant.+approval record",
         )
 
     def test_accepted_mutant_records_expire(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"accepted[- ]mutant.{0,200}(?:90 days|expires? at|expires?)",
         )
 
     def test_accepted_mutants_are_not_silent_config_waivers(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"accepted[- ]mutant.+not.+silent.+waiver",
@@ -250,25 +239,25 @@ class TestBuildTimeMutationSignalProtocol(unittest.TestCase):
     """AC-5 + AC-6: build-quality protocol keeps mutation advisory during build."""
 
     def setUp(self):
-        self.content = _load_text(_BUILD_QUALITY_PATH)
+        self.content = load_text(_BUILD_QUALITY_PATH)
         self.lower = self.content.lower()
 
     def test_build_time_mutation_signal_is_advisory_only(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"build-time mutation.+advisory",
         )
 
     def test_tool_backed_mutation_errors_do_not_block_red_to_green(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"tool-backed mutation errors?.+cannot block.+red.?to.?green",
         )
 
     def test_build_time_mutation_notes_are_recorded(self):
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.lower,
             r"mutation.+recorded.+(?:as-built notes|build-time notes)",
@@ -280,9 +269,9 @@ class TestMutationContractDrift(unittest.TestCase):
 
     def setUp(self):
         self.config = _load_json(_CONFIG_PATH)["gates"]["tests"]["mutation"]
-        self.detection = _load_text(_DETECTION_PATH)
-        self.evidence = _load_text(_EVIDENCE_PATH)
-        self.approvals = _load_text(_APPROVALS_PATH)
+        self.detection = load_text(_DETECTION_PATH)
+        self.evidence = load_text(_EVIDENCE_PATH)
+        self.approvals = load_text(_APPROVALS_PATH)
 
     def test_approvals_name_the_accepted_mutants_config_key(self):
         self.assertIn("acceptedMutants", self.config)
@@ -292,7 +281,7 @@ class TestMutationContractDrift(unittest.TestCase):
         # `guardrails-detection.md` uses the canonical phrase "silently skipping";
         # `evidence.md` documents the same contract as "silent skip".
         self.assertIn("silently skipping", self.detection)
-        _assert_multiline_regex(
+        assert_multiline_regex(
             self,
             self.evidence.lower(),
             r"mutation.+never.+silent skip",
