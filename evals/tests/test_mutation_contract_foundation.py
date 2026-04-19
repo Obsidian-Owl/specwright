@@ -14,6 +14,11 @@ import unittest
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _CONFIG_PATH = os.path.join(_REPO_ROOT, ".specwright", "config.json")
 _DETECTION_PATH = os.path.join(_REPO_ROOT, "core", "protocols", "guardrails-detection.md")
+_EVIDENCE_PATH = os.path.join(_REPO_ROOT, "core", "protocols", "evidence.md")
+_APPROVALS_PATH = os.path.join(_REPO_ROOT, "core", "protocols", "approvals.md")
+_BUILD_QUALITY_PATH = os.path.join(
+    _REPO_ROOT, "core", "protocols", "build-quality.md"
+)
 
 
 def _load_json(path):
@@ -135,6 +140,92 @@ class TestMutationDetectionProtocol(unittest.TestCase):
         ]
         for pattern in patterns:
             self.assertRegex(self.lower, pattern)
+
+
+class TestMutationEvidenceProtocol(unittest.TestCase):
+    """AC-3 + AC-6: evidence protocol documents tiered mutation disclosures."""
+
+    def setUp(self):
+        self.content = _load_text(_EVIDENCE_PATH)
+        self.lower = self.content.lower()
+
+    def test_removes_r2_not_implemented_carve_out(self):
+        self.assertNotIn("r2 is not implemented", self.lower)
+
+    def test_documents_tier_aware_escalation_signal(self):
+        self.assertRegex(
+            self.lower,
+            r"mutation resistance.+50%\+ of test files.+t1/t2.+2\+\s+bypass classes.+t3",
+        )
+
+    def test_requires_mutation_evidence_to_disclose_the_tier(self):
+        self.assertRegex(
+            self.lower,
+            r"mutation evidence.+disclose.+tier",
+        )
+
+    def test_t2_disclosure_notes_redaction_without_secret_values(self):
+        self.assertRegex(
+            self.lower,
+            r"t2.+redact.+without.+reveal.+secret",
+        )
+
+
+class TestMutationApprovalProtocol(unittest.TestCase):
+    """AC-4 + AC-6: approvals protocol captures accepted-mutant lineage."""
+
+    def setUp(self):
+        self.content = _load_text(_APPROVALS_PATH)
+        self.lower = self.content.lower()
+
+    def test_preserves_standard_status_vocabulary(self):
+        for status in ("APPROVED", "STALE", "SUPERSEDED"):
+            with self.subTest(status=status):
+                self.assertIn(status, self.content)
+
+    def test_defines_accepted_mutant_lineage_as_auditable_record(self):
+        self.assertRegex(
+            self.lower,
+            r"accepted[- ]mutant.+approval record",
+        )
+
+    def test_accepted_mutant_records_expire(self):
+        self.assertRegex(
+            self.lower,
+            r"accepted[- ]mutant.+90 days|expires? at|expires?",
+        )
+
+    def test_accepted_mutants_are_not_silent_config_waivers(self):
+        self.assertRegex(
+            self.lower,
+            r"accepted[- ]mutant.+not.+silent.+waiver",
+        )
+
+
+class TestBuildTimeMutationSignalProtocol(unittest.TestCase):
+    """AC-5 + AC-6: build-quality protocol keeps mutation advisory during build."""
+
+    def setUp(self):
+        self.content = _load_text(_BUILD_QUALITY_PATH)
+        self.lower = self.content.lower()
+
+    def test_build_time_mutation_signal_is_advisory_only(self):
+        self.assertRegex(
+            self.lower,
+            r"build-time mutation.+advisory",
+        )
+
+    def test_tool_backed_mutation_errors_do_not_block_red_to_green(self):
+        self.assertRegex(
+            self.lower,
+            r"tool-backed mutation errors?.+cannot block.+red.?to.?green",
+        )
+
+    def test_build_time_mutation_notes_are_recorded(self):
+        self.assertRegex(
+            self.lower,
+            r"mutation.+recorded.+as-built notes|build-time notes",
+        )
 
 
 if __name__ == "__main__":

@@ -54,6 +54,31 @@ Not for:
 - Primary communication
 - User decision-making
 
+## Mutation Evidence
+
+Mutation evidence is tier-aware. Every mutation report must disclose which tier
+ran:
+
+- `T1` — tool-backed mutation analysis
+- `T2` — LLM-generated mutants
+- `T3` — qualitative bypass-class floor
+
+Required disclosure for mutation evidence:
+
+- the tier that ran
+- tool name when `T1` ran
+- commit SHA or diff scope used for the run
+- survivor list or mutation score for `T1` / `T2`, or bypass-class verdicts for
+  `T3`
+- accepted-mutant lineage when a survivor is treated as approved debt
+
+`T2` disclosure rules:
+
+- `T2` disclosures must say whether source was redacted without revealing secret values
+- state whether source redaction was applied before any model input
+- describe redaction as perimeter status only (`redaction applied: yes/no`)
+- never reveal secret values, raw secret-like tokens, or redacted source inline
+
 ## Reviewer Synthesis
 
 `review-packet.md` is a sibling audit artifact, not another gate report.
@@ -136,7 +161,7 @@ sw-verify should recommend upstream action.
 
 1. **gate-spec**: 3+ criteria have FAIL status (systemic, not isolated)
 2. **gate-wiring**: circular dependencies in changed files (structural problem)
-3. **gate-tests**: mutation resistance BLOCK on 50%+ of test files -- Requires the mutation resistance gate dimension (R2). If R2 is not implemented, this signal is excluded from the escalation count and the remaining 4 signals still function.
+3. **gate-tests**: mutation resistance BLOCK on 50%+ of test files (`T1/T2`) or on 2+ bypass classes (`T3`).
 4. **gate-security**: BLOCK findings in core data flow (not surface-level)
 5. **Multiple gates** (2+) return FAIL simultaneously (compound failure)
 

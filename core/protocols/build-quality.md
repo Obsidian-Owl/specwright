@@ -36,6 +36,17 @@ The reviewer reads files directly. Do NOT pass full diffs in the prompt.
 user. If user fixes, the reviewer gets ONE re-review pass. No further review cycles
 after that — proceed to handoff regardless.
 
+## Build-Time Mutation Signal
+
+Build-time mutation signal is advisory only when mutation analysis runs during
+RED-to-GREEN.
+
+- build-time mutation findings do not carry verify-time verdict weight
+- tool-backed mutation errors cannot block RED-to-GREEN completion
+- survivors, low mutation scores, and tool-backed mutation errors must be
+  recorded as build-time notes or as-built notes
+- `/sw-verify` reruns the authoritative, verdict-bearing mutation pass later
+
 ## As-Built Notes
 
 **Trigger:** After all tasks committed (and after post-build review).
@@ -46,6 +57,8 @@ after that — proceed to handoff regardless.
 - Plan deviations: what changed from the original plan and why
 - Implementation decisions: choices made during build not covered by plan
 - Actual file paths: if different from what plan.md predicted
+- Build-time mutation notes when mutation analysis ran during the task loop
+  (survivors, advisory thresholds, or tool errors)
 
 Only document what differed from plan. Don't restate what went as planned.
 
