@@ -84,6 +84,10 @@ Invoked by verify, not directly by users.
 | `gate-semantic` | Error-path resource leaks, unchecked error returns | WARN |
 | `gate-spec` | Every acceptance criterion has evidence | BLOCK |
 
+Six internal gates: build, tests, security, wiring, semantic, spec.
+Tiered mutation analysis stays inside gate-tests and uses specwright-tester as
+the companion surface. It is not a separate mutation gate.
+
 ### Design / Plan Split
 
 Solution architecture and implementation planning are separate skills:
