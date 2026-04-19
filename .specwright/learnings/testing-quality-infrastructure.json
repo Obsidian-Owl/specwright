@@ -1,0 +1,49 @@
+{
+  "workId": "testing-quality-infrastructure",
+  "timestamp": "2026-04-06T14:00:00.000Z",
+  "findings": [
+    {
+      "category": "testing",
+      "source": "WU-01 through WU-03, all 6 test files",
+      "description": "Regex patterns matching across lines in markdown need re.DOTALL. The . metacharacter doesn't match newlines by default, causing false failures in proximity checks across line boundaries.",
+      "proposedRule": "P36: Use re.DOTALL for regex patterns matching markdown content.",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "category": "architecture",
+      "source": "PR #138 review, threads 2+3+4",
+      "description": "Integration tester agent handling multiple tiers (integration+contract+e2e) confused reviewers when 'no mocks, real infrastructure' was applied universally. Contract tests mock externals by design. The no-skip rule for contracts means the framework must be available, not live services.",
+      "proposedRule": "P37: Agent prompts for mixed-tier delegation must explicitly carve out contract behavior.",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "category": "testing",
+      "source": "PR #137 review, design v1 review",
+      "description": "Expensive boundary mapped to integration tier creates guaranteed CI failures with no-skip integration tester. Fixed: expensive defaults to unit (mocked), user reclassifies to internal explicitly.",
+      "proposedRule": null,
+      "disposition": "dismissed:already-fixed-in-code"
+    },
+    {
+      "category": "planning",
+      "source": "Design v1 architect review",
+      "description": "Architect v1 rejection caught 2 BLOCKs (build system globs, unverified skill injection) and scored simplicity 2/5. Pre-mortem predicted exact failure mode. Design went from 8 to 6 components.",
+      "proposedRule": null,
+      "disposition": "dismissed:reinforces-P1"
+    },
+    {
+      "category": "building",
+      "source": "WU-01 ship phase",
+      "description": "Adding new agent file broke CI agent count test. 3rd recurrence of this pattern.",
+      "proposedRule": null,
+      "disposition": "dismissed:already-in-memory"
+    }
+  ],
+  "gateCalibration": {
+    "build": { "status": "PASS", "findings": { "block": 0, "warn": 0, "info": 0 }, "falsePositives": [] },
+    "tests": { "status": "PASS", "findings": { "block": 0, "warn": 1, "info": 2 }, "falsePositives": [] },
+    "security": { "status": "PASS", "findings": { "block": 0, "warn": 0, "info": 0 }, "falsePositives": [] },
+    "wiring": { "status": "PASS", "findings": { "block": 0, "warn": 0, "info": 1 }, "falsePositives": [] },
+    "semantic": { "status": "PASS", "findings": { "block": 0, "warn": 0, "info": 0 }, "falsePositives": [] },
+    "spec": { "status": "PASS", "findings": { "block": 0, "warn": 0, "info": 0 }, "falsePositives": [] }
+  }
+}

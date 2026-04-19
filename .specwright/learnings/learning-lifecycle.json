@@ -1,0 +1,41 @@
+{
+  "workId": "learning-lifecycle",
+  "timestamp": "2026-02-12T14:55:00Z",
+  "findings": [
+    {
+      "category": "security",
+      "source": "gate-evidence",
+      "description": "Path template variables in protocols ({theme-name}, {session-id}, {work-id}) lack explicit validation regex constraints, creating defense-in-depth gaps for path traversal.",
+      "proposedRule": "Protocols with path templates MUST include validation regex (e.g., ^[a-z0-9]+(-[a-z0-9]+)*$).",
+      "disposition": "dismissed"
+    },
+    {
+      "category": "architecture",
+      "source": "plan",
+      "description": "Architect critic caught 3 blocking issues (wrong hook mechanism, gitignored learnings, broken constitution promotion contracts) before any implementation started, preventing expensive rework.",
+      "proposedRule": "Never skip the critic phase, even for obvious designs.",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "build",
+      "source": "gate-evidence",
+      "description": "sw-learn SKILL.md hit 621 words during build (target ~600 tokens). Required trimming 5 existing sections to 557 words. Budget awareness during writing would have avoided the revision cycle.",
+      "proposedRule": "Check SKILL.md word count before adding content. Tighten preemptively at 80% budget.",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "friction",
+      "source": "git-log",
+      "description": "gh pr edit fails on repos with Projects Classic enabled due to GraphQL deprecation. Fallback to gh api PATCH endpoint required.",
+      "proposedRule": "Use gh api for PR updates instead of gh pr edit.",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "architecture",
+      "source": "gate-evidence",
+      "description": "Wiring gate verified protocols/learning-lifecycle.md never names specific skills. Consumer-agnostic protocols prevent tight coupling and survive skill renames.",
+      "proposedRule": "Protocols must not reference specific skills by name.",
+      "disposition": "promoted-patterns"
+    }
+  ]
+}

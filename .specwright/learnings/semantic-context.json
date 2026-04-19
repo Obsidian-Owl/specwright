@@ -1,0 +1,96 @@
+{
+  "workId": "semantic-context",
+  "timestamp": "2026-03-23T05:30:00.000Z",
+  "units": ["foundation", "gate-semantic-tiers", "build-context", "feedback-loops"],
+  "findings": [
+    {
+      "id": "P20",
+      "category": "tooling",
+      "source": "PR reviews #102, #103, #105",
+      "description": "sg scan is project-level (sgconfig required), sg run is per-file. sg scan --stdin is invalid. Recurred across 3 units.",
+      "proposedRule": "Always verify ast-grep CLI flags against official docs before writing protocols or hooks.",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "id": "P21",
+      "category": "tooling",
+      "source": "PR review #102",
+      "description": "which sg on Linux finds shadow-utils newgrp, not ast-grep. Must validate binary identity.",
+      "proposedRule": "Validate with sg --version | grep ast-grep for any tool where binary name could collide.",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "id": "P22",
+      "category": "build",
+      "source": "PR review #105",
+      "description": "JS regex \\Z matches literal Z (PCRE only). Caused P1 bug in correction bridge.",
+      "proposedRule": "Never use \\Z in JavaScript regex; use $ for end-of-string.",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "id": "P23",
+      "category": "architecture",
+      "source": "PR review #105",
+      "description": "CLAUDE_PLUGIN_ROOT always set in hook context. Conditional checks create dead code.",
+      "proposedRule": "Design hooks assuming plugin environment; external fallbacks belong in gate skills.",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "id": "P24",
+      "category": "security",
+      "source": "feedback-loops security gate",
+      "description": "execSync with string-interpolated file paths enables shell injection. execFileSync with list-form args prevents it.",
+      "proposedRule": "Use list-form subprocess args in all hook handlers. No exceptions.",
+      "disposition": "promoted:patterns"
+    },
+    {
+      "id": "P25",
+      "category": "build",
+      "source": "foundation as-built notes",
+      "description": "Symlinked source layout requires real core/ paths for git staging.",
+      "proposedRule": "Always stage using real paths, not symlink paths. Check with ls -la.",
+      "disposition": "promoted:patterns"
+    }
+  ],
+  "gateCalibration": {
+    "build": {
+      "verdict": "PASS",
+      "findingCount": 0,
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    "tests": {
+      "verdict": "PASS",
+      "findingCount": 0,
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    "security": {
+      "verdict": "PASS",
+      "findingCount": 1,
+      "falsePositives": [],
+      "falseNegatives": [],
+      "notes": "Shell injection in execSync caught during verify, fixed before ship"
+    },
+    "wiring": {
+      "verdict": "PASS",
+      "findingCount": 2,
+      "falsePositives": [],
+      "falseNegatives": [],
+      "notes": "DESIGN.md stale reference (Unit 1), missing protocol ref + hook name in tests (Unit 3) — all fixed"
+    },
+    "semantic": {
+      "verdict": "PASS",
+      "findingCount": 0,
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    "spec": {
+      "verdict": "WARN",
+      "findingCount": 4,
+      "falsePositives": [],
+      "falseNegatives": [],
+      "notes": "Unit 1: AC-2 spec premise incorrect (CLAUDE.md didn't reference invariant 5). Unit 4: AC-1 two pragmatic deviations (LSP detection proxy, hardcoded catch pattern). Unit 4: AC-7 no automated test for feedback-log accumulation."
+    }
+  }
+}

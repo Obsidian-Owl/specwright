@@ -1,0 +1,41 @@
+{
+  "workId": "headless-skills",
+  "timestamp": "2026-03-19T23:30:00.000Z",
+  "findings": [
+    {
+      "category": "build",
+      "source": "CI failures on PRs #92, #95",
+      "description": "Protocol count CI test breaks predictably every time a protocol is added",
+      "proposedRule": "Update EXPECTED_PROTO_COUNT in same commit as new protocol file",
+      "disposition": "promoted:auto-memory"
+    },
+    {
+      "category": "architecture",
+      "source": "PR #95 review (16 comments)",
+      "description": "Separate headless constraint blocks contradict existing interactive blocks",
+      "proposedRule": "Branch within existing constraint blocks for modal behavior",
+      "disposition": "promoted:auto-memory"
+    },
+    {
+      "category": "architecture",
+      "source": "PR #95 review",
+      "description": "headless-result.json not written on abort paths (sw-ship, sw-status)",
+      "proposedRule": "Every headless exit path must write the result file",
+      "disposition": "promoted:auto-memory"
+    },
+    {
+      "category": "architecture",
+      "source": "Tech spike (opencode run v1.1.30)",
+      "description": "Opencode run mode loads npm plugin skills but not local .opencode/commands/",
+      "proposedRule": "Non-interactive features use npm plugin path, not project-local commands",
+      "disposition": "promoted:auto-memory"
+    },
+    {
+      "category": "architecture",
+      "source": "Design critic + PR review",
+      "description": "Headless detection at first decision point means clean runs never detect",
+      "proposedRule": "Probe at skill startup, not lazily at first decision",
+      "disposition": "dismissed"
+    }
+  ]
+}

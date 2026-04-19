@@ -1,0 +1,41 @@
+{
+  "workId": "pilot-inspired-resilience",
+  "timestamp": "2026-02-15T15:00:00.000Z",
+  "findings": [
+    {
+      "category": "architecture",
+      "source": "gate-evidence",
+      "description": "Command-type Stop hooks with exit code 2 are buggy in Claude Code. Prompt/agent types avoid the issue.",
+      "proposedRule": "P9: Prefer prompt/agent hook types over command hooks in plugins.",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "architecture",
+      "source": "gate-evidence",
+      "description": "Adding Lite intensity path created a dead path because sw-plan required design.md which Lite doesn't produce. Wiring gate end-to-end trace caught it.",
+      "proposedRule": "P10: Trace new execution paths end-to-end through the skill chain.",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "friction",
+      "source": "gate-evidence",
+      "description": "3 of 4 original verify warnings were pre-existing token budget overages. Small fixes resolved them in the same work unit.",
+      "proposedRule": "P11: Fix pre-existing debt surfaced by verify in the same work unit.",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "architecture",
+      "source": "plan",
+      "description": "Constraint compression (combining bullets, removing verbose phrases) cut SKILL.md files by 20-30% without losing semantics.",
+      "proposedRule": "Already covered by P2 (budget-aware editing).",
+      "disposition": "dismissed"
+    },
+    {
+      "category": "architecture",
+      "source": "plan",
+      "description": "Reviewing Claude Pilot yielded 4 implementable improvements filtered through charter invariants.",
+      "proposedRule": "P12: Periodic competitive analysis filtered through charter invariants.",
+      "disposition": "promoted-patterns"
+    }
+  ]
+}

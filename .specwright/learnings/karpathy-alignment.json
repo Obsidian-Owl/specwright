@@ -1,0 +1,34 @@
+{
+  "workId": "karpathy-alignment",
+  "timestamp": "2026-02-13T07:05:00.000Z",
+  "findings": [
+    {
+      "category": "architecture",
+      "source": "plan",
+      "description": "External behavioral guidelines (Karpathy) used as systematic audit lens for agent prompts, surfacing 4 categories of missing behavior",
+      "proposedRule": "Audit against external guidelines for prompt refinement",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "architecture",
+      "source": "plan",
+      "description": "Plan explicitly audited existing agent rules before writing new sections, preventing 3 near-duplicates",
+      "proposedRule": "Audit existing rules before adding new ones",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "architecture",
+      "source": "gate-evidence",
+      "description": "Wiring gate found pre-existing inconsistencies (executor description, tester structure) when analyzing all agents",
+      "proposedRule": "Cross-category wiring reveals structural debt",
+      "disposition": "promoted-patterns"
+    },
+    {
+      "category": "architecture",
+      "source": "plan",
+      "description": "Inline behavioral rules in agent prompts rather than shared protocol — agents don't dynamically load protocols",
+      "proposedRule": "Agent behavior belongs in agent prompts, not protocols",
+      "disposition": "promoted-patterns"
+    }
+  ]
+}

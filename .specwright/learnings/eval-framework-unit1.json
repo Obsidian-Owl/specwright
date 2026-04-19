@@ -1,0 +1,42 @@
+{
+  "workId": "eval-framework",
+  "unitId": "framework-core",
+  "timestamp": "2026-03-18T20:30:00.000Z",
+  "findings": [
+    {
+      "category": "security",
+      "source": "PR review (claude[bot] + greptile)",
+      "description": "shell=True with externally-sourced strings in check_git and check_tests_pass enabled shell injection",
+      "proposedRule": "Subprocess calls MUST use list-form args. shell=True requires documented trust boundary.",
+      "disposition": "promoted:auto-memory"
+    },
+    {
+      "category": "testing",
+      "source": "PR review (claude[bot] + greptile)",
+      "description": "evals.json used state_check but grader dispatched on state — silent mismatch always returns false",
+      "proposedRule": "Eval definition types must match grader dispatch keys. Add schema validation.",
+      "disposition": "promoted:auto-memory"
+    },
+    {
+      "category": "architecture",
+      "source": "as-built notes + PR review",
+      "description": "CalledProcessError.__str__() omits stderr — tests asserting str(exc) contains stderr fail",
+      "proposedRule": "Wrap subprocess.run(check=True) with helper that re-raises with stderr.",
+      "disposition": "promoted:auto-memory"
+    },
+    {
+      "category": "testing",
+      "source": "PR review (claude[bot] + greptile)",
+      "description": "os.path.exists() with glob wildcards always returns False — file_not_exists always passes",
+      "proposedRule": "File existence checks must detect and expand glob patterns.",
+      "disposition": "promoted:auto-memory"
+    },
+    {
+      "category": "process",
+      "source": "as-built notes",
+      "description": "Tester introduced CheckResult name (plan said ExpectationResult). Executor followed tester. Plan diverged silently.",
+      "proposedRule": "Note naming divergences from plan in first status card.",
+      "disposition": "dismissed"
+    }
+  ]
+}
