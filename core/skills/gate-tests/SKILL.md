@@ -49,8 +49,8 @@ test quality, not just pass/fail.
   - **Error paths**: Are failure scenarios tested? (network down, invalid input)
   - **Behavior focus**: Do tests verify behavior or implementation details?
   - **Mutation resistance**: Keep mutation analysis inside the existing tests gate; do not invent a separate mutation gate or let missing tools short-circuit the audit. Route missing-tool cases through T2 or T3. Use T1 / T2 / T3 as the only mutation tiers:
-    - **T1**: configured tool-backed mutation run. Report concrete file:line evidence plus mutation score or survivor details when available.
-    - **T2**: LLM-generated mutation check when zero applicable mutants make T1 uninformative or when the configured LLM fallback is the active path. Report concrete file:line evidence plus the generated survivor details.
+    - **T1**: configured tool-backed mutation run. Report concrete file:line evidence plus mutation score or restricted survivor details when available: operator, location, before/after, defect category, and action.
+    - **T2**: LLM-generated mutation check when zero applicable mutants make T1 uninformative or when the configured LLM fallback is the active path. Report concrete file:line evidence plus the same restricted survivor details: operator, location, before/after, defect category, and action.
     - **T3**: qualitative floor when T1 errors, T2 errors, or fallback unavailable would otherwise leave the gate blind. Audit the three bypass classes: hardcoded returns, partial implementations, boundary skips.
     - Honor accepted-mutant lineage through the shared approval record and config contract instead of silently waiving survivors.
   - **Boundary test approach**: Validate mock-vs-integration decisions against TESTING.md boundary classifications per `protocols/testing-strategy.md`. WARN if internal boundary is mocked. INFO if TESTING.md absent.
