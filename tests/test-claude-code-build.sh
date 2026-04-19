@@ -42,6 +42,7 @@ AUDIT_CHAIN_MIGRATION_SURFACES_TEST="$ROOT_DIR/tests/test-audit-chain-migration-
 APPROVAL_LIFECYCLE_TEST="$ROOT_DIR/tests/test-approval-lifecycle-docs.sh"
 REVIEW_PACKET_DOCS_TEST="$ROOT_DIR/tests/test-review-packet-docs.sh"
 SUPPORT_SURFACE_CUTOVER_TEST="$ROOT_DIR/tests/test-support-surface-cutover-docs.sh"
+VERIFY_MUTATION_PROOF_TEST="$ROOT_DIR/tests/test-verify-mutation-proof.sh"
 
 PASS=0
 FAIL=0
@@ -231,6 +232,11 @@ run_smoke_checks() {
     "support-surface cutover" \
     "bash \"$SUPPORT_SURFACE_CUTOVER_TEST\"" \
     "COVERAGE: support-surface.publication-mode-cutover"
+
+  run_smoke_regression \
+    "verify mutation proof" \
+    "bash \"$VERIFY_MUTATION_PROOF_TEST\"" \
+    "COVERAGE: verify-mutation.proof-surfaces"
 
   POST_BUILD_SOURCE_STATUS=$(git_source_status)
   if [ "$POST_BUILD_SOURCE_STATUS" = "$PRE_BUILD_SOURCE_STATUS" ]; then
@@ -1536,6 +1542,31 @@ if [ "$SUPPORT_SURFACE_EXIT" -eq 0 ] && echo "$SUPPORT_SURFACE_OUTPUT" | grep -F
   pass "support-surface regression output includes publication-mode cutover coverage"
 else
   fail "support-surface regression output missing publication-mode cutover coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Verify mutation proof surfaces ==="
+
+if [ -x "$VERIFY_MUTATION_PROOF_TEST" ]; then
+  pass "tests/test-verify-mutation-proof.sh is executable"
+else
+  fail "tests/test-verify-mutation-proof.sh is missing or not executable"
+fi
+
+VERIFY_MUTATION_PROOF_EXIT=0
+VERIFY_MUTATION_PROOF_OUTPUT="$(bash "$VERIFY_MUTATION_PROOF_TEST" 2>&1)" || VERIFY_MUTATION_PROOF_EXIT=$?
+
+if [ "$VERIFY_MUTATION_PROOF_EXIT" -ne 0 ]; then
+  fail "tests/test-verify-mutation-proof.sh fails under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${VERIFY_MUTATION_PROOF_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-verify-mutation-proof.sh passes under the configured test path"
+fi
+if [ "$VERIFY_MUTATION_PROOF_EXIT" -eq 0 ] && echo "$VERIFY_MUTATION_PROOF_OUTPUT" | grep -Fq "COVERAGE: verify-mutation.proof-surfaces"; then
+  pass "verify mutation proof output includes surface coverage"
+else
+  fail "verify mutation proof output missing surface coverage"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
