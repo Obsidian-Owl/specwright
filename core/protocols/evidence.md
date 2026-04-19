@@ -63,6 +63,9 @@ ran:
 - `T2` — LLM-generated mutants
 - `T3` — qualitative bypass-class floor
 
+Mutation analysis never degrades to a silent skip; if one tier cannot produce
+usable output, the next tier or floor tier must be disclosed instead.
+
 Required disclosure for mutation evidence:
 
 - the tier that ran

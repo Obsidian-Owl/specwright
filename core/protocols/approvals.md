@@ -51,7 +51,8 @@ an `APPROVED` entry.
 
 Accepted mutants are not silent config waivers. The config list is only the
 lookup surface for the current branch; durable approval truth lives in
-`approvals.md`.
+`approvals.md`. The canonical config linkage is
+`config.gates.tests.mutation.acceptedMutants[]`.
 
 Each `accepted-mutant` entry is an auditable approval record tied to the mutant
 lineage and carries:

@@ -228,5 +228,32 @@ class TestBuildTimeMutationSignalProtocol(unittest.TestCase):
         )
 
 
+class TestMutationContractDrift(unittest.TestCase):
+    """AC-6: shared mutation surfaces keep cross-file vocabulary aligned."""
+
+    def setUp(self):
+        self.config = _load_json(_CONFIG_PATH)["gates"]["tests"]["mutation"]
+        self.detection = _load_text(_DETECTION_PATH)
+        self.evidence = _load_text(_EVIDENCE_PATH)
+        self.approvals = _load_text(_APPROVALS_PATH)
+
+    def test_approvals_name_the_accepted_mutants_config_key(self):
+        self.assertIn("acceptedMutants", self.config)
+        self.assertIn("acceptedMutants", self.approvals)
+
+    def test_mutation_fallback_never_becomes_a_silent_skip(self):
+        self.assertIn("silently skipping", self.detection)
+        self.assertRegex(
+            self.evidence.lower(),
+            r"mutation.+never.+silent skip",
+        )
+
+    def test_tier_vocabulary_is_shared_across_detection_and_evidence(self):
+        for label in ("T1", "T2", "T3"):
+            with self.subTest(label=label):
+                self.assertIn(label, self.detection)
+                self.assertIn(label, self.evidence)
+
+
 if __name__ == "__main__":
     unittest.main()
