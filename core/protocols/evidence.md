@@ -62,6 +62,10 @@ ran:
 - `T1` — tool-backed mutation analysis
 - `T2` — LLM-generated mutants
 - `T3` — qualitative bypass-class floor
+  - runs the preserved bypass classes: hardcoded returns, partial
+    implementations, and boundary skips
+  - produces one PASS / WARN / BLOCK verdict per bypass class when T1 / T2
+    cannot yield usable output
 
 Mutation analysis never degrades to a silent skip; if one tier cannot produce
 usable output, the next tier or floor tier must be disclosed instead.

@@ -113,7 +113,7 @@
         "resource-lifecycle"
       ],
       "tools": {
-        "ast-grep": { "command": "sg", "detected": true },
+        "ast-grep": { "command": "sg", "detected": null },
         "opengrep": { "command": "opengrep", "detected": false },
         "lsp": { "source": "none", "detected": false }
       }

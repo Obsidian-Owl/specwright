@@ -1,7 +1,16 @@
-# Specwright project artifacts are tracked; ignore only runtime/legacy subtrees.
-.specwright/state/
-.specwright/work/
-.specwright/worktrees/
+# Specwright project artifacts under the repo root stay on an explicit allowlist.
+# The root-anchored pattern avoids accidentally affecting fixture `.specwright/`
+# trees elsewhere in the repository.
+/.specwright/*
+!/.specwright/*.md
+!/.specwright/config.json
+!/.specwright/research/
+!/.specwright/research/**
+!/.specwright/learnings/
+!/.specwright/learnings/**
+/.specwright/state/
+/.specwright/work/
+/.specwright/worktrees/
 .claude/
 !.claude/commands/
 

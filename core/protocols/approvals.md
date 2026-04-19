@@ -14,8 +14,8 @@ artifacts.
 
 - `design` — approves the design artifact set that `/sw-plan` consumes
 - `unit-spec` — approves one unit's `spec.md` / `plan.md` / `context.md`
-- `accepted-mutant` — approves one accepted-mutant lineage record for
-  `/sw-verify --accept-mutant`
+- `accepted-mutant` — approves one accepted-mutant lineage record for the
+  planned `/sw-verify --accept-mutant` flow
 
 Use one active approval entry per design or unit-spec scope. `unit-spec`
 entries also carry `unitId`. `accepted-mutant` uses one active entry per
@@ -115,7 +115,7 @@ Durable human approval checkpoints for this work.
       "status": "APPROVED",
       "source": {
         "classification": "command",
-        "ref": "/sw-verify --accept-mutant mut-123 --reason \"equivalent defensive branch\""
+        "ref": "/sw-verify --accept-mutant mut-123 --reason \"equivalent defensive branch\" (planned command shape)"
       },
       "artifactSetHash": "sha256:...",
       "artifacts": ["spec.md", "plan.md", "context.md"],
@@ -140,8 +140,9 @@ Durable human approval checkpoints for this work.
   current unit artifact set.
 - `sw-verify` validates approval freshness before gate execution and reports
   approval lineage separately from ordinary code-quality findings.
-- `sw-verify --accept-mutant {id}` records an `accepted-mutant` approval entry
-  with expiry instead of relying on a silent config-only waiver.
+- `sw-verify --accept-mutant {id}` _(planned — implemented in a later unit)_
+  will record an `accepted-mutant` approval entry with expiry instead of
+  relying on a silent config-only waiver.
 
 ## Shared Helper Contract
 

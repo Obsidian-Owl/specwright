@@ -77,6 +77,10 @@ Config presence without the binary means the tool is configured but not installe
 | Installed but unconfigured | Binary or package signal present, but no config file | T1 tool-backed mutation with WARN remediation to configure the tool |
 | Absent | No tool signal, no config signal, or neither present | Mutation falls back to T2/T3 instead of silently skipping |
 
+When fallback reaches `T3`, the run is the qualitative bypass-class floor:
+hardcoded returns, partial implementations, and boundary skips, with one
+verdict per bypass class.
+
 For unfamiliar stacks or tools not in these mappings, use WebSearch to identify
 the project's tooling conventions.
 

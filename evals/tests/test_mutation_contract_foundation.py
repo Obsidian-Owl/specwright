@@ -31,6 +31,13 @@ def _load_text(path):
         return f.read()
 
 
+def _assert_multiline_regex(testcase, text, pattern):
+    testcase.assertIsNotNone(
+        re.search(pattern, text, re.DOTALL),
+        f"pattern not found: {pattern}",
+    )
+
+
 class TestMutationConfigExists(unittest.TestCase):
     """AC-1: config exposes the mutation block under gates.tests."""
 
@@ -94,6 +101,16 @@ class TestMutationConfigDefaults(unittest.TestCase):
         self.assertIn("seed", nondeterminism)
 
 
+class TestSemanticToolDefaults(unittest.TestCase):
+    """Regression: tracked config must not bake author environment state."""
+
+    def setUp(self):
+        self.tools = _load_json(_CONFIG_PATH)["gates"]["semantic"]["tools"]
+
+    def test_ast_grep_detection_defaults_to_neutral_state(self):
+        self.assertIsNone(self.tools["ast-grep"]["detected"])
+
+
 class TestMutationDetectionProtocol(unittest.TestCase):
     """AC-2 + AC-6: detection protocol names supported tools and states."""
 
@@ -115,19 +132,22 @@ class TestMutationDetectionProtocol(unittest.TestCase):
                 self.assertIn(tool, self.lower)
 
     def test_mentions_configured_state(self):
-        self.assertRegex(
+        _assert_multiline_regex(
+            self,
             self.lower,
             r"(installed|tool).{0,40}(config|configured).{0,80}(t1|tool-backed|mutation)",
         )
 
     def test_mentions_installed_but_unconfigured_state(self):
-        self.assertRegex(
+        _assert_multiline_regex(
+            self,
             self.lower,
             r"(installed|binary).{0,80}(no config|unconfigured|without config)",
         )
 
     def test_mentions_absent_state(self):
-        self.assertRegex(
+        _assert_multiline_regex(
+            self,
             self.lower,
             r"(no tool|tool absent|neither present|not installed)",
         )
@@ -139,7 +159,14 @@ class TestMutationDetectionProtocol(unittest.TestCase):
             r"(no tool|tool absent|neither present|not installed)",
         ]
         for pattern in patterns:
-            self.assertRegex(self.lower, pattern)
+            _assert_multiline_regex(self, self.lower, pattern)
+
+    def test_t3_fallback_names_the_qualitative_bypass_classes(self):
+        _assert_multiline_regex(
+            self,
+            self.lower,
+            r"t3.{0,80}hardcoded returns.+partial implementations.+boundary skips",
+        )
 
 
 class TestMutationEvidenceProtocol(unittest.TestCase):
@@ -153,21 +180,31 @@ class TestMutationEvidenceProtocol(unittest.TestCase):
         self.assertNotIn("r2 is not implemented", self.lower)
 
     def test_documents_tier_aware_escalation_signal(self):
-        self.assertRegex(
+        _assert_multiline_regex(
+            self,
             self.lower,
             r"mutation resistance.+50%\+ of test files.+t1/t2.+2\+\s+bypass classes.+t3",
         )
 
     def test_requires_mutation_evidence_to_disclose_the_tier(self):
-        self.assertRegex(
+        _assert_multiline_regex(
+            self,
             self.lower,
             r"mutation evidence.+disclose.+tier",
         )
 
     def test_t2_disclosure_notes_redaction_without_secret_values(self):
-        self.assertRegex(
+        _assert_multiline_regex(
+            self,
             self.lower,
             r"t2.+redact.+without.+reveal.+secret",
+        )
+
+    def test_t3_definition_names_preserved_bypass_classes(self):
+        _assert_multiline_regex(
+            self,
+            self.lower,
+            r"t3.+hardcoded returns.+partial.+implementations.+boundary skips",
         )
 
 
@@ -184,22 +221,29 @@ class TestMutationApprovalProtocol(unittest.TestCase):
                 self.assertIn(status, self.content)
 
     def test_defines_accepted_mutant_lineage_as_auditable_record(self):
-        self.assertRegex(
+        _assert_multiline_regex(
+            self,
             self.lower,
             r"accepted[- ]mutant.+approval record",
         )
 
     def test_accepted_mutant_records_expire(self):
-        self.assertRegex(
+        _assert_multiline_regex(
+            self,
             self.lower,
-            r"accepted[- ]mutant.+90 days|expires? at|expires?",
+            r"accepted[- ]mutant.{0,200}(?:90 days|expires? at|expires?)",
         )
 
     def test_accepted_mutants_are_not_silent_config_waivers(self):
-        self.assertRegex(
+        _assert_multiline_regex(
+            self,
             self.lower,
             r"accepted[- ]mutant.+not.+silent.+waiver",
         )
+
+    def test_accept_mutant_command_is_marked_planned_until_implemented(self):
+        self.assertIn("`sw-verify --accept-mutant {id}`", self.content)
+        self.assertIn("planned — implemented in a later unit", self.content)
 
 
 class TestBuildTimeMutationSignalProtocol(unittest.TestCase):
@@ -210,21 +254,24 @@ class TestBuildTimeMutationSignalProtocol(unittest.TestCase):
         self.lower = self.content.lower()
 
     def test_build_time_mutation_signal_is_advisory_only(self):
-        self.assertRegex(
+        _assert_multiline_regex(
+            self,
             self.lower,
             r"build-time mutation.+advisory",
         )
 
     def test_tool_backed_mutation_errors_do_not_block_red_to_green(self):
-        self.assertRegex(
+        _assert_multiline_regex(
+            self,
             self.lower,
             r"tool-backed mutation errors?.+cannot block.+red.?to.?green",
         )
 
     def test_build_time_mutation_notes_are_recorded(self):
-        self.assertRegex(
+        _assert_multiline_regex(
+            self,
             self.lower,
-            r"mutation.+recorded.+as-built notes|build-time notes",
+            r"mutation.+recorded.+(?:as-built notes|build-time notes)",
         )
 
 
@@ -242,8 +289,11 @@ class TestMutationContractDrift(unittest.TestCase):
         self.assertIn("acceptedMutants", self.approvals)
 
     def test_mutation_fallback_never_becomes_a_silent_skip(self):
+        # `guardrails-detection.md` uses the canonical phrase "silently skipping";
+        # `evidence.md` documents the same contract as "silent skip".
         self.assertIn("silently skipping", self.detection)
-        self.assertRegex(
+        _assert_multiline_regex(
+            self,
             self.evidence.lower(),
             r"mutation.+never.+silent skip",
         )
