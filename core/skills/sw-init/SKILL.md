@@ -121,9 +121,10 @@ Quality gates are configured in config (all six default to enabled; user may dis
 **Git workflow configuration (MEDIUM freedom):**
 - Detect workflow by scanning branch names, remotes, CI files. Present detected strategy with confidence.
 - Confirm via AskUserQuestion: strategy (trunk-based/github-flow/gitflow/custom), target-role defaults and freshness checkpoints, branch prefix, merge strategy, PR required, commit format.
-- Ask whether optional auditable work artifacts stay clone-local or are published under a tracked work-artifact root. Project-level anchor docs remain project artifacts and runtime session state stays local-only.
+- Treat runtime mode as an explicit Git policy choice. Ask whether clone-local runtime state should stay under `git-admin` roots or use `project-visible` roots, and recommend `project-visible` for Claude-oriented installs unless the user has a strong reason to keep runtime files hidden under `.git/`.
+- Ask whether optional auditable work artifacts stay clone-local or are published under a tracked work-artifact root. Keep runtime mode separately from tracked work-artifact publication; project-level anchor docs remain project artifacts and runtime session state stays local-only.
 - Store `git.targets` and `git.freshness` in `config.json`, seeding branch-role defaults and freshness checkpoints from the detected workflow strategy while preserving `baseBranch` as a compatibility alias and without requiring users to define a custom branch DSL.
-- Store the resulting settings in the `config.json` `git` section per `protocols/git.md`. Record any optional work-artifact publication choice in config instead of inferring it from `.git/` paths or symlinks.
+- Store the resulting settings in the `config.json` `git` section per `protocols/git.md`. Record `git.runtime.mode` / `git.runtime.projectVisibleRoot` separately from tracked work-artifact publication, and record any optional work-artifact publication choice in config instead of inferring it from `.git/` paths or symlinks.
 - If old git schema detected: offer migration with sensible defaults.
 
 **Configuration (LOW freedom):**

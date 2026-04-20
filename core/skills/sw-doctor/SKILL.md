@@ -64,7 +64,8 @@ then print actionable repair hints.
 
 Within the State pass, check all of the following and report them by name:
 - layout status for the current checkout
-- resolved `projectArtifactsRoot` and `workArtifactsRoot` for the current
+- resolved `projectArtifactsRoot`, `workArtifactsRoot`, and the authoritative
+  runtime roots (`repoStateRoot` and `worktreeStateRoot`) for the current
   checkout
 - session attachment consistency between `session.json` and the owning
   `workflow.json`
@@ -76,11 +77,21 @@ Within the State pass, check all of the following and report them by name:
 - review-packet presence for the selected unit when verify or ship artifacts
   should exist
 
+State-pass output must report the authoritative runtime roots clearly so the
+user can see which `repoStateRoot` and `worktreeStateRoot` are in force.
+
 Within the Config pass, check all of the following and report them by name:
 - queue validation without the required provider-aware configuration surface
+- Claude-oriented installs that remain on `git-admin` even though
+  `project-visible` runtime roots are the recommended default for that setup
 - work-artifact publication mode that points at clone-local runtime roots,
   session state, or symlinked `.git` mirrors instead of an explicit tracked
   artifact path
+- `config.git.runtime.projectVisibleRoot` values that point at tracked project
+  artifacts or `.git`-mirrored paths instead of a dedicated project-visible
+  runtime root
+
+Reject project-visible roots that overlap tracked project artifacts or `.git`-mirrored paths, and name `config.git.runtime.projectVisibleRoot` in the result.
 
 CONFIG_MISMATCH findings must name the offending config key and print the
 corrective action.
