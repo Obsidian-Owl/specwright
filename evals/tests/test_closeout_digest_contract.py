@@ -53,6 +53,22 @@ class TestDecisionProtocolDigestContract(unittest.TestCase):
             ),
         )
 
+    def test_gate_handoff_footer_block_stays_exact(self):
+        match = re.search(
+            r"## Gate Handoff[\s\S]*?```text\n(?P<footer>[\s\S]*?)```",
+            self.decision_text,
+        )
+        self.assertIsNotNone(match, "decision protocol must include the footer code block")
+        footer_lines = match.group("footer").strip().splitlines()
+        self.assertEqual(
+            footer_lines,
+            [
+                "Done. {one-line outcome}.",
+                "Artifacts: {stageReportPath}",
+                "Next: /sw-{next-skill}",
+            ],
+        )
+
 
 class TestReviewPacketDigestReuse(unittest.TestCase):
     """Task 1 RED: review-packet must describe how closeout reuse works."""
@@ -95,6 +111,29 @@ class TestApprovalsReasonVocabulary(unittest.TestCase):
         ):
             with self.subTest(reason_code=reason_code):
                 self.assertIn(reason_code, self.approvals_text)
+
+    def test_reason_code_vocabulary_stays_aligned_across_protocols_and_helper(self):
+        output = _run_node_json(
+            """
+            import { APPROVAL_REASON_CODES } from './adapters/shared/specwright-approvals.mjs';
+            console.log(JSON.stringify({ reasonCodes: APPROVAL_REASON_CODES }));
+            """
+        )
+
+        expected_codes = [
+            "missing-entry",
+            "artifact-set-changed",
+            "missing-lineage",
+            "expired",
+            "superseded",
+        ]
+        self.assertEqual(output["reasonCodes"], expected_codes)
+
+        review_text = REVIEW_PACKET_PROTOCOL.read_text(encoding="utf-8")
+        for reason_code in expected_codes:
+            with self.subTest(reason_code=reason_code):
+                self.assertIn(reason_code, self.approvals_text)
+                self.assertIn(reason_code, review_text)
 
 
 class TestCloseoutHelperContract(unittest.TestCase):
@@ -195,6 +234,59 @@ class TestCloseoutHelperContract(unittest.TestCase):
             self.assertTrue(output["headline"].startswith("Attention required:"))
             self.assertTrue(any("design: APPROVED" in bullet for bullet in output["bullets"]))
 
+    def test_helper_keeps_digest_artifact_derived(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            review_packet = Path(tmpdir) / "review-packet.md"
+            review_packet.write_text(
+                dedent(
+                    """
+                    # Review Packet
+
+                    This stray introduction should not become a digest bullet.
+
+                    ## Approval Lineage
+                    - design: STALE (artifact-set-changed)
+
+                    ## What Changed
+                    - Added shared closeout parsing
+
+                    ## Narrative
+                    - bespoke prose that should not leak into the digest
+
+                    ## Remaining Attention
+                    - rerun verify after the next task
+                    """
+                ).strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            output = _run_node_json(
+                f"""
+                import {{ loadCloseoutDigest }} from './adapters/shared/specwright-closeout.mjs';
+                const digest = loadCloseoutDigest({{
+                  reviewPacketPath: {json.dumps(str(review_packet))}
+                }});
+                console.log(JSON.stringify(digest));
+                """
+            )
+
+            self.assertEqual(
+                output["headline"],
+                "Attention required: design: STALE (artifact-set-changed)",
+            )
+            self.assertIn("design: STALE (artifact-set-changed)", output["bullets"])
+            self.assertIn("Added shared closeout parsing", output["bullets"])
+            self.assertIn("rerun verify after the next task", output["bullets"])
+            self.assertNotIn(
+                "This stray introduction should not become a digest bullet.",
+                output["bullets"],
+            )
+            self.assertNotIn(
+                "bespoke prose that should not leak into the digest",
+                output["bullets"],
+            )
+
 
 class TestApprovalAssessmentReasons(unittest.TestCase):
     """Task 2 RED: assessment must explain why approval is not current."""
@@ -280,12 +372,21 @@ class TestApprovalAssessmentReasons(unittest.TestCase):
             )
 
             self.assertEqual(output["missing"]["reasonCode"], "missing-entry")
+            self.assertEqual(output["missing"]["status"], "MISSING")
             self.assertEqual(output["changed"]["reasonCode"], "artifact-set-changed")
+            self.assertEqual(output["changed"]["status"], "STALE")
             self.assertEqual(output["expired"]["reasonCode"], "expired")
+            self.assertEqual(output["expired"]["status"], "STALE")
             self.assertEqual(output["missingLineage"]["reasonCode"], "missing-lineage")
+            self.assertEqual(output["missingLineage"]["status"], "STALE")
             self.assertEqual(output["superseded"]["reasonCode"], "superseded")
+            self.assertEqual(output["superseded"]["status"], "SUPERSEDED")
             self.assertIn("approvedArtifactSetHash", output["changed"])
             self.assertIn("currentArtifactSetHash", output["changed"])
+            self.assertNotEqual(
+                output["changed"]["approvedArtifactSetHash"],
+                output["changed"]["currentArtifactSetHash"],
+            )
 
 
 if __name__ == "__main__":
