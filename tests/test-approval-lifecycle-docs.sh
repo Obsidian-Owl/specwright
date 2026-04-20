@@ -115,6 +115,13 @@ let stale = { status: 'SKIPPED' };
 let restored = { status: 'SKIPPED' };
 let doc = null;
 let loaded = { entries: [] };
+let acceptedDoc = null;
+let acceptedLoaded = { entries: [] };
+let acceptedReasonPreserved = false;
+let acceptedConfigPathPreserved = false;
+let acceptedExpiryPreserved = false;
+let acceptedIndependentStatuses = [];
+let acceptedExpiredStatus = 'SKIPPED';
 
 if (isFull) {
   initialDoc = recordApproval(null, {
@@ -142,6 +149,66 @@ if (isFull) {
 
   writeApprovalsFile(join(artifactsRoot, 'approvals.md'), doc);
   loaded = loadApprovalsFile(join(artifactsRoot, 'approvals.md'));
+
+  acceptedDoc = recordApproval(null, {
+    baseDir: artifactsRoot,
+    scope: 'accepted-mutant',
+    unitId: '02-approval-lifecycle',
+    mutantId: 'mut-1',
+    reason: 'equivalent defensive branch',
+    configPath: 'gates.tests.mutation.acceptedMutants',
+    artifacts: ['design.md', 'context.md'],
+    sourceClassification: 'command',
+    sourceRef: '/sw-verify --accept-mutant mut-1 --reason "equivalent defensive branch"',
+    approvedAt: '2026-04-15T03:00:00Z',
+    expiresAt: '2026-07-14T03:00:00Z'
+  });
+
+  acceptedDoc = recordApproval(acceptedDoc, {
+    baseDir: artifactsRoot,
+    scope: 'accepted-mutant',
+    unitId: '02-approval-lifecycle',
+    mutantId: 'mut-2',
+    reason: 'log-only branch',
+    configPath: 'gates.tests.mutation.acceptedMutants',
+    artifacts: ['design.md', 'context.md'],
+    sourceClassification: 'command',
+    sourceRef: '/sw-verify --accept-mutant mut-2 --reason "log-only branch"',
+    approvedAt: '2026-04-15T04:00:00Z',
+    expiresAt: '2026-07-14T04:00:00Z'
+  });
+
+  acceptedDoc = recordApproval(acceptedDoc, {
+    baseDir: artifactsRoot,
+    scope: 'accepted-mutant',
+    unitId: '02-approval-lifecycle',
+    mutantId: 'mut-1',
+    reason: 'equivalent defensive branch, refreshed',
+    configPath: 'gates.tests.mutation.acceptedMutants',
+    artifacts: ['design.md', 'context.md'],
+    sourceClassification: 'command',
+    sourceRef: '/sw-verify --accept-mutant mut-1 --reason "equivalent defensive branch, refreshed"',
+    approvedAt: '2026-04-15T05:00:00Z',
+    expiresAt: '2026-07-15T05:00:00Z'
+  });
+
+  writeApprovalsFile(join(artifactsRoot, 'accepted-approvals.md'), acceptedDoc);
+  acceptedLoaded = loadApprovalsFile(join(artifactsRoot, 'accepted-approvals.md'));
+  const latestAccepted = acceptedLoaded.entries[acceptedLoaded.entries.length - 1];
+  acceptedReasonPreserved = latestAccepted?.reason === 'equivalent defensive branch, refreshed';
+  acceptedConfigPathPreserved =
+    latestAccepted?.configPath === 'gates.tests.mutation.acceptedMutants';
+  acceptedExpiryPreserved = latestAccepted?.expiresAt === '2026-07-15T05:00:00Z';
+  acceptedIndependentStatuses = acceptedLoaded.entries.map((entry) => `${entry.mutantId}:${entry.status}`);
+  acceptedExpiredStatus = assessApprovalEntry(
+    {
+      ...latestAccepted,
+      expiresAt: '2020-01-01T00:00:00Z'
+    },
+    {
+      baseDir: artifactsRoot
+    }
+  ).status;
   writeFileSync(
     join(artifactsRoot, 'broken-approvals.md'),
     '# Approvals\n\n<!-- approvals-ledger:start -->\n```json\n{\n```\n<!-- approvals-ledger:end -->\n',
@@ -214,6 +281,11 @@ process.stdout.write(JSON.stringify({
   supersededFirst: doc?.entries?.[0]?.status ?? null,
   latestStatus: doc?.entries?.[1]?.status ?? null,
   roundTripEntries: loaded.entries.length,
+  acceptedReasonPreserved,
+  acceptedConfigPathPreserved,
+  acceptedExpiryPreserved,
+  acceptedIndependentStatuses,
+  acceptedExpiredStatus,
   headlessApprovedRejected,
   invalidStatusRejected,
   invalidSourceRejected,
@@ -232,6 +304,11 @@ EOF
   assert_output_contains "$HELPER_OUTPUT" '"supersededFirst":"SUPERSEDED"' "helper supersedes prior approval entries for the same scope"
   assert_output_contains "$HELPER_OUTPUT" '"latestStatus":"APPROVED"' "helper records new approvals as APPROVED"
   assert_output_contains "$HELPER_OUTPUT" '"roundTripEntries":2' "helper round-trips approvals.md through disk"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedReasonPreserved":true' "helper preserves accepted-mutant reasons"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedConfigPathPreserved":true' "helper preserves accepted-mutant config linkage"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedExpiryPreserved":true' "helper preserves accepted-mutant expiry timestamps"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedIndependentStatuses":["mut-1:SUPERSEDED","mut-2:APPROVED","mut-1:APPROVED"]' "helper supersedes accepted-mutant entries by mutant id without collapsing other mutants"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedExpiredStatus":"STALE"' "helper marks expired accepted-mutant lineage as STALE"
   assert_output_contains "$HELPER_OUTPUT" '"restoredStatus":"APPROVED"' "helper treats restored artifact hashes as APPROVED again"
   assert_output_contains "$HELPER_OUTPUT" '"malformedLedgerRejected":true' "helper rejects malformed approvals ledgers"
   assert_output_contains "$HELPER_OUTPUT" '"missingStatus":"MISSING"' "helper distinguishes missing approval entries from stale ones"

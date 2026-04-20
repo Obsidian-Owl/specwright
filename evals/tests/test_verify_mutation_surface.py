@@ -24,6 +24,14 @@ class TestVerifyMutationSurface(unittest.TestCase):
             r"accept-mutant\s+\{id\}.+reason",
         )
 
+    def test_records_or_refreshes_accepted_mutant_lineage_with_expiry(self):
+        self.assertIn("90 days from approval", self.lower)
+        assert_multiline_regex(
+            self,
+            self.lower,
+            r"accept-mutant.{0,220}(record|refresh).{0,220}(approval|lineage)",
+        )
+
     def test_ties_accepted_mutants_to_approval_lineage(self):
         assert_multiline_regex(
             self,

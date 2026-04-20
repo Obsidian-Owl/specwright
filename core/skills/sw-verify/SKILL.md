@@ -61,15 +61,19 @@ Use `protocols/approvals.md` and the shared helper to validate the recorded
 report it but never create `APPROVED` entries.
 
 **Accepted-mutant lineage and mutation disclosure (LOW freedom):**
-Document `/sw-verify --accept-mutant {id} --reason "{prose}"` as the accepted-mutant
-approval path defined by `protocols/approvals.md`. Ordinary verify runs validate
-and report accepted-mutant lineage; they never fabricate approval state or
-silently waive survivors. Mutation analysis stays inside `gate-tests`, not a
-seventh gate. When `gate-tests` emits mutation evidence, surface the tier
-(`T1`, `T2`, or `T3`), any accepted-mutant approval lineage, and only the
-restricted survivor record: operator, location, before/after, defect category,
-and action. No test bodies. No assertion literals. Missing-tool or fallback
-paths may degrade through `T2`/`T3`, but never to a silent skip.
+When `/sw-verify --accept-mutant {id} --reason "{prose}"` is present, use
+`protocols/approvals.md` plus the shared helper to record or refresh the
+accepted-mutant approval entry before gate execution. Persist the config linkage
+at `config.gates.tests.mutation.acceptedMutants[]`, require a reason, and set
+expiry to 90 days from approval unless an explicit later expiry is already
+being refreshed. Ordinary verify runs validate and report accepted-mutant
+lineage; they never fabricate approval state or silently waive survivors.
+Mutation analysis stays inside `gate-tests`, not a seventh gate. When
+`gate-tests` emits mutation evidence, surface the tier (`T1`, `T2`, or `T3`),
+any accepted-mutant approval lineage, and only the restricted survivor record:
+operator, location, before/after, defect category, and action. No test bodies.
+No assertion literals. Missing-tool or fallback paths may degrade through
+`T2`/`T3`, but never to a silent skip.
 
 **Freshness checkpoint (LOW freedom) — before any gate runs:**
 Use `protocols/git-freshness.md` to assess the selected work's verify
