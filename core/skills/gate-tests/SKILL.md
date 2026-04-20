@@ -48,7 +48,7 @@ test quality, not just pass/fail.
   - **Mock discipline**: Are mocks justified? Are integration boundaries real?
   - **Error paths**: Are failure scenarios tested? (network down, invalid input)
   - **Behavior focus**: Do tests verify behavior or implementation details?
-  - **Mutation resistance**: Tiered analysis (T1/T2/T3) stays inside this gate; missing tools route to T2/T3, never a skip.
+  - **Mutation resistance**: Tiered analysis (T1/T2/T3) stays inside this gate; missing tools route to T2/T3, never a silent skip.
     - **T1**: configured tool-backed mutation run. Report concrete file:line evidence plus mutation score or restricted survivor details when available: operator, location, before/after, defect category, and action.
     - **T2**: LLM-generated mutation check when zero applicable mutants make T1 uninformative or when the configured LLM fallback is the active path. Report concrete file:line evidence plus the same restricted survivor details: operator, location, before/after, defect category, and action.
     - **T3**: qualitative floor when T1 errors, T2 errors, or fallback unavailable would otherwise leave the gate blind. Audit the three bypass classes: hardcoded returns, partial implementations, boundary skips.

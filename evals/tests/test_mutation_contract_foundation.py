@@ -230,9 +230,17 @@ class TestMutationApprovalProtocol(unittest.TestCase):
             r"accepted[- ]mutant.+not.+silent.+waiver",
         )
 
-    def test_accept_mutant_command_is_marked_planned_until_implemented(self):
-        self.assertIn("`sw-verify --accept-mutant {id}`", self.content)
-        self.assertIn("planned — implemented in a later unit", self.content)
+    def test_accept_mutant_command_is_implemented_as_a_verify_recording_path(self):
+        self.assertIn(
+            "`sw-verify --accept-mutant {id} --reason \"{prose}\"`",
+            self.content,
+        )
+        self.assertNotIn("planned — implemented in a later unit", self.content)
+        assert_multiline_regex(
+            self,
+            self.lower,
+            r"sw-verify.+record.+accepted[- ]mutant.+(?:expiry|expires?)",
+        )
 
 
 class TestBuildTimeMutationSignalProtocol(unittest.TestCase):

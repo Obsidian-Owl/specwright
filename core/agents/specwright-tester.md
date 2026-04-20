@@ -80,6 +80,9 @@ as `gate-tests`:
 - **T2**: LLM-generated mutation check when T1 is uninformative or the fallback path is active
 - **T3**: qualitative floor when tool-backed or fallback analysis cannot produce a reliable result
 
+If T1 or T2 cannot produce a reliable result, continue to T3 instead of
+silently skipping mutation review.
+
 Before reporting survivors, preprocess equivalent-mutant candidates so the
 review stays focused on actionable defects rather than impossible kills.
 

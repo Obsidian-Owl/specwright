@@ -89,4 +89,6 @@ Skills reference shared protocols in `protocols/` for fragile operations:
 - **NEVER** use `git add -A` -- stage specific files only
 - **NEVER** hardcode language/framework assumptions -- read config
 - Quality gates default to FAIL. Evidence must prove PASS.
+- Six internal gates: build, tests, security, wiring, semantic, spec.
+- Tiered mutation analysis stays inside gate-tests and uses specwright-tester as the companion surface. It is not a separate mutation gate.
 - Constitution and charter are validated, not just referenced.
