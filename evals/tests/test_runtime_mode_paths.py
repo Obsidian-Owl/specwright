@@ -6,6 +6,9 @@ extend this module with resolver and migration-safety proofs.
 
 import json
 import os
+from pathlib import Path
+import subprocess
+import tempfile
 import unittest
 
 from evals.tests._text_helpers import assert_multiline_regex, load_text
@@ -14,11 +17,213 @@ from evals.tests._text_helpers import assert_multiline_regex, load_text
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _CONFIG_PATH = os.path.join(_REPO_ROOT, ".specwright", "config.json")
 _CONTEXT_PROTOCOL_PATH = os.path.join(_REPO_ROOT, "core", "protocols", "context.md")
+_STATE_PATHS_MODULE_PATH = os.path.join(
+    _REPO_ROOT, "adapters", "shared", "specwright-state-paths.mjs"
+)
 
 
 def _load_json(path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def _run(args, cwd):
+    return subprocess.run(
+        args,
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _init_git_repo(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    _run(["git", "init"], cwd=path)
+    _run(["git", "config", "user.name", "Specwright Tests"], cwd=path)
+    _run(["git", "config", "user.email", "specwright-tests@example.com"], cwd=path)
+    _run(["git", "branch", "-M", "main"], cwd=path)
+    (path / "README.md").write_text("fixture\n", encoding="utf-8")
+    _run(["git", "add", "README.md"], cwd=path)
+    _run(["git", "commit", "-m", "chore: init fixture"], cwd=path)
+
+
+def _git_path(repo_path: Path, *args: str) -> Path:
+    output = _run(["git", *args], cwd=repo_path).stdout.strip()
+    candidate = Path(output)
+    if candidate.is_absolute():
+        return candidate.resolve()
+    return (repo_path / candidate).resolve()
+
+
+def _derive_worktree_id(git_dir: Path, git_common_dir: Path) -> str:
+    if git_dir == git_common_dir:
+        return "main-worktree"
+
+    if git_dir.parent == git_common_dir / "worktrees":
+        return git_dir.name
+
+    if git_dir.name and git_dir.name != ".git":
+        return git_dir.name
+
+    raise AssertionError(f"Unable to derive worktree id for {git_dir}")
+
+
+def _write_config(
+    repo_path: Path,
+    *,
+    runtime_mode: str,
+    project_visible_root: str = ".specwright-local",
+    work_artifacts_mode: str = "clone-local",
+    tracked_root: str | None = None,
+) -> None:
+    config_path = repo_path / ".specwright" / "config.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps(
+            {
+                "version": "2.0",
+                "git": {
+                    "runtime": {
+                        "mode": runtime_mode,
+                        "projectVisibleRoot": project_visible_root,
+                    },
+                    "workArtifacts": {
+                        "mode": work_artifacts_mode,
+                        "trackedRoot": tracked_root,
+                    },
+                },
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _runtime_roots(
+    repo_path: Path,
+    *,
+    runtime_mode: str,
+    project_visible_root: str = ".specwright-local",
+) -> dict[str, Path | str]:
+    git_dir = _git_path(repo_path, "rev-parse", "--git-dir")
+    git_common_dir = _git_path(repo_path, "rev-parse", "--git-common-dir")
+    worktree_id = _derive_worktree_id(git_dir, git_common_dir)
+
+    if runtime_mode == "project-visible":
+        shared_runtime_root = git_common_dir.parent / project_visible_root
+        repo_state_root = shared_runtime_root / "repo"
+        worktree_state_root = shared_runtime_root / "worktrees" / worktree_id
+        clone_local_work_artifacts_root = shared_runtime_root / "work"
+    else:
+        shared_runtime_root = git_common_dir / "specwright"
+        repo_state_root = git_common_dir / "specwright"
+        worktree_state_root = git_dir / "specwright"
+        clone_local_work_artifacts_root = repo_state_root / "work"
+
+    return {
+        "gitDir": git_dir,
+        "gitCommonDir": git_common_dir,
+        "worktreeId": worktree_id,
+        "sharedRuntimeRoot": shared_runtime_root,
+        "repoStateRoot": repo_state_root,
+        "worktreeStateRoot": worktree_state_root,
+        "cloneLocalWorkArtifactsRoot": clone_local_work_artifacts_root,
+    }
+
+
+def _write_shared_state(
+    repo_path: Path,
+    *,
+    runtime_mode: str,
+    work_id: str = "runtime-proof",
+    work_dir: str = "runtime-proof",
+) -> None:
+    roots = _runtime_roots(repo_path, runtime_mode=runtime_mode)
+    repo_state_root = roots["repoStateRoot"]
+    worktree_state_root = roots["worktreeStateRoot"]
+    branch = _run(["git", "branch", "--show-current"], cwd=repo_path).stdout.strip()
+
+    workflow_path = repo_state_root / "work" / work_id / "workflow.json"
+    session_path = worktree_state_root / "session.json"
+    workflow_path.parent.mkdir(parents=True, exist_ok=True)
+    session_path.parent.mkdir(parents=True, exist_ok=True)
+
+    workflow_path.write_text(
+        json.dumps(
+            {
+                "version": "3.0",
+                "id": work_id,
+                "status": "building",
+                "workDir": work_dir,
+                "unitId": "02-project-visible-runtime-foundation",
+                "tasksCompleted": [],
+                "tasksTotal": 3,
+                "currentTask": "task-1",
+                "branch": branch,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    session_path.write_text(
+        json.dumps(
+            {
+                "version": "3.0",
+                "worktreeId": roots["worktreeId"],
+                "worktreePath": str(repo_path.resolve()),
+                "branch": branch,
+                "attachedWorkId": work_id,
+                "mode": "top-level",
+                "lastSeenAt": "2026-04-20T00:00:00Z",
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _inspect_runtime_state(repo_path: Path) -> dict:
+    script = """
+const { resolveSpecwrightRoots, loadSpecwrightState, normalizeActiveWork } =
+  await import(process.env.STATE_PATHS_MODULE);
+
+const roots = resolveSpecwrightRoots({ cwd: process.cwd() });
+const state = loadSpecwrightState({ cwd: process.cwd() });
+const work = normalizeActiveWork(state);
+
+process.stdout.write(JSON.stringify({
+  roots: roots.ok ? {
+    projectRoot: roots.projectRoot,
+    gitDir: roots.gitDir,
+    gitCommonDir: roots.gitCommonDir,
+    repoStateRoot: roots.repoStateRoot,
+    worktreeStateRoot: roots.worktreeStateRoot,
+    workArtifactsRoot: roots.workArtifactsRoot,
+    worktreeId: roots.worktreeId
+  } : roots,
+  layout: state.layout,
+  sharedConfigPath: state.sharedConfigPath ?? null,
+  workflowPath: state.workflowPath ?? null,
+  artifactsRoot: work?.artifactsRoot ?? null,
+  workDirPath: work?.workDirPath ?? null
+}));
+"""
+    completed = subprocess.run(
+        ["node", "--input-type=module", "-e", script],
+        cwd=repo_path,
+        check=True,
+        capture_output=True,
+        text=True,
+        env={
+            **os.environ,
+            "STATE_PATHS_MODULE": _STATE_PATHS_MODULE_PATH,
+        },
+    )
+    return json.loads(completed.stdout)
 
 
 class TestRuntimeModeConfigDefaults(unittest.TestCase):
@@ -107,6 +312,119 @@ class TestRuntimeModeContextProtocol(unittest.TestCase):
             self.lower,
             r"work-artifact publication.+separate.+runtime mode|runtime mode.+separate.+work-artifact publication",
         )
+
+
+class TestRuntimeModeResolverPaths(unittest.TestCase):
+    """AC-2/AC-3: resolver supports git-admin and project-visible runtime roots."""
+
+    def test_git_admin_primary_worktree_keeps_runtime_under_git_admin(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "git-admin-repo"
+            _init_git_repo(repo_path)
+            _write_config(repo_path, runtime_mode="git-admin")
+            _write_shared_state(repo_path, runtime_mode="git-admin")
+
+            data = _inspect_runtime_state(repo_path)
+
+            self.assertEqual(
+                data["roots"]["repoStateRoot"],
+                str((repo_path / ".git" / "specwright").resolve()),
+            )
+            self.assertEqual(
+                data["roots"]["worktreeStateRoot"],
+                str((repo_path / ".git" / "specwright").resolve()),
+            )
+            self.assertEqual(
+                data["roots"]["workArtifactsRoot"],
+                str((repo_path / ".git" / "specwright" / "work").resolve()),
+            )
+            self.assertEqual(
+                data["workflowPath"],
+                str((repo_path / ".git" / "specwright" / "work" / "runtime-proof" / "workflow.json").resolve()),
+            )
+
+    def test_project_visible_primary_worktree_moves_runtime_out_of_git(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "project-visible-repo"
+            _init_git_repo(repo_path)
+            _write_config(repo_path, runtime_mode="project-visible")
+            _write_shared_state(repo_path, runtime_mode="project-visible")
+
+            data = _inspect_runtime_state(repo_path)
+            visible_root = (repo_path / ".specwright-local").resolve()
+
+            self.assertEqual(
+                data["roots"]["repoStateRoot"],
+                str(visible_root / "repo"),
+            )
+            self.assertEqual(
+                data["roots"]["worktreeStateRoot"],
+                str(visible_root / "worktrees" / "main-worktree"),
+            )
+            self.assertEqual(
+                data["roots"]["workArtifactsRoot"],
+                str(visible_root / "work"),
+            )
+            self.assertEqual(
+                data["workflowPath"],
+                str(visible_root / "repo" / "work" / "runtime-proof" / "workflow.json"),
+            )
+
+    def test_project_visible_linked_worktree_keys_state_by_worktree_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            main_repo_path = Path(tmp) / "main-repo"
+            linked_repo_path = Path(tmp) / "linked-repo"
+            _init_git_repo(main_repo_path)
+            _run(
+                ["git", "worktree", "add", "-b", "runtime-linked", str(linked_repo_path), "HEAD"],
+                cwd=main_repo_path,
+            )
+            _write_config(linked_repo_path, runtime_mode="project-visible")
+
+            data = _inspect_runtime_state(linked_repo_path)
+            visible_root = (main_repo_path / ".specwright-local").resolve()
+
+            self.assertEqual(
+                data["roots"]["repoStateRoot"],
+                str(visible_root / "repo"),
+            )
+            self.assertEqual(
+                data["roots"]["worktreeStateRoot"],
+                str(visible_root / "worktrees" / "linked-repo"),
+            )
+            self.assertEqual(data["roots"]["worktreeId"], "linked-repo")
+
+    def test_tracked_work_artifacts_override_stays_independent_in_project_visible_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "tracked-artifacts-repo"
+            _init_git_repo(repo_path)
+            _write_config(
+                repo_path,
+                runtime_mode="project-visible",
+                work_artifacts_mode="tracked",
+                tracked_root=".specwright/audit-work",
+            )
+            _write_shared_state(repo_path, runtime_mode="project-visible")
+
+            data = _inspect_runtime_state(repo_path)
+            visible_root = (repo_path / ".specwright-local").resolve()
+
+            self.assertEqual(
+                data["roots"]["repoStateRoot"],
+                str(visible_root / "repo"),
+            )
+            self.assertEqual(
+                data["roots"]["workArtifactsRoot"],
+                str((repo_path / ".specwright" / "audit-work").resolve()),
+            )
+            self.assertEqual(
+                data["artifactsRoot"],
+                str((repo_path / ".specwright" / "audit-work").resolve()),
+            )
+            self.assertEqual(
+                data["workDirPath"],
+                str((repo_path / ".specwright" / "audit-work" / "runtime-proof").resolve()),
+            )
 
 
 if __name__ == "__main__":
