@@ -158,6 +158,10 @@ Durable human approval checkpoints for this work.
 - `sw-plan` records design approval on entry when a human triggered `/sw-plan`.
   In headless mode it must validate an existing human approval instead of
   fabricating one.
+- `sw-pivot` reassesses design freshness when work-level artifacts change and
+  reassesses `unit-spec` freshness when current or remaining unit artifacts
+  change. It preserves the stale lineage with compact freshness reasons instead
+  of fabricating a replacement approval entry.
 - `sw-build` records or validates `unit-spec` approval on entry using the
   current unit artifact set.
 - `sw-verify` validates approval freshness before gate execution and reports
@@ -177,6 +181,8 @@ Shared approval helpers must provide deterministic support for:
 - recording or refreshing `accepted-mutant` entries without collapsing them
   into a silent config-only waiver
 - validating approval freshness against current artifacts
+- assessing both `design` and `unit-spec` entries against pivoted artifact sets
+  without special-case logic that would hide stale lineage
 - returning structured freshness assessment with status, compact reason code,
   and approved/current artifact hashes when applicable
 - rejecting any attempt to create `APPROVED` approval state from
