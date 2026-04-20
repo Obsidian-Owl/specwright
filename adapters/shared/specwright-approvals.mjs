@@ -9,6 +9,13 @@ export const APPROVAL_SOURCE_CLASSIFICATIONS = [
   'external-record',
   'headless-check'
 ];
+export const APPROVAL_REASON_CODES = [
+  'missing-entry',
+  'artifact-set-changed',
+  'missing-lineage',
+  'expired',
+  'superseded'
+];
 export const DEFAULT_ACCEPTED_MUTANT_EXPIRY_DAYS = 90;
 export const APPROVAL_ASSESSMENT_STATUS_VALUES = [
   ...APPROVAL_STATUS_VALUES,
@@ -104,6 +111,22 @@ function normalizeAcceptedMutantLineage(entry) {
     configPath: normalizeString(entry?.configPath),
     approvedAt: normalizeString(entry?.approvedAt),
     expiresAt: normalizeString(entry?.expiresAt)
+  };
+}
+
+function createAssessmentResult({
+  status,
+  reasonCode = null,
+  artifactSetHash = null,
+  approvedArtifactSetHash = null,
+  currentArtifactSetHash = null
+}) {
+  return {
+    status,
+    reasonCode,
+    artifactSetHash,
+    approvedArtifactSetHash,
+    currentArtifactSetHash
   };
 }
 
@@ -245,11 +268,20 @@ export function recordApproval(document, options = {}) {
 }
 
 export function assessApprovalEntry(entry, options = {}) {
+  const baseDir = options.baseDir ?? process.cwd();
+  const artifacts = Array.isArray(options.artifacts)
+    ? options.artifacts
+    : (Array.isArray(entry?.artifacts) ? entry.artifacts : []);
+  const current = hashApprovalArtifacts(baseDir, artifacts);
+
   if (entry == null) {
-    return {
+    return createAssessmentResult({
       status: 'MISSING',
-      artifactSetHash: null
-    };
+      reasonCode: 'missing-entry',
+      artifactSetHash: null,
+      approvedArtifactSetHash: null,
+      currentArtifactSetHash: current.artifactSetHash
+    });
   }
 
   const normalizedStatus = normalizeEnumValue(
@@ -262,17 +294,14 @@ export function assessApprovalEntry(entry, options = {}) {
   }
 
   if (normalizedStatus === 'SUPERSEDED') {
-    return {
+    return createAssessmentResult({
       status: 'SUPERSEDED',
-      artifactSetHash: entry?.artifactSetHash ?? null
-    };
+      reasonCode: 'superseded',
+      artifactSetHash: entry?.artifactSetHash ?? null,
+      approvedArtifactSetHash: entry?.artifactSetHash ?? null,
+      currentArtifactSetHash: current.artifactSetHash
+    });
   }
-
-  const baseDir = options.baseDir ?? process.cwd();
-  const artifacts = Array.isArray(options.artifacts)
-    ? options.artifacts
-    : (Array.isArray(entry?.artifacts) ? entry.artifacts : []);
-  const current = hashApprovalArtifacts(baseDir, artifacts);
 
   if (isAcceptedMutantScope(entry?.scope)) {
     const acceptedMutantLineage = normalizeAcceptedMutantLineage(entry);
@@ -284,40 +313,54 @@ export function assessApprovalEntry(entry, options = {}) {
       !acceptedMutantLineage.approvedAt ||
       !acceptedMutantLineage.expiresAt
     ) {
-      return {
+      return createAssessmentResult({
         status: 'STALE',
-        artifactSetHash: current.artifactSetHash
-      };
+        reasonCode: 'missing-lineage',
+        artifactSetHash: current.artifactSetHash,
+        approvedArtifactSetHash: entry?.artifactSetHash ?? null,
+        currentArtifactSetHash: current.artifactSetHash
+      });
     }
 
     const approvedDate = new Date(acceptedMutantLineage.approvedAt);
     const expiryDate = new Date(acceptedMutantLineage.expiresAt);
     if (Number.isNaN(approvedDate.getTime())) {
-      return {
+      return createAssessmentResult({
         status: 'STALE',
-        artifactSetHash: current.artifactSetHash
-      };
+        reasonCode: 'missing-lineage',
+        artifactSetHash: current.artifactSetHash,
+        approvedArtifactSetHash: entry?.artifactSetHash ?? null,
+        currentArtifactSetHash: current.artifactSetHash
+      });
     }
 
     if (Number.isNaN(expiryDate.getTime()) || expiryDate.getTime() <= Date.now()) {
-      return {
+      return createAssessmentResult({
         status: 'STALE',
-        artifactSetHash: current.artifactSetHash
-      };
+        reasonCode: 'expired',
+        artifactSetHash: current.artifactSetHash,
+        approvedArtifactSetHash: entry?.artifactSetHash ?? null,
+        currentArtifactSetHash: current.artifactSetHash
+      });
     }
   }
 
   if (current.artifactSetHash !== entry?.artifactSetHash) {
-    return {
+    return createAssessmentResult({
       status: 'STALE',
-      artifactSetHash: current.artifactSetHash
-    };
+      reasonCode: 'artifact-set-changed',
+      artifactSetHash: current.artifactSetHash,
+      approvedArtifactSetHash: entry?.artifactSetHash ?? null,
+      currentArtifactSetHash: current.artifactSetHash
+    });
   }
 
-  return {
+  return createAssessmentResult({
     status: 'APPROVED',
-    artifactSetHash: current.artifactSetHash
-  };
+    artifactSetHash: current.artifactSetHash,
+    approvedArtifactSetHash: entry?.artifactSetHash ?? null,
+    currentArtifactSetHash: current.artifactSetHash
+  });
 }
 
 export function serializeApprovalsMarkdown(document) {

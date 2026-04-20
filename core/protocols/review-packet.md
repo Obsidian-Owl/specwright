@@ -36,6 +36,12 @@ once to understand an agent-authored change.
 The packet synthesizes those sources. It does not create a second source of
 truth for gate execution or approval state.
 
+## Closeout Digest Reuse
+
+`review-packet.md` may feed a closeout digest when a lifecycle surface needs a
+human-readable summary and no fresher stage report is available. That closeout
+digest is derived from the review-packet structure; it must not become a second free-form summary surface with bespoke wording that drifts from the packet.
+
 ## Canonical Structure
 
 ```markdown
@@ -66,6 +72,10 @@ truth for gate execution or approval state.
 
 - Report both `design` and current `unit-spec` lineage when available.
 - Distinguish `APPROVED`, `STALE`, `SUPERSEDED`, and missing approval clearly.
+- When lineage is not current, use the compact reason vocabulary from
+  `protocols/approvals.md` (`missing-entry`, `artifact-set-changed`,
+  `missing-lineage`, `expired`, `superseded`) instead of dumping hashes into
+  the reviewer-facing summary.
 - Include the human approval source reference when present.
 - Never imply approval truth comes from `workflow.json`.
 
