@@ -17,6 +17,7 @@ from evals.tests._text_helpers import assert_multiline_regex, load_text
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _CONFIG_PATH = os.path.join(_REPO_ROOT, ".specwright", "config.json")
 _CONTEXT_PROTOCOL_PATH = os.path.join(_REPO_ROOT, "core", "protocols", "context.md")
+_GITIGNORE_PATH = os.path.join(_REPO_ROOT, ".gitignore")
 _STATE_PATHS_MODULE_PATH = os.path.join(
     _REPO_ROOT, "adapters", "shared", "specwright-state-paths.mjs"
 )
@@ -72,27 +73,30 @@ def _derive_worktree_id(git_dir: Path, git_common_dir: Path) -> str:
 def _write_config(
     repo_path: Path,
     *,
-    runtime_mode: str,
+    runtime_mode: str | None,
     project_visible_root: str = ".specwright-local",
     work_artifacts_mode: str = "clone-local",
     tracked_root: str | None = None,
 ) -> None:
+    git_config = {
+        "workArtifacts": {
+            "mode": work_artifacts_mode,
+            "trackedRoot": tracked_root,
+        },
+    }
+    if runtime_mode is not None:
+        git_config["runtime"] = {
+            "mode": runtime_mode,
+            "projectVisibleRoot": project_visible_root,
+        }
+
     config_path = repo_path / ".specwright" / "config.json"
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config_path.write_text(
         json.dumps(
             {
                 "version": "2.0",
-                "git": {
-                    "runtime": {
-                        "mode": runtime_mode,
-                        "projectVisibleRoot": project_visible_root,
-                    },
-                    "workArtifacts": {
-                        "mode": work_artifacts_mode,
-                        "trackedRoot": tracked_root,
-                    },
-                },
+                "git": git_config,
             },
             indent=2,
         )
@@ -211,6 +215,25 @@ process.stdout.write(JSON.stringify({
   artifactsRoot: work?.artifactsRoot ?? null,
   workDirPath: work?.workDirPath ?? null
 }));
+"""
+    completed = subprocess.run(
+        ["node", "--input-type=module", "-e", script],
+        cwd=repo_path,
+        check=True,
+        capture_output=True,
+        text=True,
+        env={
+            **os.environ,
+            "STATE_PATHS_MODULE": _STATE_PATHS_MODULE_PATH,
+        },
+    )
+    return json.loads(completed.stdout)
+
+
+def _resolve_roots(repo_path: Path) -> dict:
+    script = """
+const { resolveSpecwrightRoots } = await import(process.env.STATE_PATHS_MODULE);
+process.stdout.write(JSON.stringify(resolveSpecwrightRoots({ cwd: process.cwd() })));
 """
     completed = subprocess.run(
         ["node", "--input-type=module", "-e", script],
@@ -424,6 +447,78 @@ class TestRuntimeModeResolverPaths(unittest.TestCase):
             self.assertEqual(
                 data["workDirPath"],
                 str((repo_path / ".specwright" / "audit-work" / "runtime-proof").resolve()),
+            )
+
+
+class TestRuntimeModeSafetyProof(unittest.TestCase):
+    """AC-4/AC-5: unsafe project-visible roots fail closed and git-admin remains compatible."""
+
+    def test_gitignore_excludes_project_visible_runtime_root_by_default(self):
+        self.assertIn("/.specwright-local/", load_text(_GITIGNORE_PATH))
+
+    def test_project_visible_root_inside_git_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "inside-git-repo"
+            _init_git_repo(repo_path)
+            _write_config(
+                repo_path,
+                runtime_mode="project-visible",
+                project_visible_root=".git/specwright-local",
+            )
+
+            roots = _resolve_roots(repo_path)
+
+            self.assertFalse(roots["ok"])
+            self.assertEqual(roots["code"], "INVALID_RUNTIME_ROOT")
+
+    def test_project_visible_root_inside_project_artifacts_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "inside-artifacts-repo"
+            _init_git_repo(repo_path)
+            _write_config(
+                repo_path,
+                runtime_mode="project-visible",
+                project_visible_root=".specwright/local-runtime",
+            )
+
+            roots = _resolve_roots(repo_path)
+
+            self.assertFalse(roots["ok"])
+            self.assertEqual(roots["code"], "INVALID_RUNTIME_ROOT")
+
+    def test_project_visible_root_symlinked_into_git_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "symlink-git-repo"
+            _init_git_repo(repo_path)
+            (repo_path / "runtime-link").symlink_to(repo_path / ".git", target_is_directory=True)
+            _write_config(
+                repo_path,
+                runtime_mode="project-visible",
+                project_visible_root="runtime-link",
+            )
+
+            roots = _resolve_roots(repo_path)
+
+            self.assertFalse(roots["ok"])
+            self.assertEqual(roots["code"], "INVALID_RUNTIME_ROOT")
+
+    def test_legacy_git_admin_install_still_loads_when_runtime_block_is_absent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "legacy-git-admin-repo"
+            _init_git_repo(repo_path)
+            _write_config(repo_path, runtime_mode=None)
+            _write_shared_state(repo_path, runtime_mode="git-admin")
+
+            data = _inspect_runtime_state(repo_path)
+
+            self.assertEqual(data["layout"], "shared")
+            self.assertEqual(
+                data["roots"]["repoStateRoot"],
+                str((repo_path / ".git" / "specwright").resolve()),
+            )
+            self.assertEqual(
+                data["workflowPath"],
+                str((repo_path / ".git" / "specwright" / "work" / "runtime-proof" / "workflow.json").resolve()),
             )
 
 

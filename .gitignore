@@ -11,6 +11,7 @@
 /.specwright/state/
 /.specwright/work/
 /.specwright/worktrees/
+/.specwright-local/
 .claude/
 !.claude/commands/
 
