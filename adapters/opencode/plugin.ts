@@ -17,7 +17,16 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync, cpSync, rmSync } from 'fs';
-import { join } from 'path';
+import { dirname, join, resolve } from 'path';
+import {
+  findSelectedWorkOwnerConflict,
+  loadSpecwrightState,
+  normalizeActiveWork
+} from './shared/specwright-state-paths.mjs';
+import {
+  loadOperatorSurfaceSummary,
+  renderOperatorSurfaceLines
+} from './shared/specwright-operator-surface.mjs';
 
 // ── Auto-deploy ─────────────────────────────────────────────────────────────
 //
@@ -35,12 +44,30 @@ interface DeployMapping {
   target: string;
 }
 
+function resolveDeploySource(packageRoot: string, source: string, sourceTreeFallback?: string): string {
+  const packagedSource = join(packageRoot, source);
+  if (existsSync(packagedSource) || !sourceTreeFallback) {
+    return packagedSource;
+  }
+
+  return resolve(packageRoot, sourceTreeFallback);
+}
+
 function getDeployMappings(packageRoot: string, projectDir: string): DeployMapping[] {
   return [
-    { source: join(packageRoot, 'commands'), target: join(projectDir, '.opencode', 'commands') },
-    { source: join(packageRoot, 'skills'), target: join(projectDir, '.specwright', 'skills') },
-    { source: join(packageRoot, 'protocols'), target: join(projectDir, '.specwright', 'protocols') },
-    { source: join(packageRoot, 'agents'), target: join(projectDir, '.specwright', 'agents') },
+    { source: resolveDeploySource(packageRoot, 'commands'), target: join(projectDir, '.opencode', 'commands') },
+    {
+      source: resolveDeploySource(packageRoot, 'skills', '../../core/skills'),
+      target: join(projectDir, '.specwright', 'skills')
+    },
+    {
+      source: resolveDeploySource(packageRoot, 'protocols', '../../core/protocols'),
+      target: join(projectDir, '.specwright', 'protocols')
+    },
+    {
+      source: resolveDeploySource(packageRoot, 'agents', '../../core/agents'),
+      target: join(projectDir, '.specwright', 'agents')
+    },
   ];
 }
 
@@ -140,26 +167,20 @@ export default async function (ctx: { directory: string; on: (event: string, han
   // Deploy assets BEFORE registering event handlers
   deployAssets(import.meta.dir, directory);
 
-  const stateDir = join(directory, '.specwright/state');
-  const workflowPath = join(stateDir, 'workflow.json');
-  const continuationPath = join(stateDir, 'continuation.md');
-
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  function readWorkflow(): Record<string, unknown> | null {
-    try {
-      if (!existsSync(workflowPath)) return null;
-      return JSON.parse(readFileSync(workflowPath, 'utf-8')) as Record<string, unknown>;
-    } catch {
+  function loadActiveState() {
+    const stateInfo = loadSpecwrightState({ cwd: directory });
+    const work = normalizeActiveWork(stateInfo);
+    if (!work || ['shipped', 'abandoned'].includes(work.status ?? '')) {
       return null;
     }
-  }
 
-  function isActiveWork(state: Record<string, unknown>): boolean {
-    const currentWork = state.currentWork as Record<string, unknown> | undefined;
-    if (!currentWork) return false;
-    const status = currentWork.status as string | undefined;
-    return !!status && !['shipped', 'abandoned'].includes(status);
+    return {
+      stateInfo,
+      work,
+      ownerConflict: findSelectedWorkOwnerConflict(stateInfo, { cwd: directory })
+    };
   }
 
   // ── session.created ────────────────────────────────────────────────────────
@@ -169,24 +190,24 @@ export default async function (ctx: { directory: string; on: (event: string, han
 
   ctx.on('session.created', async () => {
     try {
-      const state = readWorkflow();
-      if (!state || !isActiveWork(state)) return;
+      const active = loadActiveState();
+      if (!active) return;
 
-      const currentWork = state.currentWork as Record<string, unknown>;
-      const status = currentWork.status as string;
-      const tasksCompleted = (currentWork.tasksCompleted as unknown[])?.length ?? 0;
-      const tasksTotal = currentWork.tasksTotal ?? '?';
-      const workId = currentWork.id as string | undefined;
-      const workDir = (currentWork.workDir as string | undefined) || `.specwright/work/${workId}`;
-      const unitLine = currentWork.unitId ? `  Active Unit: ${currentWork.unitId}` : '';
-
-      const gates = state.gates as Record<string, { status: string }> | undefined;
-      const gatesSummary = gates
-        ? Object.entries(gates).map(([name, g]) => `${name}: ${g.status}`).join(', ') || 'none run'
-        : 'none run';
+      const { stateInfo, work, ownerConflict } = active;
+      const unitLine = work.unitId ? `  Active Unit: ${work.unitId}` : '';
+      const lockWarning = work.lock
+        ? `\n⚠ Lock held by "${work.lock.skill}" since ${work.lock.since}`
+        : '';
+      const ownershipWarning = ownerConflict
+        ? `\n  WARNING: This work is already active in another top-level worktree (${ownerConflict.ownerWorktreeId}${ownerConflict.ownerBranch ? ` on ${ownerConflict.ownerBranch}` : ''}: ${ownerConflict.ownerWorktreePath}). Adopt/takeover required before mutating or shipping it here.`
+        : '';
+      const operatorSurfaceLines = renderOperatorSurfaceLines(
+        loadOperatorSurfaceSummary(stateInfo, work)
+      );
 
       // Check for a fresh continuation snapshot written by the compacted handler
       let continuationContent = '';
+      const continuationPath = stateInfo.continuationPath;
       if (existsSync(continuationPath)) {
         try {
           const raw = readFileSync(continuationPath, 'utf-8');
@@ -197,7 +218,12 @@ export default async function (ctx: { directory: string; on: (event: string, han
             const ageMs = Date.now() - snapshotTime.getTime();
             const twoHoursMs = 2 * 60 * 60 * 1000;
             if (!isNaN(snapshotTime.getTime()) && ageMs < twoHoursMs) {
-              continuationContent = `\n--- Current State Snapshot ---\n${raw}`;
+              continuationContent = `\n--- Continuation Snapshot ---\n${raw}`;
+
+              const correctionMatch = raw.match(/## Correction Summary\n([\s\S]*?)(?=\n## |\n---|$)/);
+              if (correctionMatch && correctionMatch[1].trim()) {
+                continuationContent += `\n--- Quality Corrections ---\nIn this build session, the following quality issues were found and should be avoided:\n${correctionMatch[1].trim()}`;
+              }
             }
           }
           // One-time snapshot — always delete after reading
@@ -207,18 +233,21 @@ export default async function (ctx: { directory: string; on: (event: string, han
         }
       }
 
-      const shippingWarning = status === 'shipping'
+      const shippingWarning = work.status === 'shipping'
         ? '\n  ⚠ Status is "shipping" — PR creation was in progress. Run /sw-ship to check if the PR was created or to retry.'
         : '';
 
       const summary = [
         'Specwright: Work in progress',
-        `  Unit: ${workId} (${status})`,
+        `  Unit: ${work.workId} (${work.status})`,
         unitLine || null,
-        `  Progress: ${tasksCompleted}/${tasksTotal} tasks`,
-        `  Gates: ${gatesSummary}`,
-        `  Spec: ${workDir}/spec.md`,
-        `  Plan: ${workDir}/plan.md`,
+        `  Progress: ${work.completedCount}/${work.totalCount} tasks`,
+        `  Gates: ${work.gatesSummary}`,
+        `  Spec: ${work.specPath}`,
+        `  Plan: ${work.planPath}`,
+        ...operatorSurfaceLines,
+        lockWarning,
+        ownershipWarning,
         shippingWarning || null,
         continuationContent || null,
       ].filter(Boolean).join('\n');
@@ -238,21 +267,17 @@ export default async function (ctx: { directory: string; on: (event: string, han
 
   ctx.on('session.compacted', async () => {
     try {
-      const state = readWorkflow();
-      if (!state || !isActiveWork(state)) return;
+      const active = loadActiveState();
+      if (!active) return;
 
-      const currentWork = state.currentWork as Record<string, unknown>;
-      const status = currentWork.status as string;
-      const tasksCompleted = (currentWork.tasksCompleted as unknown[])?.length ?? 0;
-      const tasksTotal = currentWork.tasksTotal ?? '?';
-      const workId = currentWork.id as string | undefined;
-      const workDir = (currentWork.workDir as string | undefined) || `.specwright/work/${workId}`;
+      const { stateInfo, work } = active;
+      const continuationPath = stateInfo.continuationPath;
 
       const timestamp = new Date().toISOString();
 
       const nextSteps = [
-        `1. Read ${workDir}/spec.md to understand what this unit is building.`,
-        `2. Read ${workDir}/plan.md to see remaining tasks.`,
+        `1. Read ${work.specPath} to understand what this unit is building.`,
+        `2. Read ${work.planPath} to see remaining tasks.`,
         `3. Continue implementation — run /sw-status to see full progress.`,
       ].join('\n');
 
@@ -261,15 +286,16 @@ export default async function (ctx: { directory: string; on: (event: string, han
         '',
         '# Specwright Continuation',
         '',
-        `**Status:** ${status}`,
-        `**Unit:** ${workId}`,
-        `**Progress:** ${tasksCompleted}/${tasksTotal} tasks completed`,
+        `**Status:** ${work.status}`,
+        `**Unit:** ${work.workId}`,
+        `**Progress:** ${work.completedCount}/${work.totalCount} tasks completed`,
         '',
         '## Next Steps',
         '',
         nextSteps,
       ].join('\n');
 
+      mkdirSync(dirname(continuationPath), { recursive: true });
       writeFileSync(continuationPath, continuationSnapshot, 'utf-8');
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -284,17 +310,13 @@ export default async function (ctx: { directory: string; on: (event: string, han
 
   ctx.on('session.idle', async () => {
     try {
-      const state = readWorkflow();
-      if (!state || !isActiveWork(state)) return;
+      const active = loadActiveState();
+      if (!active) return;
 
-      const currentWork = state.currentWork as Record<string, unknown>;
-      const status = currentWork.status as string;
-      const tasksCompleted = (currentWork.tasksCompleted as unknown[])?.length ?? 0;
-      const tasksTotal = currentWork.tasksTotal ?? '?';
-      const workId = currentWork.id as string | undefined;
+      const { work } = active;
 
       return (
-        `Specwright: Active work in progress — ${workId} (${status}, ${tasksCompleted}/${tasksTotal} tasks). ` +
+        `Specwright: Active work in progress — ${work.workId} (${work.status}, ${work.completedCount}/${work.totalCount} tasks). ` +
         `Run /sw-status to check progress or /sw-status --reset to abandon.`
       );
     } catch {

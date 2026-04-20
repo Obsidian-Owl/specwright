@@ -17,6 +17,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck disable=SC1091
 # shellcheck source=tests/test-lib.sh
 . "$SCRIPT_DIR/test-lib.sh"
 # Use a non-reserved variable name — TMPDIR is POSIX/macOS system env
@@ -29,6 +30,7 @@ PRE_SHIP_GUARD_HOOK="$ROOT_DIR/adapters/claude-code/hooks/pre-ship-guard.mjs"
 SESSION_START_HOOK="$ROOT_DIR/adapters/claude-code/hooks/session-start.mjs"
 SESSION_STOP_HOOK="$ROOT_DIR/adapters/claude-code/hooks/session-stop.mjs"
 STATE_PATHS_MODULE="$ROOT_DIR/adapters/shared/specwright-state-paths.mjs"
+APPROVALS_MODULE="$ROOT_DIR/adapters/shared/specwright-approvals.mjs"
 CLAUDE_HOOKS_CONFIG="$ROOT_DIR/adapters/claude-code/hooks/hooks.json"
 
 PASS=0
@@ -158,6 +160,55 @@ EOF
     "tests": { "verdict": "PASS" }
   }
 }
+EOF
+}
+
+write_shared_stage_report() {
+  local dir="$1"
+  local work_id="$2"
+  local unit_id="$3"
+  mkdir -p "$(repo_state_root "$dir")/work/$work_id/units/$unit_id"
+  cat > "$(repo_state_root "$dir")/work/$work_id/units/$unit_id/stage-report.md" <<'EOF'
+Attention required: Operator surface summary is available.
+
+## What I did
+- Surfaced the latest closeout digest.
+- Carried approval freshness into the recovery output.
+
+## Decisions digest
+- Kept the warning footer compact.
+EOF
+}
+
+write_shared_approvals() {
+  local dir="$1"
+  local work_id="$2"
+  local unit_id="$3"
+  local work_dir approvals_path
+
+  work_dir="$(repo_state_root "$dir")/work/$work_id"
+  approvals_path="$work_dir/approvals.md"
+  mkdir -p "$work_dir"
+  APPROVALS_MODULE="$APPROVALS_MODULE" WORK_DIR="$work_dir" APPROVALS_PATH="$approvals_path" UNIT_ID="$unit_id" node --input-type=module <<'EOF'
+const {
+  createApprovalEntry,
+  defaultApprovalsDocument,
+  writeApprovalsFile
+} = await import(process.env.APPROVALS_MODULE);
+
+const entry = createApprovalEntry({
+  baseDir: process.env.WORK_DIR,
+  scope: 'unit-spec',
+  unitId: process.env.UNIT_ID,
+  sourceClassification: 'command',
+  sourceRef: '/sw-build',
+  artifacts: ['spec.md', 'plan.md', 'context.md'],
+  approvedAt: '2026-04-20T00:00:00Z'
+});
+
+const document = defaultApprovalsDocument();
+document.entries.push(entry);
+writeApprovalsFile(process.env.APPROVALS_PATH, document);
 EOF
 }
 
@@ -502,12 +553,26 @@ output=$(cd "$L/deep/shared" && node "$SESSION_START_HOOK" 2>/dev/null)
 exit_code=$?
 assert_eq "$exit_code" "0" "session-start: shared linked worktree → exit 0"
 assert_contains "$output" "shared-session-start (building)" "session-start: shared linked worktree → resolves attached shared work"
+assert_contains "$output" "Closeout: none yet" "session-start: shared linked worktree → explicitly reports missing closeout digest"
+assert_contains "$output" "Approval: unit-spec MISSING (missing-entry)" "session-start: shared linked worktree → explicitly reports missing approval freshness"
 assert_not_contains "$output" "Failed to read state" "session-start: shared linked worktree → does not fail without checkout-local config"
 if [ -e "$L/.specwright/config.json" ]; then
   fail "session-start: shared linked worktree fixture unexpectedly created checkout-local config"
 else
   pass "session-start: shared linked worktree fixture omits checkout-local config"
 fi
+
+T="$TEST_TMPDIR/t-ss-shared-surface-primary"
+init_git_repo "$T"
+make_shared_project "$T" "shared-surface" "building"
+write_shared_stage_report "$T" "shared-surface" "unit-shared-surface"
+write_shared_approvals "$T" "shared-surface" "unit-shared-surface"
+output=$(cd "$T" && node "$SESSION_START_HOOK" 2>/dev/null)
+exit_code=$?
+assert_eq "$exit_code" "0" "session-start: shared closeout + approval surface → exit 0"
+assert_contains "$output" "Closeout: stage-report" "session-start: shared closeout + approval surface → names digest source"
+assert_contains "$output" "Attention required: Operator surface summary is available." "session-start: shared closeout + approval surface → includes digest headline"
+assert_contains "$output" "Approval: unit-spec APPROVED (approved)" "session-start: shared closeout + approval surface → includes approval summary"
 
 T="$TEST_TMPDIR/t-ss-shared-conflict-primary"
 L="$TEST_TMPDIR/session-start-shared-conflict-linked"

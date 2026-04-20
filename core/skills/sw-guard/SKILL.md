@@ -65,7 +65,9 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
   Validate detected tools by running them (e.g., `--version` check). Present
   standalone recommendations with explicit "detected via heuristics" labeling.
 - When Git workflow config is present or inferred, seed or migrate `git.targets` and `git.freshness` from the detected Git workflow strategy without requiring users to define a custom branch DSL.
-- Detect or confirm target-role defaults, freshness checkpoints, and any optional work-artifact publication mode as one explicit Git policy surface, but keep the publication choice separately from clone-local runtime state.
+- Detect or confirm target-role defaults, freshness checkpoints, runtime mode as an explicit Git policy choice, and any optional work-artifact publication mode as one explicit Git policy surface.
+- Recommend `project-visible` for Claude-oriented installs unless the user explicitly wants `git-admin` runtime roots.
+- Keep runtime mode separately from tracked work-artifact publication and separately from clone-local runtime state.
 - Treat `.specwright/config.json` and the anchor docs as a shared project-level
   policy surface across developers and agent sessions, not as clone-local
   runtime state.
@@ -92,7 +94,8 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
 - External file writes: diff-show-approve. Installation commands require explicit approval.
 - Update `{projectArtifactsRoot}/config.json` with detected tool commands when the tracked
   project-artifact root exists.
-- When present, update the approved work-artifact publication choice in config separately from clone-local runtime state.
+- When present, update `git.runtime.mode` / `git.runtime.projectVisibleRoot` in config separately from tracked work-artifact publication.
+- When present, update the approved work-artifact publication choice in config separately from clone-local runtime state and separately from tracked work-artifact publication.
   Follow `protocols/context.md` for config updates.
 - Preserve the root split: tracked project policy stays under `{projectArtifactsRoot}`,
   while Git-admin session state remains local-only under the runtime roots.

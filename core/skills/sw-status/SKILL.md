@@ -45,8 +45,9 @@ other works are active in the repository, and what the next action should be.
   `attachedWorkId`.
 - If the session is attached, show that work's status, unit/task progress, the
   selected work's target branch and latest freshness state, configured
-  work-artifact publication mode when present, approval freshness,
-  review-packet presence, gates, and per-work lock freshness.
+  work-artifact publication mode when present, approval freshness reason,
+  latest closeout or review-packet availability, review-packet presence, gates,
+  and per-work lock freshness.
 - Enumerate other active works discovered under `repoStateRoot/work/*`, along
   with their recorded owner worktrees and whether the owner still has a live
   top-level session.
