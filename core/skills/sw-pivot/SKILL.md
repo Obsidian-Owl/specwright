@@ -115,6 +115,14 @@ reasons such as `missing-entry`, `artifact-set-changed`, `missing-lineage`,
 during `/sw-pivot`; the next human-triggered `/sw-build` records the
 replacement approval that supersedes the stale lineage.
 
+**Closeout summary (LOW freedom):**
+Before the stage handoff, summarize the preserved completed scope, delta scope
+introduced by the pivot, affected units or tasks, whether the active unit was
+reset to `building`, and any stale approval reasons (`missing-entry`,
+`artifact-set-changed`, `missing-lineage`, `expired`, `superseded`). The
+closeout must make scope preservation explicit instead of implying a
+remaining-tasks-only rewrite.
+
 **Stage boundary (LOW freedom):**
 Follow `protocols/stage-boundary.md`. After apply: STOP → "Run `/sw-build`."
 

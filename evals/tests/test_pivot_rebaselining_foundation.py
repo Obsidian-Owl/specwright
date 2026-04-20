@@ -73,6 +73,16 @@ class TestPivotRebaseliningContract(unittest.TestCase):
             ),
         )
 
+    def test_skill_requires_closeout_summary_for_preserved_scope_and_stale_reasons(self):
+        self.assertRegex(
+            self.pivot_text,
+            re.compile(
+                r"preserved(?: completed)? scope[\s\S]*delta scope[\s\S]*affected units[\s\S]*"
+                r"(missing-entry|artifact-set-changed|missing-lineage|expired|superseded)",
+                re.IGNORECASE,
+            ),
+        )
+
 
 class TestPivotApprovalLineage(unittest.TestCase):
     """Task 2 RED: approvals must describe and prove pivot stale-lineage handling."""
