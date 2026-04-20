@@ -4,6 +4,7 @@ Task 1 starts with the tracked config and context protocol surface. Later tasks
 extend this module with resolver and migration-safety proofs.
 """
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -62,12 +63,13 @@ def _derive_worktree_id(git_dir: Path, git_common_dir: Path) -> str:
         return "main-worktree"
 
     if git_dir.parent == git_common_dir / "worktrees":
+        if git_dir.name and git_dir.name != "main-worktree":
+            return git_dir.name
+
+    if git_dir.name and git_dir.name not in {".git", "main-worktree"}:
         return git_dir.name
 
-    if git_dir.name and git_dir.name != ".git":
-        return git_dir.name
-
-    raise AssertionError(f"Unable to derive worktree id for {git_dir}")
+    return "worktree-" + hashlib.sha256(str(git_dir).encode("utf-8")).hexdigest()[:12]
 
 
 def _write_config(
@@ -119,7 +121,7 @@ def _runtime_roots(
         shared_runtime_root = git_common_dir.parent / project_visible_root
         repo_state_root = shared_runtime_root / "repo"
         worktree_state_root = shared_runtime_root / "worktrees" / worktree_id
-        clone_local_work_artifacts_root = shared_runtime_root / "work"
+        clone_local_work_artifacts_root = repo_state_root / "work"
     else:
         shared_runtime_root = git_common_dir / "specwright"
         repo_state_root = git_common_dir / "specwright"
@@ -318,6 +320,7 @@ class TestRuntimeModeContextProtocol(unittest.TestCase):
             "repoStateRoot",
             "worktreeStateRoot",
             "workArtifactsRoot",
+            "{repoStateRoot}/work",
             ".specwright-local",
         ):
             with self.subTest(needle=needle):
@@ -386,11 +389,19 @@ class TestRuntimeModeResolverPaths(unittest.TestCase):
             )
             self.assertEqual(
                 data["roots"]["workArtifactsRoot"],
-                str(visible_root / "work"),
+                str(visible_root / "repo" / "work"),
             )
             self.assertEqual(
                 data["workflowPath"],
                 str(visible_root / "repo" / "work" / "runtime-proof" / "workflow.json"),
+            )
+            self.assertEqual(
+                data["artifactsRoot"],
+                str(visible_root / "repo" / "work"),
+            )
+            self.assertEqual(
+                data["workDirPath"],
+                str(visible_root / "repo" / "work" / "runtime-proof"),
             )
 
     def test_project_visible_linked_worktree_keys_state_by_worktree_id(self):
@@ -416,6 +427,35 @@ class TestRuntimeModeResolverPaths(unittest.TestCase):
                 str(visible_root / "worktrees" / "linked-repo"),
             )
             self.assertEqual(data["roots"]["worktreeId"], "linked-repo")
+            self.assertEqual(
+                data["roots"]["workArtifactsRoot"],
+                str(visible_root / "repo" / "work"),
+            )
+
+    def test_project_visible_linked_worktree_named_main_worktree_uses_non_primary_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            main_repo_path = Path(tmp) / "main-repo"
+            linked_repo_path = Path(tmp) / "main-worktree"
+            _init_git_repo(main_repo_path)
+            _run(
+                ["git", "worktree", "add", "-b", "runtime-main-worktree", str(linked_repo_path), "HEAD"],
+                cwd=main_repo_path,
+            )
+            _write_config(linked_repo_path, runtime_mode="project-visible")
+
+            data = _inspect_runtime_state(linked_repo_path)
+            visible_root = (main_repo_path / ".specwright-local").resolve()
+
+            self.assertTrue(data["roots"]["worktreeId"].startswith("worktree-"))
+            self.assertNotEqual(data["roots"]["worktreeId"], "main-worktree")
+            self.assertEqual(
+                data["roots"]["worktreeStateRoot"],
+                str(visible_root / "worktrees" / data["roots"]["worktreeId"]),
+            )
+            self.assertNotEqual(
+                data["roots"]["worktreeStateRoot"],
+                str(visible_root / "worktrees" / "main-worktree"),
+            )
 
     def test_tracked_work_artifacts_override_stays_independent_in_project_visible_mode(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -486,6 +526,26 @@ class TestRuntimeModeSafetyProof(unittest.TestCase):
             self.assertFalse(roots["ok"])
             self.assertEqual(roots["code"], "INVALID_RUNTIME_ROOT")
 
+    def test_project_visible_root_matching_primary_checkout_project_artifacts_is_rejected_for_linked_worktree(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            main_repo_path = Path(tmp) / "main-repo"
+            linked_repo_path = Path(tmp) / "linked-repo"
+            _init_git_repo(main_repo_path)
+            _run(
+                ["git", "worktree", "add", "-b", "runtime-linked", str(linked_repo_path), "HEAD"],
+                cwd=main_repo_path,
+            )
+            _write_config(
+                linked_repo_path,
+                runtime_mode="project-visible",
+                project_visible_root=".specwright",
+            )
+
+            roots = _resolve_roots(linked_repo_path)
+
+            self.assertFalse(roots["ok"])
+            self.assertEqual(roots["code"], "INVALID_RUNTIME_ROOT")
+
     def test_project_visible_root_symlinked_into_git_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo_path = Path(tmp) / "symlink-git-repo"
@@ -495,6 +555,36 @@ class TestRuntimeModeSafetyProof(unittest.TestCase):
                 repo_path,
                 runtime_mode="project-visible",
                 project_visible_root="runtime-link",
+            )
+
+            roots = _resolve_roots(repo_path)
+
+            self.assertFalse(roots["ok"])
+            self.assertEqual(roots["code"], "INVALID_RUNTIME_ROOT")
+
+    def test_project_visible_root_with_parent_traversal_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "traversal-repo"
+            _init_git_repo(repo_path)
+            _write_config(
+                repo_path,
+                runtime_mode="project-visible",
+                project_visible_root="../outside-runtime",
+            )
+
+            roots = _resolve_roots(repo_path)
+
+            self.assertFalse(roots["ok"])
+            self.assertEqual(roots["code"], "INVALID_RUNTIME_ROOT")
+
+    def test_project_visible_root_absolute_path_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "absolute-root-repo"
+            _init_git_repo(repo_path)
+            _write_config(
+                repo_path,
+                runtime_mode="project-visible",
+                project_visible_root=str((Path(tmp) / "absolute-runtime").resolve()),
             )
 
             roots = _resolve_roots(repo_path)

@@ -120,11 +120,14 @@ function deriveWorktreeId(gitDir, gitCommonDir) {
   }
 
   if (dirname(gitDir) === join(gitCommonDir, 'worktrees')) {
-    return basename(gitDir);
+    const linkedWorktreeId = basename(gitDir);
+    if (linkedWorktreeId && linkedWorktreeId !== PRIMARY_WORKTREE_ID) {
+      return linkedWorktreeId;
+    }
   }
 
   const tail = basename(gitDir);
-  if (tail && tail !== '.git') {
+  if (tail && tail !== '.git' && tail !== PRIMARY_WORKTREE_ID) {
     return tail;
   }
 
@@ -269,6 +272,11 @@ function resolveProjectVisibleRoots({
   const sharedRuntimeRoot = resolve(runtimeParent, projectVisibleRoot);
   const effectiveSharedRuntimeRoot = resolvePathThroughExistingAncestors(runtimeParent, sharedRuntimeRoot);
   const effectiveProjectArtifactsRoot = resolvePathThroughExistingAncestors(projectRoot, projectArtifactsRoot);
+  const primaryProjectArtifactsRoot = join(runtimeParent, PROJECT_ARTIFACTS_DIR);
+  const effectivePrimaryProjectArtifactsRoot = resolvePathThroughExistingAncestors(
+    runtimeParent,
+    primaryProjectArtifactsRoot
+  );
   const effectiveGitDir = realpathIfPossible(gitDir);
   const effectiveGitCommonDir = realpathIfPossible(gitCommonDir);
 
@@ -308,8 +316,11 @@ function resolveProjectVisibleRoots({
 
   if (
     pathsOverlap(sharedRuntimeRoot, projectArtifactsRoot) ||
+    pathsOverlap(sharedRuntimeRoot, primaryProjectArtifactsRoot) ||
     pathsOverlap(effectiveSharedRuntimeRoot, projectArtifactsRoot) ||
-    pathsOverlap(effectiveSharedRuntimeRoot, effectiveProjectArtifactsRoot)
+    pathsOverlap(effectiveSharedRuntimeRoot, effectiveProjectArtifactsRoot) ||
+    pathsOverlap(effectiveSharedRuntimeRoot, primaryProjectArtifactsRoot) ||
+    pathsOverlap(effectiveSharedRuntimeRoot, effectivePrimaryProjectArtifactsRoot)
   ) {
     return buildInvalidRuntimeRootFailure(
       'config.git.runtime.projectVisibleRoot',
@@ -318,17 +329,19 @@ function resolveProjectVisibleRoots({
       {
         sharedRuntimeRoot,
         effectiveSharedRuntimeRoot,
-        projectArtifactsRoot
+        projectArtifactsRoot,
+        primaryProjectArtifactsRoot
       }
     );
   }
 
+  const repoStateRoot = join(sharedRuntimeRoot, 'repo');
   return {
     ok: true,
     sharedRuntimeRoot,
-    repoStateRoot: join(sharedRuntimeRoot, 'repo'),
+    repoStateRoot,
     worktreeStateRoot: join(sharedRuntimeRoot, 'worktrees', worktreeId),
-    cloneLocalWorkArtifactsRoot: join(sharedRuntimeRoot, 'work')
+    cloneLocalWorkArtifactsRoot: join(repoStateRoot, 'work')
   };
 }
 

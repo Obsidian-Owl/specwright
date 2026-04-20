@@ -11,7 +11,7 @@ invocation:
 | `projectArtifactsRoot` | `{projectRoot}/.specwright` | tracked project artifacts and shared agent guidance |
 | `repoStateRoot` | depends on `config.git.runtime.mode`: `git-admin` -> `git rev-parse --git-common-dir` + `/specwright`; `project-visible` -> `<git common-dir parent>/{config.git.runtime.projectVisibleRoot}/repo` | shared clone-local runtime state |
 | `worktreeStateRoot` | depends on `config.git.runtime.mode`: `git-admin` -> `git rev-parse --git-dir` + `/specwright`; `project-visible` -> `<git common-dir parent>/{config.git.runtime.projectVisibleRoot}/worktrees/{worktreeId}` | per-worktree session and continuation state |
-| `workArtifactsRoot` | clone-local mode follows the runtime mode: `git-admin` -> `{repoStateRoot}/work`, `project-visible` -> `<git common-dir parent>/{config.git.runtime.projectVisibleRoot}/work`; tracked publication uses `{projectRoot}/{config.git.workArtifacts.trackedRoot}` when configured | auditable work artifacts |
+| `workArtifactsRoot` | clone-local mode stays anchored under repo state: `git-admin` -> `{repoStateRoot}/work`, `project-visible` -> `{repoStateRoot}/work` where `repoStateRoot = <git common-dir parent>/{config.git.runtime.projectVisibleRoot}/repo`; tracked publication uses `{projectRoot}/{config.git.workArtifacts.trackedRoot}` when configured | auditable work artifacts |
 
 Callers must prefer those logical roots over hardcoded `.specwright/...` or
 `.git/specwright/...` path concatenation.
@@ -36,7 +36,7 @@ publication remains separate from runtime mode and is still controlled by
 | Mode | Runtime mapping |
 |---|---|
 | `git-admin` | `repoStateRoot = {gitCommonDir}/specwright`, `worktreeStateRoot = {gitDir}/specwright`, clone-local `workArtifactsRoot = {repoStateRoot}/work` |
-| `project-visible` | shared runtime root = `<git common-dir parent>/{config.git.runtime.projectVisibleRoot}`, `repoStateRoot = {sharedRuntimeRoot}/repo`, `worktreeStateRoot = {sharedRuntimeRoot}/worktrees/{worktreeId}`, clone-local `workArtifactsRoot = {sharedRuntimeRoot}/work` |
+| `project-visible` | shared runtime root = `<git common-dir parent>/{config.git.runtime.projectVisibleRoot}`, `repoStateRoot = {sharedRuntimeRoot}/repo`, `worktreeStateRoot = {sharedRuntimeRoot}/worktrees/{worktreeId}`, clone-local `workArtifactsRoot = {repoStateRoot}/work` |
 
 Guardrails for `project-visible` mode:
 
@@ -44,7 +44,7 @@ In `project-visible` mode, the repo state root, worktree state root, and work
 artifacts root all move under the shared runtime root instead of `.git`.
 Project-visible maps the repo state root to `{sharedRuntimeRoot}/repo`, the
 worktree state root to `{sharedRuntimeRoot}/worktrees/{worktreeId}`, and the
-work artifacts root to `{sharedRuntimeRoot}/work`.
+work artifacts root to `{repoStateRoot}/work`.
 
 - the resolved `projectVisibleRoot` must stay clone-local and untracked by
   default
