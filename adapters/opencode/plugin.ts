@@ -17,7 +17,7 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync, cpSync, rmSync } from 'fs';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
 import {
   findSelectedWorkOwnerConflict,
   loadSpecwrightState,
@@ -44,12 +44,30 @@ interface DeployMapping {
   target: string;
 }
 
+function resolveDeploySource(packageRoot: string, source: string, sourceTreeFallback?: string): string {
+  const packagedSource = join(packageRoot, source);
+  if (existsSync(packagedSource) || !sourceTreeFallback) {
+    return packagedSource;
+  }
+
+  return resolve(packageRoot, sourceTreeFallback);
+}
+
 function getDeployMappings(packageRoot: string, projectDir: string): DeployMapping[] {
   return [
-    { source: join(packageRoot, 'commands'), target: join(projectDir, '.opencode', 'commands') },
-    { source: join(packageRoot, 'skills'), target: join(projectDir, '.specwright', 'skills') },
-    { source: join(packageRoot, 'protocols'), target: join(projectDir, '.specwright', 'protocols') },
-    { source: join(packageRoot, 'agents'), target: join(projectDir, '.specwright', 'agents') },
+    { source: resolveDeploySource(packageRoot, 'commands'), target: join(projectDir, '.opencode', 'commands') },
+    {
+      source: resolveDeploySource(packageRoot, 'skills', '../../core/skills'),
+      target: join(projectDir, '.specwright', 'skills')
+    },
+    {
+      source: resolveDeploySource(packageRoot, 'protocols', '../../core/protocols'),
+      target: join(projectDir, '.specwright', 'protocols')
+    },
+    {
+      source: resolveDeploySource(packageRoot, 'agents', '../../core/agents'),
+      target: join(projectDir, '.specwright', 'agents')
+    },
   ];
 }
 

@@ -10,10 +10,6 @@ const DESIGN_APPROVAL_ARTIFACTS = ['design.md', 'context.md', 'decisions.md'];
 const CLOSEOUT_ABSENCE_LINE = 'Closeout: none yet (no stage-report.md or review-packet.md)';
 
 function resolveRuntimeWorkRoot(stateInfo, work) {
-  if (stateInfo?.layout === 'shared' && stateInfo?.repoStateRoot) {
-    return join(stateInfo.repoStateRoot, 'work', work.workId);
-  }
-
   if (stateInfo?.repoStateRoot) {
     return join(stateInfo.repoStateRoot, 'work', work.workId);
   }
@@ -92,7 +88,12 @@ function summarizeApproval(stateInfo, work, approvalsPath) {
       status: assessment.status,
       reasonCode: assessment.reasonCode ?? 'approved'
     };
-  } catch {
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      const message = error instanceof Error ? error.message : String(error);
+      process.stderr.write(`[specwright] summarizeApproval failed for ${target.scope}: ${message}\n`);
+    }
+
     return {
       scope: target.scope,
       status: 'MISSING',
@@ -149,4 +150,3 @@ export function renderOperatorSurfaceLines(summary, options = {}) {
 
   return lines;
 }
-

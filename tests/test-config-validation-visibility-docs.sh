@@ -64,7 +64,7 @@ assert_contains "$INIT_SKILL" "separately from tracked work-artifact publication
 assert_contains "$GUARD_SKILL" "target-role defaults, freshness checkpoints" "sw-guard keeps the Git policy surface explicit"
 assert_contains "$GUARD_SKILL" "separately from clone-local runtime state" "sw-guard distinguishes publication policy from runtime-local state"
 assert_contains "$GUARD_SKILL" "runtime mode as an explicit Git policy choice" "sw-guard treats runtime mode as an explicit Git policy choice"
-assert_contains "$GUARD_SKILL" "recommend \`project-visible\` for Claude-oriented installs" "sw-guard recommends project-visible for Claude-oriented installs"
+assert_contains "$GUARD_SKILL" "Recommend \`project-visible\` for Claude-oriented installs" "sw-guard recommends project-visible for Claude-oriented installs"
 assert_contains "$GUARD_SKILL" "separately from tracked work-artifact publication" "sw-guard keeps runtime mode separate from tracked work-artifact publication"
 
 echo ""

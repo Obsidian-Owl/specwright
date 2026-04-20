@@ -1,8 +1,10 @@
 """Regression coverage for Unit 03 — operator surface visibility."""
 
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -219,6 +221,49 @@ def _run_session_start(repo_path: Path) -> str:
     return result.stdout
 
 
+def _run_opencode_event(repo_path: Path, event: str) -> str:
+    script = f"""
+import plugin from {json.dumps(str(PLUGIN_PATH))};
+
+const handlers = new Map();
+const ctx = {{
+  directory: {json.dumps(str(repo_path))},
+  on(name, handler) {{
+    handlers.set(name, handler);
+  }}
+}};
+
+console.log = () => {{}};
+console.warn = () => {{}};
+
+await plugin(ctx);
+
+const handler = handlers.get({json.dumps(event)});
+if (!handler) {{
+  throw new Error(`missing Opencode handler: {event}`);
+}}
+
+const result = await handler();
+if (typeof result === 'string') {{
+  process.stdout.write(result);
+}}
+"""
+    result = subprocess.run(
+        ["bun", "-e", script],
+        cwd=ROOT_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise AssertionError(result.stderr or result.stdout or f"opencode {event} handler failed")
+    return result.stdout
+
+
+def _fresh_timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 class TestSessionStartSurface(unittest.TestCase):
     def test_session_start_names_missing_closeout_and_approval(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -249,6 +294,85 @@ class TestSessionStartSurface(unittest.TestCase):
             self.assertIn("Closeout: stage-report", output)
             self.assertIn("Attention required: Operator surface summary is available.", output)
             self.assertIn("Approval: unit-spec APPROVED (approved)", output)
+
+
+@unittest.skipUnless(shutil.which("bun"), "bun is required for Opencode plugin runtime tests")
+class TestOpencodeSessionCreatedSurface(unittest.TestCase):
+    def test_source_tree_plugin_loads_and_deploys_core_assets(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            _write_shared_state(repo_path)
+
+            output = _run_opencode_event(repo_path, "session.created")
+
+            self.assertIn("Specwright: Work in progress", output)
+            self.assertTrue((repo_path / ".opencode" / "commands" / "sw-build.md").exists())
+            self.assertTrue((repo_path / ".specwright" / "skills" / "sw-build" / "SKILL.md").exists())
+            self.assertTrue((repo_path / ".specwright" / "protocols" / "git.md").exists())
+            self.assertTrue((repo_path / ".specwright" / "agents" / "specwright-architect.md").exists())
+
+    def test_session_created_replays_quality_corrections_when_present(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            continuation_path = Path(state["worktreeStateRoot"]) / "continuation.md"
+            continuation_path.parent.mkdir(parents=True, exist_ok=True)
+            continuation_path.write_text(
+                "\n".join(
+                    [
+                        f"Snapshot: {_fresh_timestamp()}",
+                        "",
+                        "## Progress",
+                        "Shared continuation notes.",
+                        "",
+                        "## Correction Summary",
+                        "- unchecked-error: Always handle errors explicitly",
+                        "",
+                        "## Next Steps",
+                        "Continue with task 3.",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            output = _run_opencode_event(repo_path, "session.created")
+
+            self.assertIn("Continuation Snapshot", output)
+            self.assertIn("Quality Corrections", output)
+            self.assertIn("unchecked-error", output)
+            self.assertFalse(continuation_path.exists())
+
+    def test_session_created_omits_quality_corrections_when_absent(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            continuation_path = Path(state["worktreeStateRoot"]) / "continuation.md"
+            continuation_path.parent.mkdir(parents=True, exist_ok=True)
+            continuation_path.write_text(
+                "\n".join(
+                    [
+                        f"Snapshot: {_fresh_timestamp()}",
+                        "",
+                        "## Progress",
+                        "Shared continuation notes.",
+                        "",
+                        "## Next Steps",
+                        "Continue with task 3.",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            output = _run_opencode_event(repo_path, "session.created")
+
+            self.assertIn("Continuation Snapshot", output)
+            self.assertNotIn("Quality Corrections", output)
+            self.assertFalse(continuation_path.exists())
 
 
 class TestOperatorSurfaceContracts(unittest.TestCase):
