@@ -37,6 +37,10 @@
         "ship": "require"
       }
     },
+    "runtime": {
+      "mode": "git-admin",
+      "projectVisibleRoot": ".specwright-local"
+    },
     "workArtifacts": {
       "mode": "clone-local",
       "trackedRoot": null

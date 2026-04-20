@@ -9,12 +9,49 @@ invocation:
 |---|---|---|
 | `projectRoot` | `git rev-parse --show-toplevel` | source tree and user-facing cwd |
 | `projectArtifactsRoot` | `{projectRoot}/.specwright` | tracked project artifacts and shared agent guidance |
-| `repoStateRoot` | `git rev-parse --git-common-dir` + `/specwright` | shared clone-local runtime state |
-| `worktreeStateRoot` | `git rev-parse --git-dir` + `/specwright` | per-worktree session and continuation state |
-| `workArtifactsRoot` | `{repoStateRoot}/work` by default; `{projectRoot}/{config.git.workArtifacts.trackedRoot}` when tracked mode is configured | auditable work artifacts |
+| `repoStateRoot` | depends on `config.git.runtime.mode`: `git-admin` -> `git rev-parse --git-common-dir` + `/specwright`; `project-visible` -> `<git common-dir parent>/{config.git.runtime.projectVisibleRoot}/repo` | shared clone-local runtime state |
+| `worktreeStateRoot` | depends on `config.git.runtime.mode`: `git-admin` -> `git rev-parse --git-dir` + `/specwright`; `project-visible` -> `<git common-dir parent>/{config.git.runtime.projectVisibleRoot}/worktrees/{worktreeId}` | per-worktree session and continuation state |
+| `workArtifactsRoot` | clone-local mode follows the runtime mode: `git-admin` -> `{repoStateRoot}/work`, `project-visible` -> `<git common-dir parent>/{config.git.runtime.projectVisibleRoot}/work`; tracked publication uses `{projectRoot}/{config.git.workArtifacts.trackedRoot}` when configured | auditable work artifacts |
 
 Callers must prefer those logical roots over hardcoded `.specwright/...` or
 `.git/specwright/...` path concatenation.
+
+## Runtime Mode Policy
+
+The runtime-root policy surface lives under tracked config:
+
+- `config.git.runtime.mode` — `git-admin` or `project-visible`
+- `config.git.runtime.projectVisibleRoot` — repo-visible clone-local runtime
+  root name, default `.specwright-local`
+
+If the `runtime` block is absent, callers must default to `git-admin` for
+backward compatibility with existing installs.
+
+Runtime mode governs clone-local runtime placement only. Work-artifact
+publication remains separate from runtime mode and is still controlled by
+`config.git.workArtifacts`.
+
+### Runtime Mode Mapping
+
+| Mode | Runtime mapping |
+|---|---|
+| `git-admin` | `repoStateRoot = {gitCommonDir}/specwright`, `worktreeStateRoot = {gitDir}/specwright`, clone-local `workArtifactsRoot = {repoStateRoot}/work` |
+| `project-visible` | shared runtime root = `<git common-dir parent>/{config.git.runtime.projectVisibleRoot}`, `repoStateRoot = {sharedRuntimeRoot}/repo`, `worktreeStateRoot = {sharedRuntimeRoot}/worktrees/{worktreeId}`, clone-local `workArtifactsRoot = {sharedRuntimeRoot}/work` |
+
+Guardrails for `project-visible` mode:
+
+In `project-visible` mode, the repo state root, worktree state root, and work
+artifacts root all move under the shared runtime root instead of `.git`.
+Project-visible maps the repo state root to `{sharedRuntimeRoot}/repo`, the
+worktree state root to `{sharedRuntimeRoot}/worktrees/{worktreeId}`, and the
+work artifacts root to `{sharedRuntimeRoot}/work`.
+
+- the resolved `projectVisibleRoot` must stay clone-local and untracked by
+  default
+- it must resolve from the Git common-dir parent, not from `.git/`
+- tracked project artifacts remain under `projectArtifactsRoot`
+- tracked work-artifact publication, when enabled, remains independent from the
+  runtime-mode root
 
 ## Standard Context Documents
 
@@ -71,12 +108,15 @@ Run this sequence before loading Specwright state:
 2. derive `projectArtifactsRoot`
 3. resolve `gitDir`
 4. resolve `gitCommonDir`
-5. derive `repoStateRoot`
-6. derive `worktreeStateRoot`
-7. resolve `workArtifactsRoot`: read `config.git.workArtifacts` from
+5. read `config.git.runtime` from `{projectArtifactsRoot}/config.json` when
+   present; if the block is absent, default to `git-admin`
+6. derive `repoStateRoot` and `worktreeStateRoot` from the resolved runtime
+   mode and `worktreeId`
+7. resolve `workArtifactsRoot`: keep tracked publication separate from runtime
+   mode by reading `config.git.workArtifacts` from
    `{projectArtifactsRoot}/config.json` when present, else from
-   `{repoStateRoot}/config.json`; default to `{repoStateRoot}/work` when
-   neither config exists or the mode is not `tracked`
+   `{repoStateRoot}/config.json`; default the clone-local path from the active
+   runtime mode when the tracked mode is not configured
 
 If Git root resolution fails, report which root failed and whether the problem
 is local to this worktree or repo-wide.
