@@ -64,6 +64,9 @@ lineage and carries:
 - `approvedAt`
 - `expiresAt`
 
+Entries missing any of these lineage fields fail closed: helper assessment and
+verify treat them as `STALE` rather than implicitly approved.
+
 Default expiry is 90 days from approval. Once `expiresAt` passes, or the
 underlying mutant lineage no longer matches the current artifact set, the
 approval becomes `STALE` and verify must surface it again.
@@ -111,7 +114,6 @@ Durable human approval checkpoints for this work.
     {
       "scope": "accepted-mutant",
       "unitId": "01-mutation-contract-foundation",
-      "mutantId": "mut-123",
       "status": "APPROVED",
       "source": {
         "classification": "command",
@@ -119,11 +121,12 @@ Durable human approval checkpoints for this work.
       },
       "artifactSetHash": "sha256:...",
       "artifacts": ["spec.md", "plan.md", "context.md"],
+      "approvedAt": "2026-04-15T00:00:00Z",
+      "notes": "Accepted mutant lineage; not a silent waiver",
+      "mutantId": "mut-123",
       "reason": "equivalent defensive branch",
       "configPath": "gates.tests.mutation.acceptedMutants",
-      "approvedAt": "2026-04-15T00:00:00Z",
-      "expiresAt": "2026-07-14T00:00:00Z",
-      "notes": "Accepted mutant lineage; not a silent waiver"
+      "expiresAt": "2026-07-14T00:00:00Z"
     }
   ]
 }

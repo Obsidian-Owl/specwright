@@ -121,7 +121,15 @@ let acceptedReasonPreserved = false;
 let acceptedConfigPathPreserved = false;
 let acceptedExpiryPreserved = false;
 let acceptedIndependentStatuses = [];
+let acceptedMissingExpiryStatus = 'SKIPPED';
+let acceptedInvalidExpiryStatus = 'SKIPPED';
 let acceptedExpiredStatus = 'SKIPPED';
+let acceptedMissingUnitStatus = 'SKIPPED';
+let acceptedMissingMutantIdStatus = 'SKIPPED';
+let acceptedMissingReasonStatus = 'SKIPPED';
+let acceptedMissingConfigPathStatus = 'SKIPPED';
+let acceptedMissingApprovedAtStatus = 'SKIPPED';
+let acceptedInvalidApprovedAtStatus = 'SKIPPED';
 
 if (isFull) {
   initialDoc = recordApproval(null, {
@@ -200,10 +208,82 @@ if (isFull) {
     latestAccepted?.configPath === 'gates.tests.mutation.acceptedMutants';
   acceptedExpiryPreserved = latestAccepted?.expiresAt === '2026-07-15T05:00:00Z';
   acceptedIndependentStatuses = acceptedLoaded.entries.map((entry) => `${entry.mutantId}:${entry.status}`);
+  acceptedMissingExpiryStatus = assessApprovalEntry(
+    {
+      ...latestAccepted,
+      expiresAt: undefined
+    },
+    {
+      baseDir: artifactsRoot
+    }
+  ).status;
+  acceptedInvalidExpiryStatus = assessApprovalEntry(
+    {
+      ...latestAccepted,
+      expiresAt: 'not-a-date'
+    },
+    {
+      baseDir: artifactsRoot
+    }
+  ).status;
   acceptedExpiredStatus = assessApprovalEntry(
     {
       ...latestAccepted,
       expiresAt: '2020-01-01T00:00:00Z'
+    },
+    {
+      baseDir: artifactsRoot
+    }
+  ).status;
+  acceptedMissingUnitStatus = assessApprovalEntry(
+    {
+      ...latestAccepted,
+      unitId: undefined
+    },
+    {
+      baseDir: artifactsRoot
+    }
+  ).status;
+  acceptedMissingMutantIdStatus = assessApprovalEntry(
+    {
+      ...latestAccepted,
+      mutantId: undefined
+    },
+    {
+      baseDir: artifactsRoot
+    }
+  ).status;
+  acceptedMissingReasonStatus = assessApprovalEntry(
+    {
+      ...latestAccepted,
+      reason: undefined
+    },
+    {
+      baseDir: artifactsRoot
+    }
+  ).status;
+  acceptedMissingConfigPathStatus = assessApprovalEntry(
+    {
+      ...latestAccepted,
+      configPath: undefined
+    },
+    {
+      baseDir: artifactsRoot
+    }
+  ).status;
+  acceptedMissingApprovedAtStatus = assessApprovalEntry(
+    {
+      ...latestAccepted,
+      approvedAt: undefined
+    },
+    {
+      baseDir: artifactsRoot
+    }
+  ).status;
+  acceptedInvalidApprovedAtStatus = assessApprovalEntry(
+    {
+      ...latestAccepted,
+      approvedAt: 'not-a-date'
     },
     {
       baseDir: artifactsRoot
@@ -229,6 +309,20 @@ try {
   });
 } catch {
   headlessApprovedRejected = true;
+}
+
+let acceptedMutantMissingUnitRejected = false;
+try {
+  createApprovalEntry({
+    baseDir: artifactsRoot,
+    scope: 'accepted-mutant',
+    mutantId: 'mut-3',
+    reason: 'equivalent guard clause',
+    configPath: 'gates.tests.mutation.acceptedMutants',
+    artifacts: ['design.md']
+  });
+} catch {
+  acceptedMutantMissingUnitRejected = true;
 }
 
 let invalidStatusRejected = false;
@@ -285,8 +379,17 @@ process.stdout.write(JSON.stringify({
   acceptedConfigPathPreserved,
   acceptedExpiryPreserved,
   acceptedIndependentStatuses,
+  acceptedMissingExpiryStatus,
+  acceptedInvalidExpiryStatus,
   acceptedExpiredStatus,
+  acceptedMissingUnitStatus,
+  acceptedMissingMutantIdStatus,
+  acceptedMissingReasonStatus,
+  acceptedMissingConfigPathStatus,
+  acceptedMissingApprovedAtStatus,
+  acceptedInvalidApprovedAtStatus,
   headlessApprovedRejected,
+  acceptedMutantMissingUnitRejected,
   invalidStatusRejected,
   invalidSourceRejected,
   traversalRejected,
@@ -298,6 +401,7 @@ EOF
   assert_output_contains "$HELPER_OUTPUT" '"staleStatus":"STALE"' "helper marks changed artifact sets as STALE"
   assert_output_contains "$HELPER_OUTPUT" '"sameHash":true' "helper hashes artifact sets deterministically"
   assert_output_contains "$HELPER_OUTPUT" '"headlessApprovedRejected":true' "headless approval source cannot produce APPROVED entries"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedMutantMissingUnitRejected":true' "helper rejects accepted-mutant approvals without a unit id"
   assert_output_contains "$HELPER_OUTPUT" '"invalidStatusRejected":true' "helper rejects unknown approval statuses"
   assert_output_contains "$HELPER_OUTPUT" '"invalidSourceRejected":true' "helper rejects unknown source classifications"
   assert_output_contains "$HELPER_OUTPUT" '"traversalRejected":true' "helper rejects artifact paths that escape the work dir"
@@ -308,7 +412,15 @@ EOF
   assert_output_contains "$HELPER_OUTPUT" '"acceptedConfigPathPreserved":true' "helper preserves accepted-mutant config linkage"
   assert_output_contains "$HELPER_OUTPUT" '"acceptedExpiryPreserved":true' "helper preserves accepted-mutant expiry timestamps"
   assert_output_contains "$HELPER_OUTPUT" '"acceptedIndependentStatuses":["mut-1:SUPERSEDED","mut-2:APPROVED","mut-1:APPROVED"]' "helper supersedes accepted-mutant entries by mutant id without collapsing other mutants"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedMissingExpiryStatus":"STALE"' "helper marks accepted-mutant lineage without expiry as STALE"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedInvalidExpiryStatus":"STALE"' "helper marks accepted-mutant lineage with invalid expiry as STALE"
   assert_output_contains "$HELPER_OUTPUT" '"acceptedExpiredStatus":"STALE"' "helper marks expired accepted-mutant lineage as STALE"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedMissingUnitStatus":"STALE"' "helper marks accepted-mutant lineage without unit id as STALE"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedMissingMutantIdStatus":"STALE"' "helper marks accepted-mutant lineage without mutant id as STALE"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedMissingReasonStatus":"STALE"' "helper marks accepted-mutant lineage without reason as STALE"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedMissingConfigPathStatus":"STALE"' "helper marks accepted-mutant lineage without config linkage as STALE"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedMissingApprovedAtStatus":"STALE"' "helper marks accepted-mutant lineage without approvedAt as STALE"
+  assert_output_contains "$HELPER_OUTPUT" '"acceptedInvalidApprovedAtStatus":"STALE"' "helper marks accepted-mutant lineage with invalid approvedAt as STALE"
   assert_output_contains "$HELPER_OUTPUT" '"restoredStatus":"APPROVED"' "helper treats restored artifact hashes as APPROVED again"
   assert_output_contains "$HELPER_OUTPUT" '"malformedLedgerRejected":true' "helper rejects malformed approvals ledgers"
   assert_output_contains "$HELPER_OUTPUT" '"missingStatus":"MISSING"' "helper distinguishes missing approval entries from stale ones"

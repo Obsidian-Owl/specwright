@@ -96,6 +96,17 @@ function isAcceptedMutantScope(scope) {
   return scope === 'accepted-mutant';
 }
 
+function normalizeAcceptedMutantLineage(entry) {
+  return {
+    unitId: normalizeString(entry?.unitId),
+    mutantId: normalizeString(entry?.mutantId),
+    reason: normalizeString(entry?.reason),
+    configPath: normalizeString(entry?.configPath),
+    approvedAt: normalizeString(entry?.approvedAt),
+    expiresAt: normalizeString(entry?.expiresAt)
+  };
+}
+
 export function defaultApprovalsDocument() {
   return {
     version: '1.0',
@@ -156,8 +167,12 @@ export function createApprovalEntry(options = {}) {
   const reason = normalizeString(options.reason);
   const configPath = normalizeString(options.configPath);
   const expiresAt = normalizeString(options.expiresAt);
+  const isAcceptedMutant = isAcceptedMutantScope(scope);
 
-  if (isAcceptedMutantScope(scope)) {
+  if (isAcceptedMutant) {
+    if (!unitId) {
+      throw new Error('accepted-mutant approvals require a unitId.');
+    }
     if (!mutantId) {
       throw new Error('accepted-mutant approvals require a mutantId.');
     }
@@ -169,7 +184,9 @@ export function createApprovalEntry(options = {}) {
     }
   }
 
-  const entry = {
+  const resolvedApprovedAt = isAcceptedMutant ? (approvedAt ?? new Date().toISOString()) : approvedAt;
+
+  const baseEntry = {
     scope,
     unitId,
     status,
@@ -179,19 +196,21 @@ export function createApprovalEntry(options = {}) {
     },
     artifactSetHash: hashedArtifacts.artifactSetHash,
     artifacts: hashedArtifacts.artifacts.map((artifact) => artifact.path),
-    approvedAt,
+    approvedAt: resolvedApprovedAt,
     notes: normalizeString(options.notes)
   };
 
-  if (isAcceptedMutantScope(scope)) {
-    entry.mutantId = mutantId;
-    entry.reason = reason;
-    entry.configPath = configPath;
-    entry.approvedAt = approvedAt ?? new Date().toISOString();
-    entry.expiresAt = expiresAt ?? defaultAcceptedMutantExpiry(entry.approvedAt);
+  if (!isAcceptedMutant) {
+    return baseEntry;
   }
 
-  return entry;
+  return {
+    ...baseEntry,
+    mutantId,
+    reason,
+    configPath,
+    expiresAt: expiresAt ?? defaultAcceptedMutantExpiry(resolvedApprovedAt)
+  };
 }
 
 export function recordApproval(document, options = {}) {
@@ -256,15 +275,30 @@ export function assessApprovalEntry(entry, options = {}) {
   const current = hashApprovalArtifacts(baseDir, artifacts);
 
   if (isAcceptedMutantScope(entry?.scope)) {
-    const expiresAt = normalizeString(entry?.expiresAt);
-    if (!expiresAt) {
+    const acceptedMutantLineage = normalizeAcceptedMutantLineage(entry);
+    if (
+      !acceptedMutantLineage.unitId ||
+      !acceptedMutantLineage.mutantId ||
+      !acceptedMutantLineage.reason ||
+      !acceptedMutantLineage.configPath ||
+      !acceptedMutantLineage.approvedAt ||
+      !acceptedMutantLineage.expiresAt
+    ) {
       return {
         status: 'STALE',
         artifactSetHash: current.artifactSetHash
       };
     }
 
-    const expiryDate = new Date(expiresAt);
+    const approvedDate = new Date(acceptedMutantLineage.approvedAt);
+    const expiryDate = new Date(acceptedMutantLineage.expiresAt);
+    if (Number.isNaN(approvedDate.getTime())) {
+      return {
+        status: 'STALE',
+        artifactSetHash: current.artifactSetHash
+      };
+    }
+
     if (Number.isNaN(expiryDate.getTime()) || expiryDate.getTime() <= Date.now()) {
       return {
         status: 'STALE',
