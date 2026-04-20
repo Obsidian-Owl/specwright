@@ -36,6 +36,12 @@ once to understand an agent-authored change.
 The packet synthesizes those sources. It does not create a second source of
 truth for gate execution or approval state.
 
+## Closeout Digest Reuse
+
+`review-packet.md` may feed a closeout digest when a lifecycle surface needs a
+human-readable summary and no fresher stage report is available. That closeout
+digest is derived from the review-packet structure; it must not become a second free-form summary surface with bespoke wording that drifts from the packet.
+
 ## Canonical Structure
 
 ```markdown

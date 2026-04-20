@@ -313,7 +313,12 @@ can see the risk signal without scrolling.
 
 ## Gate Handoff
 
-When a pipeline skill finishes, emit exactly three lines:
+When a pipeline skill finishes, render a human closeout digest above the exact
+three-line footer when a stage report or review packet summary is available.
+The human closeout digest is derived from durable artifacts; it is not bespoke
+terminal-only prose.
+
+The exact footer remains the final three lines:
 
 ```text
 Done. {one-line outcome}.
@@ -321,7 +326,9 @@ Artifacts: {stageReportPath}
 Next: /sw-{next-skill}
 ```
 
-The detail lives in the artifact files. Terminal output is the pointer, not the report.
+The detail lives in the artifact files. Terminal output is the pointer, not the
+report, but the digest above the exact three-line footer keeps the user-facing
+closeout legible without changing the machine-readable trailer.
 
 ## Precedence
 
