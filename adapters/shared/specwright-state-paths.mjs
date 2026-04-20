@@ -4,10 +4,13 @@ import { existsSync, readFileSync, readdirSync, realpathSync } from 'fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'path';
 
 const FAILURE_CODE = 'GIT_RESOLUTION_FAILED';
+const INVALID_RUNTIME_ROOT_CODE = 'INVALID_RUNTIME_ROOT';
 const PRIMARY_WORKTREE_ID = 'main-worktree';
 const PROJECT_ARTIFACTS_DIR = '.specwright';
 const LEGACY_STATE_SEGMENTS = ['.specwright', 'state'];
 const SHARED_CONFIG_FILE = 'config.json';
+const DEFAULT_RUNTIME_MODE = 'git-admin';
+const DEFAULT_PROJECT_VISIBLE_ROOT = '.specwright-local';
 const FALLBACK_REPO_LOCAL_GIT_ENV_VARS = new Set([
   // Tracks `git rev-parse --local-env-vars` plus config-injection vars that
   // Git does not report but are still unsafe to inherit across repositories.
@@ -86,6 +89,18 @@ function buildFailure(root, cwd, args, error) {
   };
 }
 
+function buildInvalidRuntimeRootFailure(root, cwd, message, details = {}) {
+  return {
+    ok: false,
+    code: INVALID_RUNTIME_ROOT_CODE,
+    root,
+    cwd,
+    command: null,
+    message,
+    ...details
+  };
+}
+
 function resolveGitRoot(cwd, root, args) {
   try {
     const value = runGit(args, cwd);
@@ -105,54 +120,18 @@ function deriveWorktreeId(gitDir, gitCommonDir) {
   }
 
   if (dirname(gitDir) === join(gitCommonDir, 'worktrees')) {
-    return basename(gitDir);
+    const linkedWorktreeId = basename(gitDir);
+    if (linkedWorktreeId && linkedWorktreeId !== PRIMARY_WORKTREE_ID) {
+      return linkedWorktreeId;
+    }
   }
 
   const tail = basename(gitDir);
-  if (tail && tail !== '.git') {
+  if (tail && tail !== '.git' && tail !== PRIMARY_WORKTREE_ID) {
     return tail;
   }
 
   return `worktree-${createHash('sha256').update(gitDir).digest('hex').slice(0, 12)}`;
-}
-
-export function resolveSpecwrightRoots(options = {}) {
-  const cwd = resolve(options.cwd ?? process.cwd());
-
-  const projectRootResult = resolveGitRoot(cwd, 'projectRoot', ['rev-parse', '--show-toplevel']);
-  if (!projectRootResult.ok) {
-    return projectRootResult;
-  }
-
-  const projectRoot = resolve(projectRootResult.value);
-  const projectArtifactsRoot = join(projectRoot, PROJECT_ARTIFACTS_DIR);
-
-  const gitDirResult = resolveGitRoot(projectRoot, 'gitDir', ['rev-parse', '--git-dir']);
-  if (!gitDirResult.ok) {
-    return gitDirResult;
-  }
-
-  const gitCommonDirResult = resolveGitRoot(projectRoot, 'gitCommonDir', ['rev-parse', '--git-common-dir']);
-  if (!gitCommonDirResult.ok) {
-    return gitCommonDirResult;
-  }
-
-  const gitDir = resolve(projectRoot, gitDirResult.value);
-  const gitCommonDir = resolve(projectRoot, gitCommonDirResult.value);
-  const repoStateRoot = join(gitCommonDir, 'specwright');
-  const worktreeStateRoot = join(gitDir, 'specwright');
-
-  return {
-    ok: true,
-    projectRoot,
-    projectArtifactsRoot,
-    gitDir,
-    gitCommonDir,
-    repoStateRoot,
-    worktreeStateRoot,
-    workArtifactsRoot: resolveWorkArtifactsRoot(projectRoot, projectArtifactsRoot, repoStateRoot, worktreeStateRoot),
-    worktreeId: deriveWorktreeId(gitDir, gitCommonDir)
-  };
 }
 
 export function resolveLegacyStatePaths(options = {}) {
@@ -225,6 +204,14 @@ function resolvePathThroughExistingAncestors(basePath, targetPath) {
   return currentPath;
 }
 
+function realpathIfPossible(path) {
+  try {
+    return realpathSync(path);
+  } catch {
+    return resolve(path);
+  }
+}
+
 function loadResolvedConfig(projectArtifactsRoot, repoStateRoot) {
   const candidates = [
     join(projectArtifactsRoot, SHARED_CONFIG_FILE),
@@ -251,7 +238,158 @@ function loadResolvedConfig(projectArtifactsRoot, repoStateRoot) {
   };
 }
 
-function resolveWorkArtifactsRoot(projectRoot, projectArtifactsRoot, repoStateRoot, worktreeStateRoot) {
+function normalizeRuntimeMode(value) {
+  return value === 'project-visible' ? 'project-visible' : DEFAULT_RUNTIME_MODE;
+}
+
+function normalizeProjectVisibleRoot(value) {
+  return normalizeTrackedRoot(value) ?? DEFAULT_PROJECT_VISIBLE_ROOT;
+}
+
+function resolveRuntimePolicy(projectArtifactsRoot, gitCommonDir) {
+  const gitAdminRepoStateRoot = join(gitCommonDir, 'specwright');
+  const { path, config } = loadResolvedConfig(projectArtifactsRoot, gitAdminRepoStateRoot);
+  const runtimeConfig = config?.git?.runtime ?? {};
+
+  return {
+    configPath: path,
+    config,
+    runtimeMode: normalizeRuntimeMode(runtimeConfig?.mode),
+    projectVisibleRoot: normalizeProjectVisibleRoot(runtimeConfig?.projectVisibleRoot)
+  };
+}
+
+function resolveProjectVisibleRoots({
+  cwd,
+  projectRoot,
+  projectArtifactsRoot,
+  gitDir,
+  gitCommonDir,
+  worktreeId,
+  projectVisibleRoot
+}) {
+  const runtimeParent = dirname(gitCommonDir);
+  const sharedRuntimeRoot = resolve(runtimeParent, projectVisibleRoot);
+  const effectiveSharedRuntimeRoot = resolvePathThroughExistingAncestors(runtimeParent, sharedRuntimeRoot);
+  const effectiveProjectArtifactsRoot = resolvePathThroughExistingAncestors(projectRoot, projectArtifactsRoot);
+  const primaryProjectArtifactsRoot = join(runtimeParent, PROJECT_ARTIFACTS_DIR);
+  const effectivePrimaryProjectArtifactsRoot = resolvePathThroughExistingAncestors(
+    runtimeParent,
+    primaryProjectArtifactsRoot
+  );
+  const effectiveGitDir = realpathIfPossible(gitDir);
+  const effectiveGitCommonDir = realpathIfPossible(gitCommonDir);
+
+  if (!isPathWithin(runtimeParent, sharedRuntimeRoot) || !isPathWithin(runtimeParent, effectiveSharedRuntimeRoot)) {
+    return buildInvalidRuntimeRootFailure(
+      'config.git.runtime.projectVisibleRoot',
+      cwd,
+      'project-visible runtime root must stay under the git common-dir parent.',
+      {
+        runtimeParent,
+        sharedRuntimeRoot,
+        effectiveSharedRuntimeRoot
+      }
+    );
+  }
+
+  if (
+    pathsOverlap(sharedRuntimeRoot, gitDir) ||
+    pathsOverlap(sharedRuntimeRoot, gitCommonDir) ||
+    pathsOverlap(effectiveSharedRuntimeRoot, gitDir) ||
+    pathsOverlap(effectiveSharedRuntimeRoot, gitCommonDir) ||
+    pathsOverlap(effectiveSharedRuntimeRoot, effectiveGitDir) ||
+    pathsOverlap(effectiveSharedRuntimeRoot, effectiveGitCommonDir)
+  ) {
+    return buildInvalidRuntimeRootFailure(
+      'config.git.runtime.projectVisibleRoot',
+      cwd,
+      'project-visible runtime root must not resolve inside .git or a symlinked git mirror.',
+      {
+        sharedRuntimeRoot,
+        effectiveSharedRuntimeRoot,
+        gitDir,
+        gitCommonDir
+      }
+    );
+  }
+
+  if (
+    pathsOverlap(sharedRuntimeRoot, projectArtifactsRoot) ||
+    pathsOverlap(sharedRuntimeRoot, primaryProjectArtifactsRoot) ||
+    pathsOverlap(effectiveSharedRuntimeRoot, projectArtifactsRoot) ||
+    pathsOverlap(effectiveSharedRuntimeRoot, effectiveProjectArtifactsRoot) ||
+    pathsOverlap(effectiveSharedRuntimeRoot, primaryProjectArtifactsRoot) ||
+    pathsOverlap(effectiveSharedRuntimeRoot, effectivePrimaryProjectArtifactsRoot)
+  ) {
+    return buildInvalidRuntimeRootFailure(
+      'config.git.runtime.projectVisibleRoot',
+      cwd,
+      'project-visible runtime root must stay separate from tracked project artifacts.',
+      {
+        sharedRuntimeRoot,
+        effectiveSharedRuntimeRoot,
+        projectArtifactsRoot,
+        primaryProjectArtifactsRoot
+      }
+    );
+  }
+
+  const repoStateRoot = join(sharedRuntimeRoot, 'repo');
+  return {
+    ok: true,
+    sharedRuntimeRoot,
+    repoStateRoot,
+    worktreeStateRoot: join(sharedRuntimeRoot, 'worktrees', worktreeId),
+    cloneLocalWorkArtifactsRoot: join(repoStateRoot, 'work')
+  };
+}
+
+function resolveRuntimeRoots({ cwd, projectRoot, projectArtifactsRoot, gitDir, gitCommonDir, worktreeId }) {
+  const runtimePolicy = resolveRuntimePolicy(projectArtifactsRoot, gitCommonDir);
+
+  if (runtimePolicy.runtimeMode === 'project-visible') {
+    const projectVisibleRoots = resolveProjectVisibleRoots({
+      cwd,
+      projectRoot,
+      projectArtifactsRoot,
+      gitDir,
+      gitCommonDir,
+      worktreeId,
+      projectVisibleRoot: runtimePolicy.projectVisibleRoot
+    });
+
+    if (!projectVisibleRoots.ok) {
+      return projectVisibleRoots;
+    }
+
+    return {
+      ok: true,
+      ...runtimePolicy,
+      ...projectVisibleRoots
+    };
+  }
+
+  const repoStateRoot = join(gitCommonDir, 'specwright');
+  const worktreeStateRoot = join(gitDir, 'specwright');
+
+  return {
+    ok: true,
+    ...runtimePolicy,
+    sharedRuntimeRoot: repoStateRoot,
+    repoStateRoot,
+    worktreeStateRoot,
+    cloneLocalWorkArtifactsRoot: join(repoStateRoot, 'work')
+  };
+}
+
+function resolveWorkArtifactsRoot(
+  projectRoot,
+  projectArtifactsRoot,
+  repoStateRoot,
+  worktreeStateRoot,
+  cloneLocalWorkArtifactsRoot
+) {
   const { config } = loadResolvedConfig(projectArtifactsRoot, repoStateRoot);
   const workArtifacts = config?.git?.workArtifacts ?? {};
   const mode = workArtifacts?.mode === 'tracked' ? 'tracked' : 'clone-local';
@@ -269,14 +407,75 @@ function resolveWorkArtifactsRoot(projectRoot, projectArtifactsRoot, repoStateRo
       firstSegment !== '.git' &&
       !pathsOverlap(trackedPath, repoStateRoot) &&
       !pathsOverlap(trackedPath, worktreeStateRoot) &&
+      !pathsOverlap(trackedPath, cloneLocalWorkArtifactsRoot) &&
       !pathsOverlap(effectiveTrackedPath, repoStateRoot) &&
-      !pathsOverlap(effectiveTrackedPath, worktreeStateRoot)
+      !pathsOverlap(effectiveTrackedPath, worktreeStateRoot) &&
+      !pathsOverlap(effectiveTrackedPath, cloneLocalWorkArtifactsRoot)
     ) {
       return trackedPath;
     }
   }
 
-  return join(repoStateRoot, 'work');
+  return cloneLocalWorkArtifactsRoot;
+}
+
+export function resolveSpecwrightRoots(options = {}) {
+  const cwd = resolve(options.cwd ?? process.cwd());
+
+  const projectRootResult = resolveGitRoot(cwd, 'projectRoot', ['rev-parse', '--show-toplevel']);
+  if (!projectRootResult.ok) {
+    return projectRootResult;
+  }
+
+  const projectRoot = resolve(projectRootResult.value);
+  const projectArtifactsRoot = join(projectRoot, PROJECT_ARTIFACTS_DIR);
+
+  const gitDirResult = resolveGitRoot(projectRoot, 'gitDir', ['rev-parse', '--git-dir']);
+  if (!gitDirResult.ok) {
+    return gitDirResult;
+  }
+
+  const gitCommonDirResult = resolveGitRoot(projectRoot, 'gitCommonDir', ['rev-parse', '--git-common-dir']);
+  if (!gitCommonDirResult.ok) {
+    return gitCommonDirResult;
+  }
+
+  const gitDir = resolve(projectRoot, gitDirResult.value);
+  const gitCommonDir = resolve(projectRoot, gitCommonDirResult.value);
+  const worktreeId = deriveWorktreeId(gitDir, gitCommonDir);
+  const runtimeRoots = resolveRuntimeRoots({
+    cwd,
+    projectRoot,
+    projectArtifactsRoot,
+    gitDir,
+    gitCommonDir,
+    worktreeId
+  });
+
+  if (!runtimeRoots.ok) {
+    return runtimeRoots;
+  }
+
+  return {
+    ok: true,
+    projectRoot,
+    projectArtifactsRoot,
+    gitDir,
+    gitCommonDir,
+    worktreeId,
+    runtimeMode: runtimeRoots.runtimeMode,
+    projectVisibleRoot: runtimeRoots.projectVisibleRoot,
+    sharedRuntimeRoot: runtimeRoots.sharedRuntimeRoot,
+    repoStateRoot: runtimeRoots.repoStateRoot,
+    worktreeStateRoot: runtimeRoots.worktreeStateRoot,
+    workArtifactsRoot: resolveWorkArtifactsRoot(
+      projectRoot,
+      projectArtifactsRoot,
+      runtimeRoots.repoStateRoot,
+      runtimeRoots.worktreeStateRoot,
+      runtimeRoots.cloneLocalWorkArtifactsRoot
+    )
+  };
 }
 
 function normalizeAttachedWorkId(value) {
@@ -422,7 +621,9 @@ function parseWorktreeList(text) {
 
 function listSessionFiles(roots) {
   const sessionFiles = [];
-  const primarySessionPath = join(roots.gitCommonDir, 'specwright', 'session.json');
+  const primarySessionPath = roots.runtimeMode === 'project-visible'
+    ? join(roots.sharedRuntimeRoot, 'worktrees', PRIMARY_WORKTREE_ID, 'session.json')
+    : join(roots.gitCommonDir, 'specwright', 'session.json');
   if (existsSync(primarySessionPath)) {
     sessionFiles.push({
       worktreeId: PRIMARY_WORKTREE_ID,
@@ -430,7 +631,9 @@ function listSessionFiles(roots) {
     });
   }
 
-  const linkedWorktreesDir = join(roots.gitCommonDir, 'worktrees');
+  const linkedWorktreesDir = roots.runtimeMode === 'project-visible'
+    ? join(roots.sharedRuntimeRoot, 'worktrees')
+    : join(roots.gitCommonDir, 'worktrees');
   if (!existsSync(linkedWorktreesDir)) {
     return sessionFiles;
   }
@@ -440,7 +643,12 @@ function listSessionFiles(roots) {
       continue;
     }
 
-    const sessionPath = join(linkedWorktreesDir, entry.name, 'specwright', 'session.json');
+    const sessionPath = roots.runtimeMode === 'project-visible'
+      ? join(linkedWorktreesDir, entry.name, 'session.json')
+      : join(linkedWorktreesDir, entry.name, 'specwright', 'session.json');
+    if (sessionPath === primarySessionPath) {
+      continue;
+    }
     if (!existsSync(sessionPath)) {
       continue;
     }
