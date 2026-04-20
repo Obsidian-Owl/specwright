@@ -278,6 +278,19 @@ Valid lifecycle transitions are enforced per selected work:
 `sw-learn` is an optional capture step after `shipped`. It is never a
 prerequisite for starting the next work or queued unit.
 
+### Pivoted Re-entry
+
+`sw-pivot` is not a new persisted workflow status. It operates inside
+`planning`, `building`, and `verifying`.
+
+- `task-pivot` keeps the work in `building` when the active unit stays the same
+- `unit-pivot` or `work-pivot` may return the touched work to `building` when
+  active or affected unit artifacts change
+- `sw-pivot` must preserve shipped units as shipped baseline scope rather than
+  rewriting them
+- no `pivoting` status is added to `workflow.json`; the existing lifecycle
+  state remains the only persisted status vocabulary
+
 **Enforcement:** skills check the selected work's `status` before mutating. If
 the intended transition is invalid, STOP with:
 
