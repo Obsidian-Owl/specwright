@@ -15,6 +15,8 @@ const REVIEW_PACKET_SECTIONS = [
   'Gate Summary',
   'Remaining Attention'
 ];
+const FENCED_BLOCK_MARKER_PATTERN = /^```/u;
+const MARKDOWN_HEADING_PATTERN = /^#{1,6}\s/u;
 
 function readMarkdownIfPresent(path) {
   if (typeof path !== 'string' || !path.trim() || !existsSync(path)) {
@@ -27,8 +29,19 @@ function readMarkdownIfPresent(path) {
 function collectSections(markdown) {
   const sections = new Map();
   let currentSection = null;
+  let inFencedBlock = false;
 
   for (const rawLine of markdown.split(/\r?\n/u)) {
+    const line = rawLine.trim();
+    if (FENCED_BLOCK_MARKER_PATTERN.test(line)) {
+      inFencedBlock = !inFencedBlock;
+      continue;
+    }
+
+    if (inFencedBlock) {
+      continue;
+    }
+
     const headingMatch = rawLine.match(/^##\s+(.+?)\s*$/u);
     if (headingMatch) {
       currentSection = headingMatch[1].trim();
@@ -42,8 +55,7 @@ function collectSections(markdown) {
       continue;
     }
 
-    const line = rawLine.trim();
-    if (!line || /^```/u.test(line) || /^#/u.test(line)) {
+    if (!line || MARKDOWN_HEADING_PATTERN.test(line)) {
       continue;
     }
 
@@ -71,6 +83,19 @@ function extractBullets(sections, names) {
   return bullets;
 }
 
+function selectReviewPacketHeadline(sections, bullets) {
+  const remainingAttentionBullets = extractBullets(sections, ['Remaining Attention']);
+  const prioritizedBullet = remainingAttentionBullets.find(
+    (bullet) => bullet.toLowerCase() !== 'none'
+  ) ?? bullets[0] ?? null;
+
+  if (!prioritizedBullet) {
+    return null;
+  }
+
+  return `Attention required: ${prioritizedBullet}`;
+}
+
 export function parseStageReportDigest(markdown) {
   if (typeof markdown !== 'string' || !markdown.trim()) {
     return null;
@@ -96,14 +121,15 @@ export function parseReviewPacketDigest(markdown) {
     return null;
   }
 
-  const bullets = extractBullets(collectSections(markdown), REVIEW_PACKET_SECTIONS);
+  const sections = collectSections(markdown);
+  const bullets = extractBullets(sections, REVIEW_PACKET_SECTIONS);
   if (bullets.length === 0) {
     return null;
   }
 
   return {
     source: 'review-packet',
-    headline: `Attention required: ${bullets[0]}`,
+    headline: selectReviewPacketHeadline(sections, bullets),
     bullets
   };
 }

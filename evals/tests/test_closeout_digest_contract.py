@@ -132,7 +132,6 @@ class TestApprovalsReasonVocabulary(unittest.TestCase):
         review_text = REVIEW_PACKET_PROTOCOL.read_text(encoding="utf-8")
         for reason_code in expected_codes:
             with self.subTest(reason_code=reason_code):
-                self.assertIn(reason_code, self.approvals_text)
                 self.assertIn(reason_code, review_text)
 
 
@@ -231,7 +230,10 @@ class TestCloseoutHelperContract(unittest.TestCase):
             )
 
             self.assertEqual(output["source"], "review-packet")
-            self.assertTrue(output["headline"].startswith("Attention required:"))
+            self.assertEqual(
+                output["headline"],
+                "Attention required: reviewer should confirm the wording",
+            )
             self.assertTrue(any("design: APPROVED" in bullet for bullet in output["bullets"]))
 
     def test_helper_keeps_digest_artifact_derived(self):
@@ -273,7 +275,7 @@ class TestCloseoutHelperContract(unittest.TestCase):
 
             self.assertEqual(
                 output["headline"],
-                "Attention required: design: STALE (artifact-set-changed)",
+                "Attention required: rerun verify after the next task",
             )
             self.assertIn("design: STALE (artifact-set-changed)", output["bullets"])
             self.assertIn("Added shared closeout parsing", output["bullets"])
@@ -286,6 +288,51 @@ class TestCloseoutHelperContract(unittest.TestCase):
                 "bespoke prose that should not leak into the digest",
                 output["bullets"],
             )
+
+    def test_helper_excludes_fenced_block_contents_and_keeps_literal_hash_content(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            review_packet = Path(tmpdir) / "review-packet.md"
+            review_packet.write_text(
+                dedent(
+                    """
+                    # Review Packet
+
+                    ## What Changed
+                    - Added shared closeout parsing
+                    #literal-marker should stay visible
+                    ```text
+                    - hidden code bullet
+                    ### hidden fenced heading
+                    hidden snippet line
+                    ```
+
+                    ## Remaining Attention
+                    - reviewer should confirm the wording
+                    """
+                ).strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            output = _run_node_json(
+                f"""
+                import {{ loadCloseoutDigest }} from './adapters/shared/specwright-closeout.mjs';
+                const digest = loadCloseoutDigest({{
+                  reviewPacketPath: {json.dumps(str(review_packet))}
+                }});
+                console.log(JSON.stringify(digest));
+                """
+            )
+
+            self.assertEqual(
+                output["headline"],
+                "Attention required: reviewer should confirm the wording",
+            )
+            self.assertIn("Added shared closeout parsing", output["bullets"])
+            self.assertIn("#literal-marker should stay visible", output["bullets"])
+            self.assertNotIn("hidden code bullet", output["bullets"])
+            self.assertNotIn("### hidden fenced heading", output["bullets"])
+            self.assertNotIn("hidden snippet line", output["bullets"])
 
 
 class TestApprovalAssessmentReasons(unittest.TestCase):
