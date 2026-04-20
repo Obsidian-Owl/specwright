@@ -40,6 +40,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.31.0] - 2026-04-20
+
+### Changed
+
+- feat(verify): add accepted-mutant lineage proof surfaces (#186)
+- feat(mutation): add tiered mutation analysis (#185)
+- feat(mutation-contract): add mutation contract foundation (#184)
+
 ## [0.30.0] - 2026-04-16
 
 ### Changed
