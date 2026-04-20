@@ -323,3 +323,11 @@ After merge, if `config.git.cleanupBranch` is true:
 - sync the base branch with `--ff-only`
 
 Never delete branches referenced by live sessions or subordinate worktrees.
+
+For sync-oriented cleanup flows such as `sw-sync`:
+
+- keep `git branch -d` as the default delete path
+- allow `git branch -D` only for branches flagged `[gone]`
+- require an explicit second confirmation before any `[gone]`-only `git branch -D`
+- never use `git branch -D` for merged-only, protected, invalid, or
+  live-session-owned branches
