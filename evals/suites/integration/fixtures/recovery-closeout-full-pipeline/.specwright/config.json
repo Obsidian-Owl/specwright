@@ -20,7 +20,11 @@
     "defaultBranch": "main",
     "strategy": "trunk-based",
     "conventionalCommits": true,
-    "branchPrefix": "work/"
+    "branchPrefix": "work/",
+    "runtime": {
+      "mode": "project-visible",
+      "projectVisibleRoot": ".specwright-local"
+    }
   },
   "gates": {
     "build": { "enabled": false },

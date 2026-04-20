@@ -1,0 +1,14 @@
+{
+  "version": "3.0",
+  "id": "recovery-closeout",
+  "description": "Implement add(a, b) in src/math.ts and ship it",
+  "status": "designing",
+  "workDir": "work/recovery-closeout",
+  "unitId": "recovery-closeout",
+  "tasksTotal": null,
+  "tasksCompleted": [],
+  "currentTask": null,
+  "gates": {},
+  "lock": null,
+  "lastUpdated": "2026-04-09T00:00:00.000Z"
+}

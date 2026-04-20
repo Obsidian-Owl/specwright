@@ -53,7 +53,18 @@ VALID_TRANSITIONS = {
 # Named constants
 # ---------------------------------------------------------------------------
 
-WORKFLOW_JSON_PATH = os.path.join(".specwright", "state", "workflow.json")
+LEGACY_WORKFLOW_JSON_PATH = os.path.join(".specwright", "state", "workflow.json")
+PROJECT_VISIBLE_ROOT = os.path.join(".specwright-local")
+PROJECT_VISIBLE_REPO_ROOT = os.path.join(PROJECT_VISIBLE_ROOT, "repo")
+PROJECT_VISIBLE_SESSION_GLOB = os.path.join(
+    PROJECT_VISIBLE_ROOT, "worktrees", "*", "session.json"
+)
+PROJECT_VISIBLE_WORKFLOW_GLOB = os.path.join(
+    PROJECT_VISIBLE_REPO_ROOT, "work", "*", "workflow.json"
+)
+GIT_ADMIN_ROOT = os.path.join(".git", "specwright")
+GIT_ADMIN_SESSION_PATH = os.path.join(GIT_ADMIN_ROOT, "session.json")
+GIT_ADMIN_WORKFLOW_GLOB = os.path.join(GIT_ADMIN_ROOT, "work", "*", "workflow.json")
 FILE_CONTENT_EVIDENCE_LIMIT = 200
 TEST_OUTPUT_EVIDENCE_LIMIT = 500
 HEADING_PATTERN = r"^## (.+)"
@@ -64,9 +75,70 @@ ID_PATTERN = r"AC-\d+"
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+def _resolve_workflow_from_session(workdir: str, session_pattern: str, repo_root: str) -> Optional[str]:
+    """Return a workflow.json path from a session-attached work when possible."""
+    session_paths = sorted(glob_mod.glob(os.path.join(workdir, session_pattern)))
+    for session_path in session_paths:
+        try:
+            with open(session_path, "r", encoding="utf-8") as f:
+                session = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        attached_work_id = session.get("attachedWorkId")
+        if not isinstance(attached_work_id, str) or not attached_work_id:
+            continue
+
+        workflow_path = os.path.join(
+            workdir,
+            repo_root,
+            "work",
+            attached_work_id,
+            "workflow.json",
+        )
+        if os.path.exists(workflow_path):
+            return workflow_path
+
+    return None
+
+
+def _resolve_workflow_json_path(workdir: str) -> str:
+    """Resolve workflow.json across legacy, git-admin, and project-visible layouts."""
+    legacy_path = os.path.join(workdir, LEGACY_WORKFLOW_JSON_PATH)
+    if os.path.exists(legacy_path):
+        return legacy_path
+
+    project_visible_path = _resolve_workflow_from_session(
+        workdir,
+        PROJECT_VISIBLE_SESSION_GLOB,
+        PROJECT_VISIBLE_REPO_ROOT,
+    )
+    if project_visible_path is not None:
+        return project_visible_path
+
+    git_admin_path = _resolve_workflow_from_session(
+        workdir,
+        GIT_ADMIN_SESSION_PATH,
+        GIT_ADMIN_ROOT,
+    )
+    if git_admin_path is not None:
+        return git_admin_path
+
+    shared_candidates = sorted(
+        set(
+            glob_mod.glob(os.path.join(workdir, PROJECT_VISIBLE_WORKFLOW_GLOB))
+            + glob_mod.glob(os.path.join(workdir, GIT_ADMIN_WORKFLOW_GLOB))
+        )
+    )
+    if len(shared_candidates) == 1:
+        return shared_candidates[0]
+
+    raise FileNotFoundError(f"workflow.json not found in {workdir}")
+
+
 def _load_workflow_json(workdir: str) -> Dict:
     """Read and parse workflow.json from workdir. Raises on error."""
-    path = os.path.join(workdir, WORKFLOW_JSON_PATH)
+    path = _resolve_workflow_json_path(workdir)
     with open(path, "r") as f:
         return json.load(f)
 

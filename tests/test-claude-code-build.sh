@@ -165,6 +165,50 @@ run_smoke_regression() {
   fi
 }
 
+run_operator_surface_workflow_proof_regression() {
+  python -m pytest \
+    evals/tests/test_closeout_digest_contract.py \
+    evals/tests/test_operator_surface_visibility.py \
+    evals/tests/test_runtime_mode_paths.py \
+    evals/tests/test_recovery_closeout_full_pipeline_contract.py \
+    -q || return 1
+
+  python -m pytest \
+    evals/tests/test_grader.py \
+    -k 'project_visible or verdict_mismatch_fails' \
+    -q || return 1
+
+  printf 'COVERAGE: workflow-proof.operator-surface\n'
+}
+
+run_smoke_regression_fn() {
+  local label="$1"
+  local coverage_marker="$2"
+  local fn_name="$3"
+  local exit_code=0
+  local output
+
+  echo ""
+  echo "=== Smoke regression: $label ==="
+
+  output="$($fn_name 2>&1)" || exit_code=$?
+
+  if [ "$exit_code" -ne 0 ]; then
+    fail "$label smoke regression fails"
+    echo "  Regression output:"
+    printf '    %s\n' "${output//$'\n'/$'\n    '}"
+    return
+  fi
+
+  pass "$label smoke regression passes"
+
+  if printf '%s' "$output" | grep -Fq "$coverage_marker"; then
+    pass "$label smoke regression emits $coverage_marker"
+  else
+    fail "$label smoke regression missing $coverage_marker"
+  fi
+}
+
 run_smoke_checks() {
   echo ""
   echo "=== Smoke: Claude Code structural packaging ==="
@@ -232,6 +276,11 @@ run_smoke_checks() {
     "support-surface cutover" \
     "bash \"$SUPPORT_SURFACE_CUTOVER_TEST\"" \
     "COVERAGE: support-surface.publication-mode-cutover"
+
+  run_smoke_regression_fn \
+    "operator-surface workflow proof" \
+    "COVERAGE: workflow-proof.operator-surface" \
+    "run_operator_surface_workflow_proof_regression"
 
   run_smoke_regression \
     "verify mutation proof" \
@@ -1542,6 +1591,25 @@ if [ "$SUPPORT_SURFACE_EXIT" -eq 0 ] && echo "$SUPPORT_SURFACE_OUTPUT" | grep -F
   pass "support-surface regression output includes publication-mode cutover coverage"
 else
   fail "support-surface regression output missing publication-mode cutover coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Operator-surface workflow proof ==="
+
+OPERATOR_SURFACE_WORKFLOW_PROOF_EXIT=0
+OPERATOR_SURFACE_WORKFLOW_PROOF_OUTPUT="$(run_operator_surface_workflow_proof_regression 2>&1)" || OPERATOR_SURFACE_WORKFLOW_PROOF_EXIT=$?
+
+if [ "$OPERATOR_SURFACE_WORKFLOW_PROOF_EXIT" -ne 0 ]; then
+  fail "operator-surface workflow proof regression fails under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${OPERATOR_SURFACE_WORKFLOW_PROOF_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "operator-surface workflow proof regression passes under the configured test path"
+fi
+if [ "$OPERATOR_SURFACE_WORKFLOW_PROOF_EXIT" -eq 0 ] && echo "$OPERATOR_SURFACE_WORKFLOW_PROOF_OUTPUT" | grep -Fq "COVERAGE: workflow-proof.operator-surface"; then
+  pass "operator-surface workflow proof output includes runtime and verify-strictness coverage"
+else
+  fail "operator-surface workflow proof output missing runtime and verify-strictness coverage"
 fi
 
 echo ""

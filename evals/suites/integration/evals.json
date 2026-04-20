@@ -274,7 +274,7 @@
       "sequence": ["sw-design", "sw-plan", "sw-build", "sw-verify", "sw-ship"],
       "prompt_args": {
         "problem_statement": "Implement add(a, b) in src/math.ts with tests for positive, negative, and zero inputs.",
-        "instructions": "Keep this closeout eval minimal and deterministic. Operate on the existing single-unit workflow at `.specwright/work/recovery-closeout`. Do not create workUnits or multi-unit decomposition. Prefer one concrete task that implements `add(a, b)` and its tests. Do not require optional artifacts such as LANDSCAPE, AUDIT, research, or patterns. Do not reopen the matching `core/skills/` SKILL.md unless execution is blocked. Read only the files needed for the current stage, plus `.specwright/state/workflow.json`, `.specwright/config.json`, and `.specwright/work/recovery-closeout/`. Avoid unrelated repo exploration and finish each stage with the required handoff only."
+        "instructions": "Keep this closeout eval minimal and deterministic. Operate on the existing single-unit workflow at `.specwright-local/repo/work/recovery-closeout/`. Do not create workUnits or multi-unit decomposition. Prefer one concrete task that implements `add(a, b)` and its tests. Do not require optional artifacts such as LANDSCAPE, AUDIT, research, or patterns. Do not reopen the matching `core/skills/` SKILL.md unless execution is blocked. Read only the files needed for the current stage, plus `.specwright-local/worktrees/main-worktree/session.json`, `.specwright/config.json`, and `.specwright-local/repo/work/recovery-closeout/`. Avoid unrelated repo exploration and finish each stage with the required handoff only."
       },
       "seed": {
         "type": "fixture",
@@ -283,71 +283,71 @@
       "expectations": [
         {
           "type": "state",
-          "field": "currentWork.status",
+          "field": "status",
           "expected": "shipped",
           "description": "Full pipeline ends in shipped state"
         },
         {
           "type": "snapshot_file_exists",
-          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "path": ".specwright-local/repo/work/recovery-closeout/stage-report.md",
           "snapshot_index": 0,
           "description": "Step 0 writes stage-report before handoff"
         },
         {
           "type": "snapshot_file_exists",
-          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "path": ".specwright-local/repo/work/recovery-closeout/stage-report.md",
           "snapshot_index": 1,
           "description": "Step 1 writes stage-report before handoff"
         },
         {
           "type": "snapshot_file_exists",
-          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "path": ".specwright-local/repo/work/recovery-closeout/stage-report.md",
           "snapshot_index": 2,
           "description": "Step 2 writes stage-report before handoff"
         },
         {
           "type": "snapshot_file_exists",
-          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "path": ".specwright-local/repo/work/recovery-closeout/stage-report.md",
           "snapshot_index": 3,
           "description": "Step 3 writes stage-report before handoff"
         },
         {
           "type": "snapshot_file_exists",
-          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "path": ".specwright-local/repo/work/recovery-closeout/stage-report.md",
           "snapshot_index": 4,
           "description": "Step 4 writes stage-report before handoff"
         },
         {
           "type": "snapshot_file_contains",
-          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "path": ".specwright-local/repo/work/recovery-closeout/stage-report.md",
           "pattern": "^Attention required:",
           "snapshot_index": 0,
           "description": "Step 0 stage report starts with attention-required"
         },
         {
           "type": "snapshot_file_contains",
-          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "path": ".specwright-local/repo/work/recovery-closeout/stage-report.md",
           "pattern": "^Attention required:",
           "snapshot_index": 1,
           "description": "Step 1 stage report starts with attention-required"
         },
         {
           "type": "snapshot_file_contains",
-          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "path": ".specwright-local/repo/work/recovery-closeout/stage-report.md",
           "pattern": "^Attention required:",
           "snapshot_index": 2,
           "description": "Step 2 stage report starts with attention-required"
         },
         {
           "type": "snapshot_file_contains",
-          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "path": ".specwright-local/repo/work/recovery-closeout/stage-report.md",
           "pattern": "^Attention required:",
           "snapshot_index": 3,
           "description": "Step 3 stage report starts with attention-required"
         },
         {
           "type": "snapshot_file_contains",
-          "path": ".specwright/work/recovery-closeout/stage-report.md",
+          "path": ".specwright-local/repo/work/recovery-closeout/stage-report.md",
           "pattern": "^Attention required:",
           "snapshot_index": 4,
           "description": "Step 4 stage report starts with attention-required"
@@ -431,6 +431,11 @@
             "### Recommendation"
           ],
           "description": "Step 4 emits machine-parseable three-line handoff"
+        },
+        {
+          "type": "gate_results",
+          "expected": {"tests": "PASS", "spec": "PASS"},
+          "description": "Full pipeline preserves fail-closed verify gate expectations"
         },
         {
           "type": "file_contains",
