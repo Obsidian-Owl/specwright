@@ -72,6 +72,10 @@ digest is derived from the review-packet structure; it must not become a second 
 
 - Report both `design` and current `unit-spec` lineage when available.
 - Distinguish `APPROVED`, `STALE`, `SUPERSEDED`, and missing approval clearly.
+- When lineage is not current, use the compact reason vocabulary from
+  `protocols/approvals.md` (`missing-entry`, `artifact-set-changed`,
+  `missing-lineage`, `expired`, `superseded`) instead of dumping hashes into
+  the reviewer-facing summary.
 - Include the human approval source reference when present.
 - Never imply approval truth comes from `workflow.json`.
 

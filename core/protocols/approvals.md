@@ -83,6 +83,23 @@ Approval freshness is determined by a deterministic artifact-set hash:
 The resulting `artifactSetHash` is the approval fingerprint. If any approved
 artifact changes or disappears, the approval becomes `STALE`.
 
+## Compact Freshness Reason Codes
+
+Human-readable closeout and reviewer-facing approval summaries use one compact
+reason-code vocabulary when approval lineage is not current:
+
+- `missing-entry` — no approval entry exists for the required scope
+- `artifact-set-changed` — the approved artifact set hash no longer matches the
+  current artifacts
+- `missing-lineage` — an `accepted-mutant` entry is missing required lineage
+  fields or carries an invalid `approvedAt`
+- `expired` — an `accepted-mutant` entry has an invalid or elapsed `expiresAt`
+- `superseded` — the entry was replaced by a newer approval in the same slot
+
+These reason codes keep terminal and packet summaries compact. Full hashes,
+artifact manifests, and accepted-mutant lineage remain in the approval ledger
+or deeper evidence artifacts instead of the terminal-first digest.
+
 ## File Shape
 
 `approvals.md` stays human-readable, but the machine-readable source of truth is
@@ -160,5 +177,7 @@ Shared approval helpers must provide deterministic support for:
 - recording or refreshing `accepted-mutant` entries without collapsing them
   into a silent config-only waiver
 - validating approval freshness against current artifacts
+- returning structured freshness assessment with status, compact reason code,
+  and approved/current artifact hashes when applicable
 - rejecting any attempt to create `APPROVED` approval state from
   `headless-check`
