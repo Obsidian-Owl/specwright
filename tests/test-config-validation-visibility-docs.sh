@@ -68,6 +68,8 @@ assert_contains "$DOCTOR_SKILL" "work-artifact publication mode" "sw-doctor vali
 assert_contains "$DOCTOR_SKILL" "CONFIG_MISMATCH findings must name the offending config key" "sw-doctor makes config remediation explicit"
 assert_contains "$STATUS_SKILL" "target branch and latest freshness state" "sw-status surfaces target branch plus freshness state"
 assert_contains "$STATUS_SKILL" "work-artifact publication mode when present" "sw-status surfaces publication mode when present"
+assert_contains "$STATUS_SKILL" "approval freshness reason" "sw-status surfaces the approval freshness reason explicitly"
+assert_contains "$STATUS_SKILL" "latest closeout or review-packet availability" "sw-status surfaces the latest closeout or review-packet availability explicitly"
 
 echo ""
 echo "--- Task 3: protocol anchor and sync boundaries ---"

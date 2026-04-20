@@ -5,7 +5,8 @@
 # Validates adapters/opencode/plugin.ts against the spec:
 # - File existence
 # - Exports a plugin function (default or named export)
-# - Handles session.created: reads workflow.json, outputs recovery summary
+# - Handles session.created: reads the shared Specwright state, outputs recovery summary,
+#   and surfaces closeout + approval context
 # - Handles session.compacted: writes continuation.md with state snapshot
 # - Handles session.idle: warns if work is in progress
 # - Does NOT use CLAUDE_PLUGIN_ROOT or any Claude Code-specific paths
@@ -110,8 +111,10 @@ echo "--- Event: session.created ---"
 
 assert_grep 'session\.created' "references session.created event"
 
-# session.created must read workflow.json to check for active work
-assert_grep 'workflow\.json' "references workflow.json path (state file)"
+# session.created must read shared Specwright state rather than legacy checkout-local state
+assert_grep 'loadSpecwrightState' "imports shared state loader"
+assert_grep 'normalizeActiveWork' "normalizes active work through the shared helper"
+assert_not_grep '\.specwright/state' "does NOT hardcode legacy checkout-local state paths"
 
 # The handler must produce a recovery summary -- check for output/summary/message logic
 # The Claude Code equivalent builds a summary string with work details
@@ -122,9 +125,11 @@ assert_grep '(summary|recovery|resume|progress|[Ww]ork\s+in\s+progress)' \
 assert_grep '(readFile|readFileSync|readTextFile|Bun\.file|fs\.)' \
   "uses a file-reading API (not just string reference to workflow.json)"
 
-# Must parse JSON from the workflow file
-assert_grep '(JSON\.parse|\.json\(\))' \
-  "parses JSON from workflow state file"
+# Must consume the shared closeout + approval surface model
+assert_grep '(loadOperatorSurfaceSummary|renderOperatorSurfaceLines|specwright-operator-surface)' \
+  "loads the shared operator-surface helper"
+assert_grep 'operatorSurfaceLines' "session.created wires shared operator-surface lines into the summary"
+assert_grep 'renderOperatorSurfaceLines' "session.created renders the shared operator-surface lines"
 
 # ─── 4. Event: session.compacted ────────────────────────────────────
 
@@ -202,7 +207,7 @@ echo "--- Standard APIs ---"
 assert_grep "(from\s+['\"]fs['\"]|from\s+['\"]node:fs['\"]|require\s*\(\s*['\"]fs['\"]|Bun\.file|Bun\.write)" \
   "imports fs module or uses Bun file APIs"
 
-# Must use path operations (joining paths to .specwright/state/)
+# Must use path operations for shared runtime roots / package paths
 assert_grep "(from\s+['\"]path['\"]|from\s+['\"]node:path['\"]|require\s*\(\s*['\"]path['\"]|path\.join|path\.resolve|join\s*\(|resolve\s*\()" \
   "uses path module or path operations"
 
@@ -308,9 +313,9 @@ else
   fail "only $EVENT_COUNT of 3 required events found (need session.created, session.compacted, session.idle)"
 fi
 
-# The plugin must reference .specwright/state/ path (not some other path)
-assert_grep '\.specwright/state' \
-  "references .specwright/state/ directory for state files"
+# The plugin must not keep the legacy checkout-local state path around.
+assert_not_grep '\.specwright/state' \
+  "does NOT retain the legacy .specwright/state path"
 
 # Must have at least TWO file I/O operations (read workflow.json + write continuation.md)
 READ_OPS=$(grep -cE '(readFile|readFileSync|readTextFile|Bun\.file)' "$PLUGIN" || true)
@@ -342,7 +347,6 @@ assert_grep '(\.on\s*\(|\.subscribe|addEventListener|event|handler|hook)' \
 
 # Each event handler should have error handling (try/catch or .catch)
 # A lazy implementation might skip error handling
-TRY_COUNT=$(grep -c 'try\s*{' "$PLUGIN" || true)
 CATCH_COUNT=$(grep -c 'catch' "$PLUGIN" || true)
 if [ "$CATCH_COUNT" -ge 1 ]; then
   pass "has error handling (try/catch or .catch) -- found $CATCH_COUNT catch clauses"

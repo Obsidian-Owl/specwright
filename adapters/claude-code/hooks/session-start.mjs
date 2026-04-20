@@ -11,12 +11,19 @@ import {
   loadSpecwrightState,
   normalizeActiveWork
 } from '../../shared/specwright-state-paths.mjs';
+import {
+  loadOperatorSurfaceSummary,
+  renderOperatorSurfaceLines
+} from '../../shared/specwright-operator-surface.mjs';
 
 try {
   const stateInfo = loadSpecwrightState();
   const continuationPath = stateInfo.continuationPath;
   const work = normalizeActiveWork(stateInfo);
   const ownerConflict = findSelectedWorkOwnerConflict(stateInfo);
+  const operatorSurfaceLines = renderOperatorSurfaceLines(
+    loadOperatorSurfaceSummary(stateInfo, work)
+  );
 
   if (!work || ['shipped', 'abandoned'].includes(work.status)) {
     process.exit(0);
@@ -70,6 +77,7 @@ try {
     `  Gates: ${work.gatesSummary}`,
     `  Spec: ${work.specPath}`,
     `  Plan: ${work.planPath}`,
+    ...operatorSurfaceLines,
     lockWarning,
     ownershipWarning,
     shippingWarning,
