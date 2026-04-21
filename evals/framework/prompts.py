@@ -128,9 +128,10 @@ This is a constrained non-interactive ship eval. Execute only the ship flow.
 Do not reopen `core/skills/sw-ship/SKILL.md` unless execution is blocked.
 Read only the selected workflow state, `.specwright/config.json`,
 `{workDir}/spec.md`, `{workDir}/plan.md`, and `{workDir}/evidence/`.
-If shipping freshness blocks under manual reconcile, reconcile the current
-branch against the recorded target in the owning worktree, rerun /sw-verify,
-then rerun /sw-ship.
+If shipping freshness blocks under manual reconcile, STOP and report that the
+operator must reconcile the current branch against the recorded target in the
+owning worktree, then rerun /sw-verify followed by /sw-ship in a separate
+invocation.
 If pre-flight passes, set status to `shipping`, run exactly one
 `gh pr create`, then on success write `prNumber`, keep `prMergedAt` null,
 set status to `shipped`, and write `{workDir}/stage-report.md`.

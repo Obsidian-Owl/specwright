@@ -290,12 +290,14 @@ class TestPromptTemplatePivotAndFreshnessGuidance(unittest.TestCase):
                 self.assertRegex(result, re.compile(r"manual reconcile[\s\S]{0,180}/sw-verify", re.IGNORECASE))
                 self.assertRegex(result, re.compile(r"do not[\s\S]{0,120}/sw-build", re.IGNORECASE))
 
-    def test_ship_prompt_describes_manual_reconcile_rerun_via_verify_then_ship(self):
+    def test_ship_prompt_hands_off_manual_reconcile_rerun_via_verify_then_ship(self):
         result = ship()
         self.assertRegex(
             result,
             re.compile(r"manual reconcile[\s\S]{0,220}/sw-verify[\s\S]{0,80}/sw-ship", re.IGNORECASE),
         )
+        self.assertIn("STOP and report", result)
+        self.assertIn("in a separate", result)
 
 
 class TestPromptAndDocRegressionCoverage(unittest.TestCase):
