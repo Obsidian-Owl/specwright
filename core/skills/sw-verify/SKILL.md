@@ -72,7 +72,7 @@ analysis stays inside `gate-tests`, not a seventh gate. When `gate-tests` emits
 mutation evidence, surface the tier (`T1`, `T2`, or `T3`), any
 accepted-mutant approval lineage, and only the restricted survivor record:
 operator, location, before/after, defect category, and action. No test bodies
-or assertion literals. Missing-tool or fallback paths may degrade through
+and no assertion literals. Missing-tool or fallback paths may degrade through
 `T2`/`T3`, but never to a silent skip.
 
 **Freshness checkpoint (LOW freedom) — before any gate runs:**
@@ -95,6 +95,8 @@ Determine enabled gates from config. Support both formats:
 - **Object format**: `config.gates.{gateName}` exists and `.enabled === true`
 - **Array format**: gate name present in `config.gates.enabled` array
 
+All six gates are eligible when enabled in config: build, tests, security,
+wiring, semantic, spec.
 Eligible gates: build, tests, security, wiring, semantic, spec.
 Execute enabled gates in dependency order: gate-build → gate-tests →
 gate-security, gate-wiring → gate-semantic → gate-spec.
@@ -150,7 +152,8 @@ BLOCKs → "Fix and re-run `/sw-verify`." WARN-only results → "Review, then fi
 Skip when `--gate=<name>` was used. In full mode, check every enabled gate has
 a status in the selected work's `workflow.json` `gates.{name}`. No status and
 no evidence file → ERROR: "Gate {name} was enabled but produced no evidence —
-gate was not executed."
+gate was not executed." A partial run may omit evidence for gates that were not
+invoked.
 
 **Deliverable verification (MEDIUM freedom) — inline phase, not a gate:**
 Activates on the final work unit of a multi-WU design. Activation conditions:
