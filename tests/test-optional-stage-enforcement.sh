@@ -12,7 +12,8 @@
 #   AC-2        — state.md documents sw-learn as optional
 #   AC-3        — sw-design State mutations handles prior shipped + clobber notice
 #   AC-5, AC-5a — No core pipeline skill hard-requires an optional skill (negative assertions)
-#                 sw-pivot remains self-gated when explicitly invoked
+#                 sw-pivot remains explicitly state-gated without reverting to
+#                 the old build-only contract
 #   AC-6        — Optional skills may have recommendations in free-text (not enforced)
 #   AC-9 proxy  — stage-boundary handoff table does not force sw-learn between ship and next build
 #
@@ -125,8 +126,8 @@ echo ""
 echo "AC-5a: sw-pivot self-gating is captured as justified"
 assert_file_contains \
   "core/skills/sw-pivot/SKILL.md" \
-  'Status must be `?building`?|sw-pivot only valid during active sw-build' \
-  "sw-pivot remains self-gated only when explicitly invoked during sw-build"
+  'Status not `?planning`?, `?building`?, or `?verifying`?' \
+  "sw-pivot still has explicit state-gating for the broadened entry states"
 
 # AC-6: recommendations in free text are allowed
 echo ""
