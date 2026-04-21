@@ -18,7 +18,7 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | `sw-verify` | Interactive quality gates. Shows findings, validates against spec. |
 | `sw-ship` | Strategy-aware merge via PR. |
 | `sw-debug` | Investigation-first debugging. Scope → investigate → diagnose → fix/log/defer. |
-| `sw-pivot` | Mid-build course correction. Revises remaining tasks via architect; append-only. |
+| `sw-pivot` | Research-backed rebaselining. Revises design, plan, and in-progress work while preserving shipped scope. |
 | `sw-doctor` | Read-only installation health check. 13 checks, repair hints. |
 | `sw-guard` | Detect stack, gap-analyze against 10 quality dimensions, configure guardrails across 4 layers. |
 | `sw-status` | Current state and progress. Supports `--cleanup` to remove orphaned work directories. |
@@ -26,6 +26,13 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | `sw-audit` | Periodic codebase health check. Finds systemic tech debt. |
 | `sw-sync` | Git housekeeping. Fetch, prune stale branches, sync with remote. |
 | `sw-review` | PR comment review. Fetch all comment types, group by status, respond inline. |
+
+## Pivot Guidance
+
+- `/sw-pivot` is research-backed rebaselining for work in `planning`, `building`, or `verifying`.
+- It can revise design, plan, and in-progress work while preserving completed scope and shipped scope as the baseline.
+- If a requested change would rewrite shipped scope, discard history, or needs a brand-new direction, use `/sw-design <changes>` instead of forcing `/sw-pivot`.
+- If manual reconcile blocks `/sw-build`, `/sw-verify`, or `/sw-ship`, reconcile the current branch against the recorded target in the owning worktree, then rerun `/sw-build`, rerun `/sw-verify`, or rerun `/sw-verify` followed by `/sw-ship`.
 
 ## Anchor Documents
 

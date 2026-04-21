@@ -65,11 +65,19 @@ Validated, referenced findings about external systems: API documentation, SDK co
 | `sw-learn` | Post-ship capture. What worked, what to remember | Promotes patterns to constitution. Clears workflow state (shipped → none) |
 | `sw-research` | Deep outward-facing research | External docs, APIs, patterns, validation. Produces referenced briefs for design |
 | `sw-debug` | Investigation-first debugging | Scope → investigate → diagnose → fix/log/defer |
-| `sw-pivot` | Mid-build course correction | Captures progress, revises remaining tasks via architect |
+| `sw-pivot` | Research-backed rebaselining | Revises design, plan, and in-progress work in `planning`, `building`, or `verifying` while preserving completed scope and shipped scope |
 | `sw-doctor` | Installation health check | Read-only validation of config, gates, hooks |
 | `sw-audit` | Periodic codebase health check | Finds systemic debt gates miss. Feeds findings into design + learn |
 | `sw-sync` | Git housekeeping — fetch, prune, sync | Config-driven stale branch cleanup with safety guards and preview |
 | `sw-review` | PR comment review and response | Fetches all 3 comment types (REST + GraphQL), groups by status, responds inline |
+
+Pivot escalation stays explicit at the architecture level. If a requested
+change would rewrite shipped scope, discard history, or needs a brand-new
+direction, route back through `/sw-design <changes>` instead of forcing
+`/sw-pivot`. If manual reconcile blocks `/sw-build`, `/sw-verify`, or
+`/sw-ship`, reconcile the current branch against the recorded target in the
+owning worktree, then rerun `/sw-build`, rerun `/sw-verify`, or rerun
+`/sw-verify` followed by `/sw-ship`.
 
 ### Internal Gate Skills (6)
 

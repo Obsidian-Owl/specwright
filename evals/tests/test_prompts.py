@@ -4,12 +4,22 @@ AC-11: Each template returns string with /sw-{skill} and pre-scripted decisions
 AC-12: design() accepts problem_statement, plan() and build() accept no args
 """
 
+from pathlib import Path
+import re
 import unittest
 
 from evals.framework.prompts import (
     init, design, plan, build, verify, ship,
     doctor, debug, research, learn, pivot, status, sync, guard, audit,
 )
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+PRIMARY_DOC_SURFACES = {
+    "CLAUDE.md": ROOT_DIR / "CLAUDE.md",
+    "adapters/claude-code/CLAUDE.md": ROOT_DIR / "adapters" / "claude-code" / "CLAUDE.md",
+    "README.md": ROOT_DIR / "README.md",
+    "DESIGN.md": ROOT_DIR / "DESIGN.md",
+}
 
 
 class TestPromptTemplatesReturnStrings(unittest.TestCase):
@@ -126,6 +136,66 @@ class TestPromptTemplatesContainPreScriptedDecisions(unittest.TestCase):
         self.assertIn("Done. <one-line outcome>.", result)
         self.assertIn("Artifacts: <path to stage-report.md>", result)
         self.assertIn("Next: /sw-build or /sw-ship", result)
+
+
+class TestPrimaryDocPivotSurfaces(unittest.TestCase):
+    """Unit 03 Task 1 RED: primary docs must document the broadened pivot contract."""
+
+    def test_primary_docs_frame_pivot_as_research_backed_rebaselining(self):
+        for label, path in PRIMARY_DOC_SURFACES.items():
+            with self.subTest(label=label):
+                content = path.read_text(encoding="utf-8")
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"sw-pivot[\s\S]{0,160}(research-backed|rebaselin)|"
+                        r"(research-backed|rebaselin)[\s\S]{0,160}sw-pivot",
+                        re.IGNORECASE,
+                    ),
+                )
+
+    def test_primary_docs_explain_entry_states_and_preserved_scope(self):
+        for label, path in PRIMARY_DOC_SURFACES.items():
+            with self.subTest(label=label):
+                content = path.read_text(encoding="utf-8")
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"planning[\s\S]{0,80}building[\s\S]{0,80}verifying|"
+                        r"verifying[\s\S]{0,80}building[\s\S]{0,80}planning",
+                        re.IGNORECASE,
+                    ),
+                )
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"(preserv|keep)[\s\S]{0,120}(completed|shipped) scope|"
+                        r"(completed|shipped) scope[\s\S]{0,120}(preserv|keep)",
+                        re.IGNORECASE,
+                    ),
+                )
+
+    def test_primary_docs_route_history_rewrites_to_design_and_freshness_to_stage_reruns(self):
+        for label, path in PRIMARY_DOC_SURFACES.items():
+            with self.subTest(label=label):
+                content = path.read_text(encoding="utf-8")
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"/sw-design[\s\S]{0,160}(rewrite|history|shipped)|"
+                        r"(rewrite|history|shipped)[\s\S]{0,160}/sw-design",
+                        re.IGNORECASE,
+                    ),
+                )
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"manual reconcile[\s\S]{0,180}/sw-build|"
+                        r"manual reconcile[\s\S]{0,180}/sw-verify|"
+                        r"manual reconcile[\s\S]{0,220}/sw-ship",
+                        re.IGNORECASE,
+                    ),
+                )
 
 
 class TestNewPromptTemplates(unittest.TestCase):
