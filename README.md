@@ -328,7 +328,7 @@ When a work unit has 4+ independent tasks, Specwright can execute them in parall
 |-------|---------|
 | `/sw-research` | Deep external research briefs |
 | `/sw-debug` | Investigation-first debugging |
-| `/sw-pivot` | Mid-build course correction |
+| `/sw-pivot` | Research-backed rebaselining for active work. Preserves completed and shipped scope. |
 | `/sw-doctor` | Installation health check |
 | `/sw-guard` | Configure guardrails (hooks, CI) |
 | `/sw-status` | Progress and state |
@@ -339,6 +339,20 @@ When a work unit has 4+ independent tasks, Specwright can execute them in parall
 
 </td></tr>
 </table>
+
+### Pivoting Active Work
+
+`/sw-pivot` is research-backed rebaselining for work in `planning`, `building`,
+or `verifying`. It can revise design, plan, and in-progress work while
+preserving completed scope and shipped scope as the baseline instead of
+rewriting what is already done.
+
+If a requested change would rewrite shipped scope, discard history, or needs a
+brand-new direction, use `/sw-design <changes>` instead of forcing `/sw-pivot`.
+If manual reconcile blocks `/sw-build`, `/sw-verify`, or `/sw-ship`, reconcile
+the current branch against the recorded target in the owning worktree, then
+rerun `/sw-build`, rerun `/sw-verify`, or rerun `/sw-verify` followed by
+`/sw-ship`.
 
 <details>
 <summary><b>Configuration</b></summary>

@@ -4,12 +4,32 @@ AC-11: Each template returns string with /sw-{skill} and pre-scripted decisions
 AC-12: design() accepts problem_statement, plan() and build() accept no args
 """
 
+from pathlib import Path
+import re
 import unittest
 
 from evals.framework.prompts import (
     init, design, plan, build, verify, ship,
     doctor, debug, research, learn, pivot, status, sync, guard, audit,
 )
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+PRIMARY_DOC_SURFACES = {
+    "CLAUDE.md": ROOT_DIR / "CLAUDE.md",
+    "adapters/claude-code/CLAUDE.md": ROOT_DIR / "adapters" / "claude-code" / "CLAUDE.md",
+    "README.md": ROOT_DIR / "README.md",
+    "DESIGN.md": ROOT_DIR / "DESIGN.md",
+}
+ADAPTER_COMMAND_SURFACES = {
+    "codex-build": ROOT_DIR / "adapters" / "codex" / "commands" / "sw-build.md",
+    "codex-verify": ROOT_DIR / "adapters" / "codex" / "commands" / "sw-verify.md",
+    "codex-ship": ROOT_DIR / "adapters" / "codex" / "commands" / "sw-ship.md",
+    "codex-pivot": ROOT_DIR / "adapters" / "codex" / "commands" / "sw-pivot.md",
+    "opencode-build": ROOT_DIR / "adapters" / "opencode" / "commands" / "sw-build.md",
+    "opencode-verify": ROOT_DIR / "adapters" / "opencode" / "commands" / "sw-verify.md",
+    "opencode-ship": ROOT_DIR / "adapters" / "opencode" / "commands" / "sw-ship.md",
+    "opencode-pivot": ROOT_DIR / "adapters" / "opencode" / "commands" / "sw-pivot.md",
+}
 
 
 class TestPromptTemplatesReturnStrings(unittest.TestCase):
@@ -126,6 +146,228 @@ class TestPromptTemplatesContainPreScriptedDecisions(unittest.TestCase):
         self.assertIn("Done. <one-line outcome>.", result)
         self.assertIn("Artifacts: <path to stage-report.md>", result)
         self.assertIn("Next: /sw-build or /sw-ship", result)
+
+
+class TestPrimaryDocPivotSurfaces(unittest.TestCase):
+    """Unit 03 Task 1 RED: primary docs must document the broadened pivot contract."""
+
+    def test_primary_docs_frame_pivot_as_research_backed_rebaselining(self):
+        for label, path in PRIMARY_DOC_SURFACES.items():
+            with self.subTest(label=label):
+                content = path.read_text(encoding="utf-8")
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"sw-pivot[\s\S]{0,160}(research-backed|rebaselin)|"
+                        r"(research-backed|rebaselin)[\s\S]{0,160}sw-pivot",
+                        re.IGNORECASE,
+                    ),
+                )
+
+    def test_primary_docs_explain_entry_states_and_preserved_scope(self):
+        for label, path in PRIMARY_DOC_SURFACES.items():
+            with self.subTest(label=label):
+                content = path.read_text(encoding="utf-8")
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"planning[\s\S]{0,80}building[\s\S]{0,80}verifying|"
+                        r"verifying[\s\S]{0,80}building[\s\S]{0,80}planning",
+                        re.IGNORECASE,
+                    ),
+                )
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"(preserv|keep)[\s\S]{0,120}(completed|shipped) scope|"
+                        r"(completed|shipped) scope[\s\S]{0,120}(preserv|keep)",
+                        re.IGNORECASE,
+                    ),
+                )
+
+    def test_primary_docs_route_history_rewrites_to_design_and_freshness_to_stage_reruns(self):
+        for label, path in PRIMARY_DOC_SURFACES.items():
+            with self.subTest(label=label):
+                content = path.read_text(encoding="utf-8")
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"/sw-design[\s\S]{0,160}(rewrite|history|shipped)|"
+                        r"(rewrite|history|shipped)[\s\S]{0,160}/sw-design",
+                        re.IGNORECASE,
+                    ),
+                )
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"manual reconcile[\s\S]{0,180}/sw-build|"
+                        r"manual reconcile[\s\S]{0,180}/sw-verify|"
+                        r"manual reconcile[\s\S]{0,220}/sw-ship",
+                        re.IGNORECASE,
+                    ),
+                )
+
+
+class TestAdapterCommandSurfaces(unittest.TestCase):
+    """Unit 03 Task 2 RED: adapter command docs must align with pivot and reconcile semantics."""
+
+    def test_adapter_pivot_commands_describe_research_backed_rebaselining(self):
+        for label in ("codex-pivot", "opencode-pivot"):
+            content = ADAPTER_COMMAND_SURFACES[label].read_text(encoding="utf-8")
+            with self.subTest(label=label):
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"(research-backed|rebaselin)[\s\S]{0,120}(planning|building|verifying)|"
+                        r"(planning|building|verifying)[\s\S]{0,120}(research-backed|rebaselin)",
+                        re.IGNORECASE,
+                    ),
+                )
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"(preserv|keep)[\s\S]{0,120}(completed|shipped) scope|"
+                        r"(completed|shipped) scope[\s\S]{0,120}(preserv|keep)",
+                        re.IGNORECASE,
+                    ),
+                )
+
+    def test_adapter_build_verify_ship_commands_describe_manual_reconcile_reruns(self):
+        expectations = {
+            "codex-build": r"manual reconcile[\s\S]{0,160}/sw-build",
+            "opencode-build": r"manual reconcile[\s\S]{0,160}/sw-build",
+            "codex-verify": r"manual reconcile[\s\S]{0,160}/sw-verify",
+            "opencode-verify": r"manual reconcile[\s\S]{0,160}/sw-verify",
+            "codex-ship": r"manual reconcile[\s\S]{0,220}/sw-verify[\s\S]{0,80}/sw-ship",
+            "opencode-ship": r"manual reconcile[\s\S]{0,220}/sw-verify[\s\S]{0,80}/sw-ship",
+        }
+        for label, pattern in expectations.items():
+            content = ADAPTER_COMMAND_SURFACES[label].read_text(encoding="utf-8")
+            with self.subTest(label=label):
+                self.assertRegex(content, re.compile(pattern, re.IGNORECASE))
+
+
+class TestPromptTemplatePivotAndFreshnessGuidance(unittest.TestCase):
+    """Unit 03 Task 2 RED: prompt templates must encode the broadened pivot contract."""
+
+    def test_pivot_prompt_uses_research_backed_rebaselining(self):
+        result = pivot()
+        self.assertRegex(
+            result,
+            re.compile(
+                r"(research-backed|rebaselin)[\s\S]{0,160}(planning|building|verifying)|"
+                r"(planning|building|verifying)[\s\S]{0,160}(research-backed|rebaselin)",
+                re.IGNORECASE,
+            ),
+        )
+        self.assertRegex(
+            result,
+            re.compile(
+                r"(preserv|keep)[\s\S]{0,120}(completed|shipped) scope|"
+                r"(completed|shipped) scope[\s\S]{0,120}(preserv|keep)",
+                re.IGNORECASE,
+            ),
+        )
+        self.assertRegex(
+            result,
+            re.compile(
+                r"/sw-design[\s\S]{0,160}(rewrite|history|shipped)|"
+                r"(rewrite|history|shipped)[\s\S]{0,160}/sw-design",
+                re.IGNORECASE,
+            ),
+        )
+
+    def test_build_prompt_describes_manual_reconcile_rerun(self):
+        result = build()
+        self.assertRegex(result, re.compile(r"manual reconcile[\s\S]{0,180}/sw-build", re.IGNORECASE))
+
+    def test_verify_prompt_describes_manual_reconcile_rerun_without_build_loop(self):
+        for label, result in (
+            ("default", verify()),
+            ("gated", verify("security")),
+        ):
+            with self.subTest(label=label):
+                self.assertRegex(result, re.compile(r"manual reconcile[\s\S]{0,180}/sw-verify", re.IGNORECASE))
+                self.assertRegex(result, re.compile(r"do not[\s\S]{0,120}/sw-build", re.IGNORECASE))
+
+    def test_ship_prompt_hands_off_manual_reconcile_rerun_via_verify_then_ship(self):
+        result = ship()
+        self.assertRegex(
+            result,
+            re.compile(r"manual reconcile[\s\S]{0,220}/sw-verify[\s\S]{0,80}/sw-ship", re.IGNORECASE),
+        )
+        self.assertIn("STOP and report", result)
+        self.assertIn("in a separate", result)
+
+
+class TestPromptAndDocRegressionCoverage(unittest.TestCase):
+    """Unit 03 Task 3 RED: touched surfaces must not drift back to the old loop-prone contract."""
+
+    def test_pivot_surfaces_do_not_reintroduce_mid_build_remaining_task_wording(self):
+        surfaces = {
+            **{
+                label: path.read_text(encoding="utf-8")
+                for label, path in PRIMARY_DOC_SURFACES.items()
+            },
+            **{
+                label: path.read_text(encoding="utf-8")
+                for label, path in ADAPTER_COMMAND_SURFACES.items()
+                if label.endswith("pivot")
+            },
+            "prompt-pivot-default": pivot(),
+            "prompt-pivot-change": pivot("Expand the active work without discarding shipped scope."),
+        }
+        forbidden_patterns = [
+            r"mid-build course correction",
+            r"remaining-task-only",
+            r"remaining tasks only",
+            r"mid-build[\s\S]{0,40}remaining tasks",
+        ]
+        for label, content in surfaces.items():
+            with self.subTest(label=label):
+                for pattern in forbidden_patterns:
+                    self.assertNotRegex(content, re.compile(pattern, re.IGNORECASE))
+
+    def test_pivot_summary_rows_keep_completed_and_shipped_scope_visible(self):
+        patterns = {
+            "CLAUDE.md": r"\|\s*`sw-pivot`\s*\|[^\n]*(completed[^\n]*shipped|shipped[^\n]*completed)",
+            "adapters/claude-code/CLAUDE.md": r"\|\s*`sw-pivot`\s*\|[^\n]*(completed[^\n]*shipped|shipped[^\n]*completed)",
+            "README.md": r"\|\s*`/sw-pivot`\s*\|[^\n]*(completed[^\n]*shipped|shipped[^\n]*completed)",
+            "DESIGN.md": r"\|\s*`sw-pivot`\s*\|[^\n]*(completed[^\n]*shipped|shipped[^\n]*completed)",
+        }
+        for label, path in PRIMARY_DOC_SURFACES.items():
+            content = path.read_text(encoding="utf-8")
+            with self.subTest(label=label):
+                self.assertRegex(content, re.compile(patterns[label], re.IGNORECASE))
+
+    def test_verify_surfaces_do_not_redirect_back_to_build_without_reconcile_context(self):
+        surfaces = {
+            "codex-verify": ADAPTER_COMMAND_SURFACES["codex-verify"].read_text(encoding="utf-8"),
+            "opencode-verify": ADAPTER_COMMAND_SURFACES["opencode-verify"].read_text(encoding="utf-8"),
+            "prompt-verify-default": verify(),
+            "prompt-verify-gated": verify("security"),
+        }
+        negative_build_redirect = re.compile(
+            r"(do not|instead of)[\s\S]{0,80}/sw-build|/sw-build[\s\S]{0,80}(do not|instead of)",
+            re.IGNORECASE,
+        )
+        for label, content in surfaces.items():
+            with self.subTest(label=label):
+                self.assertRegex(content, re.compile(r"manual reconcile", re.IGNORECASE))
+                self.assertRegex(content, re.compile(r"/sw-verify", re.IGNORECASE))
+                if "/sw-build" in content:
+                    self.assertRegex(content, negative_build_redirect)
+
+    def test_default_pivot_prompt_rejects_invented_commands(self):
+        for label, result in (
+            ("default", pivot()),
+            ("with-change", pivot("Expand the active work without discarding shipped scope.")),
+        ):
+            with self.subTest(label=label):
+                self.assertRegex(
+                    result,
+                    re.compile(r"do not invent a new command[\s\S]{0,40}extra confirmation", re.IGNORECASE),
+                )
 
 
 class TestNewPromptTemplates(unittest.TestCase):
