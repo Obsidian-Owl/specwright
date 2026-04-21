@@ -65,6 +65,10 @@ claimed by a live Specwright session or a subordinate helper worktree.
 - Do not promote a branch to deletion solely because it is merged if a live
   session still references it.
 - Do not delete a branch when a live session or subordinate helper still claims it.
+- Classify confirmed stale branches into:
+  - `safe-delete` for branches that should still use `git branch -d`
+  - `force-delete-candidate` for `[gone]` branches only when they are not protected,
+    not invalid, and not claimed by a live session or subordinate helper worktree
 
 **Safety checks (LOW freedom):**
 - Validate each candidate branch with `git check-ref-format --branch` before
@@ -80,7 +84,12 @@ claimed by a live Specwright session or a subordinate helper worktree.
 - Use AskUserQuestion for confirm-all, select-subset, or abort.
 - In non-interactive context, skip deletion and report candidates only per
   `protocols/headless.md`.
-- Delete with `git branch -d` only. Never use `-D`.
+- Keep `git branch -d` as the default delete path.
+- Use `git branch -D` only for a `force-delete-candidate`.
+- A `force-delete-candidate` requires an explicit second confirmation before
+  running `git branch -D`.
+- Never use `git branch -D` for merged-only, protected, invalid, or
+  live-session-owned branches.
 
 **Base branch sync (MEDIUM freedom):**
 - Checkout the configured base branch and pull with `--ff-only`.

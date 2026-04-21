@@ -7,6 +7,7 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SKILL_FILE="$ROOT_DIR/core/skills/sw-sync/SKILL.md"
+GIT_PROTOCOL="$ROOT_DIR/core/protocols/git.md"
 
 PASS=0
 FAIL=0
@@ -133,6 +134,18 @@ assert_contains "$SKILL_FILE" 'cleanupBranch' "honors cleanupBranch gate"
 assert_contains "$SKILL_FILE" 'git check-ref-format --branch' "documents git ref-format validation"
 assert_contains "$SKILL_FILE" 'shell metacharacters' "documents injection-oriented branch validation"
 assert_contains "$SKILL_FILE" 'skip deletion and report candidates only' "documents headless report-only deletion behavior"
+assert_contains "$SKILL_FILE" 'force-delete-candidate' "documents a separate force-delete candidate class"
+assert_contains "$SKILL_FILE" "\`git branch -d\` as the default delete path" "keeps git branch -d as the default delete path"
+assert_contains "$SKILL_FILE" "\`git branch -D\`" "documents the guarded git branch -D override"
+assert_contains "$SKILL_FILE" 'explicit second confirmation' "requires explicit second confirmation for force delete"
+assert_contains "$SKILL_FILE" "\`[gone]\`" "limits the override to [gone] branches"
+
+echo ""
+echo "--- Shared git guidance ---"
+assert_contains "$GIT_PROTOCOL" "\`git branch -d\`" "git protocol keeps git branch -d in cleanup guidance"
+assert_contains "$GIT_PROTOCOL" "\`[gone]\`" "git protocol documents the [gone]-only override rule"
+assert_contains "$GIT_PROTOCOL" "\`git branch -D\`" "git protocol documents the guarded git branch -D path"
+assert_not_contains "$GIT_PROTOCOL" "Never use \`-D\`." "git protocol no longer documents a blanket never-use -D stance"
 
 echo ""
 echo "--- Singleton drift guards ---"

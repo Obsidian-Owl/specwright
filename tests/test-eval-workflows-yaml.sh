@@ -306,11 +306,28 @@ else
   assert_step_run_contains "$RELEASE_FINALIZE" "publish-npm" "Publish to npm" "npm publish --provenance --access public" "release-finalize.yml publish-npm uses provenance publish"
 fi
 
+# ----- validate.yml -----
+
+echo ""
+echo "=== Test: .github/workflows/validate.yml ==="
+
+VALIDATE=".github/workflows/validate.yml"
+
+if [ ! -f "$VALIDATE" ]; then
+  fail "$VALIDATE does not exist"
+else
+  assert_yaml_valid "$VALIDATE"
+  assert_yaml_has_key "$VALIDATE" "jobs.test-claude-code" "validate.yml has 'test-claude-code' job"
+  assert_step_uses "$VALIDATE" "test-claude-code" "Set up Python for Claude Code tests" "actions/setup-python@v5" "validate.yml sets up Python for test-claude-code"
+  assert_step_with_value "$VALIDATE" "test-claude-code" "Set up Python for Claude Code tests" "with.python-version" "3.11" "validate.yml test-claude-code uses Python 3.11"
+  assert_step_run_contains "$VALIDATE" "test-claude-code" "Install Claude Code test dependencies" "python -m pip install pytest" "validate.yml installs pytest before Claude Code build tests"
+fi
+
 # ----- Optional: actionlint if available -----
 
 echo ""
 if command -v actionlint >/dev/null 2>&1; then
-  if actionlint .github/workflows/eval-smoke.yml .github/workflows/eval-full.yml .github/workflows/release-finalize.yml > /tmp/actionlint.out 2>&1; then
+  if actionlint .github/workflows/eval-smoke.yml .github/workflows/eval-full.yml .github/workflows/release-finalize.yml .github/workflows/validate.yml > /tmp/actionlint.out 2>&1; then
     pass "actionlint clean for all tracked workflows"
   else
     fail "actionlint reported issues: $(cat /tmp/actionlint.out)"

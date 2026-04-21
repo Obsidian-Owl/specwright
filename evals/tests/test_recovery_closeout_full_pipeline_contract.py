@@ -28,6 +28,9 @@ class TestRecoveryCloseoutFullPipelineContract(unittest.TestCase):
         self.assertIn("Do not create workUnits", instructions)
         self.assertIn("Do not reopen the matching `core/skills/` SKILL.md", instructions)
         self.assertIn("Read only the files needed for the current stage", instructions)
+        self.assertIn(".specwright-local/repo/work/recovery-closeout/", instructions)
+        self.assertIn(".specwright-local/worktrees/main-worktree/session.json", instructions)
+        self.assertNotIn(".specwright/state/workflow.json", instructions)
 
     def test_case_targets_single_unit_final_state(self):
         state_expectations = [
@@ -38,7 +41,7 @@ class TestRecoveryCloseoutFullPipelineContract(unittest.TestCase):
         self.assertIn(
             {
                 "type": "state",
-                "field": "currentWork.status",
+                "field": "status",
                 "expected": "shipped",
                 "description": "Full pipeline ends in shipped state",
             },
@@ -58,7 +61,7 @@ class TestRecoveryCloseoutFullPipelineContract(unittest.TestCase):
             self.assertIn(
                 {
                     "type": "snapshot_file_exists",
-                    "path": ".specwright/work/recovery-closeout/stage-report.md",
+                    "path": ".specwright-local/repo/work/recovery-closeout/stage-report.md",
                     "snapshot_index": snapshot_index,
                     "description": f"Step {snapshot_index} writes stage-report before handoff",
                 },
@@ -67,7 +70,7 @@ class TestRecoveryCloseoutFullPipelineContract(unittest.TestCase):
             self.assertIn(
                 {
                     "type": "snapshot_file_contains",
-                    "path": ".specwright/work/recovery-closeout/stage-report.md",
+                    "path": ".specwright-local/repo/work/recovery-closeout/stage-report.md",
                     "pattern": "^Attention required:",
                     "snapshot_index": snapshot_index,
                     "description": f"Step {snapshot_index} stage report starts with attention-required",
@@ -100,6 +103,16 @@ class TestRecoveryCloseoutFullPipelineContract(unittest.TestCase):
                     "### Recommendation",
                 ],
             )
+
+    def test_case_requires_passed_verify_gates_before_ship(self):
+        self.assertIn(
+            {
+                "type": "gate_results",
+                "expected": {"tests": "PASS", "spec": "PASS"},
+                "description": "Full pipeline preserves fail-closed verify gate expectations",
+            },
+            self.case["expectations"],
+        )
 
 
 if __name__ == "__main__":

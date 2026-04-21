@@ -50,7 +50,7 @@ def plan(instructions: str = "") -> str:
     """Prompt template for /sw-plan."""
     return """Run /sw-plan.
 
-Read the design artifacts from .specwright/work/.
+Read the design artifacts from the selected work directory.
 Approve all specs. Use single-unit layout unless the design
 explicitly calls for multi-unit decomposition.
 Accept all suggested acceptance criteria without changes.
@@ -67,7 +67,7 @@ def build(instructions: str = "") -> str:
     """Prompt template for /sw-build."""
     return """Run /sw-build.
 
-Implement per the spec and plan in .specwright/work/.
+Implement per the spec and plan in the selected work directory.
 Follow TDD strictly. Commit after each completed task.
 Do not ask for confirmation — proceed through all tasks.
 Write the stage report before the terminal handoff.
@@ -117,7 +117,7 @@ def ship() -> str:
 
 This is a constrained non-interactive ship eval. Execute only the ship flow.
 Do not reopen `core/skills/sw-ship/SKILL.md` unless execution is blocked.
-Read only `.specwright/state/workflow.json`, `.specwright/config.json`,
+Read only the selected workflow state, `.specwright/config.json`,
 `{workDir}/spec.md`, `{workDir}/plan.md`, and `{workDir}/evidence/`.
 If pre-flight passes, set status to `shipping`, run exactly one
 `gh pr create`, then on success write `prNumber`, keep `prMergedAt` null,
@@ -145,10 +145,10 @@ def doctor() -> str:
 This is a constrained non-interactive doctor eval. Execute only the
 STATE_DRIFT detection and backfill path.
 Do not reopen `core/skills/sw-doctor/SKILL.md` unless execution is blocked.
-Inspect `.specwright/state/workflow.json` for shipped units with
-`prNumber=null`. For each candidate, attempt one-time backfill in this
-order: `gh search prs` / `gh pr list`, then git merge history, else report
-STATE_DRIFT with the exact remediation command `sw-status --repair {unitId}`.
+Inspect the selected workflow state for shipped units with `prNumber=null`.
+For each candidate, attempt one-time backfill in this order: `gh search prs` /
+`gh pr list`, then git merge history, else report STATE_DRIFT with the exact
+remediation command `sw-status --repair {unitId}`.
 If `gh` proves a merged PR, persist the backfill immediately in
 `workflow.json`. This eval expects the safe/provable mutation path, not a
 report-only summary.

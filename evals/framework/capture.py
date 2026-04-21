@@ -8,10 +8,11 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from evals.framework.git_env import sanitized_git_env
+from evals.framework.runtime_paths import load_project_visible_root
 
 
 def capture_snapshot(workdir: str, output_dir: str) -> Dict[str, Any]:
-    """Snapshot .specwright/ state, git status, and file tree.
+    """Snapshot tracked state and project-visible runtime trees when present.
 
     If .specwright/ does not exist, returns a manifest with workflow_state=None,
     empty artifacts list, and an error note.
@@ -34,6 +35,10 @@ def capture_snapshot(workdir: str, output_dir: str) -> Dict[str, Any]:
     if os.path.exists(dest):
         shutil.rmtree(dest)
     shutil.copytree(specwright_dir, dest)
+
+    project_visible_root = load_project_visible_root(workdir)
+    project_visible_dir = os.path.join(workdir, project_visible_root)
+    _copy_optional_tree(project_visible_dir, os.path.join(output_dir, project_visible_root))
 
     # Parse workflow.json
     workflow_state = _read_workflow_state(specwright_dir)
@@ -61,6 +66,15 @@ def capture_timing(run_result: Any, output_dir: str) -> None:
     path = os.path.join(output_dir, "timing.json")
     with open(path, "w") as f:
         json.dump(timing, f, indent=2)
+
+
+def _copy_optional_tree(source_dir: str, dest_dir: str) -> None:
+    """Copy an optional tree into the snapshot when it exists."""
+    if not os.path.isdir(source_dir):
+        return
+    if os.path.exists(dest_dir):
+        shutil.rmtree(dest_dir)
+    shutil.copytree(source_dir, dest_dir)
 
 
 def _read_workflow_state(specwright_dir: str) -> Optional[Dict]:

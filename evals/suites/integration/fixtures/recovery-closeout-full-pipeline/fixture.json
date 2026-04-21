@@ -9,7 +9,7 @@
   "setup": {
     "env": {
       "EVALS_GH_LOG_DIR": ".gh",
-      "EVALS_GH_WORKFLOW": ".specwright/state/workflow.json",
+      "EVALS_GH_WORKFLOW": ".specwright-local/repo/work/recovery-closeout/workflow.json",
       "EVALS_GH_PR_NUMBER": "314",
       "EVALS_GH_PR_URL": "https://github.com/example/specwright/pull/314",
       "EVALS_GH_WATCH_WORKFLOW_SEQUENCE": "1"
@@ -24,7 +24,7 @@
       "git config user.name 'Specwright Eval'",
       "git config user.email specwright-evals@example.com",
       "git config core.hooksPath /dev/null",
-      "git add .gitignore .specwright/CONSTITUTION.md .specwright/CHARTER.md .specwright/config.json .specwright/state/workflow.json .specwright/work/recovery-closeout/context.md bin/gh bin/log_workflow_state.py bin/watch_workflow_sequence.py package.json src/math.test.ts src/math.ts tsconfig.json",
+      "git add .gitignore .specwright/CONSTITUTION.md .specwright/CHARTER.md .specwright/config.json .specwright-local/worktrees/main-worktree/session.json .specwright-local/repo/work/recovery-closeout/workflow.json .specwright-local/repo/work/recovery-closeout/context.md bin/gh bin/log_workflow_state.py bin/watch_workflow_sequence.py package.json src/math.test.ts src/math.ts tsconfig.json",
       "git commit -m 'chore(eval): seed full pipeline fixture'",
       "git init --bare .origin.git",
       "git remote add origin .origin.git",

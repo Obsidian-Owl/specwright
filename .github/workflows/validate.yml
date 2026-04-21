@@ -79,7 +79,7 @@ jobs:
       - name: Verify output structure
         run: |
           EXPECTED="agents CLAUDE.md hooks protocols README.md skills"
-          ACTUAL=$(ls dist/claude-code/ | grep -v '^\.' | sort | tr '\n' ' ' | sed 's/ $//')
+          ACTUAL=$(find dist/claude-code -mindepth 1 -maxdepth 1 ! -name '.*' -exec basename {} \; | sort | tr '\n' ' ' | sed 's/ $//')
           EXPECTED_SORTED=$(echo "$EXPECTED" | tr ' ' '\n' | sort | tr '\n' ' ' | sed 's/ $//')
 
           if [ "$ACTUAL" != "$EXPECTED_SORTED" ]; then
@@ -104,6 +104,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Set up Python for Claude Code tests
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Claude Code test dependencies
+        run: python -m pip install pytest
       - name: Run Claude Code build tests
         run: tests/test-claude-code-build.sh
       - name: Run hook behavioral tests
