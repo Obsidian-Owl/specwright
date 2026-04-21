@@ -67,6 +67,7 @@ Note: CONSTITUTION.md is NOT modified. Constitutional updates are the responsibi
 - When Git workflow config is present or inferred, seed or migrate `git.targets` and `git.freshness` from the detected Git workflow strategy without requiring users to define a custom branch DSL.
 - Detect or confirm target-role defaults, freshness checkpoints, runtime mode as an explicit Git policy choice, and any optional work-artifact publication mode as one explicit Git policy surface.
 - Recommend `project-visible` for Claude-oriented installs unless the user explicitly wants `git-admin` runtime roots.
+- Recommend a tracked work-artifact root under `.specwright/works` for new interactive installs unless the user explicitly prefers clone-local-only auditable work artifacts.
 - Keep runtime mode separately from tracked work-artifact publication and separately from clone-local runtime state.
 - Treat `.specwright/config.json` and the anchor docs as a shared project-level
   policy surface across developers and agent sessions, not as clone-local

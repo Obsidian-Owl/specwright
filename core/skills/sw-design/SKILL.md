@@ -51,6 +51,15 @@ When warranted: `data-model.md`, `contracts.md`, `testing-strategy.md`, `infra.m
 Follow `protocols/stage-boundary.md`. Produce design artifacts and research context.
 NEVER write specs, decompose, implement, branch, or test. After gate handoff, STOP.
 
+**Ownership guard (LOW freedom):**
+- When the current worktree session is already attached to an existing work,
+  resolve live ownership from `session.json`, not from branch names alone.
+- If another live top-level worktree owns that work, STOP and point the
+  operator to the explicit `/sw-adopt` flow rather than mutating design
+  artifacts here.
+- `/sw-adopt` may attach only the current worktree session. `sw-design` must
+  never rewrite another worktree's `session.json`.
+
 **Research (HIGH freedom):**
 - Load LANDSCAPE.md, AUDIT.md, research briefs if they exist. Scan code, dependencies, patterns.md.
 - Delegate to `specwright-researcher` and `specwright-architect` as needed.
@@ -148,6 +157,7 @@ Follow `protocols/state.md` for read-modify-write mechanics. Postconditions:
 |-----------|--------|
 | Request too vague | Apply DISAMBIGUATION from codebase + charter context. Record interpretation. If undetermined, surface at gate. |
 | Active work in progress | Apply DISAMBIGUATION: if argument provided, start new. If no argument, continue existing. Record choice. |
+| Selected work owned by another live top-level worktree | STOP with explicit `/sw-adopt` guidance |
 | `design.md` exists, no argument | Apply DISAMBIGUATION: if user's message implies change, treat as change request. Otherwise, present status at gate. |
 | Critic rejects entire approach | Apply DISAMBIGUATION to choose best alternative. Record in decisions.md. |
 | User rejects design at gate | Revise per user feedback and re-run critic. User overrides critic — note in design.md. |

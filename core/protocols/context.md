@@ -31,6 +31,12 @@ Runtime mode governs clone-local runtime placement only. Work-artifact
 publication remains separate from runtime mode and is still controlled by
 `config.git.workArtifacts`.
 
+For new interactive installs configured through `sw-init` or `sw-guard`,
+Specwright should prefer `project-visible` runtime plus a tracked
+work-artifact root under `.specwright/works`. Repositories already carrying a
+tracked config may keep `git-admin` and clone-local work artifacts until an
+explicit migration updates those choices.
+
 ### Runtime Mode Mapping
 
 | Mode | Runtime mapping |

@@ -1,4 +1,4 @@
-"""Contract tests for Unit 02 - runtime mode config and path model.
+"""Contract tests for Unit 01 - root and layout resolution foundation.
 
 Task 1 starts with the tracked config and context protocol surface. Later tasks
 extend this module with resolver and migration-safety proofs.
@@ -20,6 +20,8 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__f
 _CONFIG_PATH = os.path.join(_REPO_ROOT, ".specwright", "config.json")
 _CONTEXT_PROTOCOL_PATH = os.path.join(_REPO_ROOT, "core", "protocols", "context.md")
 _GITIGNORE_PATH = os.path.join(_REPO_ROOT, ".gitignore")
+_SW_INIT_SKILL_PATH = os.path.join(_REPO_ROOT, "core", "skills", "sw-init", "SKILL.md")
+_SW_GUARD_SKILL_PATH = os.path.join(_REPO_ROOT, "core", "skills", "sw-guard", "SKILL.md")
 _STATE_PATHS_MODULE_PATH = os.path.join(
     _REPO_ROOT, "adapters", "shared", "specwright-state-paths.mjs"
 )
@@ -296,6 +298,13 @@ class TestRuntimeModeConfigDefaults(unittest.TestCase):
         self.assertIsInstance(self.git_config["workArtifacts"], dict)
         self.assertIsInstance(self.git_config["runtime"], dict)
 
+    def test_tracked_work_artifacts_default_root_is_repo_visible(self):
+        self.assertEqual(
+            self.git_config["workArtifacts"]["trackedRoot"],
+            ".specwright/works",
+            "the tracked work-artifact default root should live under .specwright/works",
+        )
+
 
 class TestRuntimeModeContextProtocol(unittest.TestCase):
     """AC-1: context protocol documents the runtime-mode vocabulary and split."""
@@ -341,6 +350,28 @@ class TestRuntimeModeContextProtocol(unittest.TestCase):
             self,
             self.lower,
             r"work-artifact publication.+separate.+runtime mode|runtime mode.+separate.+work-artifact publication",
+        )
+
+
+class TestInteractiveDefaultRecommendations(unittest.TestCase):
+    """AC-1: init and guard recommend the new interactive defaults."""
+
+    def setUp(self):
+        self.sw_init = load_text(_SW_INIT_SKILL_PATH)
+        self.sw_guard = load_text(_SW_GUARD_SKILL_PATH)
+
+    def test_sw_init_recommends_project_visible_and_tracked_work_docs(self):
+        assert_multiline_regex(
+            self,
+            self.sw_init.lower(),
+            r"recommend `project-visible`.{0,220}tracked work-artifact root|tracked work-artifact root.{0,220}recommend `project-visible`",
+        )
+
+    def test_sw_guard_recommends_project_visible_and_tracked_work_docs(self):
+        assert_multiline_regex(
+            self,
+            self.sw_guard.lower(),
+            r"recommend `project-visible`.{0,220}tracked work-artifact|tracked work-artifact.{0,220}recommend `project-visible`",
         )
 
 
@@ -493,6 +524,48 @@ class TestRuntimeModeResolverPaths(unittest.TestCase):
                 str((repo_path / ".specwright" / "audit-work" / "runtime-proof").resolve()),
             )
 
+    def test_git_admin_bare_primary_checkout_falls_back_to_local_project_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "bare-primary-git-admin"
+            _init_git_repo(repo_path)
+            _write_config(repo_path, runtime_mode="git-admin")
+            _write_shared_state(repo_path, runtime_mode="git-admin")
+            _run(["git", "config", "core.bare", "true"], cwd=repo_path)
+
+            roots = _resolve_roots(repo_path)
+
+            self.assertTrue(roots["ok"], roots)
+            self.assertEqual(roots["projectRoot"], str(repo_path.resolve()))
+            self.assertEqual(roots["projectArtifactsRoot"], str((repo_path / ".specwright").resolve()))
+            self.assertEqual(roots["repoStateRoot"], str((repo_path / ".git" / "specwright").resolve()))
+            self.assertEqual(roots["worktreeStateRoot"], str((repo_path / ".git" / "specwright").resolve()))
+
+    def test_project_visible_bare_primary_checkout_keeps_runtime_out_of_git(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "bare-primary-project-visible"
+            _init_git_repo(repo_path)
+            _write_config(repo_path, runtime_mode="project-visible")
+            _write_shared_state(repo_path, runtime_mode="project-visible")
+            _run(["git", "config", "core.bare", "true"], cwd=repo_path)
+
+            data = _inspect_runtime_state(repo_path)
+            visible_root = (repo_path / ".specwright-local").resolve()
+
+            self.assertEqual(data["layout"], "shared")
+            self.assertEqual(data["roots"]["projectRoot"], str(repo_path.resolve()))
+            self.assertEqual(
+                data["roots"]["repoStateRoot"],
+                str(visible_root / "repo"),
+            )
+            self.assertEqual(
+                data["roots"]["worktreeStateRoot"],
+                str(visible_root / "worktrees" / "main-worktree"),
+            )
+            self.assertEqual(
+                data["roots"]["workArtifactsRoot"],
+                str(visible_root / "repo" / "work"),
+            )
+
 
 class TestFixtureGitEnvIsolation(unittest.TestCase):
     """Fixture helpers ignore outer hook git context across subprocess types."""
@@ -553,6 +626,40 @@ class TestRuntimeModeSafetyProof(unittest.TestCase):
 
     def test_gitignore_excludes_project_visible_runtime_root_by_default(self):
         self.assertIn("/.specwright-local/", load_text(_GITIGNORE_PATH))
+
+    def test_gitignore_keeps_default_tracked_work_docs_visible(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "gitignore-proof-repo"
+            _init_git_repo(repo_path)
+            (repo_path / ".gitignore").write_text(load_text(_GITIGNORE_PATH), encoding="utf-8")
+
+            tracked_work_doc = repo_path / ".specwright" / "works" / "unit-01" / "spec.md"
+            local_runtime_file = repo_path / ".specwright-local" / "repo" / "session.json"
+            tracked_work_doc.parent.mkdir(parents=True, exist_ok=True)
+            local_runtime_file.parent.mkdir(parents=True, exist_ok=True)
+            tracked_work_doc.write_text("# spec\n", encoding="utf-8")
+            local_runtime_file.write_text("{}\n", encoding="utf-8")
+
+            status_lines = _run(
+                [
+                    "git",
+                    "status",
+                    "--short",
+                    "--ignored",
+                    "--untracked-files=all",
+                    "--",
+                    ".specwright/works/unit-01/spec.md",
+                    ".specwright-local/repo/session.json",
+                ],
+                cwd=repo_path,
+            ).stdout.splitlines()
+
+            self.assertIn("?? .specwright/works/unit-01/spec.md", status_lines)
+            self.assertIn(
+                "!! .specwright-local/repo/session.json",
+                status_lines,
+                "\n".join(status_lines),
+            )
 
     def test_project_visible_root_inside_git_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:

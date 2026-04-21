@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 #
-# Tests for AC-4: Command files exist for all 14 user-facing skills
+# Tests for AC-4: Command files exist for all 17 user-facing skills
 #
 # Validates adapters/opencode/commands/ against the spec:
 # - Directory existence
-# - Exactly 14 .md files, one per user-facing skill
+# - Exactly 17 .md files, one per user-facing skill
 # - Each expected file exists by name
 # - Each file has valid YAML frontmatter with description field
 # - Description values are non-empty and distinct
 # - Body (after frontmatter) contains $ARGUMENTS
 # - No gate skill command files exist
-# - No unexpected .md files beyond the 14 expected
+# - No unexpected .md files beyond the 17 expected
 #
 # Dependencies: bash
 # Usage: ./tests/test-opencode-commands.sh
@@ -51,7 +51,9 @@ assert_eq() {
 echo "=== AC-4: Opencode command files ==="
 echo ""
 
-# The 14 user-facing skills (commands expected)
+# The 17 user-facing skills (commands expected).
+# sw-adopt is new in this PR; sw-sync and sw-review are pre-existing commands
+# that were previously missing from this packaging coverage.
 EXPECTED_COMMANDS=(
   sw-init
   sw-design
@@ -60,6 +62,7 @@ EXPECTED_COMMANDS=(
   sw-verify
   sw-ship
   sw-status
+  sw-adopt
   sw-guard
   sw-learn
   sw-research
@@ -67,14 +70,19 @@ EXPECTED_COMMANDS=(
   sw-pivot
   sw-doctor
   sw-audit
+  sw-sync
+  sw-review
 )
 
-# The 5 gate skills (commands must NOT exist)
+# The 6 gate skills (commands must NOT exist).
+# gate-semantic is also a pre-existing surface that was missing from this
+# exclusion coverage before this PR.
 GATE_SKILLS=(
   gate-build
   gate-tests
   gate-security
   gate-wiring
+  gate-semantic
   gate-spec
 )
 
@@ -95,8 +103,8 @@ fi
 
 echo "--- File count ---"
 
-MD_COUNT=$(find "$CMD_DIR" -maxdepth 1 -name '*.md' -type f | wc -l)
-assert_eq "$MD_COUNT" "14" "exactly 14 .md files in commands/"
+MD_COUNT=$(find "$CMD_DIR" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
+assert_eq "$MD_COUNT" "17" "exactly 17 .md files in commands/"
 
 # ─── 3. Each expected command file exists ─────────────────────────────
 
@@ -228,7 +236,7 @@ echo "--- Distinct descriptions ---"
 
 # A lazy implementation might use the same description for all commands
 if [ ${#DESCRIPTIONS[@]} -ge 2 ]; then
-  UNIQUE_DESCS=$(printf '%s\n' "${DESCRIPTIONS[@]}" | sort -u | wc -l)
+  UNIQUE_DESCS=$(printf '%s\n' "${DESCRIPTIONS[@]}" | sort -u | wc -l | tr -d ' ')
   TOTAL_DESCS=${#DESCRIPTIONS[@]}
   assert_eq "$UNIQUE_DESCS" "$TOTAL_DESCS" "all $TOTAL_DESCS descriptions are unique (no duplicates)"
 fi
@@ -250,7 +258,7 @@ for skill in "${EXPECTED_COMMANDS[@]}"; do
   BODY=$(tail -n +"$((CLOSING_LINE + 2))" "$FILE")
 
   # Body must contain $ARGUMENTS (literal dollar sign + ARGUMENTS)
-  if echo "$BODY" | grep -qF '$ARGUMENTS'; then
+  if echo "$BODY" | grep -qF "\$ARGUMENTS"; then
     pass "${skill}.md body contains \$ARGUMENTS"
   else
     fail "${skill}.md body does not contain \$ARGUMENTS"
@@ -259,7 +267,7 @@ for skill in "${EXPECTED_COMMANDS[@]}"; do
   # $ARGUMENTS must be in the BODY, not in the frontmatter
   # (catch lazy impl that puts it in frontmatter instead of body)
   FRONTMATTER=$(head -n "$((CLOSING_LINE + 1))" "$FILE" | tail -n +"2" | head -n "$((CLOSING_LINE - 1))")
-  if echo "$FRONTMATTER" | grep -qF '$ARGUMENTS'; then
+  if echo "$FRONTMATTER" | grep -qF "\$ARGUMENTS"; then
     fail "${skill}.md has \$ARGUMENTS in frontmatter (should be in body only)"
   else
     pass "${skill}.md \$ARGUMENTS is in body, not frontmatter"
@@ -347,11 +355,11 @@ for skill in "${EXPECTED_COMMANDS[@]}"; do
 done
 
 # No subdirectories in commands/ (commands are flat files)
-SUBDIR_COUNT=$(find "$CMD_DIR" -mindepth 1 -type d | wc -l)
+SUBDIR_COUNT=$(find "$CMD_DIR" -mindepth 1 -type d | wc -l | tr -d ' ')
 assert_eq "$SUBDIR_COUNT" "0" "no subdirectories in commands/ (flat structure)"
 
 # No non-.md files in commands/
-NON_MD_COUNT=$(find "$CMD_DIR" -maxdepth 1 -type f ! -name '*.md' | wc -l)
+NON_MD_COUNT=$(find "$CMD_DIR" -maxdepth 1 -type f ! -name '*.md' | wc -l | tr -d ' ')
 assert_eq "$NON_MD_COUNT" "0" "no non-.md files in commands/"
 
 # ─── Summary ────────────────────────────────────────────────────────

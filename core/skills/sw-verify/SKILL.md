@@ -47,7 +47,8 @@ code, create PRs, or ship. After gate handoff, STOP.
 
 **Ownership check (LOW freedom):**
 Resolve the selected work from the current worktree session. If another live
-top-level worktree owns that work, STOP with explicit adopt/takeover guidance.
+top-level worktree owns that work, STOP with explicit `/sw-adopt` guidance and
+do not rely on generic adopt/takeover behavior.
 
 **Assumption re-validation (LOW freedom) — before gate execution:**
 Scan the design assumptions artifact from the design-level directory. Check
@@ -83,7 +84,7 @@ Queue-managed mode remains a distinct validation path and does not prescribe a
 local rebase before verification. When branch-head validation plus `manual`
 reconcile blocks entry, STOP with manual reconcile guidance: reconcile the
 current branch against the recorded target in the
-owning worktree, or adopt/takeover first if a linked-worktree ownership
+owning worktree, or run `/sw-adopt` first if a linked-worktree ownership
 conflict exists, then rerun `/sw-verify`. Do not redirect to `/sw-build` solely
 to clear freshness, and do not silently rewrite `targetRef` or freshness
 metadata. In headless mode, follow
@@ -217,7 +218,7 @@ the selected work's `gates` section after each gate completes. Do NOT set
 | Condition | Action |
 |-----------|--------|
 | No active work unit | STOP: "Run /sw-design, /sw-plan, and /sw-build first." |
-| Selected work owned by another live top-level worktree | STOP with explicit adopt/takeover guidance |
+| Selected work owned by another live top-level worktree | STOP with explicit `/sw-adopt` guidance |
 | Verify freshness checkpoint is blocked under branch-head `require` + `manual` | STOP with manual reconcile guidance and rerun `/sw-verify`, not `/sw-build`. |
 | No gates enabled / all skipped | WARN, proceed to ready-to-ship |
 | Gate skill file not found | ERROR for that gate, continue remaining |

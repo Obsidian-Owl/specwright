@@ -8,6 +8,8 @@
 !/.specwright/research/**
 !/.specwright/learnings/
 !/.specwright/learnings/**
+!/.specwright/works/
+!/.specwright/works/**
 /.specwright/state/
 /.specwright/work/
 /.specwright/worktrees/

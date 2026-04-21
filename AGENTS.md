@@ -24,6 +24,7 @@ sw-init → sw-design → sw-plan → sw-build → sw-verify → sw-ship
 | `sw-doctor` | Read-only installation health check. 13 checks, repair hints. |
 | `sw-guard` | Detect stack and interactively configure guardrails. |
 | `sw-status` | Current state and progress. |
+| `sw-adopt` | Explicitly adopt an existing work into the current worktree after ownership checks. |
 | `sw-learn` | Post-ship capture of patterns and learnings. |
 | `sw-audit` | Periodic codebase health check. Finds systemic tech debt. |
 | `sw-sync` | Git housekeeping. Fetch, prune stale branches, sync with remote. |

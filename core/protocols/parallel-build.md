@@ -19,15 +19,21 @@ If any condition fails, skip parallel execution entirely.
 Parallel execution never creates a second top-level owner for the selected
 work.
 
+Live ownership truth still comes from the per-worktree `session.json` files.
+Helper worktrees never become the live top-level owner, even when a helper
+branch happens to match the selected work's recorded branch.
+
 - the current worktree remains the parent `top-level` session
 - each helper worktree is a `subordinate` session under the same `workId`
 - subordinate sessions inherit context from the parent work
 - subordinate sessions do not claim ownership in
   `workflow.json.attachment`
+- subordinate sessions do not mutate shared workflow state
 
 Subordinate sessions may read the parent work's shared artifacts and use local
-continuation state, but they must not directly ship, verify, or rewrite shared
-work selection.
+continuation state, but they must not directly ship, verify, rewrite another
+worktree's `session.json`, or mutate shared workflow state. Shared workflow
+state remains parent-only.
 
 ## Independence Analysis
 

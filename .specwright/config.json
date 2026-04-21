@@ -43,7 +43,7 @@
     },
     "workArtifacts": {
       "mode": "clone-local",
-      "trackedRoot": null
+      "trackedRoot": ".specwright/works"
     },
     "prTool": "gh",
     "branchPrefix": "work/",

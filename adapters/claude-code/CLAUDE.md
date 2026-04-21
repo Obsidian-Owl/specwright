@@ -22,6 +22,7 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | `sw-doctor` | Read-only installation health check. 13 checks, repair hints. |
 | `sw-guard` | Detect stack, gap-analyze against 10 quality dimensions, configure guardrails across 4 layers. |
 | `sw-status` | Current state and progress. Supports `--cleanup` to remove orphaned work directories. |
+| `sw-adopt` | Explicitly adopt an existing work into the current worktree after ownership checks. |
 | `sw-learn` | Post-ship capture of patterns and learnings. Clears workflow state after persistence. |
 | `sw-audit` | Periodic codebase health check. Finds systemic tech debt. |
 | `sw-sync` | Git housekeeping. Fetch, prune stale branches, sync with remote. |

@@ -25,6 +25,12 @@ Two state files now exist:
 | `{repoStateRoot}/work/{workId}/workflow.json` | one work | lifecycle, units, gates, task progress, attachment, lock | skills operating on that selected work |
 | `{worktreeStateRoot}/session.json` | one worktree | local work selection and session mode | skills running in that worktree |
 
+For live ownership, `{worktreeStateRoot}/session.json` is the live ownership
+truth for that worktree. `workflow.json.attachment` is a per-work diagnostic
+snapshot and must not be treated as permission to mutate a work without first
+checking live sessions.
+Stated plainly: `session.json` is the live ownership truth.
+
 Tracked project artifacts live under the project root:
 
 ```text
@@ -234,9 +240,15 @@ Attaching a top-level session to a work must validate all of the following:
 2. no other live top-level session already owns that work
 3. the current branch is consistent with the work's recorded branch when the
    work is already in `building`, `verifying`, or `shipping`
+4. same-work continuation into a different top-level worktree is being
+   requested explicitly via `/sw-adopt`
 
 If validation fails, STOP with explicit adopt/takeover guidance. Do not
 silently allow split-brain mutation of one work from two top-level worktrees.
+Explicit same-work adoption must not degrade into implicit branch-based
+takeover. Matching the recorded branch is necessary for in-flight checks, but
+it is never sufficient to transfer ownership on its own.
+Stated plainly: explicit same-work adoption is not implicit branch takeover.
 
 ## Subordinate Sessions
 
@@ -253,7 +265,7 @@ They must not:
 - create a new top-level `workId`
 - rewrite another worktree's `session.json`
 - claim top-level ownership in `workflow.json.attachment`
-- ship, verify, or otherwise mutate shared work state directly outside the
+- ship, verify, run `/sw-adopt`, or otherwise mutate shared workflow state directly outside the
   parent orchestration contract
 
 ## State Transitions
