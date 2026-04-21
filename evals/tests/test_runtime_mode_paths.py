@@ -627,6 +627,40 @@ class TestRuntimeModeSafetyProof(unittest.TestCase):
     def test_gitignore_excludes_project_visible_runtime_root_by_default(self):
         self.assertIn("/.specwright-local/", load_text(_GITIGNORE_PATH))
 
+    def test_gitignore_keeps_default_tracked_work_docs_visible(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "gitignore-proof-repo"
+            _init_git_repo(repo_path)
+            (repo_path / ".gitignore").write_text(load_text(_GITIGNORE_PATH), encoding="utf-8")
+
+            tracked_work_doc = repo_path / ".specwright" / "works" / "unit-01" / "spec.md"
+            local_runtime_file = repo_path / ".specwright-local" / "repo" / "session.json"
+            tracked_work_doc.parent.mkdir(parents=True, exist_ok=True)
+            local_runtime_file.parent.mkdir(parents=True, exist_ok=True)
+            tracked_work_doc.write_text("# spec\n", encoding="utf-8")
+            local_runtime_file.write_text("{}\n", encoding="utf-8")
+
+            status_lines = _run(
+                [
+                    "git",
+                    "status",
+                    "--short",
+                    "--ignored",
+                    "--untracked-files=all",
+                    "--",
+                    ".specwright/works/unit-01/spec.md",
+                    ".specwright-local/repo/session.json",
+                ],
+                cwd=repo_path,
+            ).stdout.splitlines()
+
+            self.assertIn("?? .specwright/works/unit-01/spec.md", status_lines)
+            self.assertIn(
+                "!! .specwright-local/repo/session.json",
+                status_lines,
+                "\n".join(status_lines),
+            )
+
     def test_project_visible_root_inside_git_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo_path = Path(tmp) / "inside-git-repo"
