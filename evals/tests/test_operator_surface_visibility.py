@@ -2,13 +2,13 @@
 
 from datetime import datetime, timezone
 import json
-import os
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
 
+from evals.framework.git_env import outer_git_env, sanitized_git_env
 from evals.tests._text_helpers import assert_multiline_regex, load_text
 
 
@@ -23,29 +23,35 @@ DOCTOR_SKILL = ROOT_DIR / "core" / "skills" / "sw-doctor" / "SKILL.md"
 
 
 def _run(args: list[str], cwd: Path, *, env: dict | None = None) -> subprocess.CompletedProcess[str]:
+    runtime_env = None
+    if env is not None:
+        runtime_env = sanitized_git_env(env)
+    elif args and args[0] == "git":
+        runtime_env = sanitized_git_env()
+
     return subprocess.run(
         args,
         cwd=cwd,
         check=True,
         capture_output=True,
         text=True,
-        env={**os.environ, **(env or {})},
+        env=runtime_env,
     )
 
 
-def _init_git_repo(path: Path) -> None:
+def _init_git_repo(path: Path, *, env: dict | None = None) -> None:
     path.mkdir(parents=True, exist_ok=True)
-    _run(["git", "init"], cwd=path)
-    _run(["git", "config", "user.name", "Specwright Tests"], cwd=path)
-    _run(["git", "config", "user.email", "specwright-tests@example.com"], cwd=path)
-    _run(["git", "branch", "-M", "main"], cwd=path)
+    _run(["git", "init"], cwd=path, env=env)
+    _run(["git", "config", "user.name", "Specwright Tests"], cwd=path, env=env)
+    _run(["git", "config", "user.email", "specwright-tests@example.com"], cwd=path, env=env)
+    _run(["git", "branch", "-M", "main"], cwd=path, env=env)
     (path / "README.md").write_text("fixture\n", encoding="utf-8")
-    _run(["git", "add", "README.md"], cwd=path)
-    _run(["git", "commit", "-m", "chore: init fixture"], cwd=path)
+    _run(["git", "add", "README.md"], cwd=path, env=env)
+    _run(["git", "commit", "-m", "chore: init fixture"], cwd=path, env=env)
 
 
-def _git_path(repo_path: Path, *args: str) -> Path:
-    output = _run(["git", *args], cwd=repo_path).stdout.strip()
+def _git_path(repo_path: Path, *args: str, env: dict | None = None) -> Path:
+    output = _run(["git", *args], cwd=repo_path, env=env).stdout.strip()
     candidate = Path(output)
     if candidate.is_absolute():
         return candidate.resolve()
@@ -65,9 +71,9 @@ def _derive_worktree_id(git_dir: Path, git_common_dir: Path) -> str:
     raise AssertionError("unable to derive worktree id for test fixture")
 
 
-def _runtime_roots(repo_path: Path) -> dict[str, Path | str]:
-    git_dir = _git_path(repo_path, "rev-parse", "--git-dir")
-    git_common_dir = _git_path(repo_path, "rev-parse", "--git-common-dir")
+def _runtime_roots(repo_path: Path, *, env: dict | None = None) -> dict[str, Path | str]:
+    git_dir = _git_path(repo_path, "rev-parse", "--git-dir", env=env)
+    git_common_dir = _git_path(repo_path, "rev-parse", "--git-common-dir", env=env)
     worktree_id = _derive_worktree_id(git_dir, git_common_dir)
     repo_state_root = git_common_dir / "specwright"
     worktree_state_root = git_dir / "specwright"
@@ -87,12 +93,13 @@ def _write_shared_state(
     *,
     work_id: str = "operator-surface-proof",
     unit_id: str = "03-operator-surface-cutover",
+    env: dict | None = None,
 ) -> dict[str, Path | str]:
-    roots = _runtime_roots(repo_path)
+    roots = _runtime_roots(repo_path, env=env)
     repo_state_root = roots["repoStateRoot"]
     worktree_state_root = roots["worktreeStateRoot"]
     work_artifacts_root = roots["workArtifactsRoot"]
-    branch = _run(["git", "branch", "--show-current"], cwd=repo_path).stdout.strip()
+    branch = _run(["git", "branch", "--show-current"], cwd=repo_path, env=env).stdout.strip()
 
     (repo_state_root / "config.json").parent.mkdir(parents=True, exist_ok=True)
     (repo_state_root / "config.json").write_text(
@@ -265,6 +272,33 @@ def _fresh_timestamp() -> str:
 
 
 class TestSessionStartSurface(unittest.TestCase):
+    def test_shared_state_writes_ignore_outer_hook_context(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            outer_repo_path = Path(tmpdir) / "outer-repo"
+            inner_repo_path = Path(tmpdir) / "inner-repo"
+            _init_git_repo(outer_repo_path)
+            _run(["git", "checkout", "-b", "outer-scope"], cwd=outer_repo_path)
+
+            outer_env = outer_git_env(outer_repo_path)
+            _init_git_repo(inner_repo_path, env=outer_env)
+            state = _write_shared_state(inner_repo_path, env=outer_env)
+
+            self.assertEqual(
+                _run(["git", "branch", "--show-current"], cwd=outer_repo_path).stdout.strip(),
+                "outer-scope",
+            )
+            self.assertEqual(
+                Path(state["repoStateRoot"]),
+                (inner_repo_path / ".git" / "specwright").resolve(),
+            )
+            self.assertEqual(
+                Path(state["worktreeStateRoot"]),
+                (inner_repo_path / ".git" / "specwright").resolve(),
+            )
+            self.assertTrue((Path(state["repoStateRoot"]) / "config.json").exists())
+            self.assertTrue((Path(state["worktreeStateRoot"]) / "session.json").exists())
+            self.assertFalse((outer_repo_path / ".git" / "specwright" / "session.json").exists())
+
     def test_session_start_names_missing_closeout_and_approval(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_path = Path(tmpdir)
