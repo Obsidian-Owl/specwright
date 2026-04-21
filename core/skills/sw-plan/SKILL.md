@@ -70,6 +70,11 @@ instead of fabricating one.
 - Each unit: independently buildable, testable, single purpose, 3+ testable ACs.
 - Ordered by dependency. If exactly 1 unit, use flat layout.
 - Record decomposition rationale in decisions.md per `protocols/decision.md` DISAMBIGUATION.
+- On re-entry to `sw-plan` after a structural pivot or decomposition revision,
+  regenerate only the affected remaining-unit artifact set. Overwrite each
+  affected remaining unit's `spec.md`, `plan.md`, and `context.md`, but keep
+  shipped units as immutable baseline scope rather than rewriting their
+  artifacts or acceptance history.
 
 **Integration criteria (MEDIUM freedom, multi-unit only):**
 - When decomposing into multiple work units, also write `integration-criteria.md` in
@@ -93,9 +98,12 @@ instead of fabricating one.
 - ICs are derived from the design's integration points and blast radius. They answer:
   "After all units are built, what structural connections must exist, and what observable
   behaviors must hold?"
-- On re-entry to sw-plan (replanning), overwrite `integration-criteria.md` with freshly
-  generated criteria (same behavior as spec.md/plan.md regeneration). If replanning
-  reduces from multi-unit to single-unit, delete `integration-criteria.md` if it exists.
+- On re-entry to `sw-plan` (replanning), regenerate `integration-criteria.md`
+  for the current open scope defined by the affected remaining units. This uses
+  the same overwrite behavior as regenerated unit `spec.md` / `plan.md` /
+  `context.md` artifacts while preserving shipped units as immutable baseline
+  scope. If replanning reduces the remaining open scope to single-unit, delete
+  `integration-criteria.md` if it exists.
 - Consumed by gate-wiring during the final unit's verification.
 - If sw-pivot changes unit boundaries mid-build, `integration-criteria.md` may become
   stale. sw-pivot should regenerate ICs when unit boundaries change. If it does not,
@@ -139,7 +147,10 @@ remains machine-parseable: `Next: /sw-build`.
 **State mutations (LOW freedom):**
 Follow `protocols/state.md`. Mutate only the selected work's `workflow.json` and
 the current worktree's `session.json`. Transition `designing` → `planning`.
-- Preserve the selected work's recorded `targetRef` and freshness metadata in the selected work state and any generated unit context that depends on them.
+- Preserve the selected work's recorded `targetRef` and freshness metadata in
+  the selected work state and in any regenerated remaining-unit context that
+  depends on them. Replanning must not silently clear, downgrade, or rewrite
+  the recorded target or freshness policy when regenerating open work.
 - Do not collapse back to inferring a single `baseBranch` target.
 
 Multi-unit: populate the selected work's `workUnits` array, set the first unit
