@@ -379,6 +379,54 @@ class TestStatusCardContract(unittest.TestCase):
             written_card = json.loads(status_card_path.read_text(encoding="utf-8"))
             self.assertEqual(written_card, card)
 
+    def test_build_status_card_surfaces_explicit_warning_classes_without_crashing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(
+                repo_path,
+                session_branch="work/03-status-card-proof-drifted",
+            )
+            _write_approvals(Path(state["unitDir"]), state["unitId"])
+            (Path(state["unitDir"]) / "context.md").unlink()
+
+            result = _build_status_card(
+                repo_path,
+                force_used_fallback=True,
+                write_status_card=False,
+            )
+            card = result["card"]
+            warning_codes = {warning["code"] for warning in card["warnings"]}
+
+            self.assertEqual(card["approvals"]["status"], "STALE")
+            self.assertEqual(card["approvals"]["reasonCode"], "artifact-set-changed")
+            self.assertEqual(card["branch"]["status"], "mismatch")
+            self.assertEqual(card["nextCommand"], "/sw-build")
+            self.assertSetEqual(
+                warning_codes,
+                {
+                    "approval-artifact-set-changed",
+                    "missing-closeout",
+                    "branch-mismatch",
+                    "degraded-root-resolution",
+                },
+            )
+
+    def test_build_status_card_points_to_verify_when_all_tasks_are_complete(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            workflow_path = Path(state["workflowPath"])
+            workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+            workflow["tasksCompleted"] = ["task-1", "task-2", "task-3"]
+            workflow["currentTask"] = None
+            workflow_path.write_text(json.dumps(workflow, indent=2) + "\n", encoding="utf-8")
+
+            result = _build_status_card(repo_path, write_status_card=False)
+
+            self.assertEqual(result["card"]["nextCommand"], "/sw-verify")
+
     def test_operator_surface_summary_uses_shared_status_card_contract(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_path = Path(tmpdir)
