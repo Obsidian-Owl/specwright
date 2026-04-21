@@ -17,26 +17,26 @@ allowed-tools:
 
 ## Goal
 
-Run quality gates against the current work unit autonomously. Continue through
-all gates regardless of individual failures. Present the aggregate report at the
-gate handoff using `protocols/decision.md` template.
+Run quality gates against the work unit. Continue through all gates
+regardless of failures and present the report at handoff
+per `protocols/decision.md`.
 
 ## Inputs
 
-- `{worktreeStateRoot}/session.json` -- selected work for this worktree
-- `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- selected work unit and previous gate results
-- `{projectArtifactsRoot}/config.json` -- gate configuration (object or array format)
+- `{worktreeStateRoot}/session.json` -- selected work
+- `{repoStateRoot}/work/{selectedWork.id}/workflow.json` -- work state and gate results
+- `{projectArtifactsRoot}/config.json` -- gate configuration
 - `{workDir}/spec.md` -- for spec compliance gate
-- `{workDir}/implementation-rationale.md` -- curated build-time reasoning when present
-- `{workArtifactsRoot}/{selectedWork.id}/integration-criteria.md` -- behavioral IC list for packet and final-unit conformance summary (when present)
+- `{workDir}/implementation-rationale.md` -- curated build rationale when present
+- `{workArtifactsRoot}/{selectedWork.id}/integration-criteria.md` -- behavioral IC list when present
 - Gate skill files in `skills/gate-*/SKILL.md`
 
 ## Outputs
 
-- `{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md` -- verify handoff digest with attention-at-top
+- `{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md` -- verify handoff digest
 - Evidence files in `{workDir}/evidence/`, one per gate
-- `{workDir}/review-packet.md` -- reviewer-focused synthesis built from approvals, rationale, proof, and gate outcomes
-- Selected work's `workflow.json` gates section updated; status set to `verifying` during run
+- `{workDir}/review-packet.md` -- reviewer synthesis from approvals, rationale, proof, and gate outcomes
+- Selected work's `workflow.json` updated with gate results; status `verifying`
 - Aggregate report presented at gate handoff
 
 ## Constraints
@@ -51,7 +51,7 @@ top-level worktree owns that work, STOP with explicit adopt/takeover guidance.
 
 **Assumption re-validation (LOW freedom) — before gate execution:**
 Scan the design assumptions artifact from the design-level directory. Check
-ACCEPTED/VERIFIED assumptions still hold against current code. Invalid → WARN in
+ACCEPTED/VERIFIED assumptions against current code. Invalid → WARN in the
 aggregate report. Runs silently.
 
 **Approval lineage check (LOW freedom) — before gate execution:**
@@ -65,14 +65,14 @@ When `/sw-verify --accept-mutant {id} --reason "{prose}"` is present, use
 `protocols/approvals.md` plus the shared helper to record or refresh the
 accepted-mutant approval entry before gate execution. Persist the config linkage
 at `config.gates.tests.mutation.acceptedMutants[]`, require a reason, and set
-expiry to 90 days from approval unless an explicit later expiry is already
-being refreshed. Ordinary verify runs validate and report accepted-mutant
-lineage; they never fabricate approval state or silently waive survivors.
-Mutation analysis stays inside `gate-tests`, not a seventh gate. When
-`gate-tests` emits mutation evidence, surface the tier (`T1`, `T2`, or `T3`),
-any accepted-mutant approval lineage, and only the restricted survivor record:
-operator, location, before/after, defect category, and action. No test bodies.
-No assertion literals. Missing-tool or fallback paths may degrade through
+expiry to 90 days from approval unless a later explicit expiry is being
+refreshed. Ordinary verify runs validate and report accepted-mutant lineage;
+they never fabricate approval state or silently waive survivors. Mutation
+analysis stays inside `gate-tests`, not a seventh gate. When `gate-tests` emits
+mutation evidence, surface the tier (`T1`, `T2`, or `T3`), any
+accepted-mutant approval lineage, and only the restricted survivor record:
+operator, location, before/after, defect category, and action. No test bodies
+or assertion literals. Missing-tool or fallback paths may degrade through
 `T2`/`T3`, but never to a silent skip.
 
 **Freshness checkpoint (LOW freedom) — before any gate runs:**
@@ -80,16 +80,22 @@ Use `protocols/git-freshness.md` to assess the selected work's verify
 checkpoint from the recorded target and policy. For branch-head validation,
 branch-head `require` blocks stale, diverged, and blocked freshness results.
 Queue-managed mode remains a distinct validation path and does not prescribe a
-local rebase before verification. In headless mode, follow
+local rebase before verification. When branch-head validation plus `manual`
+reconcile blocks entry, STOP with manual reconcile guidance: reconcile the
+current branch against the recorded target in the
+owning worktree, or adopt/takeover first if a linked-worktree ownership
+conflict exists, then rerun `/sw-verify`. Do not redirect to `/sw-build` solely
+to clear freshness, and do not silently rewrite `targetRef` or freshness
+metadata. In headless mode, follow
 `protocols/headless.md`: skip freshness blocking, continue gate execution, and
-report the freshness result alongside the gate findings.
+report the freshness result with the gate findings.
 
 **Gate execution order (LOW freedom):**
-Determine enabled gates from config. Two formats exist — support both:
+Determine enabled gates from config. Support both formats:
 - **Object format**: `config.gates.{gateName}` exists and `.enabled === true`
 - **Array format**: gate name present in `config.gates.enabled` array
 
-All six gates are eligible: build, tests, security, wiring, semantic, spec.
+Eligible gates: build, tests, security, wiring, semantic, spec.
 Execute enabled gates in dependency order: gate-build → gate-tests →
 gate-security, gate-wiring → gate-semantic → gate-spec.
 If `--gate=<name>` argument, run only that gate.
@@ -104,77 +110,70 @@ Always re-run all gates regardless of existing results or age.
 **Review packet synthesis (LOW freedom) — after gate execution, before
 handoff:** Use `protocols/review-packet.md` to assemble
 `{workDir}/review-packet.md` from approval lineage, `implementation-rationale.md`,
-gate evidence, and the canonical gate-spec compliance matrix. This is a
-synthesis step, not a second gate engine: do not rerun gates, recreate proof
-logic, or backfill rationale from transcripts. In `clone-local`
-work-artifact mode, keep the packet reviewer-usable without relying on
-local-only file links.
+gate evidence, and the canonical gate-spec compliance matrix. This is
+synthesis, not a second gate engine: do not rerun gates, recreate proof logic,
+or backfill rationale from transcripts. In `clone-local` work-artifact mode,
+keep the packet reviewer-usable without local-only file links.
 
 **Failure handling (MEDIUM freedom):**
-Gate FAIL or ERROR: continue. Run ALL remaining gates, record all results.
-No fix/skip/abort decisions — the gate handoff presents everything for human review.
+Gate FAIL or ERROR: continue. Run remaining gates and record results.
+No fix/skip/abort decisions — the handoff presents everything for human review.
 Headless: write `headless-result.json`.
 
 **Aggregate report (MEDIUM freedom):**
 After all gates, present three tiers. When approval findings exist, prepend an
-`Approval Lineage` subsection before tier 1 and keep it separate from
-gate-specific counts.
-1. **Per-finding detail** (first): every BLOCK/WARN grouped by gate — what,
+`Approval Lineage` subsection before tier 1.
+1. **Per-finding detail** (first): every BLOCK/WARN grouped by gate with what,
    why, and recommended action.
 2. **Summary table** (after): `| Gate | Status | Findings (B/W/I) |`
 3. **Actionable Findings** (after summary): only shown when WARN or BLOCK
-   findings exist; omit when all gates PASS. Populate from gate evidence as the
-   source. Include only WARN and BLOCK severity rows, not INFO.
+   findings exist; omit when all gates PASS. Populate from gate evidence and
+   include only WARN and BLOCK severity rows, not INFO.
 
    | # | Gate | Severity | File | Finding | Recommended Fix |
    |---|------|----------|------|---------|-----------------|
-   | 1 | gate-tests | WARN | src/foo.ts | description | concrete fix suggestion or "manual review" |
 
    - File column: specific file path from gate evidence, not a vague reference.
    - Recommended Fix column: WARN rows get concrete, actionable fix suggestions;
      BLOCK rows that require human judgment get "manual review".
    - Summary line: state the actionable finding count (`N of M`) and whether any
-     require human judgment before the user proceeds. Wording remains
-     informational — do not imply the skill will perform fixes.
+     require human judgment. Keep it informational — do not imply the skill
+     will perform fixes.
    - All-manual case: when every actionable finding requires manual review,
      state that no automated resolution is possible.
 
 SKIP gates prominently marked. Check escalation heuristics per
-`protocols/evidence.md#verdict-rendering`.
-Handoff posture remains three-tiered: BLOCKs → "Fix and re-run `/sw-verify`."
-WARN-only results → "Review, then fix or `/sw-ship`." All PASS →
-"Ready for `/sw-ship`."
+`protocols/evidence.md#verdict-rendering`. Handoff posture remains three-tiered:
+BLOCKs → "Fix and re-run `/sw-verify`." WARN-only results → "Review, then fix or `/sw-ship`." All PASS → "Ready for `/sw-ship`."
 
 **Evidence completeness (LOW freedom):**
-Skip when `--gate=<name>` was used (partial run — only the targeted gate is expected).
-In full mode: check every enabled gate has a status in the selected work's
-`workflow.json` `gates.{name}`.
-No status and no evidence file → ERROR: "Gate {name} was enabled but produced no
-evidence — gate was not executed."
+Skip when `--gate=<name>` was used. In full mode, check every enabled gate has
+a status in the selected work's `workflow.json` `gates.{name}`. No status and
+no evidence file → ERROR: "Gate {name} was enabled but produced no evidence —
+gate was not executed."
 
 **Deliverable verification (MEDIUM freedom) — inline phase, not a gate:**
 Activates on the final work unit of a multi-WU design. Activation conditions:
 `workflow.workUnits` has >1 entry, current unit is last in the sequence, all
 prior units are `shipped` or `verified`, and all six standard gates completed
-with PASS or WARN (not FAIL or ERROR �� if gates failed, deliverable verification
-is skipped since evidence cannot exist for broken code). Runs after the standard
-six gates complete.
+with PASS or WARN (not FAIL or ERROR; failed gates skip deliverable verification
+because the proof surface is already broken). Runs after the six standard gates.
 
 When activated:
 - Load `integration-criteria.md` from the design-level directory
-  (`{workArtifactsRoot}/{selectedWork.id}/`). If the file does not exist → SKIP with
-  INFO note ("No integration-criteria.md found"). Identify behavioral ICs
+  (`{workArtifactsRoot}/{selectedWork.id}/`). If the file does not exist → SKIP
+  with INFO note ("No integration-criteria.md found"). Identify behavioral ICs
   (IC-B{n} entries).
 - For each IC-B, search for test evidence: a test file exercising the described
-  behavior, plus a passing gate-tests or gate-build evidence report confirming the
-  test passes. IC-Bs with both test file and passing evidence → PASS. IC-Bs without
-  test file or without passing evidence → BLOCK.
+  behavior plus a passing gate-tests or gate-build report confirming the test
+  passes. IC-Bs with both test file and passing evidence → PASS. IC-Bs without
+  either → BLOCK.
 - When no IC-Bs are defined (older plans, single-unit work, structural-only ICs) →
-  SKIP with INFO note. Does not block.
+  SKIP with INFO note.
 - Run `commands.test:integration` and `commands.test:e2e` from config.json if
-  configured. Failing commands → BLOCK. Unconfigured commands → WARN (encourage setup).
+  configured. Failing commands → BLOCK. Unconfigured commands → WARN.
 - Produce a "## Deliverable Verification" section in the verify evidence report,
-  positioned after the standard gate results. Clearly labeled as an inline phase,
+  positioned after the standard gate results and labeled as an inline phase,
   not a gate.
 
 Include deliverable verification findings (BLOCKs, WARNs) in the aggregate report
@@ -188,8 +187,9 @@ Detail lives in the per-gate evidence files under `{workDir}/evidence/`.
 Write `{repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md`
 before the handoff, and point the Artifacts line at
 `Artifacts: {repoStateRoot}/work/{selectedWork.id}/units/{selectedWork.unitId}/stage-report.md`.
-The Next: line points to `/sw-build` (on BLOCK) or `/sw-ship` (on PASS
-or WARN). Example: `Next: /sw-ship`.
+The Next: line points to `/sw-build` for ordinary implementation BLOCKs, to
+`/sw-verify` after a freshness-only pre-gate stop, or to `/sw-ship` on PASS or
+WARN. Example: `Next: /sw-ship`.
 
 **State updates (LOW freedom):**
 Follow `protocols/state.md`. Mutate only the selected work's `workflow.json`
@@ -199,16 +199,16 @@ the selected work's `gates` section after each gate completes. Do NOT set
 
 ## Protocol References
 
-- `protocols/stage-boundary.md` -- scope, termination, and handoff
-- `protocols/decision.md` -- autonomous decision framework and gate handoff
-- `protocols/state.md` -- workflow state and locking
+- `protocols/stage-boundary.md` -- stage boundary
+- `protocols/decision.md` -- gate handoff
+- `protocols/state.md` -- workflow state
 - `protocols/git-freshness.md` -- pre-gate freshness checkpoint
-- `protocols/approvals.md` -- approval freshness and lineage validation
-- `protocols/review-packet.md` -- reviewer packet synthesis contract
-- `protocols/evidence.md` -- evidence freshness and storage
-- `protocols/evidence.md#verdict-rendering` -- verdict rendering and escalation
-- `protocols/headless.md` -- non-interactive execution defaults
-- `protocols/context.md` -- config and anchor doc loading
+- `protocols/approvals.md` -- approval lineage validation
+- `protocols/review-packet.md` -- packet synthesis
+- `protocols/evidence.md` -- evidence storage
+- `protocols/evidence.md#verdict-rendering` -- verdict rendering
+- `protocols/headless.md` -- headless defaults
+- `protocols/context.md` -- config and anchor docs
 
 ## Failure Modes
 
@@ -216,6 +216,7 @@ the selected work's `gates` section after each gate completes. Do NOT set
 |-----------|--------|
 | No active work unit | STOP: "Run /sw-design, /sw-plan, and /sw-build first." |
 | Selected work owned by another live top-level worktree | STOP with explicit adopt/takeover guidance |
+| Verify freshness checkpoint is blocked under branch-head `require` + `manual` | STOP with manual reconcile guidance and rerun `/sw-verify`, not `/sw-build`. |
 | No gates enabled / all skipped | WARN, proceed to ready-to-ship |
 | Gate skill file not found | ERROR for that gate, continue remaining |
 | Compaction during verification | Read the selected work's workflow.json, resume from next gate without fresh results |
