@@ -1,4 +1,4 @@
-"""Contract tests for Unit 02 - runtime mode config and path model.
+"""Contract tests for Unit 01 - root and layout resolution foundation.
 
 Task 1 starts with the tracked config and context protocol surface. Later tasks
 extend this module with resolver and migration-safety proofs.
@@ -20,6 +20,8 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__f
 _CONFIG_PATH = os.path.join(_REPO_ROOT, ".specwright", "config.json")
 _CONTEXT_PROTOCOL_PATH = os.path.join(_REPO_ROOT, "core", "protocols", "context.md")
 _GITIGNORE_PATH = os.path.join(_REPO_ROOT, ".gitignore")
+_SW_INIT_SKILL_PATH = os.path.join(_REPO_ROOT, "core", "skills", "sw-init", "SKILL.md")
+_SW_GUARD_SKILL_PATH = os.path.join(_REPO_ROOT, "core", "skills", "sw-guard", "SKILL.md")
 _STATE_PATHS_MODULE_PATH = os.path.join(
     _REPO_ROOT, "adapters", "shared", "specwright-state-paths.mjs"
 )
@@ -296,6 +298,13 @@ class TestRuntimeModeConfigDefaults(unittest.TestCase):
         self.assertIsInstance(self.git_config["workArtifacts"], dict)
         self.assertIsInstance(self.git_config["runtime"], dict)
 
+    def test_tracked_work_artifacts_default_root_is_repo_visible(self):
+        self.assertEqual(
+            self.git_config["workArtifacts"]["trackedRoot"],
+            ".specwright/works",
+            "the tracked work-artifact default root should live under .specwright/works",
+        )
+
 
 class TestRuntimeModeContextProtocol(unittest.TestCase):
     """AC-1: context protocol documents the runtime-mode vocabulary and split."""
@@ -341,6 +350,28 @@ class TestRuntimeModeContextProtocol(unittest.TestCase):
             self,
             self.lower,
             r"work-artifact publication.+separate.+runtime mode|runtime mode.+separate.+work-artifact publication",
+        )
+
+
+class TestInteractiveDefaultRecommendations(unittest.TestCase):
+    """AC-1: init and guard recommend the new interactive defaults."""
+
+    def setUp(self):
+        self.sw_init = load_text(_SW_INIT_SKILL_PATH)
+        self.sw_guard = load_text(_SW_GUARD_SKILL_PATH)
+
+    def test_sw_init_recommends_project_visible_and_tracked_work_docs(self):
+        assert_multiline_regex(
+            self,
+            self.sw_init.lower(),
+            r"recommend `project-visible`.{0,220}tracked work-artifact root|tracked work-artifact root.{0,220}recommend `project-visible`",
+        )
+
+    def test_sw_guard_recommends_project_visible_and_tracked_work_docs(self):
+        assert_multiline_regex(
+            self,
+            self.sw_guard.lower(),
+            r"recommend `project-visible`.{0,220}tracked work-artifact|tracked work-artifact.{0,220}recommend `project-visible`",
         )
 
 
