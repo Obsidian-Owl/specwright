@@ -1,5 +1,5 @@
 ---
-description: Run quality gates and show findings interactively. If manual reconcile blocks freshness, rerun /sw-verify instead of bouncing back to /sw-build.
+description: Run quality gates and show findings interactively. If branch-head freshness blocks and policy is rebase or merge, recover in the same run; manual is the fallback and stays on /sw-verify.
 ---
 
 Read and follow the skill file at `.specwright/skills/sw-verify/SKILL.md`.
