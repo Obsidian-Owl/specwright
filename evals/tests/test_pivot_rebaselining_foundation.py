@@ -3,29 +3,16 @@
 import json
 from pathlib import Path
 import re
-import subprocess
 import tempfile
 import unittest
+
+from evals.tests._text_helpers import run_node_json
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 PIVOT_SKILL = ROOT_DIR / "core" / "skills" / "sw-pivot" / "SKILL.md"
 STATE_PROTOCOL = ROOT_DIR / "core" / "protocols" / "state.md"
 APPROVALS_PROTOCOL = ROOT_DIR / "core" / "protocols" / "approvals.md"
-
-
-def _run_node_json(script: str) -> dict:
-    result = subprocess.run(
-        ["node", "--input-type=module", "-"],
-        input=script,
-        text=True,
-        capture_output=True,
-        cwd=ROOT_DIR,
-        check=False,
-    )
-    if result.returncode != 0:
-        raise AssertionError(result.stderr or result.stdout or "node execution failed")
-    return json.loads(result.stdout)
 
 
 class TestPivotRebaseliningContract(unittest.TestCase):
@@ -105,7 +92,7 @@ class TestPivotApprovalLineage(unittest.TestCase):
 
     def test_helper_marks_design_and_unit_entries_stale_after_pivot_artifact_change(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            output = _run_node_json(
+            output = run_node_json(
                 f"""
                 import {{
                   defaultApprovalsDocument,

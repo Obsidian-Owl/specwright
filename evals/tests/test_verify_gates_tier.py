@@ -404,7 +404,10 @@ class TestVerifyIntegrity(unittest.TestCase):
         self.assertIn("Gate handoff", self.content)
 
     def test_six_gates_listed(self):
-        self.assertIn("build, tests, security, wiring, semantic, spec", self.content.lower())
+        self.assertRegex(
+            self.content.lower(),
+            r"build,\s+tests,\s+security,\s+wiring,\s+semantic,\s+spec",
+        )
 
 
 class TestGateTestsIntegrity(unittest.TestCase):

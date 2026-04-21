@@ -165,6 +165,17 @@ The helper is an assessor, not a mutator.
 ## Caller Responsibilities
 
 - lifecycle skills decide whether a result blocks, warns, or proceeds
+- when `validation = branch-head`, `reconcile = manual`, and the active
+  checkpoint is `require`, callers use one shared manual reconcile contract:
+  stop, tell the operator to manually reconcile the current branch against the
+  recorded target in the owning worktree, and if a linked worktree owns the
+  selected work, require adopt/takeover before reconciling there
+- after a manual reconcile stop, rerun the blocked lifecycle stage rather than
+  silently routing through a different stage; shipping is the exception because
+  it must rerun `/sw-verify` before `/sw-ship` after reconciliation
+- callers must not silently rewrite, clear, or downgrade the recorded
+  `targetRef`, freshness metadata, or checkpoint policy to bypass a freshness
+  block
 - publication mode for optional auditable work artifacts comes from
   `config.git.workArtifacts` in `protocols/git.md`, not from this helper
 - redaction or safe publication of evidence is handled by the surfaces that
