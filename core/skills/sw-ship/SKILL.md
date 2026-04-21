@@ -56,6 +56,12 @@ work, run builds, or begin next unit. After PR: show URL, suggest `/sw-learn`, h
 - Re-check shipping freshness during pre-flight via `protocols/git-freshness.md`.
   For branch-head validation, branch-head `require` blocks stale, diverged, and blocked freshness results.
   Queue-managed validation remains distinct and must not force a local rebase by default.
+  When branch-head validation plus `manual` reconcile blocks shipping, STOP
+  with the same manual reconcile guidance used by build and verify: reconcile
+  the current branch against the recorded target in the owning worktree, or
+  adopt/takeover first if a linked-worktree ownership conflict exists, then
+  rerun `/sw-verify` followed by `/sw-ship`. Do not silently rewrite
+  `targetRef` or freshness metadata to bypass the block.
 - `review-packet.md` must exist at `{workDir}/review-packet.md`. Missing packet
   → STOP: "Review packet missing for {unitId}. Re-run /sw-verify."
 - Evidence files must exist at `{workDir}/evidence/{gate-name}-report.md` for each
@@ -135,6 +141,7 @@ stays machine-parseable). Examples: `Next: /sw-build` or `Next: /sw-learn`.
 | Status is `building` | STOP: "Run /sw-verify first." |
 | Gates not passed | STOP: "Gate {name} failed. Fix and re-run /sw-verify." |
 | Gate has no verdict | STOP: "Gate {name} has no verdict. Run /sw-verify first." |
+| Shipping freshness checkpoint is blocked under branch-head `require` + `manual` | STOP with manual reconcile guidance, rerun `/sw-verify`, then rerun `/sw-ship`. |
 | No git changes to ship | STOP: "Nothing to ship." |
 | Push fails during shipping | Revert status to `verifying`, keep `prNumber` null. Show error. |
 | PR creation fails during shipping | Revert status to `verifying`, keep `prNumber` null. Show error. |
