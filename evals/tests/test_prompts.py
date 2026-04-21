@@ -294,6 +294,78 @@ class TestPromptTemplatePivotAndFreshnessGuidance(unittest.TestCase):
         )
 
 
+class TestPromptAndDocRegressionCoverage(unittest.TestCase):
+    """Unit 03 Task 3 RED: touched surfaces must not drift back to the old loop-prone contract."""
+
+    def test_pivot_surfaces_do_not_reintroduce_mid_build_remaining_task_wording(self):
+        surfaces = {
+            **{
+                label: path.read_text(encoding="utf-8")
+                for label, path in PRIMARY_DOC_SURFACES.items()
+            },
+            **{
+                label: path.read_text(encoding="utf-8")
+                for label, path in ADAPTER_COMMAND_SURFACES.items()
+                if label.endswith("pivot")
+            },
+            "prompt-pivot-default": pivot(),
+            "prompt-pivot-change": pivot("Expand the active work without discarding shipped scope."),
+        }
+        forbidden_patterns = [
+            r"mid-build course correction",
+            r"remaining-task-only",
+            r"remaining tasks only",
+            r"mid-build[\s\S]{0,40}remaining tasks",
+        ]
+        for label, content in surfaces.items():
+            with self.subTest(label=label):
+                for pattern in forbidden_patterns:
+                    self.assertNotRegex(content, re.compile(pattern, re.IGNORECASE))
+
+    def test_pivot_summary_rows_keep_completed_and_shipped_scope_visible(self):
+        summary_surfaces = {
+            "CLAUDE.md": PRIMARY_DOC_SURFACES["CLAUDE.md"],
+            "adapters/claude-code/CLAUDE.md": PRIMARY_DOC_SURFACES["adapters/claude-code/CLAUDE.md"],
+            "README.md": PRIMARY_DOC_SURFACES["README.md"],
+            "DESIGN.md": PRIMARY_DOC_SURFACES["DESIGN.md"],
+        }
+        patterns = {
+            "CLAUDE.md": r"\|\s*`sw-pivot`\s*\|[^\n]*(completed[^\n]*shipped|shipped[^\n]*completed)",
+            "adapters/claude-code/CLAUDE.md": r"\|\s*`sw-pivot`\s*\|[^\n]*(completed[^\n]*shipped|shipped[^\n]*completed)",
+            "README.md": r"\|\s*`/sw-pivot`\s*\|[^\n]*(completed[^\n]*shipped|shipped[^\n]*completed)",
+            "DESIGN.md": r"\|\s*`sw-pivot`\s*\|[^\n]*(completed[^\n]*shipped|shipped[^\n]*completed)",
+        }
+        for label, path in summary_surfaces.items():
+            content = path.read_text(encoding="utf-8")
+            with self.subTest(label=label):
+                self.assertRegex(content, re.compile(patterns[label], re.IGNORECASE))
+
+    def test_verify_surfaces_do_not_redirect_back_to_build_without_reconcile_context(self):
+        surfaces = {
+            "codex-verify": ADAPTER_COMMAND_SURFACES["codex-verify"].read_text(encoding="utf-8"),
+            "opencode-verify": ADAPTER_COMMAND_SURFACES["opencode-verify"].read_text(encoding="utf-8"),
+            "prompt-verify-default": verify(),
+            "prompt-verify-gated": verify("security"),
+        }
+        negative_build_redirect = re.compile(
+            r"(do not|instead of)[\s\S]{0,80}/sw-build|/sw-build[\s\S]{0,80}(do not|instead of)",
+            re.IGNORECASE,
+        )
+        for label, content in surfaces.items():
+            with self.subTest(label=label):
+                self.assertRegex(content, re.compile(r"manual reconcile", re.IGNORECASE))
+                self.assertRegex(content, re.compile(r"/sw-verify", re.IGNORECASE))
+                if "/sw-build" in content:
+                    self.assertRegex(content, negative_build_redirect)
+
+    def test_default_pivot_prompt_rejects_invented_commands(self):
+        result = pivot()
+        self.assertRegex(
+            result,
+            re.compile(r"do not invent a new command[\s\S]{0,40}extra confirmation", re.IGNORECASE),
+        )
+
+
 class TestNewPromptTemplates(unittest.TestCase):
     """New templates return non-empty strings with default args."""
 

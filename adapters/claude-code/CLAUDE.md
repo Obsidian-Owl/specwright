@@ -18,7 +18,7 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 | `sw-verify` | Interactive quality gates. Shows findings, validates against spec. |
 | `sw-ship` | Strategy-aware merge via PR. |
 | `sw-debug` | Investigation-first debugging. Scope → investigate → diagnose → fix/log/defer. |
-| `sw-pivot` | Research-backed rebaselining. Revises design, plan, and in-progress work while preserving shipped scope. |
+| `sw-pivot` | Research-backed rebaselining. Revises design, plan, and in-progress work while preserving completed and shipped scope. |
 | `sw-doctor` | Read-only installation health check. 13 checks, repair hints. |
 | `sw-guard` | Detect stack, gap-analyze against 10 quality dimensions, configure guardrails across 4 layers. |
 | `sw-status` | Current state and progress. Supports `--cleanup` to remove orphaned work directories. |

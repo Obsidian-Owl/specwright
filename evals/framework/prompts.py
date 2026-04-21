@@ -230,7 +230,8 @@ Review the current work in planning, building, or verifying and apply
 research-backed rebaselining. Preserve completed scope and shipped scope while
 revising design, plan, and in-progress work.
 If the requested change would rewrite shipped scope, discard history, or needs
-a brand-new direction, use /sw-design instead."""
+a brand-new direction, use /sw-design instead.
+Do not invent a new command or extra confirmation."""
 
 
 def status(repair_unit_id: str = "", headless: bool = False) -> str:

@@ -328,7 +328,7 @@ When a work unit has 4+ independent tasks, Specwright can execute them in parall
 |-------|---------|
 | `/sw-research` | Deep external research briefs |
 | `/sw-debug` | Investigation-first debugging |
-| `/sw-pivot` | Research-backed rebaselining for active work |
+| `/sw-pivot` | Research-backed rebaselining for active work. Preserves completed and shipped scope. |
 | `/sw-doctor` | Installation health check |
 | `/sw-guard` | Configure guardrails (hooks, CI) |
 | `/sw-status` | Progress and state |
