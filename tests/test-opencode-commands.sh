@@ -51,7 +51,9 @@ assert_eq() {
 echo "=== AC-4: Opencode command files ==="
 echo ""
 
-# The 17 user-facing skills (commands expected)
+# The 17 user-facing skills (commands expected).
+# sw-adopt is new in this PR; sw-sync and sw-review are pre-existing commands
+# that were previously missing from this packaging coverage.
 EXPECTED_COMMANDS=(
   sw-init
   sw-design
@@ -72,7 +74,9 @@ EXPECTED_COMMANDS=(
   sw-review
 )
 
-# The 6 gate skills (commands must NOT exist)
+# The 6 gate skills (commands must NOT exist).
+# gate-semantic is also a pre-existing surface that was missing from this
+# exclusion coverage before this PR.
 GATE_SKILLS=(
   gate-build
   gate-tests

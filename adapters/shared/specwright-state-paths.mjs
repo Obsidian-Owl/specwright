@@ -254,10 +254,7 @@ function resolveGitEntryTarget(gitEntryPath) {
 }
 
 function hasLocalProjectArtifacts(candidatePath) {
-  return (
-    existsSync(join(candidatePath, PROJECT_ARTIFACTS_DIR, SHARED_CONFIG_FILE)) ||
-    existsSync(join(candidatePath, PROJECT_ARTIFACTS_DIR))
-  );
+  return existsSync(join(candidatePath, PROJECT_ARTIFACTS_DIR, SHARED_CONFIG_FILE));
 }
 
 function resolveFallbackProjectRoot(cwd, gitDir, gitCommonDir) {

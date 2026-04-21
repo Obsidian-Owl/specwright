@@ -440,6 +440,10 @@ class TestRuntimeOwnershipHelpers(unittest.TestCase):
             )
             _write_session(
                 linked,
+                # listSessionFiles derives the reported worktreeId from the
+                # .git/worktrees directory entry name ("linked"), not the
+                # session.json payload, so staleAttachments will report
+                # "linked" even though this fixture writes "linked-dead".
                 worktree_id="linked-dead",
                 branch="linked-dead",
                 work_id="work-shared",
