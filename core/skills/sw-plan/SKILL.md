@@ -99,10 +99,10 @@ instead of fabricating one.
   "After all units are built, what structural connections must exist, and what observable
   behaviors must hold?"
 - On re-entry to `sw-plan` (replanning), regenerate `integration-criteria.md`
-  for the current open scope defined by the affected remaining units. This uses
+  for the affected remaining units only. This uses
   the same overwrite behavior as regenerated unit `spec.md` / `plan.md` /
   `context.md` artifacts while preserving shipped units as immutable baseline
-  scope. If replanning reduces the remaining open scope to single-unit, delete
+  scope. If replanning reduces the remaining work to single-unit, delete
   `integration-criteria.md` if it exists.
 - Consumed by gate-wiring during the final unit's verification.
 - If sw-pivot changes unit boundaries mid-build, `integration-criteria.md` may become

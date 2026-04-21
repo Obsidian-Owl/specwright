@@ -1,12 +1,11 @@
 """Regression tests for Unit 02 — remaining-work regeneration alignment."""
 
-import json
-import os
 from pathlib import Path
 import re
-import subprocess
 import tempfile
 import unittest
+
+from evals.tests._text_helpers import run_node_json
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -15,25 +14,6 @@ BUILD_SKILL = ROOT_DIR / "core" / "skills" / "sw-build" / "SKILL.md"
 VERIFY_SKILL = ROOT_DIR / "core" / "skills" / "sw-verify" / "SKILL.md"
 SHIP_SKILL = ROOT_DIR / "core" / "skills" / "sw-ship" / "SKILL.md"
 FRESHNESS_PROTOCOL = ROOT_DIR / "core" / "protocols" / "git-freshness.md"
-
-
-def _run_node_json(script: str, env: dict[str, str] | None = None) -> dict:
-    merged_env = os.environ.copy()
-    if env:
-        merged_env.update(env)
-
-    result = subprocess.run(
-        ["node", "--input-type=module", "-"],
-        input=script,
-        text=True,
-        capture_output=True,
-        cwd=ROOT_DIR,
-        check=False,
-        env=merged_env,
-    )
-    if result.returncode != 0:
-        raise AssertionError(result.stderr or result.stdout or "node execution failed")
-    return json.loads(result.stdout)
 
 
 class TestPlanRegenerationAlignment(unittest.TestCase):
@@ -46,38 +26,26 @@ class TestPlanRegenerationAlignment(unittest.TestCase):
         self.assertRegex(
             self.plan_text,
             re.compile(
-                r"affected remaining[- ]unit[\s\S]{0,220}(spec\.md|plan\.md|context\.md)|"
-                r"(spec\.md|plan\.md|context\.md)[\s\S]{0,220}affected remaining[- ]unit",
+                r"affected remaining[- ]unit[\s\S]{0,120}(spec\.md|plan\.md|context\.md)|"
+                r"(spec\.md|plan\.md|context\.md)[\s\S]{0,120}affected remaining[- ]unit",
                 re.IGNORECASE,
             ),
         )
 
     def test_replanning_keeps_shipped_units_as_immutable_baseline_scope(self):
-        self.assertRegex(
-            self.plan_text,
-            re.compile(
-                r"shipped units?[\s\S]{0,220}(preserve|immutable|baseline scope)|"
-                r"(preserve|immutable|baseline scope)[\s\S]{0,220}shipped units?",
-                re.IGNORECASE,
-            ),
-        )
+        self.assertIn("shipped units as immutable baseline scope", self.plan_text)
 
     def test_replanning_preserves_recorded_target_and_freshness_metadata(self):
-        self.assertRegex(
+        self.assertIn(
+            "Preserve the selected work's recorded `targetRef` and freshness metadata",
             self.plan_text,
-            re.compile(
-                r"(targetRef|target ref)[\s\S]{0,220}freshness metadata[\s\S]{0,220}(preserve|preserving)|"
-                r"(preserve|preserving)[\s\S]{0,220}(targetRef|target ref)[\s\S]{0,220}freshness metadata",
-                re.IGNORECASE,
-            ),
         )
 
-    def test_structural_replanning_regenerates_integration_criteria_for_open_scope(self):
+    def test_structural_replanning_regenerates_integration_criteria_for_affected_remaining_units(self):
         self.assertRegex(
             self.plan_text,
             re.compile(
-                r"integration-criteria\.md[\s\S]{0,220}(affected remaining|open scope|remaining units)|"
-                r"(affected remaining|open scope|remaining units)[\s\S]{0,220}integration-criteria\.md",
+                r"regenerate `integration-criteria\.md`[\s\S]{0,60}affected remaining units only",
                 re.IGNORECASE,
             ),
         )
@@ -93,11 +61,17 @@ class TestFreshnessReconcileAlignment(unittest.TestCase):
         self.freshness_text = FRESHNESS_PROTOCOL.read_text(encoding="utf-8")
 
     def test_build_treats_pivoted_unit_artifacts_as_current_approval_surface(self):
+        self.assertIn(
+            "that regenerated artifact set becomes the current approval surface",
+            self.build_text,
+        )
+
+    def test_build_requires_approval_refresh_for_regenerated_surface(self):
         self.assertRegex(
             self.build_text,
             re.compile(
-                r"(pivot|replan|regenerated)[\s\S]{0,220}(approval surface|unit-spec)[\s\S]{0,220}(refresh|record)|"
-                r"(refresh|record)[\s\S]{0,220}(unit-spec|approval surface)[\s\S]{0,220}(pivot|replan|regenerated)",
+                r"(refresh|record)[\s\S]{0,100}approval[\s\S]{0,100}regenerated surface|"
+                r"regenerated surface[\s\S]{0,100}(refresh|record)[\s\S]{0,100}approval",
                 re.IGNORECASE,
             ),
         )
@@ -106,7 +80,7 @@ class TestFreshnessReconcileAlignment(unittest.TestCase):
         self.assertRegex(
             self.build_text,
             re.compile(
-                r"manual reconcile[\s\S]{0,260}/sw-build|/sw-build[\s\S]{0,260}manual reconcile",
+                r"manual reconcile[\s\S]{0,180}/sw-build|/sw-build[\s\S]{0,180}manual reconcile",
                 re.IGNORECASE,
             ),
         )
@@ -115,7 +89,7 @@ class TestFreshnessReconcileAlignment(unittest.TestCase):
         self.assertRegex(
             self.verify_text,
             re.compile(
-                r"manual reconcile[\s\S]{0,260}/sw-verify|/sw-verify[\s\S]{0,260}manual reconcile",
+                r"manual reconcile[\s\S]{0,180}/sw-verify|/sw-verify[\s\S]{0,180}manual reconcile",
                 re.IGNORECASE,
             ),
         )
@@ -124,8 +98,8 @@ class TestFreshnessReconcileAlignment(unittest.TestCase):
         self.assertRegex(
             self.ship_text,
             re.compile(
-                r"manual reconcile[\s\S]{0,260}/sw-verify[\s\S]{0,120}/sw-ship|"
-                r"/sw-verify[\s\S]{0,120}/sw-ship[\s\S]{0,260}manual reconcile",
+                r"manual reconcile[\s\S]{0,180}/sw-verify[\s\S]{0,90}/sw-ship|"
+                r"/sw-verify[\s\S]{0,90}/sw-ship[\s\S]{0,180}manual reconcile",
                 re.IGNORECASE,
             ),
         )
@@ -134,16 +108,16 @@ class TestFreshnessReconcileAlignment(unittest.TestCase):
         self.assertRegex(
             self.freshness_text,
             re.compile(
-                r"(linked worktree|owning worktree|adopt/takeover)[\s\S]{0,260}manual|"
-                r"manual[\s\S]{0,260}(linked worktree|owning worktree|adopt/takeover)",
+                r"(linked worktree|owning worktree|adopt/takeover)[\s\S]{0,180}manual|"
+                r"manual[\s\S]{0,180}(linked worktree|owning worktree|adopt/takeover)",
                 re.IGNORECASE,
             ),
         )
         self.assertRegex(
             self.freshness_text,
             re.compile(
-                r"(targetRef|target ref)[\s\S]{0,260}(freshness metadata|freshness policy)[\s\S]{0,260}(not|never).*(rewrite|mutat|clear)|"
-                r"(not|never).*(rewrite|mutat|clear)[\s\S]{0,260}(targetRef|target ref)[\s\S]{0,260}(freshness metadata|freshness policy)",
+                r"(targetRef|target ref)[\s\S]{0,160}(freshness metadata|freshness policy)[\s\S]{0,160}(not|never)[\s\S]{0,80}(rewrite|mutat|clear)|"
+                r"(not|never)[\s\S]{0,80}(rewrite|mutat|clear)[\s\S]{0,160}(targetRef|target ref)[\s\S]{0,160}(freshness metadata|freshness policy)",
                 re.IGNORECASE,
             ),
         )
@@ -154,7 +128,7 @@ class TestApprovalRefreshProof(unittest.TestCase):
 
     def test_regenerated_unit_approval_refresh_supersedes_previous_entry(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            result = _run_node_json(
+            result = run_node_json(
                 """
             import {
               defaultApprovalsDocument,
@@ -205,12 +179,18 @@ class TestApprovalRefreshProof(unittest.TestCase):
               baseDir: unitRoot,
               artifacts: ['context.md', 'plan.md', 'spec.md']
             });
+            const staleAssessment = assessApprovalEntry(entries[0], {
+              baseDir: unitRoot,
+              artifacts: ['context.md', 'plan.md', 'spec.md']
+            });
 
             console.log(JSON.stringify({
               entryCount: entries.length,
               firstStatus: entries[0]?.status ?? null,
               latestStatus: latest?.status ?? null,
-              assessmentStatus: assessment.status
+              assessmentStatus: assessment.status,
+              staleAssessmentStatus: staleAssessment.status,
+              staleAssessmentReason: staleAssessment.reasonCode
             }));
             """,
                 env={"TMPDIR_ROOT": tmpdir},
@@ -220,6 +200,8 @@ class TestApprovalRefreshProof(unittest.TestCase):
         self.assertEqual(result["firstStatus"], "SUPERSEDED")
         self.assertEqual(result["latestStatus"], "APPROVED")
         self.assertEqual(result["assessmentStatus"], "APPROVED")
+        self.assertEqual(result["staleAssessmentStatus"], "SUPERSEDED")
+        self.assertEqual(result["staleAssessmentReason"], "superseded")
 
 
 if __name__ == "__main__":

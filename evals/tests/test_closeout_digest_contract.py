@@ -3,30 +3,17 @@
 import json
 from pathlib import Path
 import re
-import subprocess
 import tempfile
 from textwrap import dedent
 import unittest
+
+from evals.tests._text_helpers import run_node_json
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DECISION_PROTOCOL = ROOT_DIR / "core" / "protocols" / "decision.md"
 REVIEW_PACKET_PROTOCOL = ROOT_DIR / "core" / "protocols" / "review-packet.md"
 APPROVALS_PROTOCOL = ROOT_DIR / "core" / "protocols" / "approvals.md"
-
-
-def _run_node_json(script: str) -> dict:
-    result = subprocess.run(
-        ["node", "--input-type=module", "-"],
-        input=script,
-        text=True,
-        capture_output=True,
-        cwd=ROOT_DIR,
-        check=False,
-    )
-    if result.returncode != 0:
-        raise AssertionError(result.stderr or result.stdout or "node execution failed")
-    return json.loads(result.stdout)
 
 
 class TestDecisionProtocolDigestContract(unittest.TestCase):
@@ -113,7 +100,7 @@ class TestApprovalsReasonVocabulary(unittest.TestCase):
                 self.assertIn(reason_code, self.approvals_text)
 
     def test_reason_code_vocabulary_stays_aligned_across_protocols_and_helper(self):
-        output = _run_node_json(
+        output = run_node_json(
             """
             import { APPROVAL_REASON_CODES } from './adapters/shared/specwright-approvals.mjs';
             console.log(JSON.stringify({ reasonCodes: APPROVAL_REASON_CODES }));
@@ -179,7 +166,7 @@ class TestCloseoutHelperContract(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            output = _run_node_json(
+            output = run_node_json(
                 f"""
                 import {{ loadCloseoutDigest }} from './adapters/shared/specwright-closeout.mjs';
                 const digest = loadCloseoutDigest({{
@@ -219,7 +206,7 @@ class TestCloseoutHelperContract(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            output = _run_node_json(
+            output = run_node_json(
                 f"""
                 import {{ loadCloseoutDigest }} from './adapters/shared/specwright-closeout.mjs';
                 const digest = loadCloseoutDigest({{
@@ -263,7 +250,7 @@ class TestCloseoutHelperContract(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            output = _run_node_json(
+            output = run_node_json(
                 f"""
                 import {{ loadCloseoutDigest }} from './adapters/shared/specwright-closeout.mjs';
                 const digest = loadCloseoutDigest({{
@@ -314,7 +301,7 @@ class TestCloseoutHelperContract(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            output = _run_node_json(
+            output = run_node_json(
                 f"""
                 import {{ loadCloseoutDigest }} from './adapters/shared/specwright-closeout.mjs';
                 const digest = loadCloseoutDigest({{
@@ -344,7 +331,7 @@ class TestApprovalAssessmentReasons(unittest.TestCase):
             (artifact_root / "design.md").write_text("design v1\n", encoding="utf-8")
             (artifact_root / "context.md").write_text("context v1\n", encoding="utf-8")
 
-            output = _run_node_json(
+            output = run_node_json(
                 f"""
                 import {{
                   assessApprovalEntry,

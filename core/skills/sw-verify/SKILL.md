@@ -97,7 +97,6 @@ Determine enabled gates from config. Support both formats:
 
 All six gates are eligible when enabled in config: build, tests, security,
 wiring, semantic, spec.
-Eligible gates: build, tests, security, wiring, semantic, spec.
 Execute enabled gates in dependency order: gate-build → gate-tests →
 gate-security, gate-wiring → gate-semantic → gate-spec.
 If `--gate=<name>` argument, run only that gate.
@@ -203,7 +202,7 @@ the selected work's `gates` section after each gate completes. Do NOT set
 ## Protocol References
 
 - `protocols/stage-boundary.md` -- stage boundary
-- `protocols/decision.md` -- gate handoff
+- `protocols/decision.md` -- autonomous decision framework and gate handoff
 - `protocols/state.md` -- workflow state
 - `protocols/git-freshness.md` -- pre-gate freshness checkpoint
 - `protocols/approvals.md` -- approval lineage validation
