@@ -1,7 +1,11 @@
 """Regression tests for Unit 02 — remaining-work regeneration alignment."""
 
+import json
+import os
 from pathlib import Path
 import re
+import subprocess
+import tempfile
 import unittest
 
 
@@ -11,6 +15,25 @@ BUILD_SKILL = ROOT_DIR / "core" / "skills" / "sw-build" / "SKILL.md"
 VERIFY_SKILL = ROOT_DIR / "core" / "skills" / "sw-verify" / "SKILL.md"
 SHIP_SKILL = ROOT_DIR / "core" / "skills" / "sw-ship" / "SKILL.md"
 FRESHNESS_PROTOCOL = ROOT_DIR / "core" / "protocols" / "git-freshness.md"
+
+
+def _run_node_json(script: str, env: dict[str, str] | None = None) -> dict:
+    merged_env = os.environ.copy()
+    if env:
+        merged_env.update(env)
+
+    result = subprocess.run(
+        ["node", "--input-type=module", "-"],
+        input=script,
+        text=True,
+        capture_output=True,
+        cwd=ROOT_DIR,
+        check=False,
+        env=merged_env,
+    )
+    if result.returncode != 0:
+        raise AssertionError(result.stderr or result.stdout or "node execution failed")
+    return json.loads(result.stdout)
 
 
 class TestPlanRegenerationAlignment(unittest.TestCase):
@@ -124,6 +147,79 @@ class TestFreshnessReconcileAlignment(unittest.TestCase):
                 re.IGNORECASE,
             ),
         )
+
+
+class TestApprovalRefreshProof(unittest.TestCase):
+    """Task 3 RED: refreshed unit approval must supersede the pre-pivot lineage."""
+
+    def test_regenerated_unit_approval_refresh_supersedes_previous_entry(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = _run_node_json(
+                """
+            import {
+              defaultApprovalsDocument,
+              recordApproval,
+              assessApprovalEntry
+            } from './adapters/shared/specwright-approvals.mjs';
+            import { mkdirSync, writeFileSync } from 'fs';
+            import { join } from 'path';
+
+            const workRoot = process.env.TMPDIR_ROOT;
+            const unitRoot = join(workRoot, 'units', '02-remaining-work');
+            mkdirSync(unitRoot, { recursive: true });
+
+            const writeArtifacts = (label) => {
+              writeFileSync(join(unitRoot, 'spec.md'), `spec ${label}\\n`);
+              writeFileSync(join(unitRoot, 'plan.md'), `plan ${label}\\n`);
+              writeFileSync(join(unitRoot, 'context.md'), `context ${label}\\n`);
+            };
+
+            writeArtifacts('v1');
+
+            let document = defaultApprovalsDocument();
+            document = recordApproval(document, {
+              baseDir: unitRoot,
+              scope: 'unit-spec',
+              unitId: '02-remaining-work',
+              sourceClassification: 'command',
+              sourceRef: '/sw-build',
+              artifacts: ['context.md', 'plan.md', 'spec.md'],
+              approvedAt: '2026-04-21T00:00:00Z'
+            });
+
+            writeArtifacts('v2');
+
+            document = recordApproval(document, {
+              baseDir: unitRoot,
+              scope: 'unit-spec',
+              unitId: '02-remaining-work',
+              sourceClassification: 'command',
+              sourceRef: '/sw-build',
+              artifacts: ['context.md', 'plan.md', 'spec.md'],
+              approvedAt: '2026-04-21T00:05:00Z'
+            });
+
+            const entries = document.entries.filter((entry) => entry.scope === 'unit-spec');
+            const latest = entries.at(-1);
+            const assessment = assessApprovalEntry(latest, {
+              baseDir: unitRoot,
+              artifacts: ['context.md', 'plan.md', 'spec.md']
+            });
+
+            console.log(JSON.stringify({
+              entryCount: entries.length,
+              firstStatus: entries[0]?.status ?? null,
+              latestStatus: latest?.status ?? null,
+              assessmentStatus: assessment.status
+            }));
+            """,
+                env={"TMPDIR_ROOT": tmpdir},
+            )
+
+        self.assertEqual(result["entryCount"], 2)
+        self.assertEqual(result["firstStatus"], "SUPERSEDED")
+        self.assertEqual(result["latestStatus"], "APPROVED")
+        self.assertEqual(result["assessmentStatus"], "APPROVED")
 
 
 if __name__ == "__main__":
