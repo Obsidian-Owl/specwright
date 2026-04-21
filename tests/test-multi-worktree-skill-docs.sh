@@ -85,6 +85,14 @@ assert_contains "core/skills/sw-pivot/SKILL.md" \
   'adopt/takeover|other live top-level worktree|already-owned active work' \
   "sw-pivot documents adopt/takeover guidance for ownership conflicts"
 
+assert_contains "core/skills/sw-pivot/SKILL.md" \
+  'immutable baseline scope|preserved baseline scope versus delta scope|Never rewrite unrelated active works' \
+  "sw-pivot preserves immutable baseline scope while revising the selected work"
+
+assert_contains "core/skills/sw-pivot/SKILL.md" \
+  'Valid entry states|planning|building|verifying|Reject `designing`' \
+  "sw-pivot keeps the broadened entry-state contract visible on the selected work"
+
 echo ""
 echo "--- Task 3: verify, ship, learn, and gate docs use selected work roots ---"
 assert_contains "core/skills/sw-verify/SKILL.md" \
