@@ -17,7 +17,7 @@
 #   AC-14: Configured test path executes the multi-worktree runtime harness
 #   AC-13: Exit 0 with summary showing 0 failures
 #
-# Dependencies: bash, jq, node
+# Dependencies: bash, jq, node, python, pytest
 # Usage: ./tests/test-claude-code-build.sh
 #   Exit 0 = all pass, exit 1 = any failure
 
@@ -317,6 +317,16 @@ fi
 
 if ! command -v node &>/dev/null; then
   echo "ABORT: node is required but not installed"
+  exit 1
+fi
+
+if ! command -v python &>/dev/null; then
+  echo "ABORT: python is required but not installed"
+  exit 1
+fi
+
+if ! python -m pytest --version >/dev/null 2>&1; then
+  echo "ABORT: pytest is required but not installed"
   exit 1
 fi
 

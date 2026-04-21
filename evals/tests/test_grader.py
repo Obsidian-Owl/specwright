@@ -87,10 +87,31 @@ def _make_workflow_json(workdir, data):
         json.dump(data, f)
 
 
-def _make_project_visible_workflow_json(workdir, data, work_id="project-visible-work"):
+def _make_project_visible_config(workdir, project_visible_root=".specwright-local"):
+    """Write tracked config.json with a runtime.projectVisibleRoot override."""
+    config_dir = os.path.join(workdir, ".specwright")
+    os.makedirs(config_dir, exist_ok=True)
+    with open(os.path.join(config_dir, "config.json"), "w") as f:
+        json.dump(
+            {
+                "version": "2.0",
+                "git": {
+                    "runtime": {
+                        "mode": "project-visible",
+                        "projectVisibleRoot": project_visible_root,
+                    }
+                },
+            },
+            f,
+        )
+
+
+def _make_project_visible_workflow_json(
+    workdir, data, work_id="project-visible-work", project_visible_root=".specwright-local"
+):
     """Write shared-model workflow state under the project-visible runtime root."""
-    workflow_dir = os.path.join(workdir, ".specwright-local", "repo", "work", work_id)
-    session_dir = os.path.join(workdir, ".specwright-local", "worktrees", "main-worktree")
+    workflow_dir = os.path.join(workdir, project_visible_root, "repo", "work", work_id)
+    session_dir = os.path.join(workdir, project_visible_root, "worktrees", "main-worktree")
     os.makedirs(workflow_dir, exist_ok=True)
     os.makedirs(session_dir, exist_ok=True)
 
@@ -613,6 +634,65 @@ class TestCheckStateProjectVisiblePathResolution(unittest.TestCase):
     def test_project_visible_runtime_supports_nested_state_lookups(self):
         result = check_state("gates.verify.verdict", "FAIL", self.workdir)
         self.assertTrue(result.passed)
+
+    def test_project_visible_attached_work_beats_legacy_bridge_file(self):
+        _make_workflow_json(self.workdir, {"status": "stale-legacy"})
+        result = check_state("status", "building", self.workdir)
+        self.assertTrue(result.passed)
+
+
+class TestCheckStateConfiguredProjectVisibleRoot(unittest.TestCase):
+    """AC-17: configured project-visible roots are respected by the grader."""
+
+    def setUp(self):
+        self.workdir = tempfile.mkdtemp()
+        _make_project_visible_config(self.workdir, project_visible_root=".runtime-visible")
+        _make_project_visible_workflow_json(
+            self.workdir,
+            {
+                "version": "3.0",
+                "id": "runtime-visible-work",
+                "status": "verifying",
+            },
+            work_id="runtime-visible-work",
+            project_visible_root=".runtime-visible",
+        )
+
+    def tearDown(self):
+        shutil.rmtree(self.workdir, ignore_errors=True)
+
+    def test_custom_project_visible_root_is_loaded_for_state_checks(self):
+        result = check_state("status", "verifying", self.workdir)
+        self.assertTrue(result.passed)
+
+
+class TestCheckStateWorkflowResolutionAmbiguity(unittest.TestCase):
+    """AC-17: multiple runtime candidates fail closed with explicit evidence."""
+
+    def setUp(self):
+        self.workdir = tempfile.mkdtemp()
+        workflow_a = os.path.join(
+            self.workdir, ".specwright-local", "repo", "work", "candidate-a"
+        )
+        workflow_b = os.path.join(
+            self.workdir, ".specwright-local", "repo", "work", "candidate-b"
+        )
+        os.makedirs(workflow_a, exist_ok=True)
+        os.makedirs(workflow_b, exist_ok=True)
+        with open(os.path.join(workflow_a, "workflow.json"), "w") as f:
+            json.dump({"status": "building"}, f)
+        with open(os.path.join(workflow_b, "workflow.json"), "w") as f:
+            json.dump({"status": "verifying"}, f)
+
+    def tearDown(self):
+        shutil.rmtree(self.workdir, ignore_errors=True)
+
+    def test_multiple_candidates_report_ambiguity_in_evidence(self):
+        result = check_state("status", "building", self.workdir)
+        self.assertFalse(result.passed)
+        self.assertIn("Multiple workflow.json candidates found", result.evidence)
+        self.assertIn("candidate-a", result.evidence)
+        self.assertIn("candidate-b", result.evidence)
 
 
 # ===========================================================================

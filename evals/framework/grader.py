@@ -10,6 +10,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from evals.framework.git_env import sanitized_git_env
+from evals.framework.runtime_paths import load_project_visible_root
 
 
 # ---------------------------------------------------------------------------
@@ -54,14 +55,6 @@ VALID_TRANSITIONS = {
 # ---------------------------------------------------------------------------
 
 LEGACY_WORKFLOW_JSON_PATH = os.path.join(".specwright", "state", "workflow.json")
-PROJECT_VISIBLE_ROOT = os.path.join(".specwright-local")
-PROJECT_VISIBLE_REPO_ROOT = os.path.join(PROJECT_VISIBLE_ROOT, "repo")
-PROJECT_VISIBLE_SESSION_GLOB = os.path.join(
-    PROJECT_VISIBLE_ROOT, "worktrees", "*", "session.json"
-)
-PROJECT_VISIBLE_WORKFLOW_GLOB = os.path.join(
-    PROJECT_VISIBLE_REPO_ROOT, "work", "*", "workflow.json"
-)
 GIT_ADMIN_ROOT = os.path.join(".git", "specwright")
 GIT_ADMIN_SESSION_PATH = os.path.join(GIT_ADMIN_ROOT, "session.json")
 GIT_ADMIN_WORKFLOW_GLOB = os.path.join(GIT_ADMIN_ROOT, "work", "*", "workflow.json")
@@ -75,9 +68,28 @@ ID_PATTERN = r"AC-\d+"
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _resolve_workflow_from_session(workdir: str, session_pattern: str, repo_root: str) -> Optional[str]:
+def _project_visible_layout(workdir: str) -> Dict[str, str]:
+    """Return the configured project-visible runtime layout for a workdir."""
+    project_visible_root = load_project_visible_root(workdir)
+    repo_root = os.path.join(project_visible_root, "repo")
+    return {
+        "root": project_visible_root,
+        "repo_root": repo_root,
+        "session_locator": os.path.join(project_visible_root, "worktrees", "*", "session.json"),
+        "workflow_glob": os.path.join(repo_root, "work", "*", "workflow.json"),
+    }
+
+
+def _resolve_workflow_from_session(
+    workdir: str, session_locator: str, repo_root: str
+) -> Optional[str]:
     """Return a workflow.json path from a session-attached work when possible."""
-    session_paths = sorted(glob_mod.glob(os.path.join(workdir, session_pattern)))
+    session_path = os.path.join(workdir, session_locator)
+    if glob_mod.has_magic(session_locator):
+        session_paths = sorted(glob_mod.glob(session_path))
+    else:
+        session_paths = [session_path]
+
     for session_path in session_paths:
         try:
             with open(session_path, "r", encoding="utf-8") as f:
@@ -104,14 +116,12 @@ def _resolve_workflow_from_session(workdir: str, session_pattern: str, repo_root
 
 def _resolve_workflow_json_path(workdir: str) -> str:
     """Resolve workflow.json across legacy, git-admin, and project-visible layouts."""
-    legacy_path = os.path.join(workdir, LEGACY_WORKFLOW_JSON_PATH)
-    if os.path.exists(legacy_path):
-        return legacy_path
+    project_visible = _project_visible_layout(workdir)
 
     project_visible_path = _resolve_workflow_from_session(
         workdir,
-        PROJECT_VISIBLE_SESSION_GLOB,
-        PROJECT_VISIBLE_REPO_ROOT,
+        project_visible["session_locator"],
+        project_visible["repo_root"],
     )
     if project_visible_path is not None:
         return project_visible_path
@@ -126,12 +136,21 @@ def _resolve_workflow_json_path(workdir: str) -> str:
 
     shared_candidates = sorted(
         set(
-            glob_mod.glob(os.path.join(workdir, PROJECT_VISIBLE_WORKFLOW_GLOB))
+            glob_mod.glob(os.path.join(workdir, project_visible["workflow_glob"]))
             + glob_mod.glob(os.path.join(workdir, GIT_ADMIN_WORKFLOW_GLOB))
         )
     )
     if len(shared_candidates) == 1:
         return shared_candidates[0]
+    if len(shared_candidates) > 1:
+        raise FileNotFoundError(
+            "Multiple workflow.json candidates found in "
+            f"{workdir}: {', '.join(shared_candidates)}"
+        )
+
+    legacy_path = os.path.join(workdir, LEGACY_WORKFLOW_JSON_PATH)
+    if os.path.exists(legacy_path):
+        return legacy_path
 
     raise FileNotFoundError(f"workflow.json not found in {workdir}")
 
@@ -432,12 +451,12 @@ def check_state(field: str, expected: Any, workdir: str) -> CheckResult:
     """Return passed=True when dotted field path in workflow.json equals expected."""
     try:
         data = _load_workflow_json(workdir)
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
         return CheckResult(
             type="state",
             description=f"State field: {field}",
             passed=False,
-            evidence=f"workflow.json not found in {workdir}",
+            evidence=str(exc),
             score=0.0,
         )
     except (OSError, json.JSONDecodeError) as exc:
@@ -958,12 +977,12 @@ def check_gate_results(expected: Dict[str, str], workdir: str) -> CheckResult:
     """Return passed=True when all gates[name].status match expected."""
     try:
         data = _load_workflow_json(workdir)
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
         return CheckResult(
             type="gate_results",
             description="Gate results",
             passed=False,
-            evidence=f"workflow.json not found in {workdir}",
+            evidence=str(exc),
             score=0.0,
         )
     except (OSError, json.JSONDecodeError) as exc:

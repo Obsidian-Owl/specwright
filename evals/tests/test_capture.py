@@ -119,6 +119,50 @@ class TestCaptureSnapshotBasic(unittest.TestCase):
         copied = os.path.join(self.output_dir, ".specwright")
         self.assertTrue(os.path.isdir(copied))
 
+    def test_copies_default_project_visible_runtime_root_when_present(self):
+        runtime_dir = os.path.join(
+            self.workdir, ".specwright-local", "repo", "work", "test-work"
+        )
+        os.makedirs(runtime_dir, exist_ok=True)
+        with open(os.path.join(runtime_dir, "stage-report.md"), "w") as f:
+            f.write("Attention required: runtime proof\n")
+
+        capture_snapshot(self.workdir, self.output_dir)
+
+        copied = os.path.join(
+            self.output_dir, ".specwright-local", "repo", "work", "test-work", "stage-report.md"
+        )
+        self.assertTrue(os.path.isfile(copied))
+
+    def test_copies_configured_project_visible_runtime_root_when_present(self):
+        config_path = os.path.join(self.workdir, ".specwright", "config.json")
+        with open(config_path, "w") as f:
+            json.dump(
+                {
+                    "version": "2.0",
+                    "git": {
+                        "runtime": {
+                            "mode": "project-visible",
+                            "projectVisibleRoot": ".runtime-visible",
+                        }
+                    },
+                },
+                f,
+            )
+        runtime_dir = os.path.join(
+            self.workdir, ".runtime-visible", "repo", "work", "test-work"
+        )
+        os.makedirs(runtime_dir, exist_ok=True)
+        with open(os.path.join(runtime_dir, "stage-report.md"), "w") as f:
+            f.write("Attention required: configured runtime proof\n")
+
+        capture_snapshot(self.workdir, self.output_dir)
+
+        copied = os.path.join(
+            self.output_dir, ".runtime-visible", "repo", "work", "test-work", "stage-report.md"
+        )
+        self.assertTrue(os.path.isfile(copied))
+
 
 class TestCaptureSnapshotMissingSpecwright(unittest.TestCase):
     """AC-9: When .specwright/ doesn't exist, returns partial manifest."""
