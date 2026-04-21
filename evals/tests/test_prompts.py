@@ -282,9 +282,13 @@ class TestPromptTemplatePivotAndFreshnessGuidance(unittest.TestCase):
         self.assertRegex(result, re.compile(r"manual reconcile[\s\S]{0,180}/sw-build", re.IGNORECASE))
 
     def test_verify_prompt_describes_manual_reconcile_rerun_without_build_loop(self):
-        result = verify()
-        self.assertRegex(result, re.compile(r"manual reconcile[\s\S]{0,180}/sw-verify", re.IGNORECASE))
-        self.assertRegex(result, re.compile(r"do not[\s\S]{0,120}/sw-build", re.IGNORECASE))
+        for label, result in (
+            ("default", verify()),
+            ("gated", verify("security")),
+        ):
+            with self.subTest(label=label):
+                self.assertRegex(result, re.compile(r"manual reconcile[\s\S]{0,180}/sw-verify", re.IGNORECASE))
+                self.assertRegex(result, re.compile(r"do not[\s\S]{0,120}/sw-build", re.IGNORECASE))
 
     def test_ship_prompt_describes_manual_reconcile_rerun_via_verify_then_ship(self):
         result = ship()
@@ -323,19 +327,13 @@ class TestPromptAndDocRegressionCoverage(unittest.TestCase):
                     self.assertNotRegex(content, re.compile(pattern, re.IGNORECASE))
 
     def test_pivot_summary_rows_keep_completed_and_shipped_scope_visible(self):
-        summary_surfaces = {
-            "CLAUDE.md": PRIMARY_DOC_SURFACES["CLAUDE.md"],
-            "adapters/claude-code/CLAUDE.md": PRIMARY_DOC_SURFACES["adapters/claude-code/CLAUDE.md"],
-            "README.md": PRIMARY_DOC_SURFACES["README.md"],
-            "DESIGN.md": PRIMARY_DOC_SURFACES["DESIGN.md"],
-        }
         patterns = {
             "CLAUDE.md": r"\|\s*`sw-pivot`\s*\|[^\n]*(completed[^\n]*shipped|shipped[^\n]*completed)",
             "adapters/claude-code/CLAUDE.md": r"\|\s*`sw-pivot`\s*\|[^\n]*(completed[^\n]*shipped|shipped[^\n]*completed)",
             "README.md": r"\|\s*`/sw-pivot`\s*\|[^\n]*(completed[^\n]*shipped|shipped[^\n]*completed)",
             "DESIGN.md": r"\|\s*`sw-pivot`\s*\|[^\n]*(completed[^\n]*shipped|shipped[^\n]*completed)",
         }
-        for label, path in summary_surfaces.items():
+        for label, path in PRIMARY_DOC_SURFACES.items():
             content = path.read_text(encoding="utf-8")
             with self.subTest(label=label):
                 self.assertRegex(content, re.compile(patterns[label], re.IGNORECASE))
@@ -359,11 +357,15 @@ class TestPromptAndDocRegressionCoverage(unittest.TestCase):
                     self.assertRegex(content, negative_build_redirect)
 
     def test_default_pivot_prompt_rejects_invented_commands(self):
-        result = pivot()
-        self.assertRegex(
-            result,
-            re.compile(r"do not invent a new command[\s\S]{0,40}extra confirmation", re.IGNORECASE),
-        )
+        for label, result in (
+            ("default", pivot()),
+            ("with-change", pivot("Expand the active work without discarding shipped scope.")),
+        ):
+            with self.subTest(label=label):
+                self.assertRegex(
+                    result,
+                    re.compile(r"do not invent a new command[\s\S]{0,40}extra confirmation", re.IGNORECASE),
+                )
 
 
 class TestNewPromptTemplates(unittest.TestCase):
