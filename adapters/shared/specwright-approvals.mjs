@@ -16,6 +16,7 @@ export const APPROVAL_REASON_CODES = [
   'expired',
   'superseded'
 ];
+export const APPROVAL_CURRENT_REASON_CODE = 'approved';
 export const DEFAULT_ACCEPTED_MUTANT_EXPIRY_DAYS = 90;
 export const APPROVAL_ASSESSMENT_STATUS_VALUES = [
   ...APPROVAL_STATUS_VALUES,
@@ -128,6 +129,52 @@ function createAssessmentResult({
     approvedArtifactSetHash,
     currentArtifactSetHash
   };
+}
+
+export function findLatestApprovalEntry(entries, { scope, unitId } = {}) {
+  if (!Array.isArray(entries)) {
+    return null;
+  }
+
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
+    if (scope != null && entry?.scope !== scope) {
+      continue;
+    }
+
+    if (unitId !== undefined && (entry?.unitId ?? null) !== (unitId ?? null)) {
+      continue;
+    }
+
+    return entry;
+  }
+
+  return null;
+}
+
+export function summarizeApprovalAssessment(scope, assessment) {
+  const normalizedScope = normalizeString(scope) ?? 'approval';
+  const normalizedStatus = normalizeString(assessment?.status) ?? 'MISSING';
+  const reasonCode = normalizeString(assessment?.reasonCode)
+    ?? (normalizedStatus === 'APPROVED' ? APPROVAL_CURRENT_REASON_CODE : 'unknown');
+
+  return {
+    scope: normalizedScope,
+    status: normalizedStatus,
+    reasonCode,
+    summary: normalizedStatus === 'APPROVED'
+      ? `${normalizedScope} approval is current.`
+      : `${normalizedScope} approval needs attention (${reasonCode}).`
+  };
+}
+
+export function formatApprovalStatusLine(summary, options = {}) {
+  if (!summary) {
+    return null;
+  }
+
+  const indent = options.indent ?? '  ';
+  return `${indent}Approval: ${summary.scope} ${summary.status} (${summary.reasonCode})`;
 }
 
 export function defaultApprovalsDocument() {

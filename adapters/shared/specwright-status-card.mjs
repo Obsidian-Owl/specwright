@@ -3,9 +3,14 @@ import { dirname, join, resolve } from 'path';
 
 import {
   assessApprovalEntry,
-  loadApprovalsFile
+  findLatestApprovalEntry,
+  loadApprovalsFile,
+  summarizeApprovalAssessment
 } from './specwright-approvals.mjs';
-import { loadCloseoutDigest } from './specwright-closeout.mjs';
+import {
+  loadCloseoutDigest,
+  normalizeCloseoutDigest
+} from './specwright-closeout.mjs';
 
 const UNIT_APPROVAL_ARTIFACTS = ['spec.md', 'plan.md', 'context.md'];
 const DESIGN_APPROVAL_ARTIFACTS = ['design.md', 'context.md', 'decisions.md'];
@@ -65,27 +70,6 @@ function resolveApprovalTarget(work) {
   };
 }
 
-function findLatestApprovalEntry(entries, { scope, unitId }) {
-  if (!Array.isArray(entries)) {
-    return null;
-  }
-
-  for (let index = entries.length - 1; index >= 0; index -= 1) {
-    const entry = entries[index];
-    if (entry?.scope !== scope) {
-      continue;
-    }
-
-    if ((entry?.unitId ?? null) !== (unitId ?? null)) {
-      continue;
-    }
-
-    return entry;
-  }
-
-  return null;
-}
-
 function summarizeApproval(work, approvalsPath) {
   const target = resolveApprovalTarget(work);
 
@@ -96,27 +80,16 @@ function summarizeApproval(work, approvalsPath) {
       baseDir: target.baseDir,
       artifacts: target.artifacts
     });
-
-    return {
-      scope: target.scope,
-      status: assessment.status,
-      reasonCode: assessment.reasonCode ?? 'approved',
-      summary: assessment.status === 'APPROVED'
-        ? `${target.scope} approval is current.`
-        : `${target.scope} approval needs attention (${assessment.reasonCode ?? 'unknown'}).`
-    };
+    return summarizeApprovalAssessment(target.scope, assessment);
   } catch (error) {
     if (error?.code !== 'ENOENT') {
       const message = error instanceof Error ? error.message : String(error);
       process.stderr.write(`[specwright] summarizeApproval failed for ${target.scope}: ${message}\n`);
     }
-
-    return {
-      scope: target.scope,
+    return summarizeApprovalAssessment(target.scope, {
       status: 'MISSING',
-      reasonCode: 'missing-entry',
-      summary: `${target.scope} approval is missing for the current artifact set.`
-    };
+      reasonCode: 'missing-entry'
+    });
   }
 }
 
@@ -277,10 +250,10 @@ export function buildStatusCard(stateInfo, work) {
 
   const paths = resolveWorkPaths(stateInfo, work);
   const approval = summarizeApproval(work, paths.approvalsPath);
-  const closeout = loadCloseoutDigest({
+  const closeout = normalizeCloseoutDigest(loadCloseoutDigest({
     stageReportPath: paths.stageReportPath,
     reviewPacketPath: paths.reviewPacketPath
-  });
+  }));
   const branch = summarizeBranch(stateInfo, work);
   const gates = summarizeGates(work.gates);
   const warnings = buildWarnings(stateInfo, approval, closeout, branch);
@@ -296,11 +269,7 @@ export function buildStatusCard(stateInfo, work) {
     branch,
     approvals: approval,
     gates,
-    closeout: {
-      source: closeout?.source ?? null,
-      headline: closeout?.headline ?? null,
-      bullets: Array.isArray(closeout?.bullets) ? closeout.bullets : []
-    },
+    closeout,
     warnings,
     blockers: [],
     nextCommand: nextCommandFor(work)

@@ -15,6 +15,7 @@ const REVIEW_PACKET_SECTIONS = [
   'Gate Summary',
   'Remaining Attention'
 ];
+export const CLOSEOUT_ABSENCE_LINE = 'Closeout: none yet (no stage-report.md or review-packet.md)';
 const FENCED_BLOCK_MARKER_PATTERN = /^```/u;
 const MARKDOWN_HEADING_PATTERN = /^#{1,6}\s/u;
 
@@ -137,17 +138,43 @@ export function parseReviewPacketDigest(markdown) {
 export function loadCloseoutDigest(options = {}) {
   const stageReportDigest = parseStageReportDigest(readMarkdownIfPresent(options.stageReportPath));
   if (stageReportDigest) {
-    return stageReportDigest;
+    return normalizeCloseoutDigest(stageReportDigest);
   }
 
   const reviewPacketDigest = parseReviewPacketDigest(readMarkdownIfPresent(options.reviewPacketPath));
   if (reviewPacketDigest) {
-    return reviewPacketDigest;
+    return normalizeCloseoutDigest(reviewPacketDigest);
   }
 
+  return normalizeCloseoutDigest(null);
+}
+
+export function normalizeCloseoutDigest(digest) {
   return {
-    source: null,
-    headline: null,
-    bullets: []
+    source: typeof digest?.source === 'string' && digest.source.trim() ? digest.source : null,
+    headline: typeof digest?.headline === 'string' && digest.headline.trim() ? digest.headline : null,
+    bullets: Array.isArray(digest?.bullets) ? digest.bullets.filter(Boolean) : []
   };
+}
+
+export function formatCloseoutLines(digest, options = {}) {
+  const normalized = normalizeCloseoutDigest(digest);
+  const indent = options.indent ?? '  ';
+  const detailIndent = options.detailIndent ?? `${indent}  `;
+  const bulletIndent = options.bulletIndent ?? `${detailIndent}- `;
+
+  if (!normalized.source) {
+    return [`${indent}${CLOSEOUT_ABSENCE_LINE}`];
+  }
+
+  const lines = [`${indent}Closeout: ${normalized.source}`];
+  if (normalized.headline) {
+    lines.push(`${detailIndent}${normalized.headline}`);
+  }
+
+  for (const bullet of normalized.bullets.slice(0, 2)) {
+    lines.push(`${bulletIndent}${bullet}`);
+  }
+
+  return lines;
 }
