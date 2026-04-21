@@ -332,6 +332,7 @@ When a work unit has 4+ independent tasks, Specwright can execute them in parall
 | `/sw-doctor` | Installation health check |
 | `/sw-guard` | Configure guardrails (hooks, CI) |
 | `/sw-status` | Progress and state |
+| `/sw-adopt` | Explicitly adopt an existing work into this worktree |
 | `/sw-learn` | Pattern capture |
 | `/sw-audit` | Codebase health check |
 | `/sw-sync` | Git housekeeping |

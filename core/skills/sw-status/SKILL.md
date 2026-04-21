@@ -48,6 +48,9 @@ other works are active in the repository, and what the next action should be.
   work-artifact publication mode when present, approval freshness reason,
   latest closeout or review-packet availability, review-packet presence, gates,
   and per-work lock freshness.
+- If the attached work is already owned by another live top-level worktree,
+  surface that conflict explicitly and point the operator to `/sw-adopt`
+  instead of implying that status can mutate ownership.
 - Enumerate other active works discovered under `repoStateRoot/work/*`, along
   with their recorded owner worktrees and whether the owner still has a live
   top-level session.

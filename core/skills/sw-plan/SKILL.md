@@ -55,6 +55,9 @@ test, or commit. After gate handoff, STOP.
 Resolve the selected work from the current worktree session. Check that
 `selectedWork.status` is `designing` or `planning` and `design.md` exists.
 `sw-plan` operates on the current worktree's attached work only.
+If another live top-level worktree owns that selected work, STOP and require
+explicit `/sw-adopt` guidance before mutating specs or plans here. Matching the
+recorded branch alone must not imply takeover.
 
 **Design approval capture (LOW freedom) — on entry:**
 Use `protocols/approvals.md` and the shared helper to record the current design
@@ -176,6 +179,7 @@ top-level worktrees.
 |-----------|--------|
 | Status not `designing`/`planning` | STOP: "Run /sw-design first" |
 | Required artifact missing | STOP: "Run /sw-design first" |
+| Selected work owned by another live top-level worktree | STOP with explicit `/sw-adopt` guidance |
 | Design too vague for specs | Apply DISAMBIGUATION from design context. Record interpretation. Surface at gate if undetermined. |
 | Active work in progress | Continue planning the current work. sw-plan always operates on existing design artifacts — it has no "start new" path. |
 | Compaction during planning | Read workflow.json. Skip `planned` units, resume first `pending`. |

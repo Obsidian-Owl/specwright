@@ -45,7 +45,8 @@ work, run builds, or begin next unit. After PR: show URL, suggest `/sw-learn`, h
 
 **Pre-flight checks (LOW freedom):**
 - Resolve the selected work from the current worktree session. If another live
-  top-level worktree owns it, STOP with explicit adopt/takeover guidance.
+  top-level worktree owns it, STOP with explicit `/sw-adopt` guidance instead
+  of generic adopt/takeover behavior.
 - Verify the selected work exists and status is `verifying`. Reject `building` with:
   "Run /sw-verify first." Reject all other statuses with the standard transition error.
 - All enabled gates in `config.gates` must have a verdict in the selected work's
@@ -59,7 +60,7 @@ work, run builds, or begin next unit. After PR: show URL, suggest `/sw-learn`, h
   When branch-head validation plus `manual` reconcile blocks shipping, STOP
   with the same manual reconcile guidance used by build and verify: reconcile
   the current branch against the recorded target in the owning worktree, or
-  adopt/takeover first if a linked-worktree ownership conflict exists, then
+  run `/sw-adopt` first if a linked-worktree ownership conflict exists, then
   rerun `/sw-verify` followed by `/sw-ship`. Do not silently rewrite
   `targetRef` or freshness metadata to bypass the block.
 - `review-packet.md` must exist at `{workDir}/review-packet.md`. Missing packet
@@ -149,6 +150,6 @@ stays machine-parseable). Examples: `Next: /sw-build` or `Next: /sw-learn`.
 | Review packet missing (pre-flight) | STOP: "Review packet missing for {unitId}. Re-run /sw-verify." |
 | Evidence files missing (pre-flight) | STOP: "Evidence missing for gate {name}. Re-run /sw-verify." |
 | gh CLI not installed | STOP: "Install gh CLI" |
-| Selected work owned elsewhere | STOP with explicit adopt/takeover guidance |
+| Selected work owned elsewhere | STOP with explicit `/sw-adopt` guidance |
 | Stale shipping state on entry | Status is `shipping` from prior failed attempt. Check `gh pr list --head {branch}` — if PR exists: set `shipped`, show URL. If no PR: revert to `verifying`, suggest re-running /sw-ship. |
 | Compaction during shipping | Recovery reads `shipping` status. Check `gh pr list --head {branch}` — if PR exists: set `shipped`. If no PR: revert to `verifying`. |
