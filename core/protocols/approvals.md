@@ -99,6 +99,8 @@ reason-code vocabulary when approval lineage is not current:
 These reason codes keep terminal and packet summaries compact. Full hashes,
 artifact manifests, and accepted-mutant lineage remain in the approval ledger
 or deeper evidence artifacts instead of the terminal-first digest.
+`status-card.json` and shared operator surfaces must reuse this compact reason-code
+vocabulary instead of inventing adapter-local approval wording.
 
 ## File Shape
 
