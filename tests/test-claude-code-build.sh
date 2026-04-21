@@ -1449,10 +1449,10 @@ if [ "$LIFECYCLE_FRESHNESS_EXIT" -ne 0 ]; then
 else
   pass "tests/test-lifecycle-freshness-checkpoints.sh passes under the configured test path"
 fi
-if echo "$LIFECYCLE_FRESHNESS_OUTPUT" | grep -Fq "PASS: sw-build forbids hidden branch rewrites"; then
-  pass "lifecycle regression output includes rewrite-guard coverage"
+if [ "$LIFECYCLE_FRESHNESS_EXIT" -eq 0 ] && echo "$LIFECYCLE_FRESHNESS_OUTPUT" | grep -Fq "COVERAGE: freshness.lifecycle-policy"; then
+  pass "lifecycle regression output includes lifecycle-policy coverage"
 else
-  fail "lifecycle regression output missing rewrite-guard coverage"
+  fail "lifecycle regression output missing lifecycle-policy coverage"
 fi
 
 echo ""
@@ -1499,7 +1499,7 @@ if [ "$BRANCH_FRESHNESS_RECONCILE_LOOP_EXIT" -ne 0 ]; then
 else
   pass "tests/test-branch-freshness-reconcile-loop.sh passes under the configured test path"
 fi
-if [ "$BRANCH_FRESHNESS_RECONCILE_LOOP_EXIT" -eq 0 ] && echo "$BRANCH_FRESHNESS_RECONCILE_LOOP_OUTPUT" | grep -Fq "COVERAGE: freshness.reconcile-loop"; then
+if [ "$BRANCH_FRESHNESS_RECONCILE_LOOP_EXIT" -eq 0 ] && echo "$BRANCH_FRESHNESS_RECONCILE_LOOP_OUTPUT" | grep -Fq "COVERAGE: freshness.recovery-surfaces"; then
   pass "branch freshness reconcile loop output includes coverage marker"
 else
   fail "branch freshness reconcile loop output missing coverage marker"

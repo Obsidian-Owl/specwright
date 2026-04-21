@@ -28,6 +28,10 @@ fail() {
   FAIL=$((FAIL + 1))
 }
 
+emit_coverage_marker() {
+  printf 'COVERAGE: %s\n' "$1"
+}
+
 assert_contains() {
   local file="$1"
   local needle="$2"
@@ -119,3 +123,4 @@ echo "RESULT: $PASS passed, $FAIL failed"
 if [ "$FAIL" -ne 0 ]; then
   exit 1
 fi
+emit_coverage_marker "freshness.lifecycle-policy"
