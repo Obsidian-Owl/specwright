@@ -20,9 +20,9 @@ allowed-tools:
 
 Research-backed rebaselining for the selected work. Capture preserved scope,
 understand what changed, classify the pivot, revise the affected open work via
-architect, and hand back to `sw-build`. Applies `protocols/decision.md` for
-all decisions. Revisions auto-applied and recorded in `decisions.md`; the
-revised artifact set is the contract.
+architect, and hand back to `/sw-plan` or `/sw-build` as appropriate. Applies
+`protocols/decision.md` for all decisions. Revisions auto-applied and recorded
+in `decisions.md`; the revised artifact set is the contract.
 
 ## Inputs
 
@@ -124,7 +124,9 @@ closeout must make scope preservation explicit instead of implying a
 remaining-tasks-only rewrite.
 
 **Stage boundary (LOW freedom):**
-Follow `protocols/stage-boundary.md`. After apply: STOP → "Run `/sw-build`."
+Follow `protocols/stage-boundary.md`. After apply: STOP with the appropriate
+handoff — "Run `/sw-plan`." for planning-state `work-pivot`s that revise the
+work-level design before unit decomposition, and "Run `/sw-build`." otherwise.
 
 ## Protocol References
 
@@ -141,7 +143,7 @@ Follow `protocols/stage-boundary.md`. After apply: STOP → "Run `/sw-build`."
 |-----------|--------|
 | Status not `planning`, `building`, or `verifying` | STOP with the stage-appropriate guidance for `/sw-design` or a fresh follow-up work |
 | Selected work owned by another live top-level worktree | STOP with explicit adopt/takeover guidance |
-| No open scope remains | STOP: "Run /sw-verify" |
+| No open scope remains (only applicable in `building` or `verifying`) | STOP: "Run /sw-verify" |
 | Architect modifies completed criteria or shipped scope | Reject, re-delegate (max 2) |
 | Requested pivot would rewrite shipped scope | STOP and escalate to a fresh `/sw-design` work |
 | Compaction during pivot | Read the selected work's workflow.json, check if revision was applied |

@@ -50,13 +50,16 @@ class TestPivotRebaseliningContract(unittest.TestCase):
                 self.assertIn(pivot_class, self.pivot_text)
 
     def test_precondition_accepts_planning_building_and_verifying(self):
-        self.assertRegex(
+        precondition_block = re.search(
+            r"\*\*Pre-condition.*?\*\*\n(.*?)(?=\n\*\*|\Z)",
             self.pivot_text,
-            re.compile(
-                r"planning[\s\S]*building[\s\S]*verifying|verifying[\s\S]*planning[\s\S]*building",
-                re.IGNORECASE,
-            ),
+            re.DOTALL,
         )
+        self.assertIsNotNone(precondition_block, "Pre-condition block not found")
+        block = precondition_block.group(0)
+        for state in ("planning", "building", "verifying"):
+            with self.subTest(state=state):
+                self.assertIn(state, block)
 
     def test_failure_modes_no_longer_claim_building_only(self):
         self.assertNotRegex(
@@ -146,11 +149,20 @@ class TestPivotApprovalLineage(unittest.TestCase):
                 writeFileSync(join(workRoot, 'design.md'), 'design v2\\n');
                 writeFileSync(join(unitRoot, 'spec.md'), 'spec v2\\n');
 
-                const designAssessment = assessApprovalEntry(doc.entries[0], {{
+                const designEntry = doc.entries.find((entry) => entry.scope === 'design');
+                const unitEntry = doc.entries.find(
+                  (entry) => entry.scope === 'unit-spec' && entry.unitId === '01-pivot'
+                );
+
+                if (!designEntry || !unitEntry) {{
+                  throw new Error('expected design and unit-spec approval entries');
+                }}
+
+                const designAssessment = assessApprovalEntry(designEntry, {{
                   baseDir: workRoot,
                   artifacts: ['assumptions.md', 'context.md', 'decisions.md', 'design.md']
                 }});
-                const unitAssessment = assessApprovalEntry(doc.entries[1], {{
+                const unitAssessment = assessApprovalEntry(unitEntry, {{
                   baseDir: unitRoot,
                   artifacts: ['context.md', 'plan.md', 'spec.md']
                 }});
