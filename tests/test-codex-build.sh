@@ -28,7 +28,7 @@ CX_DIST="$DIST_DIR/codex"
 
 PASS=0
 FAIL=0
-CODEX_COMMANDS="sw-init sw-research sw-design sw-plan sw-build sw-verify sw-ship sw-debug sw-pivot sw-doctor sw-guard sw-status sw-learn sw-audit sw-sync sw-review"
+CODEX_COMMANDS="sw-init sw-research sw-design sw-plan sw-build sw-verify sw-ship sw-debug sw-pivot sw-doctor sw-guard sw-status sw-adopt sw-learn sw-audit sw-sync sw-review"
 
 pass() {
   echo "  PASS: $1"
@@ -133,7 +133,7 @@ fi
 
 echo "--- Command coverage ---"
 CMD_COUNT=$(find "$CX_DIST/commands" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
-assert_eq "$CMD_COUNT" "16" "16 command files are packaged"
+assert_eq "$CMD_COUNT" "17" "17 command files are packaged"
 for cmd in $CODEX_COMMANDS; do
   if [ -f "$CX_DIST/commands/$cmd.md" ]; then
     pass "commands/$cmd.md exists"

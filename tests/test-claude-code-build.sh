@@ -396,8 +396,8 @@ fi
 
 echo "--- skills/ directory ---"
 
-EXPECTED_SKILLS="gate-build gate-security gate-semantic gate-spec gate-tests gate-wiring sw-audit sw-build sw-debug sw-design sw-doctor sw-guard sw-init sw-learn sw-pivot sw-plan sw-research sw-review sw-ship sw-status sw-sync sw-verify"
-EXPECTED_SKILL_COUNT=22
+EXPECTED_SKILLS="gate-build gate-security gate-semantic gate-spec gate-tests gate-wiring sw-adopt sw-audit sw-build sw-debug sw-design sw-doctor sw-guard sw-init sw-learn sw-pivot sw-plan sw-research sw-review sw-ship sw-status sw-sync sw-verify"
+EXPECTED_SKILL_COUNT=23
 
 if [ -d "$CC_DIST/skills" ]; then
   pass "skills/ directory exists"
