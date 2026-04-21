@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 import unittest
 
-from evals.framework.git_env import _REPO_LOCAL_GIT_ENV_VARS, sanitized_git_env
+from evals.framework.git_env import outer_git_env, sanitized_git_env
 from evals.tests._text_helpers import assert_multiline_regex, load_text
 
 
@@ -32,17 +32,10 @@ def _load_json(path):
 
 def _run(args, cwd, *, env=None):
     runtime_env = None
-    if args and args[0] == "git":
-        extra_env = None
-        if env is not None:
-            extra_env = {
-                key: value
-                for key, value in env.items()
-                if key not in _REPO_LOCAL_GIT_ENV_VARS
-            }
-        runtime_env = sanitized_git_env(extra_env)
-    elif env is not None:
-        runtime_env = {**os.environ, **env}
+    if env is not None:
+        runtime_env = sanitized_git_env(env)
+    elif args and args[0] == "git":
+        runtime_env = sanitized_git_env()
 
     return subprocess.run(
         args,
@@ -71,17 +64,6 @@ def _git_path(repo_path: Path, *args: str, env=None) -> Path:
     if candidate.is_absolute():
         return candidate.resolve()
     return (repo_path / candidate).resolve()
-
-
-def _outer_git_env(repo_path: Path) -> dict[str, str]:
-    git_dir = _git_path(repo_path, "rev-parse", "--path-format=absolute", "--git-dir")
-    git_common_dir = _git_path(repo_path, "rev-parse", "--path-format=absolute", "--git-common-dir")
-    return {
-        "GIT_DIR": str(git_dir),
-        "GIT_WORK_TREE": str(repo_path.resolve()),
-        "GIT_COMMON_DIR": str(git_common_dir),
-        "GIT_PREFIX": "",
-    }
 
 
 def _derive_worktree_id(git_dir: Path, git_common_dir: Path) -> str:
@@ -220,7 +202,7 @@ def _write_shared_state(
     )
 
 
-def _inspect_runtime_state(repo_path: Path) -> dict:
+def _inspect_runtime_state(repo_path: Path, *, env=None) -> dict:
     script = """
 const { resolveSpecwrightRoots, loadSpecwrightState, normalizeActiveWork } =
   await import(process.env.STATE_PATHS_MODULE);
@@ -246,35 +228,29 @@ process.stdout.write(JSON.stringify({
   workDirPath: work?.workDirPath ?? null
 }));
 """
-    completed = subprocess.run(
+    extra_env = {"STATE_PATHS_MODULE": _STATE_PATHS_MODULE_PATH}
+    if env is not None:
+        extra_env = {**env, **extra_env}
+    completed = _run(
         ["node", "--input-type=module", "-e", script],
         cwd=repo_path,
-        check=True,
-        capture_output=True,
-        text=True,
-        env={
-            **os.environ,
-            "STATE_PATHS_MODULE": _STATE_PATHS_MODULE_PATH,
-        },
+        env=extra_env,
     )
     return json.loads(completed.stdout)
 
 
-def _resolve_roots(repo_path: Path) -> dict:
+def _resolve_roots(repo_path: Path, *, env=None) -> dict:
     script = """
 const { resolveSpecwrightRoots } = await import(process.env.STATE_PATHS_MODULE);
 process.stdout.write(JSON.stringify(resolveSpecwrightRoots({ cwd: process.cwd() })));
 """
-    completed = subprocess.run(
+    extra_env = {"STATE_PATHS_MODULE": _STATE_PATHS_MODULE_PATH}
+    if env is not None:
+        extra_env = {**env, **extra_env}
+    completed = _run(
         ["node", "--input-type=module", "-e", script],
         cwd=repo_path,
-        check=True,
-        capture_output=True,
-        text=True,
-        env={
-            **os.environ,
-            "STATE_PATHS_MODULE": _STATE_PATHS_MODULE_PATH,
-        },
+        env=extra_env,
     )
     return json.loads(completed.stdout)
 
@@ -460,24 +436,6 @@ class TestRuntimeModeResolverPaths(unittest.TestCase):
                 str(visible_root / "repo" / "work"),
             )
 
-    def test_nested_git_fixture_init_ignores_outer_hook_context(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            outer_repo_path = Path(tmp) / "outer-repo"
-            inner_repo_path = Path(tmp) / "inner-repo"
-            _init_git_repo(outer_repo_path)
-            _run(["git", "checkout", "-b", "outer-scope"], cwd=outer_repo_path)
-
-            _init_git_repo(inner_repo_path, env=_outer_git_env(outer_repo_path))
-
-            self.assertEqual(
-                _run(["git", "branch", "--show-current"], cwd=outer_repo_path).stdout.strip(),
-                "outer-scope",
-            )
-            self.assertEqual(
-                _run(["git", "branch", "--show-current"], cwd=inner_repo_path).stdout.strip(),
-                "main",
-            )
-
     def test_project_visible_linked_worktree_named_main_worktree_uses_non_primary_id(self):
         with tempfile.TemporaryDirectory() as tmp:
             main_repo_path = Path(tmp) / "main-repo"
@@ -533,6 +491,60 @@ class TestRuntimeModeResolverPaths(unittest.TestCase):
             self.assertEqual(
                 data["workDirPath"],
                 str((repo_path / ".specwright" / "audit-work" / "runtime-proof").resolve()),
+            )
+
+
+class TestFixtureGitEnvIsolation(unittest.TestCase):
+    """Fixture helpers ignore outer hook git context across subprocess types."""
+
+    def test_nested_git_fixture_init_ignores_outer_hook_context(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            outer_repo_path = Path(tmp) / "outer-repo"
+            inner_repo_path = Path(tmp) / "inner-repo"
+            _init_git_repo(outer_repo_path)
+            _run(["git", "checkout", "-b", "outer-scope"], cwd=outer_repo_path)
+
+            _init_git_repo(inner_repo_path, env=outer_git_env(outer_repo_path))
+
+            self.assertEqual(
+                _run(["git", "branch", "--show-current"], cwd=outer_repo_path).stdout.strip(),
+                "outer-scope",
+            )
+            self.assertEqual(
+                _run(["git", "branch", "--show-current"], cwd=inner_repo_path).stdout.strip(),
+                "main",
+            )
+
+    def test_runtime_state_node_helpers_ignore_outer_hook_context(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            outer_repo_path = Path(tmp) / "outer-repo"
+            inner_repo_path = Path(tmp) / "inner-repo"
+            _init_git_repo(outer_repo_path)
+            _run(["git", "checkout", "-b", "outer-scope"], cwd=outer_repo_path)
+
+            outer_env = outer_git_env(outer_repo_path)
+            _init_git_repo(inner_repo_path, env=outer_env)
+            _write_config(inner_repo_path, runtime_mode="git-admin")
+            _write_shared_state(inner_repo_path, runtime_mode="git-admin", env=outer_env)
+
+            roots = _resolve_roots(inner_repo_path, env=outer_env)
+            data = _inspect_runtime_state(inner_repo_path, env=outer_env)
+
+            self.assertTrue(roots["ok"])
+            self.assertEqual(roots["gitDir"], str((inner_repo_path / ".git").resolve()))
+            self.assertEqual(roots["repoStateRoot"], str((inner_repo_path / ".git" / "specwright").resolve()))
+            self.assertEqual(data["roots"]["gitDir"], str((inner_repo_path / ".git").resolve()))
+            self.assertEqual(
+                data["roots"]["repoStateRoot"],
+                str((inner_repo_path / ".git" / "specwright").resolve()),
+            )
+            self.assertEqual(
+                data["workflowPath"],
+                str((inner_repo_path / ".git" / "specwright" / "work" / "runtime-proof" / "workflow.json").resolve()),
+            )
+            self.assertEqual(
+                _run(["git", "branch", "--show-current"], cwd=outer_repo_path).stdout.strip(),
+                "outer-scope",
             )
 
 
