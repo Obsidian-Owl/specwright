@@ -1,6 +1,6 @@
 import { execFileSync } from 'child_process';
 import { createHash } from 'crypto';
-import { existsSync, readFileSync, readdirSync, realpathSync } from 'fs';
+import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from 'fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'path';
 
 const FAILURE_CODE = 'GIT_RESOLUTION_FAILED';
@@ -210,6 +210,84 @@ function realpathIfPossible(path) {
   } catch {
     return resolve(path);
   }
+}
+
+function* walkAncestorPaths(startPath) {
+  let currentPath = resolve(startPath);
+
+  while (true) {
+    yield currentPath;
+
+    const parentPath = dirname(currentPath);
+    if (parentPath === currentPath) {
+      return;
+    }
+
+    currentPath = parentPath;
+  }
+}
+
+function resolveGitEntryTarget(gitEntryPath) {
+  if (!existsSync(gitEntryPath)) {
+    return null;
+  }
+
+  try {
+    const entry = lstatSync(gitEntryPath);
+    if (entry.isDirectory()) {
+      return realpathIfPossible(gitEntryPath);
+    }
+
+    if (!entry.isFile()) {
+      return null;
+    }
+
+    const match = readFileSync(gitEntryPath, 'utf8').match(/^gitdir:\s*(.+)$/mu);
+    if (!match) {
+      return null;
+    }
+
+    return realpathIfPossible(resolve(dirname(gitEntryPath), match[1].trim()));
+  } catch {
+    return null;
+  }
+}
+
+function hasLocalProjectArtifacts(candidatePath) {
+  return (
+    existsSync(join(candidatePath, PROJECT_ARTIFACTS_DIR, SHARED_CONFIG_FILE)) ||
+    existsSync(join(candidatePath, PROJECT_ARTIFACTS_DIR))
+  );
+}
+
+function resolveFallbackProjectRoot(cwd, gitDir, gitCommonDir) {
+  const effectiveGitDir = realpathIfPossible(gitDir);
+  const effectiveGitCommonDir = realpathIfPossible(gitCommonDir);
+  let projectArtifactsCandidate = null;
+
+  for (const candidatePath of walkAncestorPaths(cwd)) {
+    const gitEntryTarget = resolveGitEntryTarget(join(candidatePath, '.git'));
+    const hasMatchingGitAnchor = (
+      gitEntryTarget === effectiveGitDir ||
+      gitEntryTarget === effectiveGitCommonDir
+    );
+    const hasProjectArtifacts = hasLocalProjectArtifacts(candidatePath);
+
+    if (hasMatchingGitAnchor) {
+      return candidatePath;
+    }
+
+    if (
+      hasProjectArtifacts &&
+      projectArtifactsCandidate === null &&
+      isPathWithin(candidatePath, gitDir) &&
+      isPathWithin(candidatePath, gitCommonDir)
+    ) {
+      projectArtifactsCandidate = candidatePath;
+    }
+  }
+
+  return projectArtifactsCandidate;
 }
 
 function loadResolvedConfig(projectArtifactsRoot, repoStateRoot) {
@@ -423,11 +501,33 @@ export function resolveSpecwrightRoots(options = {}) {
   const cwd = resolve(options.cwd ?? process.cwd());
 
   const projectRootResult = resolveGitRoot(cwd, 'projectRoot', ['rev-parse', '--show-toplevel']);
-  if (!projectRootResult.ok) {
-    return projectRootResult;
-  }
+  let projectRoot = null;
 
-  const projectRoot = resolve(projectRootResult.value);
+  if (projectRootResult.ok) {
+    projectRoot = resolve(projectRootResult.value);
+  } else {
+    const fallbackGitDirResult = resolveGitRoot(cwd, 'gitDir', ['rev-parse', '--git-dir']);
+    if (!fallbackGitDirResult.ok) {
+      return projectRootResult;
+    }
+
+    const fallbackGitCommonDirResult = resolveGitRoot(cwd, 'gitCommonDir', ['rev-parse', '--git-common-dir']);
+    if (!fallbackGitCommonDirResult.ok) {
+      return projectRootResult;
+    }
+
+    const fallbackProjectRoot = resolveFallbackProjectRoot(
+      cwd,
+      resolve(cwd, fallbackGitDirResult.value),
+      resolve(cwd, fallbackGitCommonDirResult.value)
+    );
+
+    if (!fallbackProjectRoot) {
+      return projectRootResult;
+    }
+
+    projectRoot = fallbackProjectRoot;
+  }
   const projectArtifactsRoot = join(projectRoot, PROJECT_ARTIFACTS_DIR);
 
   const gitDirResult = resolveGitRoot(projectRoot, 'gitDir', ['rev-parse', '--git-dir']);
