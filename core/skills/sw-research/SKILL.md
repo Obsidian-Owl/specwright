@@ -36,6 +36,7 @@ briefs are consumed by sw-design (which has its own gate).
 **Stage boundary (LOW freedom):**
 Reads and researches. NEVER writes code, branches, mutates workflow state,
 or produces design artifacts. No `currentWork`, no lock. Can run anytime.
+It is not a core workflow stage and never claims top-level work ownership.
 
 **Triage (MEDIUM freedom):**
 - Break request into 1-5 tracks. Derive tracks from the argument + existing gaps.

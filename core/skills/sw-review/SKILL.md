@@ -133,6 +133,7 @@ associated work can be matched, say so explicitly and use a diff-only fallback.
   workflow.json, never claims exclusive workflow ownership, and makes no state
   changes to the Specwright workflow. GitHub comment replies and resolutions
   are allowed, but the skill never writes Specwright project or runtime state.
+- It is not a core workflow stage and never claims top-level work ownership.
 - Reading config.json for `prTool` is permitted. No writes to
   `{projectArtifactsRoot}`, `{workArtifactsRoot}`, `{repoStateRoot}`, or
   `{worktreeStateRoot}`.

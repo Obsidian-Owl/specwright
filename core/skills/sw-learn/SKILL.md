@@ -50,6 +50,7 @@ work benefits.
 **Stage boundary (LOW freedom):**
 - Follow `protocols/stage-boundary.md`.
 - You capture learnings and promote patterns. You NEVER start new work units, run builds, or create PRs.
+- It is not a core workflow stage and never claims top-level work ownership.
 - After learnings are captured, STOP and present the handoff:
   - If more work units pending: "Run `/sw-build` to start the next unit."
   - If no more units: "All work units complete. Learnings captured."
