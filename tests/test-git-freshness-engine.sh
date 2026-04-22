@@ -445,6 +445,7 @@ MERGE_PUSHER="$TEST_TMPDIR/merge-pusher"
 setup_assessed_repo "$REMOTE" "$MERGE_REPO" "merge-work" "branch-head" "require" "merge"
 clone_repo "$REMOTE" "$MERGE_PUSHER"
 commit_on_feature "$MERGE_REPO" "test: merge helper diverges locally"
+before_merge_head="$(git_nested -C "$MERGE_REPO" rev-parse HEAD)"
 advance_main_and_push "$MERGE_PUSHER" "test: merge helper sees target drift"
 if merge_output="$(reconcile_freshness "$MERGE_REPO" verify true)"; then
   assert_output_contains "$merge_output" '"status":"reconciled"' "reconcile helper reports a successful merge"
@@ -452,6 +453,12 @@ if merge_output="$(reconcile_freshness "$MERGE_REPO" verify true)"; then
   assert_output_contains "$merge_output" '"performed":true' "reconcile helper marks merge as performed"
 else
   fail "reconcile helper returns JSON for a diverged merge recovery"
+fi
+after_merge_head="$(git_nested -C "$MERGE_REPO" rev-parse HEAD)"
+if [ "$after_merge_head" != "$before_merge_head" ]; then
+  pass "reconcile helper advances HEAD after a successful merge"
+else
+  fail "reconcile helper advances HEAD after a successful merge"
 fi
 if post_merge_fresh_output="$(assess_freshness "$MERGE_REPO" true verify)"; then
   assert_output_contains "$post_merge_fresh_output" '"status":"fresh"' "merge helper leaves the branch fresh against the target"
@@ -516,6 +523,109 @@ if ownership_output="$(reconcile_freshness "$OWNERSHIP_REPO" build true)"; then
 else
   fail "reconcile helper returns JSON for ownership mismatch"
 fi
+
+echo ""
+echo "--- Reconcile helper fails closed when ownership proof is missing ---"
+MISSING_OWNERSHIP_REPO="$TEST_TMPDIR/missing-ownership-repo"
+MISSING_OWNERSHIP_PUSHER="$TEST_TMPDIR/missing-ownership-pusher"
+setup_assessed_repo "$REMOTE" "$MISSING_OWNERSHIP_REPO" "missing-ownership-work" "branch-head" "require" "rebase"
+clone_repo "$REMOTE" "$MISSING_OWNERSHIP_PUSHER"
+advance_main_and_push "$MISSING_OWNERSHIP_PUSHER" "test: missing ownership proof sees target drift"
+missing_ownership_before_head="$(git_nested -C "$MISSING_OWNERSHIP_REPO" rev-parse HEAD)"
+python - "$MISSING_OWNERSHIP_REPO" <<'PY'
+from pathlib import Path
+import json
+import sys
+repo = Path(sys.argv[1])
+workflow_path = repo / ".git" / "specwright" / "work" / "missing-ownership-work" / "workflow.json"
+workflow = json.loads(workflow_path.read_text())
+workflow["id"] = ""
+workflow_path.write_text(json.dumps(workflow, indent=2) + "\n")
+PY
+if missing_ownership_output="$(reconcile_freshness "$MISSING_OWNERSHIP_REPO" build true)"; then
+  assert_output_contains "$missing_ownership_output" '"status":"blocked"' "missing ownership proof blocks lifecycle-owned reconcile"
+  assert_output_contains "$missing_ownership_output" '"reasonCode":"ownership-mismatch"' "missing ownership proof reports an ownership mismatch"
+  assert_output_contains "$missing_ownership_output" '"performed":false' "missing ownership proof reports no mutation"
+else
+  fail "reconcile helper returns JSON when ownership proof is missing"
+fi
+missing_ownership_after_head="$(git_nested -C "$MISSING_OWNERSHIP_REPO" rev-parse HEAD)"
+assert_eq "$missing_ownership_after_head" "$missing_ownership_before_head" "missing ownership proof preserves HEAD"
+
+echo ""
+echo "--- Reconcile helper fails closed for branch mismatches ---"
+BRANCH_MISMATCH_REPO="$TEST_TMPDIR/branch-mismatch-repo"
+BRANCH_MISMATCH_PUSHER="$TEST_TMPDIR/branch-mismatch-pusher"
+setup_assessed_repo "$REMOTE" "$BRANCH_MISMATCH_REPO" "branch-mismatch-work" "branch-head" "require" "rebase"
+clone_repo "$REMOTE" "$BRANCH_MISMATCH_PUSHER"
+advance_main_and_push "$BRANCH_MISMATCH_PUSHER" "test: branch mismatch sees target drift"
+branch_mismatch_before_head="$(git_nested -C "$BRANCH_MISMATCH_REPO" rev-parse HEAD)"
+python - "$BRANCH_MISMATCH_REPO" <<'PY'
+from pathlib import Path
+import json
+import sys
+repo = Path(sys.argv[1])
+workflow_path = repo / ".git" / "specwright" / "work" / "branch-mismatch-work" / "workflow.json"
+workflow = json.loads(workflow_path.read_text())
+workflow["branch"] = "other-feature"
+workflow_path.write_text(json.dumps(workflow, indent=2) + "\n")
+PY
+if branch_mismatch_output="$(reconcile_freshness "$BRANCH_MISMATCH_REPO" build true)"; then
+  assert_output_contains "$branch_mismatch_output" '"status":"blocked"' "branch mismatches block lifecycle-owned reconcile"
+  assert_output_contains "$branch_mismatch_output" '"reasonCode":"branch-mismatch"' "branch mismatches report a distinct reason"
+  assert_output_contains "$branch_mismatch_output" '"performed":false' "branch mismatches report no mutation"
+else
+  fail "reconcile helper returns JSON for branch mismatch"
+fi
+branch_mismatch_after_head="$(git_nested -C "$BRANCH_MISMATCH_REPO" rev-parse HEAD)"
+assert_eq "$branch_mismatch_after_head" "$branch_mismatch_before_head" "branch mismatches preserve HEAD"
+
+echo ""
+echo "--- Reconcile helper fails closed for subordinate sessions ---"
+SUBORDINATE_REPO="$TEST_TMPDIR/subordinate-repo"
+SUBORDINATE_PUSHER="$TEST_TMPDIR/subordinate-pusher"
+setup_assessed_repo "$REMOTE" "$SUBORDINATE_REPO" "subordinate-work" "branch-head" "require" "rebase"
+clone_repo "$REMOTE" "$SUBORDINATE_PUSHER"
+advance_main_and_push "$SUBORDINATE_PUSHER" "test: subordinate session sees target drift"
+subordinate_before_head="$(git_nested -C "$SUBORDINATE_REPO" rev-parse HEAD)"
+python - "$SUBORDINATE_REPO" <<'PY'
+from pathlib import Path
+import json
+import sys
+repo = Path(sys.argv[1])
+session_path = repo / ".git" / "specwright" / "session.json"
+session = json.loads(session_path.read_text())
+session["mode"] = "subordinate"
+session_path.write_text(json.dumps(session, indent=2) + "\n")
+PY
+if subordinate_output="$(reconcile_freshness "$SUBORDINATE_REPO" build true)"; then
+  assert_output_contains "$subordinate_output" '"status":"blocked"' "subordinate sessions block lifecycle-owned reconcile"
+  assert_output_contains "$subordinate_output" '"reasonCode":"subordinate-session"' "subordinate sessions report a distinct reason"
+  assert_output_contains "$subordinate_output" '"performed":false' "subordinate sessions report no mutation"
+else
+  fail "reconcile helper returns JSON for subordinate sessions"
+fi
+subordinate_after_head="$(git_nested -C "$SUBORDINATE_REPO" rev-parse HEAD)"
+assert_eq "$subordinate_after_head" "$subordinate_before_head" "subordinate sessions preserve HEAD"
+
+echo ""
+echo "--- Reconcile helper fails closed for detached HEAD ---"
+DETACHED_REPO="$TEST_TMPDIR/detached-repo"
+DETACHED_PUSHER="$TEST_TMPDIR/detached-pusher"
+setup_assessed_repo "$REMOTE" "$DETACHED_REPO" "detached-work" "branch-head" "require" "rebase"
+clone_repo "$REMOTE" "$DETACHED_PUSHER"
+advance_main_and_push "$DETACHED_PUSHER" "test: detached HEAD sees target drift"
+detached_before_head="$(git_nested -C "$DETACHED_REPO" rev-parse HEAD)"
+git_nested -C "$DETACHED_REPO" checkout -q --detach HEAD
+if detached_output="$(reconcile_freshness "$DETACHED_REPO" build true)"; then
+  assert_output_contains "$detached_output" '"status":"blocked"' "detached HEAD blocks lifecycle-owned reconcile"
+  assert_output_contains "$detached_output" '"reasonCode":"detached-head"' "detached HEAD reports a distinct reason"
+  assert_output_contains "$detached_output" '"performed":false' "detached HEAD reports no mutation"
+else
+  fail "reconcile helper returns JSON for detached HEAD"
+fi
+detached_after_head="$(git_nested -C "$DETACHED_REPO" rev-parse HEAD)"
+assert_eq "$detached_after_head" "$detached_before_head" "detached HEAD preserves HEAD"
 
 echo ""
 echo "--- Reconcile helper aborts conflicted rebases ---"

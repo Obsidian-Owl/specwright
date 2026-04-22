@@ -196,7 +196,8 @@ results according to the checkpoint policy:
 - `ignore` continues without escalation
 
 When `rebase` or `merge` reconcile is configured, the blocked lifecycle stage
-may use `protocols/git-reconcile.md` to perform `rebase` or `merge` reconcile inside the blocked lifecycle stage. `manual` remains the explicit fallback and
+may use `protocols/git-reconcile.md` to perform `rebase` or `merge`
+reconcile in-place. `manual` remains the explicit fallback and
 stops with operator guidance.
 
 Queue-managed results stay distinct from local rewrite policy. Skills may

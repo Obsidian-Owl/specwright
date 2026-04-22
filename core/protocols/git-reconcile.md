@@ -18,8 +18,9 @@ Lifecycle-owned reconcile is only eligible when all of the following are true:
 - freshness validation is `branch-head`
 - the selected work resolves in the current owning worktree
 - the current session is `top-level`
-- the current branch matches the selected work's recorded branch when one is
-  recorded
+- the selected work's recorded branch resolves and matches the currently
+  attached branch
+- `HEAD` is attached to that branch before mutation
 - the worktree is clean before mutation
 - the assessed freshness result is `stale` or `diverged`
 - the configured reconcile mode is `rebase` or `merge`
@@ -42,10 +43,12 @@ queue`, the helper reports `queue-managed` and performs no local rewrite.
 The helper must treat the owning worktree as authoritative.
 
 - Session ownership comes from `session.json`
+- Missing ownership proof in `session.json` or `workflow.json` is fail-closed
 - `workflow.json.attachment` is a diagnostic snapshot that must agree with the
   current worktree when present
 - ownership mismatch is fail-closed
 - subordinate sessions must not run local reconcile for the parent work
+- detached `HEAD` is fail-closed
 - dirty worktree state is fail-closed
 - conflicted rebase or merge attempts must be aborted before returning
 
@@ -80,7 +83,7 @@ Minimum machine-readable shape:
   "freshnessBefore": "fresh | stale | diverged | blocked | queue-managed",
   "freshnessAfter": "fresh | stale | diverged | blocked | queue-managed | null",
   "recommendedAction": "continue | stop | delegate-to-queue",
-  "reasonCode": "manual-policy | dirty-worktree | ownership-mismatch | conflict | assessment-blocked | null",
+  "reasonCode": "manual-policy | dirty-worktree | ownership-mismatch | branch-mismatch | subordinate-session | detached-head | conflict | assessment-blocked | null",
   "guidance": "short human-readable summary"
 }
 ```

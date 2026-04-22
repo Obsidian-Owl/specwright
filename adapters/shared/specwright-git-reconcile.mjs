@@ -23,9 +23,10 @@ const FALLBACK_REPO_LOCAL_GIT_ENV_VARS = new Set([
   'GIT_WORK_TREE'
 ]);
 
-function sanitizedGitEnv(extra = {}, keys = REPO_LOCAL_GIT_ENV_VARS) {
+function sanitizedGitEnv(extra = {}, keys = null) {
+  const selectedKeys = keys ?? REPO_LOCAL_GIT_ENV_VARS;
   const env = { ...process.env };
-  for (const key of keys) {
+  for (const key of selectedKeys) {
     delete env[key];
   }
 
@@ -125,6 +126,8 @@ function guidanceFor(status, details) {
       return `The selected work is not owned by this worktree; adopt or switch to the owning worktree before reconciling ${branchLabel}.`;
     case 'branch-mismatch':
       return `${branchLabel} does not match the selected work's recorded branch; stop and resolve the branch mismatch first.`;
+    case 'detached-head':
+      return 'HEAD is detached; check out the selected work branch in the owning worktree before reconciling.';
     case 'conflict':
       return `${details.action === 'merge' ? 'Merge' : 'Rebase'} hit conflicts and was aborted; resolve the conflict manually in the owning worktree.`;
     case 'assessment-blocked':
@@ -180,15 +183,19 @@ function resolveOwnershipResult(stateInfo, context) {
   const recordedBranch = normalizeString(workflow?.branch);
   const currentBranch = normalizeString(context.currentBranch);
 
-  if (sessionMode && sessionMode !== 'top-level') {
-    return { ok: false, reasonCode: 'subordinate-session' };
-  }
-
-  if (workflowWorkId && sessionWorkId && workflowWorkId !== sessionWorkId) {
+  if (!sessionMode) {
     return { ok: false, reasonCode: 'ownership-mismatch' };
   }
 
-  if (recordedBranch && currentBranch && recordedBranch !== currentBranch) {
+  if (sessionMode !== 'top-level') {
+    return { ok: false, reasonCode: 'subordinate-session' };
+  }
+
+  if (!workflowWorkId || !sessionWorkId || workflowWorkId !== sessionWorkId) {
+    return { ok: false, reasonCode: 'ownership-mismatch' };
+  }
+
+  if (!recordedBranch || !currentBranch || recordedBranch !== currentBranch) {
     return { ok: false, reasonCode: 'branch-mismatch' };
   }
 
@@ -232,6 +239,22 @@ function worktreeIsDirty(cwd) {
   return {
     ok: true,
     dirty: status.value.length > 0
+  };
+}
+
+function resolveAttachedHeadBranch(cwd) {
+  const symbolicRef = tryGit(['symbolic-ref', '--quiet', '--short', 'HEAD'], cwd);
+  if (!symbolicRef.ok || !symbolicRef.value) {
+    return {
+      ok: false,
+      reasonCode: 'detached-head',
+      reason: 'HEAD is detached; check out the selected work branch in the owning worktree before reconciling.'
+    };
+  }
+
+  return {
+    ok: true,
+    branch: symbolicRef.value
   };
 }
 
@@ -392,6 +415,41 @@ export function reconcileGitFreshness(stateInfo, options = {}) {
       freshnessBefore: freshness.status,
       freshnessAfter: null,
       reasonCode: 'dirty-worktree',
+      fetched: freshness.fetched ?? false
+    });
+  }
+
+  const attachedHead = resolveAttachedHeadBranch(context.projectRoot);
+  if (!attachedHead.ok) {
+    return buildResult(context, {
+      status: 'blocked',
+      action,
+      performed: false,
+      currentBranch: null,
+      currentHeadBefore: freshness.currentHead ?? null,
+      currentHeadAfter: freshness.currentHead ?? null,
+      targetHead: freshness.targetHead ?? null,
+      freshnessBefore: freshness.status,
+      freshnessAfter: null,
+      reasonCode: attachedHead.reasonCode,
+      guidance: attachedHead.reason,
+      fetched: freshness.fetched ?? false
+    });
+  }
+
+  if (attachedHead.branch !== context.currentBranch) {
+    return buildResult(context, {
+      status: 'blocked',
+      action,
+      performed: false,
+      currentBranch: attachedHead.branch,
+      currentHeadBefore: freshness.currentHead ?? null,
+      currentHeadAfter: freshness.currentHead ?? null,
+      targetHead: freshness.targetHead ?? null,
+      freshnessBefore: freshness.status,
+      freshnessAfter: null,
+      reasonCode: 'branch-mismatch',
+      guidance: `${attachedHead.branch} is currently checked out, but the selected work is recorded against ${context.currentBranch}.`,
       fetched: freshness.fetched ?? false
     });
   }

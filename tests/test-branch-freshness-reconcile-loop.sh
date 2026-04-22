@@ -80,12 +80,12 @@ import sys
 
 text = Path(sys.argv[1]).read_text(encoding="utf-8")
 pattern = sys.argv[2]
-raise SystemExit(0 if re.search(pattern, text, re.IGNORECASE | re.DOTALL) else 1)
+raise SystemExit(1 if re.search(pattern, text, re.IGNORECASE | re.DOTALL) else 0)
 PY
   then
-    fail "$label (unexpected pattern found: $pattern)"
-  else
     pass "$label"
+  else
+    fail "$label (unexpected pattern found: $pattern)"
   fi
 }
 
@@ -131,6 +131,7 @@ assert_contains "$FRESHNESS_PROTOCOL" "skills may invoke \`git-reconcile\` insid
 assert_contains "$FRESHNESS_PROTOCOL" "silently routing through a different stage; shipping is the exception because" "git-freshness encodes the shipping-only verify-then-ship exception"
 assert_contains "$FRESHNESS_PROTOCOL" "require adopt/takeover before reconciling there" "git-freshness keeps linked-worktree ownership conflicts fail-closed"
 assert_contains "$RECONCILE_PROTOCOL" "dirty worktree state is fail-closed" "git-reconcile keeps dirty worktrees fail-closed"
+assert_contains "$RECONCILE_PROTOCOL" "\`HEAD\` is attached to that branch before mutation" "git-reconcile requires an attached HEAD before mutation"
 assert_contains "$RECONCILE_PROTOCOL" "Queue-managed validation is not a local reconcile mode" "git-reconcile preserves queue-managed no-local-rewrite semantics"
 
 echo ""
