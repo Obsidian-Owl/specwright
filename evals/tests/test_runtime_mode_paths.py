@@ -60,6 +60,38 @@ def _init_git_repo(path: Path, *, env=None) -> None:
     _run(["git", "commit", "-m", "chore: init fixture"], cwd=path, env=env)
 
 
+def _init_true_bare_checkout(checkout_path: Path, *, env=None) -> dict[str, Path]:
+    source_repo_path = checkout_path.parent / f"{checkout_path.name}-source"
+    bare_repo_path = checkout_path.parent / f"{checkout_path.name}.git"
+
+    _init_git_repo(source_repo_path, env=env)
+    _run(["git", "clone", "--bare", str(source_repo_path), str(bare_repo_path)], cwd=checkout_path.parent, env=env)
+
+    checkout_path.mkdir(parents=True, exist_ok=True)
+    _run(
+        [
+            "git",
+            f"--git-dir={bare_repo_path}",
+            f"--work-tree={checkout_path}",
+            "checkout",
+            "-f",
+            "main",
+        ],
+        cwd=checkout_path.parent,
+        env=env,
+    )
+    (checkout_path / ".git").write_text(f"gitdir: {bare_repo_path.resolve()}\n", encoding="utf-8")
+    # This creates a gitdir pointer only. It does not register a linked worktree
+    # under the bare repo's worktree registry, so only use this fixture for
+    # gitDir/gitCommonDir/show-toplevel proofs.
+
+    return {
+        "sourceRepoPath": source_repo_path.resolve(),
+        "bareRepoPath": bare_repo_path.resolve(),
+        "checkoutPath": checkout_path.resolve(),
+    }
+
+
 def _git_path(repo_path: Path, *args: str, env=None) -> Path:
     output = _run(["git", *args], cwd=repo_path, env=env).stdout.strip()
     candidate = Path(output)
@@ -524,47 +556,86 @@ class TestRuntimeModeResolverPaths(unittest.TestCase):
                 str((repo_path / ".specwright" / "audit-work" / "runtime-proof").resolve()),
             )
 
+    def test_true_bare_primary_fixture_keeps_visible_files_while_git_stays_bare(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "bare-primary-checkout"
+            fixture = _init_true_bare_checkout(repo_path)
+
+            self.assertEqual(
+                _git_path(repo_path, "rev-parse", "--git-dir"),
+                fixture["bareRepoPath"],
+            )
+            self.assertEqual(
+                _git_path(repo_path, "rev-parse", "--git-common-dir"),
+                fixture["bareRepoPath"],
+            )
+            self.assertTrue((repo_path / "README.md").exists())
+            self.assertEqual(
+                _run(["git", "branch", "--show-current"], cwd=repo_path).stdout.strip(),
+                "main",
+            )
+
+            failed_show_toplevel = subprocess.run(
+                ["git", "rev-parse", "--show-toplevel"],
+                cwd=repo_path,
+                check=False,
+                capture_output=True,
+                text=True,
+                env=sanitized_git_env(),
+            )
+
+            self.assertNotEqual(failed_show_toplevel.returncode, 0)
+
     def test_git_admin_bare_primary_checkout_falls_back_to_local_project_root(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo_path = Path(tmp) / "bare-primary-git-admin"
-            _init_git_repo(repo_path)
+            fixture = _init_true_bare_checkout(repo_path)
             _write_config(repo_path, runtime_mode="git-admin")
             _write_shared_state(repo_path, runtime_mode="git-admin")
-            _run(["git", "config", "core.bare", "true"], cwd=repo_path)
 
             roots = _resolve_roots(repo_path)
+            expected_roots = _runtime_roots(repo_path, runtime_mode="git-admin")
 
             self.assertTrue(roots["ok"], roots)
             self.assertEqual(roots["projectRoot"], str(repo_path.resolve()))
             self.assertEqual(roots["projectArtifactsRoot"], str((repo_path / ".specwright").resolve()))
-            self.assertEqual(roots["repoStateRoot"], str((repo_path / ".git" / "specwright").resolve()))
-            self.assertEqual(roots["worktreeStateRoot"], str((repo_path / ".git" / "specwright").resolve()))
+            self.assertEqual(roots["gitDir"], str(fixture["bareRepoPath"]))
+            self.assertEqual(roots["gitCommonDir"], str(fixture["bareRepoPath"]))
+            self.assertEqual(roots["repoStateRoot"], str(expected_roots["repoStateRoot"]))
+            self.assertEqual(roots["worktreeStateRoot"], str(expected_roots["worktreeStateRoot"]))
 
     def test_project_visible_bare_primary_checkout_keeps_runtime_out_of_git(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo_path = Path(tmp) / "bare-primary-project-visible"
-            _init_git_repo(repo_path)
+            fixture = _init_true_bare_checkout(repo_path)
             _write_config(repo_path, runtime_mode="project-visible")
             _write_shared_state(repo_path, runtime_mode="project-visible")
-            _run(["git", "config", "core.bare", "true"], cwd=repo_path)
 
             data = _inspect_runtime_state(repo_path)
-            visible_root = (repo_path / ".specwright-local").resolve()
+            expected_roots = _runtime_roots(repo_path, runtime_mode="project-visible")
+            expected_worktree_id = _derive_worktree_id(
+                fixture["bareRepoPath"],
+                fixture["bareRepoPath"],
+            )
+            git_admin_root = expected_roots["gitCommonDir"] / "specwright"
 
             self.assertEqual(data["layout"], "shared")
             self.assertEqual(data["roots"]["projectRoot"], str(repo_path.resolve()))
             self.assertEqual(
                 data["roots"]["repoStateRoot"],
-                str(visible_root / "repo"),
+                str(expected_roots["repoStateRoot"]),
             )
+            self.assertEqual(data["roots"]["worktreeId"], expected_worktree_id)
             self.assertEqual(
                 data["roots"]["worktreeStateRoot"],
-                str(visible_root / "worktrees" / "main-worktree"),
+                str(expected_roots["worktreeStateRoot"]),
             )
             self.assertEqual(
                 data["roots"]["workArtifactsRoot"],
-                str(visible_root / "repo" / "work"),
+                str(expected_roots["cloneLocalWorkArtifactsRoot"]),
             )
+            self.assertNotEqual(data["roots"]["repoStateRoot"], str(git_admin_root))
+            self.assertNotEqual(data["roots"]["worktreeStateRoot"], str(git_admin_root))
 
 
 class TestFixtureGitEnvIsolation(unittest.TestCase):
