@@ -1,8 +1,9 @@
 # Parallel Build Protocol
 
-Experimental parallel task execution using helper worktrees. Only used by
-`sw-build` when all prerequisites are met. Falls back to sequential execution
-otherwise.
+Experimental helper concurrency using subordinate worktrees or lanes. `sw-build`
+uses it for mutable task execution only when all prerequisites are met, and
+`sw-verify` may reference the same parent/subordinate contract for read-only
+evidence lanes. Falls back to sequential execution otherwise.
 
 ## Prerequisites
 
@@ -34,6 +35,19 @@ Subordinate sessions may read the parent work's shared artifacts and use local
 continuation state, but they must not directly ship, verify, rewrite another
 worktree's `session.json`, or mutate shared workflow state. Shared workflow
 state remains parent-only.
+
+When verification borrows concurrency, the same boundary applies:
+
+- freshness, build, and tests stay parent-ordered prerequisites
+- only read-only evidence lanes may run concurrently after those prerequisites
+- the parent top-level session remains the only authority that aggregates lane
+  results into `workflow.json` or shared gate state
+- missing evidence, lane failure, or skipped prerequisite state keeps the
+  aggregate result fail-closed
+
+This protocol does not grant subordinate helpers or read-only lanes permission
+to write `workflow.json`, mutate `session.json`, or self-report a passing
+aggregate verdict.
 
 ## Independence Analysis
 

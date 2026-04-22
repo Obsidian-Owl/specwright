@@ -103,6 +103,22 @@ gate-security, gate-wiring → gate-semantic → gate-spec.
 If `--gate=<name>` argument, run only that gate.
 Load calibration notes per `protocols/evidence.md#verdict-rendering`.
 
+Freshness is a prerequisite checkpoint, and gate-build plus gate-tests remain
+the ordered prerequisites before any parallel or read-only lane begins. When
+parallel verify execution is enabled, only gate-security, gate-wiring,
+gate-semantic, and gate-spec may run as read-only evidence producers after the
+freshness, build, and tests steps complete.
+
+Parallel lanes never become independent workflow owners. The parent or
+top-level verify execution remains the only authority that aggregates lane
+results into shared work state, including the selected work's `workflow.json`
+`gates` section.
+
+Missing evidence, lane failure, or skipped prerequisite state must keep the
+aggregate verify result fail-closed. Parallel lanes may speed up evidence
+collection, but they must not upgrade the overall outcome to an aggregate PASS
+when prerequisite or lane evidence is incomplete.
+
 **Gate invocation (MEDIUM freedom):**
 Gates are internal skills — load SKILL.md and execute inline. Pass work unit context.
 
