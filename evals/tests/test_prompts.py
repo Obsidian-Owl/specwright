@@ -200,9 +200,24 @@ class TestPrimaryDocPivotSurfaces(unittest.TestCase):
                 self.assertRegex(
                     content,
                     re.compile(
-                        r"manual reconcile[\s\S]{0,180}/sw-build|"
-                        r"manual reconcile[\s\S]{0,180}/sw-verify|"
-                        r"manual reconcile[\s\S]{0,220}/sw-ship",
+                        r"rebase[\s\S]{0,20}merge[\s\S]{0,160}same[\s\S]{0,20}(stage|run)|"
+                        r"same[\s\S]{0,20}(stage|run)[\s\S]{0,160}rebase[\s\S]{0,20}merge",
+                        re.IGNORECASE,
+                    ),
+                )
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"manual[\s\S]{0,120}(explicit )?fallback|"
+                        r"(explicit )?fallback[\s\S]{0,120}manual",
+                        re.IGNORECASE,
+                    ),
+                )
+                self.assertRegex(
+                    content,
+                    re.compile(
+                        r"/sw-verify[\s\S]{0,80}/sw-ship|"
+                        r"/sw-ship[\s\S]{0,80}/sw-verify",
                         re.IGNORECASE,
                     ),
                 )
@@ -232,14 +247,14 @@ class TestAdapterCommandSurfaces(unittest.TestCase):
                     ),
                 )
 
-    def test_adapter_build_verify_ship_commands_describe_manual_reconcile_reruns(self):
+    def test_adapter_build_verify_ship_commands_describe_lifecycle_recovery_and_manual_fallback(self):
         expectations = {
-            "codex-build": r"manual reconcile[\s\S]{0,160}/sw-build",
-            "opencode-build": r"manual reconcile[\s\S]{0,160}/sw-build",
-            "codex-verify": r"manual reconcile[\s\S]{0,160}/sw-verify",
-            "opencode-verify": r"manual reconcile[\s\S]{0,160}/sw-verify",
-            "codex-ship": r"manual reconcile[\s\S]{0,220}/sw-verify[\s\S]{0,80}/sw-ship",
-            "opencode-ship": r"manual reconcile[\s\S]{0,220}/sw-verify[\s\S]{0,80}/sw-ship",
+            "codex-build": r"rebase[\s\S]{0,20}merge[\s\S]{0,120}recover in-stage[\s\S]{0,120}manual[\s\S]{0,40}fallback",
+            "opencode-build": r"rebase[\s\S]{0,20}merge[\s\S]{0,120}recover in-stage[\s\S]{0,120}manual[\s\S]{0,40}fallback",
+            "codex-verify": r"rebase[\s\S]{0,20}merge[\s\S]{0,120}same run[\s\S]{0,120}manual[\s\S]{0,60}fallback[\s\S]{0,80}/sw-verify",
+            "opencode-verify": r"rebase[\s\S]{0,20}merge[\s\S]{0,120}same run[\s\S]{0,120}manual[\s\S]{0,60}fallback[\s\S]{0,80}/sw-verify",
+            "codex-ship": r"rebase[\s\S]{0,20}merge[\s\S]{0,120}same run[\s\S]{0,120}manual[\s\S]{0,60}fallback[\s\S]{0,140}/sw-verify[\s\S]{0,80}/sw-ship",
+            "opencode-ship": r"rebase[\s\S]{0,20}merge[\s\S]{0,120}same run[\s\S]{0,120}manual[\s\S]{0,60}fallback[\s\S]{0,140}/sw-verify[\s\S]{0,80}/sw-ship",
         }
         for label, pattern in expectations.items():
             content = ADAPTER_COMMAND_SURFACES[label].read_text(encoding="utf-8")
@@ -277,24 +292,46 @@ class TestPromptTemplatePivotAndFreshnessGuidance(unittest.TestCase):
             ),
         )
 
-    def test_build_prompt_describes_manual_reconcile_rerun(self):
+    def test_build_prompt_prefers_same_stage_recovery_and_keeps_manual_as_fallback(self):
         result = build()
-        self.assertRegex(result, re.compile(r"manual reconcile[\s\S]{0,180}/sw-build", re.IGNORECASE))
+        self.assertRegex(
+            result,
+            re.compile(r"rebase[\s\S]{0,20}merge[\s\S]{0,120}same[\s\S]{0,20}stage", re.IGNORECASE),
+        )
+        self.assertRegex(
+            result,
+            re.compile(r"manual[\s\S]{0,120}explicit fallback[\s\S]{0,120}/sw-build", re.IGNORECASE),
+        )
+        self.assertRegex(
+            result,
+            re.compile(r"do not rewrite[\s\S]{0,60}target metadata", re.IGNORECASE),
+        )
 
-    def test_verify_prompt_describes_manual_reconcile_rerun_without_build_loop(self):
+    def test_verify_prompt_prefers_same_run_recovery_without_build_loop(self):
         for label, result in (
             ("default", verify()),
             ("gated", verify("security")),
         ):
             with self.subTest(label=label):
-                self.assertRegex(result, re.compile(r"manual reconcile[\s\S]{0,180}/sw-verify", re.IGNORECASE))
+                self.assertRegex(
+                    result,
+                    re.compile(r"rebase[\s\S]{0,20}merge[\s\S]{0,120}same[\s\S]{0,20}verify run", re.IGNORECASE),
+                )
+                self.assertRegex(
+                    result,
+                    re.compile(r"manual[\s\S]{0,120}explicit fallback[\s\S]{0,120}/sw-verify", re.IGNORECASE),
+                )
                 self.assertRegex(result, re.compile(r"do not[\s\S]{0,120}/sw-build", re.IGNORECASE))
 
-    def test_ship_prompt_hands_off_manual_reconcile_rerun_via_verify_then_ship(self):
+    def test_ship_prompt_prefers_same_run_recovery_and_manual_verify_then_ship_fallback(self):
         result = ship()
         self.assertRegex(
             result,
-            re.compile(r"manual reconcile[\s\S]{0,220}/sw-verify[\s\S]{0,80}/sw-ship", re.IGNORECASE),
+            re.compile(r"rebase[\s\S]{0,20}merge[\s\S]{0,120}same[\s\S]{0,20}run", re.IGNORECASE),
+        )
+        self.assertRegex(
+            result,
+            re.compile(r"manual[\s\S]{0,120}explicit fallback[\s\S]{0,180}/sw-verify[\s\S]{0,80}/sw-ship", re.IGNORECASE),
         )
         self.assertIn("STOP and report", result)
         self.assertIn("in a separate", result)
@@ -353,7 +390,14 @@ class TestPromptAndDocRegressionCoverage(unittest.TestCase):
         )
         for label, content in surfaces.items():
             with self.subTest(label=label):
-                self.assertRegex(content, re.compile(r"manual reconcile", re.IGNORECASE))
+                self.assertRegex(
+                    content,
+                    re.compile(r"rebase[\s\S]{0,20}merge[\s\S]{0,140}same[\s\S]{0,20}(verify )?run", re.IGNORECASE),
+                )
+                self.assertRegex(
+                    content,
+                    re.compile(r"manual[\s\S]{0,80}fallback|fallback[\s\S]{0,80}manual", re.IGNORECASE),
+                )
                 self.assertRegex(content, re.compile(r"/sw-verify", re.IGNORECASE))
                 if "/sw-build" in content:
                     self.assertRegex(content, negative_build_redirect)
