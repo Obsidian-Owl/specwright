@@ -14,6 +14,8 @@ GUARD_SKILL = ROOT_DIR / "core" / "skills" / "sw-guard" / "SKILL.md"
 AGENTS_DOC = ROOT_DIR / "AGENTS.md"
 CLAUDE_DOC = ROOT_DIR / "CLAUDE.md"
 CLAUDE_ADAPTER_DOC = ROOT_DIR / "adapters" / "claude-code" / "CLAUDE.md"
+SUPPORT_SURFACE_SHELL = ROOT_DIR / "tests" / "test-support-surface-cutover-docs.sh"
+CLAUDE_BUILD_TEST = ROOT_DIR / "tests" / "test-claude-code-build.sh"
 
 COMMAND_EXPECTATIONS = {
     ROOT_DIR / "adapters" / "codex" / "commands" / "sw-status.md": [
@@ -95,6 +97,25 @@ class TestCommandAndGuidanceSurfaceVocabulary(unittest.TestCase):
             for phrase in phrases:
                 with self.subTest(path=path.name, phrase=phrase):
                     self.assertIn(phrase, text)
+
+
+class TestPackagedSurfaceProof(unittest.TestCase):
+    def test_support_surface_shell_covers_runtime_root_and_adoption_cutover(self) -> None:
+        text = load_text(SUPPORT_SURFACE_SHELL)
+        for phrase in (
+            ".specwright-local/",
+            "git-admin",
+            "/sw-adopt",
+            "/sw-status",
+            "support-surface.runtime-root-adoption-cutover",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+
+    def test_claude_build_harness_requires_runtime_root_adoption_coverage_marker(self) -> None:
+        text = load_text(CLAUDE_BUILD_TEST)
+        self.assertIn("tests/test-support-surface-cutover-docs.sh", text)
+        self.assertIn("support-surface.runtime-root-adoption-cutover", text)
 
 
 if __name__ == "__main__":

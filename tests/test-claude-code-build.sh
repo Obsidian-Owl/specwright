@@ -277,6 +277,11 @@ run_smoke_checks() {
     "bash \"$SUPPORT_SURFACE_CUTOVER_TEST\"" \
     "COVERAGE: support-surface.publication-mode-cutover"
 
+  run_smoke_regression \
+    "support-surface runtime-root adoption" \
+    "bash \"$SUPPORT_SURFACE_CUTOVER_TEST\"" \
+    "COVERAGE: support-surface.runtime-root-adoption-cutover"
+
   run_smoke_regression_fn \
     "operator-surface workflow proof" \
     "COVERAGE: workflow-proof.operator-surface" \
@@ -580,6 +585,11 @@ if [ -f "$CC_DIST/CLAUDE.md" ]; then
 else
   fail "CLAUDE.md missing from dist/claude-code/"
 fi
+
+assert_file_contains "$CC_DIST/CLAUDE.md" ".specwright-local/" "packaged CLAUDE.md preserves project-visible runtime guidance"
+assert_file_contains "$CC_DIST/CLAUDE.md" "git-admin" "packaged CLAUDE.md preserves git-admin compatibility guidance"
+assert_file_contains "$CC_DIST/CLAUDE.md" "/sw-adopt" "packaged CLAUDE.md preserves explicit adoption guidance"
+assert_file_contains "$CC_DIST/CLAUDE.md" "/sw-status" "packaged CLAUDE.md preserves status entrypoint guidance"
 
 # ─── README.md ────────────────────────────────────────────────────────
 
@@ -982,6 +992,9 @@ for hook in $EXPECTED_HOOKS; do
     fi
   fi
 done
+
+assert_file_contains "$CC_DIST/hooks/session-start.mjs" "loadOperatorSurfaceSummary" "packaged session-start hook still loads the shared operator summary"
+assert_file_contains "$CC_DIST/hooks/session-start.mjs" "renderWorkInProgressSummary" "packaged session-start hook still renders the shared work-in-progress summary"
 
 echo "--- No unexpected hook files ---"
 
@@ -1601,6 +1614,11 @@ if [ "$SUPPORT_SURFACE_EXIT" -eq 0 ] && echo "$SUPPORT_SURFACE_OUTPUT" | grep -F
   pass "support-surface regression output includes publication-mode cutover coverage"
 else
   fail "support-surface regression output missing publication-mode cutover coverage"
+fi
+if [ "$SUPPORT_SURFACE_EXIT" -eq 0 ] && echo "$SUPPORT_SURFACE_OUTPUT" | grep -Fq "COVERAGE: support-surface.runtime-root-adoption-cutover"; then
+  pass "support-surface regression output includes runtime-root adoption coverage"
+else
+  fail "support-surface regression output missing runtime-root adoption coverage"
 fi
 
 echo ""
