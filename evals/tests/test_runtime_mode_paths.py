@@ -60,6 +60,35 @@ def _init_git_repo(path: Path, *, env=None) -> None:
     _run(["git", "commit", "-m", "chore: init fixture"], cwd=path, env=env)
 
 
+def _init_true_bare_checkout(checkout_path: Path, *, env=None) -> dict[str, Path]:
+    source_repo_path = checkout_path.parent / f"{checkout_path.name}-source"
+    bare_repo_path = checkout_path.parent / f"{checkout_path.name}.git"
+
+    _init_git_repo(source_repo_path, env=env)
+    _run(["git", "clone", "--bare", str(source_repo_path), str(bare_repo_path)], cwd=checkout_path.parent, env=env)
+
+    checkout_path.mkdir(parents=True, exist_ok=True)
+    _run(
+        [
+            "git",
+            f"--git-dir={bare_repo_path}",
+            f"--work-tree={checkout_path}",
+            "checkout",
+            "-f",
+            "main",
+        ],
+        cwd=checkout_path.parent,
+        env=env,
+    )
+    (checkout_path / ".git").write_text(f"gitdir: {bare_repo_path.resolve()}\n", encoding="utf-8")
+
+    return {
+        "sourceRepoPath": source_repo_path.resolve(),
+        "bareRepoPath": bare_repo_path.resolve(),
+        "checkoutPath": checkout_path.resolve(),
+    }
+
+
 def _git_path(repo_path: Path, *args: str, env=None) -> Path:
     output = _run(["git", *args], cwd=repo_path, env=env).stdout.strip()
     candidate = Path(output)
@@ -523,6 +552,37 @@ class TestRuntimeModeResolverPaths(unittest.TestCase):
                 data["workDirPath"],
                 str((repo_path / ".specwright" / "audit-work" / "runtime-proof").resolve()),
             )
+
+    def test_true_bare_primary_fixture_keeps_visible_files_while_git_stays_bare(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_path = Path(tmp) / "bare-primary-checkout"
+            fixture = _init_true_bare_checkout(repo_path)
+
+            self.assertEqual(
+                _git_path(repo_path, "rev-parse", "--git-dir"),
+                fixture["bareRepoPath"],
+            )
+            self.assertEqual(
+                _git_path(repo_path, "rev-parse", "--git-common-dir"),
+                fixture["bareRepoPath"],
+            )
+            self.assertTrue((repo_path / "README.md").exists())
+            self.assertEqual(
+                _run(["git", "branch", "--show-current"], cwd=repo_path).stdout.strip(),
+                "main",
+            )
+
+            failed_show_toplevel = subprocess.run(
+                ["git", "rev-parse", "--show-toplevel"],
+                cwd=repo_path,
+                check=False,
+                capture_output=True,
+                text=True,
+                env=sanitized_git_env(),
+            )
+
+            self.assertNotEqual(failed_show_toplevel.returncode, 0)
+            self.assertIn("work tree", failed_show_toplevel.stderr.lower())
 
     def test_git_admin_bare_primary_checkout_falls_back_to_local_project_root(self):
         with tempfile.TemporaryDirectory() as tmp:
