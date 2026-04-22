@@ -3,6 +3,10 @@ import { buildStatusCard } from './specwright-status-card.mjs';
 import { formatCloseoutLines } from './specwright-closeout.mjs';
 
 const MAX_RENDERED_WARNING_LINES = 2;
+const APPROVAL_WARNING_PREFIX = 'approval-';
+// Warning codes emitted by buildStatusCard that already have dedicated surface
+// rendering in this module. Keep in sync with specwright-status-card.mjs.
+const SUPPRESSED_WARNING_CODES = new Set(['missing-closeout', 'branch-mismatch']);
 
 function normalizeString(value) {
   if (typeof value !== 'string') {
@@ -63,21 +67,26 @@ function formatWarningLines(warnings, options = {}) {
     return [];
   }
 
-  return warnings
+  const significantWarnings = warnings
     .filter((warning) => {
-      // Approval, closeout, and branch warnings already have dedicated sections
-      // above; suppress them here so the compact summary does not duplicate them.
       const code = normalizeString(warning?.code) ?? '';
-      if (code.startsWith('approval-')) {
+      if (code.startsWith(APPROVAL_WARNING_PREFIX)) {
         return false;
       }
 
-      return !['missing-closeout', 'branch-mismatch'].includes(code);
+      return !SUPPRESSED_WARNING_CODES.has(code);
     })
     .map((warning) => normalizeString(warning?.summary))
-    .filter(Boolean)
-    .slice(0, MAX_RENDERED_WARNING_LINES)
-    .map((summary) => `${indent}WARNING: ${summary}`);
+    .filter(Boolean);
+  const visibleWarnings = significantWarnings.slice(0, MAX_RENDERED_WARNING_LINES);
+  const lines = visibleWarnings.map((summary) => `${indent}WARNING: ${summary}`);
+  const hiddenWarningCount = significantWarnings.length - visibleWarnings.length;
+  if (hiddenWarningCount > 0) {
+    const noun = hiddenWarningCount === 1 ? 'warning' : 'warnings';
+    lines.push(`${indent}... and ${hiddenWarningCount} more ${noun} - run /sw-status for full detail`);
+  }
+
+  return lines;
 }
 
 function formatNextCommandLine(nextCommand, options = {}) {
@@ -158,12 +167,15 @@ export function renderWorkInProgressSummary(options = {}) {
 
   const indent = options.indent ?? '  ';
   const summary = options.summary ?? null;
+  const gatesSummary = normalizeString(work.gatesSummary)
+    ?? normalizeString(summary?.card?.gates?.summary)
+    ?? 'No gates recorded yet.';
   const lines = [
     'Specwright: Work in progress',
     `${indent}Unit: ${work.workId} (${work.status})`,
     work.unitId ? `${indent}Active Unit: ${work.unitId}` : null,
     `${indent}Progress: ${work.completedCount}/${work.totalCount} tasks`,
-    `${indent}Gates: ${work.gatesSummary ?? summary?.card?.gates?.summary ?? 'No gates recorded yet.'}`,
+    `${indent}Gates: ${gatesSummary}`,
     `${indent}Spec: ${work.specPath}`,
     `${indent}Plan: ${work.planPath}`,
     ...renderOperatorSurfaceLines(summary, { indent }),

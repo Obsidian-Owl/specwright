@@ -609,6 +609,82 @@ class TestStatusCardContract(unittest.TestCase):
             ],
         )
 
+    def test_operator_surface_warning_lines_report_overflow_after_cap(self) -> None:
+        lines = _render_operator_surface_lines(
+            {
+                "card": {"branch": None},
+                "closeout": None,
+                "approval": None,
+                "warnings": [
+                    {"code": "degraded-root-resolution", "summary": "First warning"},
+                    {"code": "runtime-fallback", "summary": "Second warning"},
+                    {"code": "third-signal", "summary": "Third warning"},
+                ],
+                "nextCommand": None,
+            }
+        )
+
+        self.assertEqual(
+            [line for line in lines if line.startswith("  WARNING:")],
+            [
+                "  WARNING: First warning",
+                "  WARNING: Second warning",
+            ],
+        )
+        self.assertIn(
+            "  ... and 1 more warning - run /sw-status for full detail",
+            lines,
+        )
+
+    def test_work_in_progress_summary_falls_back_when_work_gates_summary_is_blank(self) -> None:
+        script = """
+const { renderWorkInProgressSummary } = await import(process.env.OPERATOR_SURFACE_MODULE);
+const work = JSON.parse(process.env.OPERATOR_SURFACE_WORK_JSON);
+const summary = JSON.parse(process.env.OPERATOR_SURFACE_SUMMARY_JSON);
+
+process.stdout.write(renderWorkInProgressSummary({ work, summary }));
+"""
+        work = {
+            "workId": "quality-first-devex-redesign",
+            "status": "building",
+            "unitId": "04-adapter-and-support-surface-cutover",
+            "completedCount": 3,
+            "totalCount": 5,
+            "gatesSummary": "   ",
+            "specPath": ".specwright/specs/example.md",
+            "planPath": ".specwright/plans/example.md",
+        }
+        summary = {
+            "card": {
+                "gates": {
+                    "summary": "2 PASS, 1 WARN"
+                }
+            },
+            "closeout": None,
+            "approval": None,
+            "warnings": [],
+            "nextCommand": None,
+        }
+        result = subprocess.run(
+            ["node", "--input-type=module", "-"],
+            input=script,
+            text=True,
+            capture_output=True,
+            cwd=ROOT_DIR,
+            check=False,
+            env=sanitized_git_env(
+                {
+                    "OPERATOR_SURFACE_MODULE": str(OPERATOR_SURFACE_MODULE),
+                    "OPERATOR_SURFACE_WORK_JSON": json.dumps(work),
+                    "OPERATOR_SURFACE_SUMMARY_JSON": json.dumps(summary),
+                }
+            ),
+        )
+        if result.returncode != 0:
+            raise AssertionError(result.stderr or result.stdout or "work-in-progress render execution failed")
+
+        self.assertIn("  Gates: 2 PASS, 1 WARN", result.stdout)
+
 
 class TestApprovalsProtocolStatusCardContract(unittest.TestCase):
     def test_find_latest_approval_entry_requires_scope(self) -> None:
