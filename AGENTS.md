@@ -48,10 +48,16 @@ Constitution and Charter are created during init. TESTING.md is created during i
 - `core/agents/` -- Agent prompt definitions
 - `adapters/` -- Platform-specific packaging (Claude Code, Opencode, Codex CLI, etc.)
 - `.specwright/` -- tracked project artifacts (`projectArtifactsRoot`): `config.json`, anchor docs, research, learnings
-- Git admin roots (`repoStateRoot` / `worktreeStateRoot`, usually under `.git/specwright/`) -- clone-local runtime workflow/session state, continuation, runtime `stage-report.md`
+- runtime roots (`repoStateRoot` / `worktreeStateRoot`) -- clone-local runtime workflow/session state, continuation, and runtime `stage-report.md`; new interactive installs should prefer `project-visible` roots under `.specwright-local/`, while `git-admin` under `.git/specwright/` remains compatibility-only
 - `workArtifactsRoot/` -- auditable work artifacts; clone-local under `repoStateRoot/work/` by default, optionally published to a tracked root via `config.git.workArtifacts`
 
 See `DESIGN.md` for the full architecture document.
+
+## Operator Notes
+
+- Run `/sw-status` to see the active runtime roots, live owner, branch posture, and next action.
+- Same-work moves between top-level worktrees require explicit `/sw-adopt`; status surfaces must not imply takeover.
+- `project-visible` runtime under `.specwright-local/` is the preferred interactive default. `git-admin` under `.git/specwright/` is compatibility mode for existing installs and CI-style constraints.
 
 ## Protocols
 

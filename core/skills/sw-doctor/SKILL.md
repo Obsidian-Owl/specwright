@@ -19,7 +19,8 @@ allowed-tools:
 
 Validate that a Specwright installation is coherent across the tracked
 project-artifact root, shared repo-state root, and per-worktree session model,
-then print actionable repair hints.
+then print actionable repair hints using the same runtime-root and ownership
+vocabulary the adapters expose.
 
 ## Inputs
 
@@ -44,6 +45,10 @@ then print actionable repair hints.
   immediately and tell the user to run `/sw-init`.
 - Always report layout status first: `shared/session`, `legacy fallback`, or
   `missing`.
+- When layout resolves, describe the active runtime mode explicitly:
+  `project-visible` runtime roots under `.specwright-local/` are the preferred
+  interactive default; `git-admin` roots under `.git/specwright/` are
+  compatibility mode.
 
 **Checks (LOW freedom — run all 13 in order):**
 1. **Anchor docs** — tracked Constitution and Charter exist and are non-empty
@@ -76,6 +81,8 @@ Within the State pass, check all of the following and report them by name:
 - approval freshness for the selected unit when approvals exist
 - review-packet presence for the selected unit when verify or ship artifacts
   should exist
+- live ownership conflicts that should route the operator to `/sw-adopt`
+  instead of implying generic takeover
 
 State-pass output must report the authoritative runtime roots clearly so the
 user can see which `repoStateRoot` and `worktreeStateRoot` are in force.
