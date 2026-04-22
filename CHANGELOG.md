@@ -41,6 +41,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 
+
+## [0.32.0] - 2026-04-22
+
+### Changed
+
+- Revive shared operator surface cutover (#208)
+- test(runtime): harden true-bare root fallback coverage (#207)
+- docs(workflow): align verify scheduling and workflow policy (#206)
+- feat(freshness): automate lifecycle-owned recovery (#204)
+- feat(operator-surface): add shared status card contract (#203)
+- fix(ownership): require explicit worktree adoption (#202)
+- docs(pivot): cut over docs and prompt guidance (#201)
+- fix(pivot): align remaining-work regeneration (#199)
+- feat(pivot): broaden rebaselining contract (#198)
+- test(evals): isolate nested git env in pre-push fixtures (#197)
+- fix(sync): guard gone-branch cleanup and operator workflow proof (#194)
+- feat(operator-surface): cut over shared operator surfaces (#192)
+- feat(runtime): add project-visible runtime roots (#191)
+- feat(closeout): add approval and handoff foundations (#190)
+
 ## [0.31.0] - 2026-04-20
 
 ### Changed
