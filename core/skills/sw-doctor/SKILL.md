@@ -120,7 +120,7 @@ STATE_DRIFT findings must print the inline remediation command
 - The only allowed mutation is STATE_DRIFT backfill.
 - When mutating a work's `workflow.json`, follow `protocols/state.md`.
 - Doctor never modifies `status`; only `prNumber` and `prMergedAt` may change.
-- Doctor is not a core workflow stage and never claims top-level work ownership.
+- It is not a core workflow stage and never claims top-level work ownership.
 - Any repair guidance beyond PR backfill must remain bounded to the documented
   migration surface: tracked docs/config under `{projectArtifactsRoot}`, split
   per-work workflows under `{repoStateRoot}`, and this worktree's

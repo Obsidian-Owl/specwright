@@ -105,9 +105,12 @@ Load calibration notes per `protocols/evidence.md#verdict-rendering`.
 
 Freshness is a prerequisite checkpoint, and gate-build plus gate-tests remain
 the ordered prerequisites before any parallel or read-only lane begins. When
-parallel verify execution is enabled, only gate-security, gate-wiring,
-gate-semantic, and gate-spec may run as read-only evidence producers after the
-freshness, build, and tests steps complete.
+parallel verify execution is enabled under the same `protocols/parallel-build.md`
+prerequisites (`config.experimental.agentTeams.enabled=true`,
+`SPECWRIGHT_AGENT_TEAMS=1`, and a selected work unit with 4 or more tasks),
+only gate-security, gate-wiring, gate-semantic, and gate-spec may run as
+read-only evidence producers after the freshness, build, and tests steps
+complete.
 
 Parallel lanes never become independent workflow owners. The parent or
 top-level verify execution remains the only authority that aggregates lane

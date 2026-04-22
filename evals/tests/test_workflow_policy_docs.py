@@ -42,6 +42,15 @@ class TestVerifyParallelLanePolicy(unittest.TestCase):
             r"(read-only evidence producers|read-only lanes?)",
         )
 
+    def test_verify_reuses_parallel_build_prerequisites_before_parallel_lanes(self) -> None:
+        assert_multiline_regex(
+            self,
+            self.verify_text.lower(),
+            r"parallel verify execution[\s\S]{0,220}parallel-build\.md"
+            r"[\s\S]{0,220}agentteams\.enabled[\s\S]{0,160}specwright_agent_teams"
+            r"[\s\S]{0,160}4 or more tasks",
+        )
+
     def test_verify_requires_parent_only_aggregation_of_lane_results(self) -> None:
         assert_multiline_regex(
             self,
@@ -56,6 +65,11 @@ class TestVerifyParallelLanePolicy(unittest.TestCase):
             self.verify_text.lower(),
             r"(missing evidence|lane failure|skipped prerequisite state)[\s\S]{0,220}"
             r"(prevents|block|cannot|must not)[\s\S]{0,160}(aggregate )?pass",
+        )
+        assert_multiline_regex(
+            self,
+            self.verify_text.lower(),
+            r"(missing evidence|lane failure|skipped prerequisite state)[\s\S]{0,120}fail-closed",
         )
 
     def test_parallel_protocol_restates_parent_only_shared_state_for_helpers(self) -> None:
@@ -112,6 +126,11 @@ class TestWorkflowPolicyProofHardening(unittest.TestCase):
             self,
             self.parallel_text,
             r"directly write[\s\S]{0,120}workflow\.json[\s\S]{0,120}session\.json",
+        )
+        assert_multiline_regex(
+            self,
+            self.parallel_text,
+            r"self-report[\s\S]{0,80}(passing aggregate verdict|aggregate verdict)",
         )
 
     def test_verify_explicitly_rejects_soft_success_without_required_evidence(self) -> None:
