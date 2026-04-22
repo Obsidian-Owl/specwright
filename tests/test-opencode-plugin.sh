@@ -126,10 +126,10 @@ assert_grep '(readFile|readFileSync|readTextFile|Bun\.file|fs\.)' \
   "uses a file-reading API (not just string reference to workflow.json)"
 
 # Must consume the shared closeout + approval surface model
-assert_grep '(loadOperatorSurfaceSummary|renderOperatorSurfaceLines|specwright-operator-surface)' \
+assert_grep '(loadOperatorSurfaceSummary|renderWorkInProgressSummary|specwright-operator-surface)' \
   "loads the shared operator-surface helper"
-assert_grep 'operatorSurfaceLines' "session.created wires shared operator-surface lines into the summary"
-assert_grep 'renderOperatorSurfaceLines' "session.created renders the shared operator-surface lines"
+assert_grep 'operatorSummary' "session.created loads the shared operator summary"
+assert_grep 'renderWorkInProgressSummary' "session.created renders the shared work-in-progress summary"
 
 # ─── 4. Event: session.compacted ────────────────────────────────────
 

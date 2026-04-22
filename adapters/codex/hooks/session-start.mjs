@@ -11,6 +11,10 @@ import {
   loadSpecwrightState,
   normalizeActiveWork
 } from '../../shared/specwright-state-paths.mjs';
+import {
+  loadOperatorSurfaceSummary,
+  renderWorkInProgressSummary
+} from '../../shared/specwright-operator-surface.mjs';
 
 try {
   const stateInfo = loadSpecwrightState();
@@ -21,14 +25,6 @@ try {
   if (!work || ['shipped', 'abandoned'].includes(work.status)) {
     process.exit(0);
   }
-
-  const unitLine = work.unitId ? `  Active Unit: ${work.unitId}\n` : '';
-  const lockWarning = work.lock
-    ? `\n  WARNING: Lock held by "${work.lock.skill}" since ${work.lock.since}`
-    : '';
-  const ownershipWarning = ownerConflict
-    ? `\n  WARNING: This work is already active in another top-level worktree (${ownerConflict.ownerWorktreeId}${ownerConflict.ownerBranch ? ` on ${ownerConflict.ownerBranch}` : ''}: ${ownerConflict.ownerWorktreePath}). Adopt/takeover required before mutating or shipping it here.`
-    : '';
 
   let continuationContent = '';
   if (existsSync(continuationPath)) {
@@ -42,6 +38,11 @@ try {
         const twoHoursMs = 2 * 60 * 60 * 1000;
         if (!isNaN(snapshotTime.getTime()) && ageMs < twoHoursMs) {
           continuationContent = `\n--- Continuation Snapshot ---\n${raw}`;
+
+          const correctionMatch = raw.match(/## Correction Summary\n([\s\S]*?)(?=\n## |\n---|$)/);
+          if (correctionMatch && correctionMatch[1].trim()) {
+            continuationContent += `\n--- Quality Corrections ---\nIn this build session, the following quality issues were found and should be avoided:\n${correctionMatch[1].trim()}`;
+          }
         }
       }
       unlinkSync(continuationPath);
@@ -50,23 +51,13 @@ try {
     }
   }
 
-  const shippingWarning = work.status === 'shipping'
-    ? '\n  WARNING: Status is "shipping". Run /sw-ship to check PR state.'
-    : '';
-
-  const summary = [
-    'Specwright: Work in progress',
-    `  Unit: ${work.workId} (${work.status})`,
-    unitLine ? unitLine.trimEnd() : null,
-    `  Progress: ${work.completedCount}/${work.totalCount} tasks`,
-    `  Gates: ${work.gatesSummary}`,
-    `  Spec: ${work.specPath}`,
-    `  Plan: ${work.planPath}`,
-    lockWarning,
-    ownershipWarning,
-    shippingWarning,
+  const operatorSummary = loadOperatorSurfaceSummary(stateInfo, work);
+  const summary = renderWorkInProgressSummary({
+    work,
+    summary: operatorSummary,
+    ownerConflict,
     continuationContent
-  ].filter(Boolean).join('\n');
+  });
 
   process.stdout.write(summary + '\n');
 } catch {

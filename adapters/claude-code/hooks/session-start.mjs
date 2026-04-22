@@ -13,7 +13,7 @@ import {
 } from '../../shared/specwright-state-paths.mjs';
 import {
   loadOperatorSurfaceSummary,
-  renderOperatorSurfaceLines
+  renderWorkInProgressSummary
 } from '../../shared/specwright-operator-surface.mjs';
 
 try {
@@ -21,20 +21,10 @@ try {
   const continuationPath = stateInfo.continuationPath;
   const work = normalizeActiveWork(stateInfo);
   const ownerConflict = findSelectedWorkOwnerConflict(stateInfo);
-  const operatorSurfaceLines = renderOperatorSurfaceLines(
-    loadOperatorSurfaceSummary(stateInfo, work)
-  );
 
   if (!work || ['shipped', 'abandoned'].includes(work.status)) {
     process.exit(0);
   }
-
-  const lockWarning = work.lock
-    ? `\n⚠ Lock held by "${work.lock.skill}" since ${work.lock.since}`
-    : '';
-  const ownershipWarning = ownerConflict
-    ? `\n  WARNING: This work is already active in another top-level worktree (${ownerConflict.ownerWorktreeId}${ownerConflict.ownerBranch ? ` on ${ownerConflict.ownerBranch}` : ''}: ${ownerConflict.ownerWorktreePath}). Adopt/takeover required before mutating or shipping it here.`
-    : '';
 
   let continuationContent = '';
   if (existsSync(continuationPath)) {
@@ -64,25 +54,13 @@ try {
     }
   }
 
-  const unitLine = work.unitId ? `  Active Unit: ${work.unitId}\n` : '';
-  const shippingWarning = work.status === 'shipping'
-    ? '\n  ⚠ Status is "shipping" — PR creation was in progress. Run /sw-ship to check if the PR was created or to retry.'
-    : '';
-
-  const summary = [
-    'Specwright: Work in progress',
-    `  Unit: ${work.workId} (${work.status})`,
-    unitLine ? unitLine.trimEnd() : null,
-    `  Progress: ${work.completedCount}/${work.totalCount} tasks`,
-    `  Gates: ${work.gatesSummary}`,
-    `  Spec: ${work.specPath}`,
-    `  Plan: ${work.planPath}`,
-    ...operatorSurfaceLines,
-    lockWarning,
-    ownershipWarning,
-    shippingWarning,
+  const operatorSummary = loadOperatorSurfaceSummary(stateInfo, work);
+  const summary = renderWorkInProgressSummary({
+    work,
+    summary: operatorSummary,
+    ownerConflict,
     continuationContent
-  ].filter(Boolean).join('\n');
+  });
 
   process.stdout.write(summary + '\n');
 } catch (err) {

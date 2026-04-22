@@ -345,6 +345,33 @@ process.stdout.write(JSON.stringify({ summary, lines }, null, 2));
     return json.loads(result.stdout)
 
 
+def _render_operator_surface_lines(summary: dict) -> list[str]:
+    script = """
+const { renderOperatorSurfaceLines } = await import(process.env.OPERATOR_SURFACE_MODULE);
+const summary = JSON.parse(process.env.OPERATOR_SURFACE_SUMMARY_JSON);
+const lines = renderOperatorSurfaceLines(summary);
+
+process.stdout.write(JSON.stringify({ lines }, null, 2));
+"""
+    result = subprocess.run(
+        ["node", "--input-type=module", "-"],
+        input=script,
+        text=True,
+        capture_output=True,
+        cwd=ROOT_DIR,
+        check=False,
+        env=sanitized_git_env(
+            {
+                "OPERATOR_SURFACE_MODULE": str(OPERATOR_SURFACE_MODULE),
+                "OPERATOR_SURFACE_SUMMARY_JSON": json.dumps(summary),
+            }
+        ),
+    )
+    if result.returncode != 0:
+        raise AssertionError(result.stderr or result.stdout or "operator-surface render execution failed")
+    return json.loads(result.stdout)["lines"]
+
+
 class TestStatusCardContract(unittest.TestCase):
     def test_build_status_card_returns_minimum_contract_and_writes_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -558,6 +585,29 @@ class TestStatusCardContract(unittest.TestCase):
             self.assertEqual(summary["nextCommand"], card["nextCommand"])
             self.assertTrue(any("Closeout: stage-report" in line for line in lines))
             self.assertTrue(any("Approval: unit-spec APPROVED (approved)" in line for line in lines))
+
+    def test_operator_surface_warning_lines_use_named_two_warning_cap(self) -> None:
+        lines = _render_operator_surface_lines(
+            {
+                "card": {"branch": None},
+                "closeout": None,
+                "approval": None,
+                "warnings": [
+                    {"code": "degraded-root-resolution", "summary": "First warning"},
+                    {"code": "runtime-fallback", "summary": "Second warning"},
+                    {"code": "advisory-overflow", "summary": "Third warning"},
+                ],
+                "nextCommand": None,
+            }
+        )
+
+        self.assertEqual(
+            [line for line in lines if line.startswith("  WARNING:")],
+            [
+                "  WARNING: First warning",
+                "  WARNING: Second warning",
+            ],
+        )
 
 
 class TestApprovalsProtocolStatusCardContract(unittest.TestCase):
