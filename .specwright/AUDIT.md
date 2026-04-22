@@ -1,225 +1,102 @@
 # Codebase Audit
 
-Snapshot: 2026-04-06T12:00:00Z
-Scope: full (prompt engineering, context engineering, eval coverage)
+Snapshot: 2026-04-20T03:01:19Z
+Scope: full (workflow legibility, approval lineage, runtime-state devex, sync discipline)
 Dimensions: architecture, complexity, consistency, debt
-Findings: 20 open (5B, 8W, 7I), 9 resolved
+Findings: 4 open (2B, 2W), 10 stale, 17 resolved
 
 ## Summary
 
-The skill and agent corpus is well-structured with strong patterns in gate skills and utility skills. However, a month of rapid development has introduced prompt engineering drift: procedural steps leaking into declarative skills (violating Charter invariant 1), agent scope boundaries that don't match tool access, protocol references to phantom or misnamed infrastructure, and an eval framework that tests scaffolding but not skill quality. The most critical theme is that new capabilities (semantic gates, repo maps, feedback loops, calibration) were shipped without any eval coverage validating they work.
+Specwright's core quality posture is improving in the right direction. `sw-verify`
+now has a strong FAIL/WARN bias, gate evidence stays first-class, and this audit
+should not weaken that behavior. The problems I found are mostly on the operator
+surface around the gates, not inside the gates themselves.
+
+The main pattern is a split between rich audit artifacts and poor primary
+delivery. Specwright now generates useful closeout surfaces (`stage-report.md`,
+`review-packet.md`, approval ledgers), but the terminal and session-recovery
+paths still optimize for machine-parseable trailers and hidden runtime files.
+That leaves the human reading either the tail of a long transcript or a pointer
+to `.git/specwright/...`, while the model keeps acting as if the user saw the
+same detail it did. Approval freshness has a similar problem: the explanation
+exists in deeper artifacts, but not in the default place the user looks.
+
+The other systemic issue is adapter friction. The shared runtime model defaults
+to Git-admin roots under `.git`, which collides directly with Claude Code's
+protected-path rules. That produces unnecessary permission churn and makes the
+runtime state harder to inspect. Finally, `sw-sync` currently overcorrects on
+"discipline": it preserves safety well, but it forbids the exact user-confirmed
+cleanup path that squash-merge repositories routinely need. The fix direction
+should therefore be: keep the strict FAIL defaults and safety protections, but
+improve legibility, publication, and operator override surfaces.
 
 ## Findings
 
-### [BLOCKER] F19: Procedural steps in sw-build violate Charter invariant 1
-
-- **Dimension**: consistency
-- **Location**: `core/skills/sw-build/SKILL.md:57-67`
-- **Description**: The "Branch setup (LOW freedom)" constraint contains 7 bullet points of if/else procedural logic ("If exists: git checkout... If not: checkout baseBranch, pull latest, create branch"). Charter invariant 1 states: "SKILL.md files define goals and constraints. They never contain step-by-step procedures." A declarative version would state the postcondition ("A feature branch matching the naming convention exists and is checked out, up to date with the base branch") and reference the git protocol for mechanics.
-- **Impact**: Sets precedent for procedural leakage across skills. The sw-design state mutations block (lines 93-104) shows the same pattern spreading.
-- **Recommendation**: Rewrite as postcondition + protocol reference. Apply the same treatment to sw-design's state mutation block.
-- **Status**: open
-
-### [BLOCKER] F20: context.md references nonexistent state field `currentWorkUnit`
-
-- **Dimension**: consistency
-- **Location**: `core/protocols/context.md:140`
-- **Description**: The pre-work-unit check uses `state.currentWorkUnit` but the state protocol schema (`core/protocols/state.md:12`) defines the field as `currentWork`. Any skill following context.md's initialization guard will check an undefined field, silently skipping the precondition that should block work-unit operations when no work is active.
-- **Impact**: Skills could proceed without active work, corrupting state. The guard exists to prevent exactly this.
-- **Recommendation**: Change `currentWorkUnit` to `currentWork` in context.md line 140.
-- **Status**: open
-
-### [BLOCKER] F21: gate-security and gate-semantic have overlapping CWE coverage
+### [BLOCKER] F34: Machine-first handoff contract hides the real stage closeout
 
 - **Dimension**: architecture
-- **Location**: `core/skills/gate-security/SKILL.md:55-59`, `core/skills/gate-semantic/SKILL.md:63-64`
-- **Description**: gate-security Phase 3 checks "fail-open error handling (CWE-636)" and "error data leakage (CWE-209)." gate-semantic checks the same CWEs at Tier 1+. gate-semantic line 68 states "No overlap with gate-security" but the CWE IDs are identical. Users will see duplicate findings for the same issues.
-- **Impact**: Duplicate findings erode trust in gate quality. Users may dismiss valid findings as noise.
-- **Recommendation**: Assign each CWE to exactly one gate. Semantic gate should own these (it has tiered tooling); security gate should defer to semantic for code-level CWE analysis and focus on secrets/injection/exposure.
+- **Location**: `core/protocols/decision.md:295-324`, `adapters/claude-code/hooks/session-start.mjs:15-79`, `adapters/opencode/plugin.ts:170-226`, `evals/tests/test_grader.py:1598-1666`
+- **Description**: Specwright now has a good stage-report contract, but the primary delivery path still optimizes for a three-line machine footer. `decision.md` explicitly says "Terminal output is the pointer, not the report." The Claude and Opencode session-start surfaces then restore only coarse workflow status, spec/plan paths, and gate summaries; they do not rehydrate the latest `stage-report.md` or `review-packet.md`. The grader enforces exact three-line trailers and fails on an extra human-facing line, which means the system has strong regression coverage for machine parseability but weak pressure toward human legibility at the point where the user actually reads the result.
+- **Impact**: This affects every pipeline stage. Users are asked to trust transitions, gate outcomes, and next actions from a terse trailer or from hidden runtime artifacts under `.git/specwright`, while the model behaves as if the user saw the full closeout context. That is a workflow trust problem, not just a formatting nit.
+- **Recommendation**: Preserve the exact three-line trailer as the machine footer, but add a short human-facing closeout digest immediately before it and have the adapter recovery surfaces lift the latest `stage-report.md` or `review-packet.md` summary automatically. Add eval coverage for the human-facing digest so optimization pressure is not one-sided.
 - **Status**: open
 
-### [BLOCKER] F22: Executor and build-fixer agents lack git prohibition
+### [WARNING] F35: Approval freshness explanations are buried instead of surfaced
+
+- **Dimension**: consistency
+- **Location**: `core/protocols/review-packet.md:44-70`, `core/skills/sw-status/SKILL.md:46-54`, `adapters/claude-code/hooks/session-start.mjs:65-77`, `adapters/opencode/plugin.ts:214-224`
+- **Description**: Approval lineage can now be explained well in secondary artifacts. For example, current review packets under `.git/specwright/work/.../review-packet.md` show whether `design` or `unit-spec` is `MISSING`, `STALE`, or `APPROVED`, and in some cases include approved/current hashes for the mismatch. But the default session-start and idle summaries do not surface any approval state, even though `sw-status` explicitly says approval freshness should be part of the attached-work view. In practice, users encounter stale approval findings during verify/ship without a quick explanation in the primary session surface.
+- **Impact**: The approval system feels arbitrary even when it is behaving correctly. That erodes trust in one of Specwright's core auditability features and increases the chance that users treat stale approval findings as bureaucracy instead of as lineage signals.
+- **Recommendation**: Lift a compact approval lineage summary into the default session/status path and into the verify closeout preamble. At minimum: show `design` and current `unit-spec` status plus the reason class (`missing entry`, `artifact hash changed`, `expired accepted-mutant`, `superseded`). Keep the full hashes in deeper artifacts.
+- **Status**: open
+
+### [BLOCKER] F36: Default clone-local runtime placement conflicts with Claude Code protected paths
 
 - **Dimension**: architecture
-- **Location**: `core/agents/specwright-executor.md:27-33`, `core/agents/specwright-build-fixer.md:27-30`
-- **Description**: Both agents have Bash access and "What you never do" sections, but neither prohibits git operations. The executor could commit, push, or create branches. The build-fixer could commit its own fixes. Both would break the atomic commit model governed by the git protocol. The constitution requires "fragile operations must use shared protocols" and git is explicitly protocol-governed.
-- **Impact**: A confused model with Bash access and no explicit git prohibition could commit code outside the skill's commit orchestration, breaking traceability.
-- **Recommendation**: Add "Never run git commands (commit, push, checkout, branch, reset, etc.)" to both agents' "What you never do" sections.
+- **Location**: `adapters/shared/specwright-state-paths.mjs:140-153`, `adapters/shared/specwright-state-paths.mjs:254-279`, `core/protocols/context.md:8-17`, `.specwright/research/non-interactive-skills-20260319.md:17-23`
+- **Description**: The shared resolver defaults `repoStateRoot`, `worktreeStateRoot`, and `workArtifactsRoot` to Git-admin paths under `git rev-parse --git-common-dir` / `git rev-parse --git-dir`. That is coherent from a worktree-safety perspective, but it is a poor default for Claude Code because Claude protects `.git` writes even in bypass-style modes. The repo's own research brief already documents that `--dangerously-skip-permissions` still excludes `.git` writes. Specwright therefore chooses a default runtime model that maps routine session, continuation, stage-report, and work-artifact writes onto a path family the primary adapter treats as specially protected.
+- **Impact**: This is a systemic Claude Code devex failure. Users get extra permission friction for normal Specwright operation, and the most useful runtime artifacts end up in a hidden location that many users will not inspect organically. The architecture is safe, but it externalizes the safety cost onto every session.
+- **Recommendation**: Keep the logical root split and worktree-safety invariants, but add an adapter-aware default or migration path for Claude Code that keeps human-facing work artifacts and closeout digests in a project-visible non-protected root. `sw-init` / `sw-guard` should offer that choice up front rather than requiring users to discover `config.git.workArtifacts` after the fact.
 - **Status**: open
 
-### [BLOCKER] F14: Zero unit tests for hook handlers with security-critical logic
-
-- **Dimension**: debt
-- **Location**: `adapters/claude-code/hooks/subagent-context.mjs`, `post-write-diagnostics.mjs`, `session-start.mjs`
-- **Description**: Three JavaScript hook handlers have zero unit tests. `subagent-context.mjs` contains security-critical path traversal validation that is never exercised. `post-write-diagnostics.mjs` has subprocess invocation with `execFileSync` and multi-branch platform detection. `session-start.mjs` has regex parsing for correction summary extraction. The `\Z` regex bug (caught by PR review) would have been caught by a unit test.
-- **Impact**: Security bugs in path validation, silent failures in regex parsing, and incorrect subprocess handling go undetected.
-- **Recommendation**: Create `tests/test-hooks.mjs` covering path traversal inputs, agent-type routing, code/non-code file filtering, and correction summary extraction.
-- **Status**: open (carried from prior audit)
-
-### [WARNING] F23: sw-build token bloat at ~1,450 words with 14 constraint blocks
-
-- **Dimension**: complexity
-- **Location**: `core/skills/sw-build/SKILL.md`
-- **Description**: sw-build is the longest skill by 2x (sw-design ~750, sw-plan ~800, sw-ship ~400). It carries 14 named constraint blocks. The "Context envelope" block (lines 104-119) repeats information in the delegation protocol. The "Behavioral reminder" (line 117) is a vague instruction ("surface confusion, prefer simplicity") with no observable postcondition -- it's an aspirational nudge, not a constraint.
-- **Impact**: Every sw-build invocation consumes excessive context tokens. The behavioral reminder cannot be verified by any gate.
-- **Recommendation**: Remove the behavioral reminder. Compress the context envelope to reference the delegation protocol rather than restating it. Target 1,000 words.
-- **Status**: open
-
-### [WARNING] F24: gate-wiring cross-unit section is a 112-line runbook
-
-- **Dimension**: complexity
-- **Location**: `core/skills/gate-wiring/SKILL.md:58-170`
-- **Description**: The cross-unit integration section spans 112 lines with shell commands (`git merge-base`, `git diff`), code fences, and detailed algorithmic steps. At ~1,100 words total, gate-wiring is nearly as large as sw-design. This reads as a runbook, not a constraint specification.
-- **Impact**: A gate invoked inline by sw-verify should be compact. This is the most procedural content in any skill file.
-- **Recommendation**: Extract cross-unit logic to a protocol. The skill should declare the postcondition ("all cross-unit integration points verified") and reference the protocol for mechanics.
-- **Status**: open
-
-### [WARNING] F25: Reviewer agent described as READ-ONLY but has Bash
+### [WARNING] F37: `sw-sync` forbids the confirmed cleanup path squash-merge repos need
 
 - **Dimension**: consistency
-- **Location**: `core/agents/specwright-reviewer.md:12-13`, `core/agents/specwright-reviewer.md:27`
-- **Description**: The reviewer's description says "READ-ONLY" and its prompt says "you are READ-ONLY for source files," but its tool list includes Bash. The prompt says to "Run build and test commands to verify," which explains Bash's presence. But the READ-ONLY framing is misleading -- Bash can write files, delete things, or run destructive commands.
-- **Impact**: If the model interprets "READ-ONLY" loosely, it might still run destructive commands via Bash.
-- **Recommendation**: Change framing to "Read-only for source files. Bash restricted to verification commands (build, test, lint). Never modify, create, or delete files via shell."
+- **Location**: `core/skills/sw-sync/SKILL.md:62-83`, `core/protocols/git.md:316-325`, `.git/specwright/work/workflow-commands/context.md:77-82`
+- **Description**: `sw-sync` correctly uses `[gone]` and `--merged` as stale-branch signals and correctly protects live session and worktree owners. But it hardcodes "Delete with `git branch -d` only. Never use `-D`." That is stricter than the design context it shipped from: the original workflow notes explicitly call out that squash-merged branches often require a user-confirmed `-D` when the remote branch is gone but the local branch is not considered merged. Specwright's own config defaults to `mergeStrategy: squash`, so the skill currently rejects a real workflow that its repository strategy makes normal.
+- **Impact**: Users have to drop out of `sw-sync` and do manual Git cleanup for a standard post-squash scenario. The result is discipline that blocks action rather than discipline that guides safe action.
+- **Recommendation**: Keep `git branch -d` as the default and preserve the protection-set checks, but add an explicit second confirmation path for `[gone]` branches that are not claimed by any live session or subordinate worktree. The skill should explain why the override is safe and when it still remains forbidden.
 - **Status**: open
 
-### [WARNING] F26: Inconsistent freedom level labels ("STRICT" vs LOW/MEDIUM/HIGH)
+## Stale
 
-- **Dimension**: consistency
-- **Location**: `core/skills/sw-review/SKILL.md:99`, `core/skills/sw-sync/SKILL.md:99`
-- **Description**: Both skills use "STRICT" as a freedom level label. Every other skill uses LOW/MEDIUM/HIGH. "STRICT" is undefined in the freedom taxonomy and creates ambiguity.
-- **Impact**: Inconsistent vocabulary undermines the calibration system.
-- **Recommendation**: Replace "STRICT" with "LOW" in both skills.
-- **Status**: open
-
-### [WARNING] F27: sw-plan failure mode is copy-paste from sw-design
-
-- **Dimension**: consistency
-- **Location**: `core/skills/sw-plan/SKILL.md:145`
-- **Description**: "Apply DISAMBIGUATION: argument provided -> start new. No argument -> continue." This logic applies to sw-design (which takes an optional problem statement argument). sw-plan always operates on existing design artifacts -- it doesn't have a "start new" path triggered by arguments.
-- **Impact**: An LLM following this instruction would attempt disambiguation logic that doesn't apply, potentially confusing the user.
-- **Recommendation**: Replace with the correct sw-plan behavior for active work conflicts.
-- **Status**: open
-
-### [WARNING] F28: Write-only decision records with no downstream validation
-
-- **Dimension**: debt
-- **Location**: `core/protocols/decision.md:76-112`
-- **Description**: The decision protocol defines a decision record format and a gate handoff template that skills should produce. No downstream skill or gate checks for the presence, format, or content of these artifacts. The format is write-only with no verification path.
-- **Impact**: Compliance is honor-system. Decision records may never be written and no gate would catch the gap.
-- **Recommendation**: Either add decision record checks to gate-spec's evidence mapping, or acknowledge the advisory nature in the protocol.
-- **Status**: open
-
-### ~~[WARNING] F15: No eval coverage for semantic gate, repo map, or feedback loops~~
-
-- **Status**: resolved (eval-quality-v2)
-- **Resolution**: Gate-semantic eval fixture with 3 planted bugs (CWE-636, CWE-209, resource lifecycle) created in PR #141. Calibrated in run-20260406T090613: 100% pass rate. Gate-security and gate-tests fixtures also added. Repo map and feedback loop evals remain uncovered (deferred).
-
-### ~~[WARNING] F29: Eval framework tests scaffolding, not skill quality~~
-
-- **Status**: resolved (eval-quality-v2)
-- **Resolution**: 8 skill evals (was 5), 3 gate evals (was 0 working), 4 subagent quality rubrics, per-expectation model_grade thresholds, negative eval (malformed spec). model_grade used in 10+ expectations across suites. Grading infrastructure fixed (verdict/status, robust JSON extraction). Workflow evals still PENDING (separate work).
-
-### [INFO] F30: Single-consumer protocols should be inlining candidates
-
-- **Dimension**: complexity
-- **Location**: `core/protocols/build-context.md` (sw-build only), `core/protocols/convergence.md` (sw-design only), `core/protocols/learning-lifecycle.md` (sw-learn only), `core/protocols/repo-map.md` (sw-build only), `core/protocols/spec-review.md` (sw-plan only)
-- **Description**: Five protocols serve a single consumer skill each. The Charter states protocols exist for shared fragile operations. These add indirection without reuse benefit. Total: ~500 lines of single-consumer protocol content.
-- **Impact**: Cognitive overhead. Context tokens consumed for indirection.
-- **Recommendation**: In the next design cycle, evaluate consolidating back into skill constraints or merging related protocols (e.g., repo-map.md into build-context.md).
-- **Status**: open (supersedes F12, F18)
-
-### [INFO] F10: Config languages field incomplete
-
-- **Dimension**: consistency
-- **Location**: `.specwright/config.json:6`
-- **Description**: Now declares `["markdown", "javascript", "python", "shell", "typescript"]` -- this was fixed since the last audit.
-- **Status**: resolved
-
-### [INFO] F11: Orphaned .orphaned_at file in repo root
-
-- **Dimension**: debt
-- **Location**: `.orphaned_at`
-- **Description**: Untracked file containing a timestamp. Not referenced by any code.
-- **Status**: open (carried)
-
-### [INFO] F31: Lang-building patterns are high quality but untested
-
-- **Dimension**: consistency
-- **Location**: `core/skills/lang-building/*.md`
-- **Description**: The five language pattern files (Go, Java, Python, Rust, TypeScript) are well-structured with idioms, type patterns, framework conventions, and anti-patterns. They are loaded by sw-build into agent context. No eval verifies that loading these patterns improves build quality for the target language.
-- **Impact**: Unknown whether these patterns measurably improve output vs. the LLM's baseline knowledge.
-- **Recommendation**: Add a comparative eval: same build task, with and without lang-building context, graded by model_grade for language idiom compliance.
-- **Status**: open
-
-### [INFO] F32: Workflow evals are all PENDING with no seed repos
-
-- **Dimension**: debt
-- **Location**: `evals/suites/workflow/evals.json`
-- **Description**: All 5 workflow evals reference `seed_id` values ending in `-PENDING`. No seed repos have been verified or made available. The SWE-bench-style test structure (PASS_TO_PASS/FAIL_TO_PASS) is designed but not operational.
-- **Impact**: Layer 3 (end-to-end workflow) evaluation is completely non-functional.
-- **Recommendation**: See Eval Strategy section below.
-- **Status**: open
-
-### [INFO] F33: Protocol suite is well-designed in pockets
-
-- **Dimension**: architecture
-- **Location**: `core/protocols/semi-formal-reasoning.md`, `core/protocols/headless.md`, `core/protocols/stage-boundary.md`
-- **Description**: Three protocols stand out for quality: semi-formal-reasoning.md has explicit graceful degradation (lines 64-72). headless.md has complete policy tables for non-interactive fallbacks. stage-boundary.md honestly states "This is strong guidance backed by state validation, not hard enforcement" (line 39). These represent the target quality bar.
-- **Impact**: Positive. These should be the template for new protocols.
-- **Status**: open (informational)
-
-## Eval Strategy Assessment
-
-The current eval framework tests **plumbing** (do files end up in the right places?) but not **quality** (does Specwright produce better software engineering outcomes than raw LLM usage?). This is the fundamental gap.
-
-### Current State
-
-| Layer | Evals | Status |
-|-------|-------|--------|
-| Skill (unit) | 1 (sw-build) | Minimal: tests file creation only |
-| Integration (handoff) | 3 | Functional: tests state transitions and artifact references |
-| Workflow (E2E) | 5 | Non-functional: all PENDING |
-| Gate | 0 | No gate-specific evals at all |
-| Quality (model-graded) | 1 expectation | Single `model_grade` check in design-to-plan |
-
-### What's Missing
-
-1. **Gate evals**: No eval tests whether gates catch known bugs, flag real security issues, or produce accurate verdicts. This is the highest-priority gap -- gates are Specwright's core value proposition.
-2. **Quality evals**: Only 1 of 11 expectation types uses LLM-as-judge (`model_grade`). The rest are deterministic checks that can't assess output quality.
-3. **Negative evals**: No eval presents a known-bad input and asserts the correct failure mode fires. All evals test the happy path.
-4. **Comparative evals**: No eval compares Specwright-guided output vs. raw LLM output on the same task.
-
-### External Benchmark Assessment
-
-| Benchmark | Measures | Relevance | Maturity | Integration Effort |
-|-----------|----------|-----------|----------|-------------------|
-| **FeatureBench** | Feature implementation in real codebases | HIGH -- tests exactly what Specwright aims to improve | LOW -- 45 stars, ICLR 2026, v0.1 | Separate CLI harness, Docker required, wrapper needed |
-| **SWE-bench Verified** | Bug resolution in Python repos | MEDIUM -- tests fix quality, not feature development | HIGH -- industry standard, well-documented | Separate Python harness, Docker 3-layer isolation |
-| **SWE-bench Pro** | Bug resolution across 41 repos | MEDIUM -- multi-language, but still bug-fix scoped | MEDIUM -- partially proprietary | Same as SWE-bench |
-| **Terminal-bench** | Multi-step terminal tasks | LOW -- tests CLI proficiency, not software engineering | LOW -- Anthropic-internal | Not publicly available |
-
-**Recommendation**: FeatureBench is the right conceptual fit (feature development > bug fixing) but too immature to adopt now. SWE-bench Verified is the pragmatic choice for an external benchmark -- it's stable, well-documented, and has Claude Code agent adapters. Neither replaces the need for Specwright-specific quality evals.
-
-### Proposed Eval Roadmap
-
-1. **Immediate**: Add gate evals -- fixtures with known bugs/security issues, assert gates catch them
-2. **Near-term**: Expand `model_grade` usage across all skill evals for output quality assessment
-3. **Near-term**: Add negative evals (known-bad inputs, assert correct failure modes)
-4. **Medium-term**: Activate workflow evals with real seed repos (start with 1, not 5)
-5. **Medium-term**: Integrate SWE-bench Verified as an external benchmark via wrapper harness
-6. **Monitor**: Revisit FeatureBench when it reaches v1.0 or 200+ stars
+- **F14**: Hook-handler test coverage gap was not revalidated in this workflow-surface audit. Status: `stale`.
+- **F19**: `sw-build` procedural leakage remains plausible, but it was not a primary surface in this pass. Status: `stale`.
+- **F23**: `sw-build` token-budget finding was not remeasured beyond confirming the file still remains large. Status: `stale`.
+- **F24**: `gate-wiring` complexity was not re-audited in detail in this pass. Status: `stale`.
+- **F28**: Decision-record validation remains a plausible debt item, but it was not revalidated here. Status: `stale`.
+- **F30**: The single-consumer protocol inventory is outdated after later protocol deletions and was not recomputed. Status: `stale`.
+- **F11**: The orphaned `.orphaned_at` file was not part of this workflow-surface pass. Status: `stale`.
+- **F31**: Lang-building eval coverage was not re-audited here. Status: `stale`.
+- **F32**: Workflow-eval seed readiness was not rechecked in this pass. Status: `stale`.
+- **F33**: The prior "protocol quality pockets" note referenced protocols that no longer exist and is not a stable current finding. Status: `stale`.
 
 ## Resolved
 
-- **F1** (BLOCKER -> resolved): Core sw-build platform-specific tools -> platform markers. *audit-remediation/platform-markers*
-- **F3** (WARNING -> resolved, partial): Adapter skill divergence -> sw-build override removed, sw-guard remains. *audit-remediation/platform-markers*
-- **F5** (WARNING -> resolved): Stale work artifacts -> sw-status --cleanup + sw-learn clear. *audit-remediation/work-lifecycle*
-- **F6** (WARNING -> resolved): Zero claude-code test coverage -> 152-assertion test suite + CI. *audit-remediation/claude-code-tests*
-- **F9** (WARNING -> resolved): Stale workflow state -> shipped -> (none) transition via sw-learn. *audit-remediation/work-lifecycle*
-- **F2** (WARNING -> resolved): Undocumented convergence.md -> added to all doc indexes. *audit-cleanup*
-- **F4** (WARNING -> resolved): sw-build size ceiling -> Context management extracted to protocol, body under 1,200 words. *audit-cleanup*
-- **F7** (WARNING -> resolved): Missing opencode adapter docs -> added to DESIGN.md directory structure. *audit-cleanup*
-- **F8** (WARNING -> resolved): Config version mismatch -> bumped to 2.0, version check in context.md. *audit-cleanup*
-- **F10** (INFO -> resolved): Config languages field updated to include python, shell, typescript.
-- **F12/F18** (INFO -> superseded by F30): Protocol count tracking consolidated.
+- **F20** (resolved 2026-04-20): `context.md` no longer references the nonexistent `currentWorkUnit` field; session/work resolution now anchors on `session.json.attachedWorkId` and related session fields.
+- **F21** (resolved 2026-04-20): `gate-security` now defers CWE-636 and CWE-209 to `gate-semantic`, and `gate-semantic` explicitly claims sole ownership of those categories.
+- **F22** (resolved 2026-04-20): `specwright-executor.md` and `specwright-build-fixer.md` now explicitly forbid Git commands.
+- **F25** (resolved 2026-04-20): `specwright-reviewer.md` now constrains Bash to verification commands and forbids file mutation via shell.
+- **F26** (resolved 2026-04-20): `STRICT` freedom labels were removed from `sw-review` and `sw-sync`; both surfaces now use the standard taxonomy.
+- **F27** (resolved 2026-04-20): `sw-plan` no longer carries the sw-design copy-paste failure mode; the current state-update block reflects actual planning behavior.
+- **F1** (resolved): Core sw-build platform-specific tools -> platform markers. `audit-remediation/platform-markers`
+- **F3** (resolved, partial): Adapter skill divergence -> sw-build override removed, sw-guard remains. `audit-remediation/platform-markers`
+- **F5** (resolved): Stale work artifacts -> `sw-status --cleanup` + `sw-learn` clear. `audit-remediation/work-lifecycle`
+- **F6** (resolved): Zero Claude Code test coverage -> assertion-heavy test suite + CI. `audit-remediation/claude-code-tests`
+- **F9** (resolved): Stale workflow state -> `shipped -> (none)` transition via sw-learn. `audit-remediation/work-lifecycle`
+- **F2** (resolved): Undocumented convergence.md -> added to doc indexes before later cleanup. `audit-cleanup`
+- **F4** (resolved): Earlier sw-build size ceiling regression addressed in prior cleanup pass. `audit-cleanup`
+- **F7** (resolved): Missing opencode adapter docs -> added to DESIGN.md directory structure. `audit-cleanup`
+- **F8** (resolved): Config version mismatch -> bumped to 2.0 with version checks. `audit-cleanup`
+- **F10** (resolved): Config language list updated to include Python, Shell, and TypeScript.
+- **F12/F18** (resolved/superseded): Protocol count tracking consolidated in prior cleanup work.
