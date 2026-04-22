@@ -131,14 +131,23 @@ function createAssessmentResult({
   };
 }
 
-export function findLatestApprovalEntry(entries, { scope, unitId } = {}) {
+export function findLatestApprovalEntry(entries, options = {}) {
+  const scope = normalizeString(options?.scope);
+  if (!scope) {
+    throw new Error('Approval scope is required.');
+  }
+
   if (!Array.isArray(entries)) {
     return null;
   }
 
+  const unitId = Object.prototype.hasOwnProperty.call(options, 'unitId')
+    ? options.unitId
+    : undefined;
+
   for (let index = entries.length - 1; index >= 0; index -= 1) {
     const entry = entries[index];
-    if (scope != null && entry?.scope !== scope) {
+    if (entry?.scope !== scope) {
       continue;
     }
 

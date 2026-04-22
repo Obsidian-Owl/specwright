@@ -7,10 +7,7 @@ import {
   loadApprovalsFile,
   summarizeApprovalAssessment
 } from './specwright-approvals.mjs';
-import {
-  loadCloseoutDigest,
-  normalizeCloseoutDigest
-} from './specwright-closeout.mjs';
+import { loadCloseoutDigest } from './specwright-closeout.mjs';
 
 const UNIT_APPROVAL_ARTIFACTS = ['spec.md', 'plan.md', 'context.md'];
 const DESIGN_APPROVAL_ARTIFACTS = ['design.md', 'context.md', 'decisions.md'];
@@ -103,6 +100,7 @@ function summarizeGates(gates) {
         pass: 0,
         warn: 0,
         fail: 0,
+        skip: 0,
         other: 0
       }
     };
@@ -112,6 +110,7 @@ function summarizeGates(gates) {
     pass: 0,
     warn: 0,
     fail: 0,
+    skip: 0,
     other: 0
   };
 
@@ -127,6 +126,9 @@ function summarizeGates(gates) {
       case 'ERROR':
         counts.fail += 1;
         break;
+      case 'SKIP':
+        counts.skip += 1;
+        break;
       default:
         counts.other += 1;
         break;
@@ -136,7 +138,7 @@ function summarizeGates(gates) {
   let status = 'pass';
   if (counts.fail > 0) {
     status = 'fail';
-  } else if (counts.warn > 0) {
+  } else if (counts.warn > 0 || counts.skip > 0 || counts.other > 0) {
     status = 'warn';
   } else if (counts.pass === 0) {
     status = 'not-run';
@@ -152,6 +154,9 @@ function summarizeGates(gates) {
   if (counts.fail > 0) {
     summaryParts.push(`${counts.fail} FAIL`);
   }
+  if (counts.skip > 0) {
+    summaryParts.push(`${counts.skip} SKIP`);
+  }
   if (counts.other > 0) {
     summaryParts.push(`${counts.other} OTHER`);
   }
@@ -165,7 +170,8 @@ function summarizeGates(gates) {
 
 function summarizeBranch(stateInfo, work) {
   const expected = normalizeString(stateInfo?.workflow?.branch) ?? normalizeString(work?.branch);
-  const observed = normalizeString(stateInfo?.session?.branch) ?? normalizeString(work?.branch);
+  const observed = normalizeString(stateInfo?.session?.branch)
+    ?? (stateInfo?.layout === 'legacy' ? normalizeString(work?.branch) : null);
   let status = 'unknown';
 
   if (expected && observed) {
@@ -179,11 +185,37 @@ function summarizeBranch(stateInfo, work) {
   };
 }
 
-function nextCommandFor(work) {
+function hasFreshnessBlock(stateInfo) {
+  const freshnessStatus = normalizeString(stateInfo?.workflow?.freshness?.status);
+  return ['stale', 'diverged', 'blocked'].includes(freshnessStatus);
+}
+
+function hasRemainingWorkUnits(workflow, currentUnitId) {
+  if (!Array.isArray(workflow?.workUnits) || workflow.workUnits.length === 0) {
+    return false;
+  }
+
+  const normalizedCurrentUnitId = normalizeString(currentUnitId);
+  const currentIndex = workflow.workUnits.findIndex(
+    (unit) => normalizeString(unit?.id) === normalizedCurrentUnitId
+  );
+  const candidateUnits = currentIndex >= 0
+    ? workflow.workUnits.slice(currentIndex + 1)
+    : workflow.workUnits;
+
+  return candidateUnits.some((unit) => {
+    const status = normalizeString(unit?.status);
+    return Boolean(status) && !['shipped', 'abandoned'].includes(status);
+  });
+}
+
+function nextCommandFor(work, options = {}) {
   const stage = normalizeString(work?.status);
   if (!stage) {
     return '/sw-design';
   }
+
+  const gateCounts = options.gates?.counts ?? {};
 
   switch (stage) {
     case 'designing':
@@ -195,11 +227,29 @@ function nextCommandFor(work) {
         ? '/sw-verify'
         : '/sw-build';
     case 'verifying':
-      return '/sw-ship';
+      if (hasFreshnessBlock(options.stateInfo)) {
+        return '/sw-verify';
+      }
+
+      if ((gateCounts.fail ?? 0) > 0) {
+        return '/sw-build';
+      }
+
+      if (
+        (gateCounts.pass ?? 0) > 0 ||
+        (gateCounts.warn ?? 0) > 0 ||
+        (gateCounts.skip ?? 0) > 0
+      ) {
+        return '/sw-ship';
+      }
+
+      return '/sw-verify';
     case 'shipping':
       return '/sw-ship';
     case 'shipped':
-      return '/sw-build';
+      return hasRemainingWorkUnits(options.stateInfo?.workflow, work?.unitId)
+        ? '/sw-build'
+        : '/sw-learn';
     default:
       return '/sw-design';
   }
@@ -250,10 +300,10 @@ export function buildStatusCard(stateInfo, work) {
 
   const paths = resolveWorkPaths(stateInfo, work);
   const approval = summarizeApproval(work, paths.approvalsPath);
-  const closeout = normalizeCloseoutDigest(loadCloseoutDigest({
+  const closeout = loadCloseoutDigest({
     stageReportPath: paths.stageReportPath,
     reviewPacketPath: paths.reviewPacketPath
-  }));
+  });
   const branch = summarizeBranch(stateInfo, work);
   const gates = summarizeGates(work.gates);
   const warnings = buildWarnings(stateInfo, approval, closeout, branch);
@@ -271,8 +321,7 @@ export function buildStatusCard(stateInfo, work) {
     gates,
     closeout,
     warnings,
-    blockers: [],
-    nextCommand: nextCommandFor(work)
+    nextCommand: nextCommandFor(work, { gates, stateInfo })
   };
 }
 

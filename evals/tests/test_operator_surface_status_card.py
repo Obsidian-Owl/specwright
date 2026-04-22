@@ -309,7 +309,6 @@ process.stdout.write(JSON.stringify({ card, statusCardPath }, null, 2));
 def _load_operator_surface(repo_path: Path, *, force_used_fallback: bool = False) -> dict:
     script = """
 const { loadSpecwrightState, normalizeActiveWork } = await import(process.env.STATE_PATHS_MODULE);
-const { buildStatusCard } = await import(process.env.STATUS_CARD_MODULE);
 const {
   loadOperatorSurfaceSummary,
   renderOperatorSurfaceLines
@@ -320,11 +319,10 @@ if (process.env.FORCE_USED_FALLBACK === '1') {
   state.usedFallback = true;
 }
 const work = normalizeActiveWork(state);
-const card = buildStatusCard(state, work);
 const summary = loadOperatorSurfaceSummary(state, work);
 const lines = renderOperatorSurfaceLines(summary);
 
-process.stdout.write(JSON.stringify({ card, summary, lines }, null, 2));
+process.stdout.write(JSON.stringify({ summary, lines }, null, 2));
 """
     result = subprocess.run(
         ["node", "--input-type=module", "-"],
@@ -427,6 +425,119 @@ class TestStatusCardContract(unittest.TestCase):
 
             self.assertEqual(result["card"]["nextCommand"], "/sw-verify")
 
+    def test_build_status_card_treats_skipped_gates_as_warn_and_keeps_ship_handoff(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            workflow_path = Path(state["workflowPath"])
+            workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+            workflow["status"] = "verifying"
+            workflow["gates"] = {
+                "build": {"verdict": "SKIP"},
+                "tests": {"verdict": "SKIP"},
+            }
+            workflow_path.write_text(json.dumps(workflow, indent=2) + "\n", encoding="utf-8")
+
+            result = _build_status_card(repo_path, write_status_card=False)
+            card = result["card"]
+
+            self.assertEqual(card["gates"]["status"], "warn")
+            self.assertEqual(card["gates"]["counts"]["skip"], 2)
+            self.assertEqual(card["gates"]["summary"], "2 SKIP")
+            self.assertEqual(card["nextCommand"], "/sw-ship")
+
+    def test_build_status_card_points_verifying_failures_back_to_build(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            workflow_path = Path(state["workflowPath"])
+            workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+            workflow["status"] = "verifying"
+            workflow["gates"] = {
+                "build": {"verdict": "PASS"},
+                "tests": {"verdict": "FAIL"},
+            }
+            workflow_path.write_text(json.dumps(workflow, indent=2) + "\n", encoding="utf-8")
+
+            result = _build_status_card(repo_path, write_status_card=False)
+
+            self.assertEqual(result["card"]["nextCommand"], "/sw-build")
+
+    def test_build_status_card_points_freshness_blocked_verify_back_to_verify(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            workflow_path = Path(state["workflowPath"])
+            workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+            workflow["status"] = "verifying"
+            workflow["gates"] = {}
+            workflow["freshness"]["status"] = "blocked"
+            workflow_path.write_text(json.dumps(workflow, indent=2) + "\n", encoding="utf-8")
+
+            result = _build_status_card(repo_path, write_status_card=False)
+
+            self.assertEqual(result["card"]["nextCommand"], "/sw-verify")
+
+    def test_build_status_card_requires_live_session_branch_for_match(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            session_path = Path(state["sessionPath"])
+            session = json.loads(session_path.read_text(encoding="utf-8"))
+            session["branch"] = None
+            session_path.write_text(json.dumps(session, indent=2) + "\n", encoding="utf-8")
+
+            result = _build_status_card(repo_path, write_status_card=False)
+            card = result["card"]
+
+            self.assertEqual(card["branch"]["expected"], "work/03-status-card-proof")
+            self.assertIsNone(card["branch"]["observed"])
+            self.assertEqual(card["branch"]["status"], "unknown")
+
+    def test_build_status_card_points_final_shipped_work_to_learn(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            workflow_path = Path(state["workflowPath"])
+            workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+            workflow["status"] = "shipped"
+            workflow["gates"] = {
+                "build": {"verdict": "PASS"},
+                "tests": {"verdict": "PASS"},
+            }
+            workflow_path.write_text(json.dumps(workflow, indent=2) + "\n", encoding="utf-8")
+
+            result = _build_status_card(repo_path, write_status_card=False)
+
+            self.assertEqual(result["card"]["nextCommand"], "/sw-learn")
+
+    def test_build_status_card_keeps_build_handoff_when_more_units_remain_after_ship(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            workflow_path = Path(state["workflowPath"])
+            workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+            workflow["status"] = "shipped"
+            workflow["gates"] = {
+                "build": {"verdict": "PASS"},
+                "tests": {"verdict": "PASS"},
+            }
+            workflow["workUnits"] = [
+                {"id": state["unitId"], "status": "shipped", "order": 1},
+                {"id": "04-follow-on-unit", "status": "planned", "order": 2},
+            ]
+            workflow_path.write_text(json.dumps(workflow, indent=2) + "\n", encoding="utf-8")
+
+            result = _build_status_card(repo_path, write_status_card=False)
+
+            self.assertEqual(result["card"]["nextCommand"], "/sw-build")
+
     def test_operator_surface_summary_uses_shared_status_card_contract(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_path = Path(tmpdir)
@@ -436,20 +547,50 @@ class TestStatusCardContract(unittest.TestCase):
             _write_approvals(Path(state["unitDir"]), state["unitId"])
 
             result = _load_operator_surface(repo_path)
-            card = result["card"]
             summary = result["summary"]
             lines = result["lines"]
+            card = summary["card"]
 
-            self.assertEqual(summary["card"], card)
             self.assertEqual(summary["approval"]["scope"], card["approvals"]["scope"])
             self.assertEqual(summary["approval"]["status"], card["approvals"]["status"])
             self.assertEqual(summary["approval"]["reasonCode"], card["approvals"]["reasonCode"])
             self.assertEqual(summary["closeout"]["source"], card["closeout"]["source"])
+            self.assertEqual(summary["nextCommand"], card["nextCommand"])
             self.assertTrue(any("Closeout: stage-report" in line for line in lines))
             self.assertTrue(any("Approval: unit-spec APPROVED (approved)" in line for line in lines))
 
 
 class TestApprovalsProtocolStatusCardContract(unittest.TestCase):
+    def test_find_latest_approval_entry_requires_scope(self) -> None:
+        script = """
+const { findLatestApprovalEntry } = await import(process.env.APPROVALS_MODULE);
+
+try {
+  findLatestApprovalEntry([{ scope: 'design' }]);
+  process.stdout.write(JSON.stringify({ ok: true }));
+} catch (error) {
+  process.stdout.write(JSON.stringify({
+    ok: false,
+    message: error instanceof Error ? error.message : String(error)
+  }));
+}
+"""
+        result = subprocess.run(
+            ["node", "--input-type=module", "-"],
+            input=script,
+            text=True,
+            capture_output=True,
+            cwd=ROOT_DIR,
+            check=False,
+            env=sanitized_git_env({"APPROVALS_MODULE": str(APPROVALS_MODULE)}),
+        )
+        if result.returncode != 0:
+            raise AssertionError(result.stderr or result.stdout or "approval helper execution failed")
+
+        payload = json.loads(result.stdout)
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["message"], "Approval scope is required.")
+
     def test_approvals_protocol_mentions_status_card_reason_code_consumers(self) -> None:
         text = load_text(APPROVALS_PROTOCOL)
         assert_multiline_regex(

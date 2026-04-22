@@ -13,7 +13,6 @@ export function loadOperatorSurfaceSummary(stateInfo, work) {
     closeout: card?.closeout ?? null,
     approval: card?.approvals ?? null,
     warnings: Array.isArray(card?.warnings) ? card.warnings : [],
-    blockers: Array.isArray(card?.blockers) ? card.blockers : [],
     nextCommand: card?.nextCommand ?? null
   };
 }
