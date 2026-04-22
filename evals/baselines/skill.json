@@ -1,8 +1,8 @@
 {
   "suite": "skill",
-  "generated_at": "2026-04-14T20:03:09Z",
-  "generated_from_commit": "5b05028",
-  "__comment": "Skill smoke is structural-only. Duration is a coarse CI health signal here, so the multiplier is intentionally looser to absorb GitHub runner variance while keeping pass-rate regressions strict.",
+  "generated_at": "2026-04-22T08:43:02Z",
+  "generated_from_commit": "00cc603",
+  "__comment": "Skill smoke is structural-only. Duration is a coarse CI health signal here, so the multiplier is intentionally looser to absorb GitHub runner variance while keeping pass-rate regressions strict. The structural-skill-validation duration baseline was refreshed from the CI-observed run after the operator-surface cutover increased the smoke validation surface while keeping pass rate stable.",
   "tolerances": {
     "pass_rate_delta": 0.0,
     "duration_multiplier": 1.5,
@@ -23,7 +23,7 @@
     },
     "structural-skill-validation": {
       "pass_rate": 1.0,
-      "duration_ms": 2558,
+      "duration_ms": 4461,
       "tokens": {},
       "runs": 1
     },

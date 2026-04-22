@@ -21,7 +21,10 @@ Set up Specwright in this project by understanding how the user works,
 what they're building, and what quality standards they expect. Produce
 configuration and anchor documents that will guide all future work. Tracked
 project artifacts should be shared across developers and agent sessions via
-Git; runtime session state stays local to each clone or worktree.
+Git; runtime session state stays local to each clone or worktree. New
+interactive installs should prefer `project-visible` runtime roots under
+`.specwright-local/`, while `git-admin` roots under `.git/specwright/` remain
+compatibility-only.
 
 ## Inputs
 
@@ -43,6 +46,8 @@ Optional (created if the user opts in):
 - `{projectArtifactsRoot}/TESTING.md` -- testing strategy: boundaries,
   infrastructure, mock allowances
 - Hooks set up if the user wants them
+- Operator follow-up: tell the user to run `/sw-status` to confirm the active
+  runtime roots and detached session state.
 
 Quality gates are configured in config (all six default to enabled; user may disable).
 

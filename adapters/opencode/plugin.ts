@@ -25,7 +25,7 @@ import {
 } from './shared/specwright-state-paths.mjs';
 import {
   loadOperatorSurfaceSummary,
-  renderOperatorSurfaceLines
+  renderWorkInProgressSummary
 } from './shared/specwright-operator-surface.mjs';
 
 // ── Auto-deploy ─────────────────────────────────────────────────────────────
@@ -194,16 +194,7 @@ export default async function (ctx: { directory: string; on: (event: string, han
       if (!active) return;
 
       const { stateInfo, work, ownerConflict } = active;
-      const unitLine = work.unitId ? `  Active Unit: ${work.unitId}` : '';
-      const lockWarning = work.lock
-        ? `\n⚠ Lock held by "${work.lock.skill}" since ${work.lock.since}`
-        : '';
-      const ownershipWarning = ownerConflict
-        ? `\n  WARNING: This work is already active in another top-level worktree (${ownerConflict.ownerWorktreeId}${ownerConflict.ownerBranch ? ` on ${ownerConflict.ownerBranch}` : ''}: ${ownerConflict.ownerWorktreePath}). Adopt/takeover required before mutating or shipping it here.`
-        : '';
-      const operatorSurfaceLines = renderOperatorSurfaceLines(
-        loadOperatorSurfaceSummary(stateInfo, work)
-      );
+      const operatorSummary = loadOperatorSurfaceSummary(stateInfo, work);
 
       // Check for a fresh continuation snapshot written by the compacted handler
       let continuationContent = '';
@@ -233,24 +224,12 @@ export default async function (ctx: { directory: string; on: (event: string, han
         }
       }
 
-      const shippingWarning = work.status === 'shipping'
-        ? '\n  ⚠ Status is "shipping" — PR creation was in progress. Run /sw-ship to check if the PR was created or to retry.'
-        : '';
-
-      const summary = [
-        'Specwright: Work in progress',
-        `  Unit: ${work.workId} (${work.status})`,
-        unitLine || null,
-        `  Progress: ${work.completedCount}/${work.totalCount} tasks`,
-        `  Gates: ${work.gatesSummary}`,
-        `  Spec: ${work.specPath}`,
-        `  Plan: ${work.planPath}`,
-        ...operatorSurfaceLines,
-        lockWarning,
-        ownershipWarning,
-        shippingWarning || null,
-        continuationContent || null,
-      ].filter(Boolean).join('\n');
+      const summary = renderWorkInProgressSummary({
+        work,
+        summary: operatorSummary,
+        ownerConflict,
+        continuationContent
+      });
 
       return summary;
     } catch (err) {

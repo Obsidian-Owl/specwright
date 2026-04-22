@@ -18,7 +18,8 @@ allowed-tools:
 ## Goal
 
 Tell the user what this worktree is attached to, what that work is doing, what
-other works are active in the repository, and what the next action should be.
+other works are active in the repository, which runtime layout is active, and
+what the next action should be.
 
 ## Inputs
 
@@ -39,8 +40,10 @@ other works are active in the repository, and what the next action should be.
 **Display (HIGH freedom):**
 - Print the resolved `projectArtifactsRoot`, `repoStateRoot`,
   `worktreeStateRoot`, and `workArtifactsRoot` before the session summary so
-  tracked project artifacts and hidden `.git` runtime state are both
-  inspectable.
+  tracked project artifacts and the active runtime layout are inspectable.
+- Name the runtime layout explicitly: `project-visible` runtime roots under
+  `.specwright-local/` are the recommended interactive default, while
+  `git-admin` roots under `.git/specwright/` are compatibility mode.
 - Show the current session first: `worktreeId`, mode, branch, and
   `attachedWorkId`.
 - If the session is attached, show that work's status, unit/task progress, the
@@ -48,6 +51,9 @@ other works are active in the repository, and what the next action should be.
   work-artifact publication mode when present, approval freshness reason,
   latest closeout or review-packet availability, review-packet presence, gates,
   and per-work lock freshness.
+- Keep the operator vocabulary aligned with the primary adapter surfaces:
+  attached work, branch validity, approval or closeout posture, live ownership,
+  and next action.
 - If the attached work is already owned by another live top-level worktree,
   surface that conflict explicitly and point the operator to `/sw-adopt`
   instead of implying that status can mutate ownership.

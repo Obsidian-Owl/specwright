@@ -426,33 +426,34 @@ echo "=== T5: Session-start hooks and documentation ==="
 
 SESSION_START_MJS="$ROOT_DIR/adapters/claude-code/hooks/session-start.mjs"
 PLUGIN_TS="$ROOT_DIR/adapters/opencode/plugin.ts"
+OPERATOR_SURFACE_MJS="$ROOT_DIR/adapters/shared/specwright-operator-surface.mjs"
 DESIGN_MD="$ROOT_DIR/DESIGN.md"
 
-# AC-15: session-start.mjs handles shipping status
-if grep -q 'shipping' "$SESSION_START_MJS"; then
-  pass "AC-15a: session-start.mjs handles shipping status"
+# AC-15: adapters delegate to the shared operator-surface renderer, which owns
+# the shipping-state message after the refactor.
+if grep -q 'renderWorkInProgressSummary' "$SESSION_START_MJS"; then
+  pass "AC-15a: session-start.mjs delegates shipping status to shared renderer"
 else
-  fail "AC-15a: session-start.mjs does not handle shipping status"
+  fail "AC-15a: session-start.mjs does not delegate to shared renderer"
 fi
 
-# AC-15: plugin.ts handles shipping status
-if grep -q 'shipping' "$PLUGIN_TS"; then
-  pass "AC-15b: plugin.ts handles shipping status"
+if grep -q 'renderWorkInProgressSummary' "$PLUGIN_TS"; then
+  pass "AC-15b: plugin.ts delegates shipping status to shared renderer"
 else
-  fail "AC-15b: plugin.ts does not handle shipping status"
+  fail "AC-15b: plugin.ts does not delegate to shared renderer"
 fi
 
-# AC-15: Messages contain both "shipping" and "PR"/"pull request"
-if grep -A3 'shipping' "$SESSION_START_MJS" | grep -qi 'PR\|pull request'; then
-  pass "AC-15c: session-start.mjs shipping message mentions PR"
+# AC-15: shared renderer keeps the shipping message with PR guidance
+if grep -A3 'shipping' "$OPERATOR_SURFACE_MJS" | grep -qi 'PR\|pull request'; then
+  pass "AC-15c: shared operator surface shipping message mentions PR"
 else
-  fail "AC-15c: session-start.mjs shipping message doesn't mention PR"
+  fail "AC-15c: shared operator surface shipping message doesn't mention PR"
 fi
 
-if grep -A3 'shipping' "$PLUGIN_TS" | grep -qi 'PR\|pull request'; then
-  pass "AC-15d: plugin.ts shipping message mentions PR"
+if grep -A3 'shipping' "$OPERATOR_SURFACE_MJS" | grep -q '/sw-ship'; then
+  pass "AC-15d: shared operator surface shipping message preserves /sw-ship guidance"
 else
-  fail "AC-15d: plugin.ts shipping message doesn't mention PR"
+  fail "AC-15d: shared operator surface shipping message doesn't preserve /sw-ship guidance"
 fi
 
 # AC-17: DESIGN.md references shipping, PreToolUse, and evidence

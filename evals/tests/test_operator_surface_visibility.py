@@ -14,6 +14,7 @@ from evals.tests._text_helpers import assert_multiline_regex, load_text
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 SESSION_START_HOOK = ROOT_DIR / "adapters" / "claude-code" / "hooks" / "session-start.mjs"
+CODEX_SESSION_START_HOOK = ROOT_DIR / "adapters" / "codex" / "hooks" / "session-start.mjs"
 APPROVALS_MODULE = ROOT_DIR / "adapters" / "shared" / "specwright-approvals.mjs"
 PLUGIN_PATH = ROOT_DIR / "adapters" / "opencode" / "plugin.ts"
 STATUS_SKILL = ROOT_DIR / "core" / "skills" / "sw-status" / "SKILL.md"
@@ -228,6 +229,29 @@ def _run_session_start(repo_path: Path) -> str:
     return result.stdout
 
 
+def _run_codex_session_start(repo_path: Path) -> str:
+    result = subprocess.run(
+        ["node", str(CODEX_SESSION_START_HOOK)],
+        cwd=repo_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise AssertionError(result.stderr or result.stdout or "codex session-start hook failed")
+    return result.stdout
+
+
+def _run_codex_session_start_raw(repo_path: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["node", str(CODEX_SESSION_START_HOOK)],
+        cwd=repo_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
 def _run_opencode_event(repo_path: Path, event: str) -> str:
     script = f"""
 import plugin from {json.dumps(str(PLUGIN_PATH))};
@@ -272,6 +296,26 @@ def _fresh_timestamp() -> str:
 
 
 class TestSessionStartSurface(unittest.TestCase):
+    def test_primary_operator_surfaces_show_branch_approval_and_next_without_closeout(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            _write_shared_state(repo_path)
+
+            outputs = [
+                _run_session_start(repo_path),
+                _run_codex_session_start(repo_path),
+            ]
+            if shutil.which("bun"):
+                outputs.append(_run_opencode_event(repo_path, "session.created"))
+
+            for output in outputs:
+                with self.subTest(surface=output.splitlines()[0] if output else "empty"):
+                    self.assertIn("Branch: main (match)", output)
+                    self.assertIn("Closeout: none yet", output)
+                    self.assertIn("Approval: unit-spec MISSING (missing-entry)", output)
+                    self.assertIn("Next: /sw-build", output)
+
     def test_shared_state_writes_ignore_outer_hook_context(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             outer_repo_path = Path(tmpdir) / "outer-repo"
@@ -328,6 +372,105 @@ class TestSessionStartSurface(unittest.TestCase):
             self.assertIn("Closeout: stage-report", output)
             self.assertIn("Attention required: Operator surface summary is available.", output)
             self.assertIn("Approval: unit-spec APPROVED (approved)", output)
+
+    def test_codex_session_start_replays_shared_digest_and_approval_summary(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            _write_stage_report(
+                state["workDir"],
+                state["repoStateRoot"],
+                state["workId"],
+                state["unitId"],
+            )
+            _write_approvals(state["workDir"], state["unitId"])
+
+            output = _run_codex_session_start(repo_path)
+
+            self.assertIn("Branch: main (match)", output)
+            self.assertIn("Closeout: stage-report", output)
+            self.assertIn("Attention required: Operator surface summary is available.", output)
+            self.assertIn("Approval: unit-spec APPROVED (approved)", output)
+            self.assertIn("Next: /sw-build", output)
+
+    def test_codex_session_start_replays_quality_corrections_when_present(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            continuation_path = Path(state["worktreeStateRoot"]) / "continuation.md"
+            continuation_path.parent.mkdir(parents=True, exist_ok=True)
+            continuation_path.write_text(
+                "\n".join(
+                    [
+                        f"Snapshot: {_fresh_timestamp()}",
+                        "",
+                        "## Progress",
+                        "Shared continuation notes.",
+                        "",
+                        "## Correction Summary",
+                        "- unchecked-error: Always handle errors explicitly",
+                        "",
+                        "## Next Steps",
+                        "Continue with task 3.",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            output = _run_codex_session_start(repo_path)
+
+            self.assertIn("Continuation Snapshot", output)
+            self.assertIn("Quality Corrections", output)
+            self.assertIn("unchecked-error", output)
+            self.assertFalse(continuation_path.exists())
+
+    def test_codex_session_start_exits_cleanly_for_inactive_work_without_summary_reads(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            workflow_path = Path(state["workDir"]) / "workflow.json"
+            workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+            workflow["status"] = "shipped"
+            workflow_path.write_text(json.dumps(workflow, indent=2) + "\n", encoding="utf-8")
+
+            approvals_path = Path(state["workDir"]) / "approvals.md"
+            approvals_path.write_text("not valid approvals content\n", encoding="utf-8")
+
+            result = _run_codex_session_start_raw(repo_path)
+
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(result.stdout, "")
+            self.assertEqual(result.stderr, "")
+
+    def test_codex_session_start_falls_back_to_core_summary_when_operator_surface_load_fails(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            broken_stage_report = (
+                Path(state["repoStateRoot"])
+                / "work"
+                / state["workId"]
+                / "units"
+                / state["unitId"]
+                / "stage-report.md"
+            )
+            broken_stage_report.mkdir(parents=True, exist_ok=True)
+
+            result = _run_codex_session_start_raw(repo_path)
+
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(result.stderr, "")
+            self.assertIn("Specwright: Work in progress", result.stdout)
+            self.assertIn("  Unit: operator-surface-proof (building)", result.stdout)
+            self.assertIn("  Gates: build: PASS, tests: PASS", result.stdout)
+            self.assertIn("  Spec: ", result.stdout)
+            self.assertIn("  Plan: ", result.stdout)
+            self.assertNotIn("Closeout:", result.stdout)
 
 
 @unittest.skipUnless(shutil.which("bun"), "bun is required for Opencode plugin runtime tests")
