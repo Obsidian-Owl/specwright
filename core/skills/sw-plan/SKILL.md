@@ -72,6 +72,9 @@ instead of fabricating one.
   get their own unit.
 - Each unit: independently buildable, testable, single purpose, 3+ testable ACs.
 - Ordered by dependency. If exactly 1 unit, use flat layout.
+- When mutable concurrency would otherwise require multiple top-level worktrees
+  on one active workflow, split the effort into separate works and define
+  integration criteria between them instead of sharing one mutable workflow.
 - Record decomposition rationale in decisions.md per `protocols/decision.md` DISAMBIGUATION.
 - On re-entry to `sw-plan` after a structural pivot or decomposition revision,
   regenerate only the affected remaining-unit artifact set. Overwrite each
@@ -127,6 +130,9 @@ instead of fabricating one.
 For each unit sequentially: create directory, write context.md (self-contained),
 plan.md (task breakdown + file change map), spec.md (unit-scoped ACs). Each unit's
 context.md must be sufficient for an agent reading only that directory.
+If the remaining work truly needs mutable concurrency, stop decomposing it into
+one shared workflow and instead create separate works with explicit
+integration criteria.
 
 **Spec pre-review (MEDIUM freedom):**
 - After drafting each spec, delegate to `specwright-architect` per `protocols/spec-review.md`.

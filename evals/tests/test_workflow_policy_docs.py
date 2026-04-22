@@ -7,6 +7,16 @@ from evals.tests._text_helpers import assert_multiline_regex, load_text
 
 VERIFY_SKILL = "core/skills/sw-verify/SKILL.md"
 PARALLEL_PROTOCOL = "core/protocols/parallel-build.md"
+PLAN_SKILL = "core/skills/sw-plan/SKILL.md"
+BUILD_SKILL = "core/skills/sw-build/SKILL.md"
+SIDECAR_SKILLS = [
+    "core/skills/sw-research/SKILL.md",
+    "core/skills/sw-doctor/SKILL.md",
+    "core/skills/sw-review/SKILL.md",
+    "core/skills/sw-sync/SKILL.md",
+    "core/skills/sw-audit/SKILL.md",
+    "core/skills/sw-learn/SKILL.md",
+]
 
 
 class TestVerifyParallelLanePolicy(unittest.TestCase):
@@ -54,6 +64,39 @@ class TestVerifyParallelLanePolicy(unittest.TestCase):
             self.parallel_text.lower(),
             r"(parent|top-level)[\s\S]{0,180}(only authority|only writer|only mutator)"
             r"[\s\S]{0,180}(shared workflow state|workflow\.json|shared work state)",
+        )
+
+
+class TestWorkflowOwnershipLanguage(unittest.TestCase):
+    """Task 2 RED: sidecars and core stages must describe the same ownership model."""
+
+    def test_sidecar_skills_do_not_claim_core_stage_or_top_level_ownership(self) -> None:
+        for skill_path in SIDECAR_SKILLS:
+            with self.subTest(skill=skill_path):
+                skill_text = load_text(skill_path).lower()
+                assert_multiline_regex(
+                    self,
+                    skill_text,
+                    r"not a core workflow stage",
+                )
+                assert_multiline_regex(
+                    self,
+                    skill_text,
+                    r"never claims top-level work ownership",
+                )
+
+    def test_sw_plan_directs_mutable_concurrency_into_separate_works(self) -> None:
+        assert_multiline_regex(
+            self,
+            load_text(PLAN_SKILL).lower(),
+            r"mutable concurrency[\s\S]{0,220}separate works[\s\S]{0,220}integration criteria",
+        )
+
+    def test_sw_build_directs_mutable_concurrency_into_separate_works(self) -> None:
+        assert_multiline_regex(
+            self,
+            load_text(BUILD_SKILL).lower(),
+            r"mutable concurrency[\s\S]{0,220}separate works[\s\S]{0,220}integration criteria",
         )
 
 

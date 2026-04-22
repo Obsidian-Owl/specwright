@@ -40,6 +40,7 @@ and persist findings for future design cycles.
 **Scope (LOW freedom):**
 - This skill reads and analyzes. It NEVER modifies source code, creates branches, runs builds, or starts work units.
 - Does NOT create `currentWork` in workflow.json. Does NOT require a lock. Can run while a work unit is in progress.
+- It is not a core workflow stage and never claims top-level work ownership.
 - On compaction: re-run from scratch (no state to recover).
 
 **Triage (MEDIUM freedom):**

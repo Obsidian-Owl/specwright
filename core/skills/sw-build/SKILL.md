@@ -83,7 +83,7 @@ Per-task integration and regression runs do not happen inside this loop.
 
 **State updates (LOW freedom):** Follow `protocols/state.md`: acquire the per-work lock on the selected work before mutations, update the selected work's `tasksCompleted` after each committed task, refresh `currentTask`, and append as-built notes before handoff. Mutate only the selected work's `workflow.json` and the current worktree's session state.
 
-**Parallel execution (MEDIUM freedom):** Only use `protocols/parallel-build.md` when the experimental config flag enables it; otherwise ignore it and stay sequential.
+**Parallel execution (MEDIUM freedom):** Only use `protocols/parallel-build.md` when the experimental config flag enables it; otherwise ignore it and stay sequential. When mutable concurrency needs more than subordinate helpers or read-only lanes, split the effort into separate works with integration criteria rather than sharing one mutable workflow across top-level worktrees.
 
 ## Protocol References
 

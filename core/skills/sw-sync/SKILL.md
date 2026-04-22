@@ -100,6 +100,7 @@ claimed by a live Specwright session or a subordinate helper worktree.
 
 **No state mutation (LOW freedom):**
 - `sw-sync` never writes Specwright state.
+- It is not a core workflow stage and never claims top-level work ownership.
 - Reading session and workflow files to protect branches is allowed.
 
 ## Protocol References
