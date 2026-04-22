@@ -283,7 +283,7 @@ function runMutation(action, cwd, targetRef) {
   const target = targetRefName(targetRef);
 
   if (action === 'merge') {
-    return tryGit(['merge', '--no-edit', target], cwd);
+    return tryGit(['merge', '--no-ff', '--no-edit', target], cwd);
   }
 
   return tryGit(['rebase', target], cwd);

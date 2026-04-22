@@ -445,12 +445,14 @@ MERGE_PUSHER="$TEST_TMPDIR/merge-pusher"
 setup_assessed_repo "$REMOTE" "$MERGE_REPO" "merge-work" "branch-head" "require" "merge"
 clone_repo "$REMOTE" "$MERGE_PUSHER"
 commit_on_feature "$MERGE_REPO" "test: merge helper diverges locally"
+git_nested -C "$MERGE_REPO" -c core.hooksPath=/dev/null config merge.ff only
 before_merge_head="$(git_nested -C "$MERGE_REPO" rev-parse HEAD)"
 advance_main_and_push "$MERGE_PUSHER" "test: merge helper sees target drift"
 if merge_output="$(reconcile_freshness "$MERGE_REPO" verify true)"; then
   assert_output_contains "$merge_output" '"status":"reconciled"' "reconcile helper reports a successful merge"
   assert_output_contains "$merge_output" '"action":"merge"' "reconcile helper reports the merge action"
   assert_output_contains "$merge_output" '"performed":true' "reconcile helper marks merge as performed"
+  assert_output_contains "$merge_output" '"freshnessBefore":"diverged"' "merge helper stays deterministic under merge.ff=only"
 else
   fail "reconcile helper returns JSON for a diverged merge recovery"
 fi
