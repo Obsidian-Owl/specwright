@@ -446,6 +446,32 @@ class TestSessionStartSurface(unittest.TestCase):
             self.assertEqual(result.stdout, "")
             self.assertEqual(result.stderr, "")
 
+    def test_codex_session_start_falls_back_to_core_summary_when_operator_surface_load_fails(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            broken_stage_report = (
+                Path(state["repoStateRoot"])
+                / "work"
+                / state["workId"]
+                / "units"
+                / state["unitId"]
+                / "stage-report.md"
+            )
+            broken_stage_report.mkdir(parents=True, exist_ok=True)
+
+            result = _run_codex_session_start_raw(repo_path)
+
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(result.stderr, "")
+            self.assertIn("Specwright: Work in progress", result.stdout)
+            self.assertIn("  Unit: operator-surface-proof (building)", result.stdout)
+            self.assertIn("  Gates: build: PASS, tests: PASS", result.stdout)
+            self.assertIn("  Spec: ", result.stdout)
+            self.assertIn("  Plan: ", result.stdout)
+            self.assertNotIn("Closeout:", result.stdout)
+
 
 @unittest.skipUnless(shutil.which("bun"), "bun is required for Opencode plugin runtime tests")
 class TestOpencodeSessionCreatedSurface(unittest.TestCase):

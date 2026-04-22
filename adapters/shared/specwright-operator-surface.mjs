@@ -21,7 +21,13 @@ export function loadOperatorSurfaceSummary(stateInfo, work) {
   if (!stateInfo || !work) {
     return null;
   }
-  const card = buildStatusCard(stateInfo, work);
+
+  let card = null;
+  try {
+    card = buildStatusCard(stateInfo, work);
+  } catch {
+    return null;
+  }
 
   return {
     card,
