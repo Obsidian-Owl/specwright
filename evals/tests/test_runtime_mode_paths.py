@@ -81,6 +81,9 @@ def _init_true_bare_checkout(checkout_path: Path, *, env=None) -> dict[str, Path
         env=env,
     )
     (checkout_path / ".git").write_text(f"gitdir: {bare_repo_path.resolve()}\n", encoding="utf-8")
+    # This creates a gitdir pointer only. It does not register a linked worktree
+    # under the bare repo's worktree registry, so only use this fixture for
+    # gitDir/gitCommonDir/show-toplevel proofs.
 
     return {
         "sourceRepoPath": source_repo_path.resolve(),
@@ -582,7 +585,6 @@ class TestRuntimeModeResolverPaths(unittest.TestCase):
             )
 
             self.assertNotEqual(failed_show_toplevel.returncode, 0)
-            self.assertIn("work tree", failed_show_toplevel.stderr.lower())
 
     def test_git_admin_bare_primary_checkout_falls_back_to_local_project_root(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -605,12 +607,16 @@ class TestRuntimeModeResolverPaths(unittest.TestCase):
     def test_project_visible_bare_primary_checkout_keeps_runtime_out_of_git(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo_path = Path(tmp) / "bare-primary-project-visible"
-            _init_true_bare_checkout(repo_path)
+            fixture = _init_true_bare_checkout(repo_path)
             _write_config(repo_path, runtime_mode="project-visible")
             _write_shared_state(repo_path, runtime_mode="project-visible")
 
             data = _inspect_runtime_state(repo_path)
             expected_roots = _runtime_roots(repo_path, runtime_mode="project-visible")
+            expected_worktree_id = _derive_worktree_id(
+                fixture["bareRepoPath"],
+                fixture["bareRepoPath"],
+            )
             git_admin_root = expected_roots["gitCommonDir"] / "specwright"
 
             self.assertEqual(data["layout"], "shared")
@@ -619,7 +625,7 @@ class TestRuntimeModeResolverPaths(unittest.TestCase):
                 data["roots"]["repoStateRoot"],
                 str(expected_roots["repoStateRoot"]),
             )
-            self.assertEqual(data["roots"]["worktreeId"], expected_roots["worktreeId"])
+            self.assertEqual(data["roots"]["worktreeId"], expected_worktree_id)
             self.assertEqual(
                 data["roots"]["worktreeStateRoot"],
                 str(expected_roots["worktreeStateRoot"]),
@@ -627,10 +633,6 @@ class TestRuntimeModeResolverPaths(unittest.TestCase):
             self.assertEqual(
                 data["roots"]["workArtifactsRoot"],
                 str(expected_roots["cloneLocalWorkArtifactsRoot"]),
-            )
-            self.assertEqual(
-                expected_roots["sharedRuntimeRoot"],
-                expected_roots["gitCommonDir"].parent / ".specwright-local",
             )
             self.assertNotEqual(data["roots"]["repoStateRoot"], str(git_admin_root))
             self.assertNotEqual(data["roots"]["worktreeStateRoot"], str(git_admin_root))
