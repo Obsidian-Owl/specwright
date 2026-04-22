@@ -20,7 +20,7 @@ hardcoded.
     },
     "freshness": {
       "validation": "branch-head",
-      "reconcile": "manual",
+      "reconcile": "rebase",
       "checkpoints": {
         "build": "require",
         "verify": "require",
@@ -194,6 +194,11 @@ results according to the checkpoint policy:
 - `require` stops the stage
 - `warn` records advisory drift and continues
 - `ignore` continues without escalation
+
+When `rebase` or `merge` reconcile is configured, the blocked lifecycle stage
+may use `protocols/git-reconcile.md` to perform `rebase` or `merge`
+reconcile in-place. `manual` remains the explicit fallback and
+stops with operator guidance.
 
 Queue-managed results stay distinct from local rewrite policy. Skills may
 surface queue status, but they must not silently rebase or merge the selected

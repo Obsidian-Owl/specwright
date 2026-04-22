@@ -31,9 +31,13 @@ DIST_DIR="$ROOT_DIR/dist"
 CC_DIST="$DIST_DIR/claude-code"
 CLAUDE_BUILD_MODE="${SPECWRIGHT_CLAUDE_BUILD_MODE:-full}"
 MULTI_WORKTREE_RUNTIME_TEST="$ROOT_DIR/tests/test-multi-worktree-state.sh"
+OPTIONAL_STAGE_ENFORCEMENT_TEST="$ROOT_DIR/tests/test-optional-stage-enforcement.sh"
+MULTI_WORKTREE_SKILL_DOCS_TEST="$ROOT_DIR/tests/test-multi-worktree-skill-docs.sh"
 TARGET_MODEL_DOCS_TEST="$ROOT_DIR/tests/test-branch-freshness-target-model-docs.sh"
 GIT_FRESHNESS_ENGINE_TEST="$ROOT_DIR/tests/test-git-freshness-engine.sh"
 LIFECYCLE_FRESHNESS_TEST="$ROOT_DIR/tests/test-lifecycle-freshness-checkpoints.sh"
+PIVOT_REBASELINING_PROOF_TEST="$ROOT_DIR/tests/test-sw-pivot-rebaselining-proof.sh"
+BRANCH_FRESHNESS_RECONCILE_LOOP_TEST="$ROOT_DIR/tests/test-branch-freshness-reconcile-loop.sh"
 WORKFLOW_PROOF_TEST="$ROOT_DIR/tests/test-workflow-proof.sh"
 CONFIG_VISIBILITY_DOCS_TEST="$ROOT_DIR/tests/test-config-validation-visibility-docs.sh"
 AUDIT_CHAIN_ROOT_MODEL_TEST="$ROOT_DIR/tests/test-audit-chain-root-model.sh"
@@ -1327,6 +1331,56 @@ else
 fi
 
 echo ""
+echo "=== Supplemental regression: Optional-stage enforcement ==="
+
+if [ -x "$OPTIONAL_STAGE_ENFORCEMENT_TEST" ]; then
+  pass "tests/test-optional-stage-enforcement.sh is executable"
+else
+  fail "tests/test-optional-stage-enforcement.sh is missing or not executable"
+fi
+
+OPTIONAL_STAGE_EXIT=0
+OPTIONAL_STAGE_OUTPUT="$(bash "$OPTIONAL_STAGE_ENFORCEMENT_TEST" 2>&1)" || OPTIONAL_STAGE_EXIT=$?
+
+if [ "$OPTIONAL_STAGE_EXIT" -ne 0 ]; then
+  fail "tests/test-optional-stage-enforcement.sh fails under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${OPTIONAL_STAGE_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-optional-stage-enforcement.sh passes under the configured test path"
+fi
+if echo "$OPTIONAL_STAGE_OUTPUT" | grep -Fq "sw-pivot keeps retro and research as optional context, not hard prerequisites"; then
+  pass "optional-stage regression output includes optional retro/research coverage"
+else
+  fail "optional-stage regression output missing optional retro/research coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: Multi-worktree skill docs ==="
+
+if [ -x "$MULTI_WORKTREE_SKILL_DOCS_TEST" ]; then
+  pass "tests/test-multi-worktree-skill-docs.sh is executable"
+else
+  fail "tests/test-multi-worktree-skill-docs.sh is missing or not executable"
+fi
+
+MULTI_WORKTREE_SKILL_DOCS_EXIT=0
+MULTI_WORKTREE_SKILL_DOCS_OUTPUT="$(bash "$MULTI_WORKTREE_SKILL_DOCS_TEST" 2>&1)" || MULTI_WORKTREE_SKILL_DOCS_EXIT=$?
+
+if [ "$MULTI_WORKTREE_SKILL_DOCS_EXIT" -ne 0 ]; then
+  fail "tests/test-multi-worktree-skill-docs.sh fails under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${MULTI_WORKTREE_SKILL_DOCS_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-multi-worktree-skill-docs.sh passes under the configured test path"
+fi
+if echo "$MULTI_WORKTREE_SKILL_DOCS_OUTPUT" | grep -Fq "sw-pivot preserves immutable baseline scope while revising the selected work"; then
+  pass "multi-worktree skill-doc regression output includes preserved-scope coverage"
+else
+  fail "multi-worktree skill-doc regression output missing preserved-scope coverage"
+fi
+
+echo ""
 echo "=== Supplemental regression: Branch freshness target-model docs ==="
 
 if [ -x "$TARGET_MODEL_DOCS_TEST" ]; then
@@ -1395,10 +1449,60 @@ if [ "$LIFECYCLE_FRESHNESS_EXIT" -ne 0 ]; then
 else
   pass "tests/test-lifecycle-freshness-checkpoints.sh passes under the configured test path"
 fi
-if echo "$LIFECYCLE_FRESHNESS_OUTPUT" | grep -Fq "PASS: sw-build forbids hidden branch rewrites"; then
-  pass "lifecycle regression output includes rewrite-guard coverage"
+if [ "$LIFECYCLE_FRESHNESS_EXIT" -eq 0 ] && echo "$LIFECYCLE_FRESHNESS_OUTPUT" | grep -Fq "COVERAGE: freshness.lifecycle-policy"; then
+  pass "lifecycle regression output includes lifecycle-policy coverage"
 else
-  fail "lifecycle regression output missing rewrite-guard coverage"
+  fail "lifecycle regression output missing lifecycle-policy coverage"
+fi
+
+echo ""
+echo "=== Supplemental regression: sw-pivot rebaselining proof ==="
+
+if [ -x "$PIVOT_REBASELINING_PROOF_TEST" ]; then
+  pass "tests/test-sw-pivot-rebaselining-proof.sh is executable"
+else
+  fail "tests/test-sw-pivot-rebaselining-proof.sh is missing or not executable"
+fi
+
+PIVOT_REBASELINING_EXIT=0
+PIVOT_REBASELINING_OUTPUT="$(bash "$PIVOT_REBASELINING_PROOF_TEST" 2>&1)" || PIVOT_REBASELINING_EXIT=$?
+
+if [ "$PIVOT_REBASELINING_EXIT" -ne 0 ]; then
+  fail "tests/test-sw-pivot-rebaselining-proof.sh fails under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${PIVOT_REBASELINING_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-sw-pivot-rebaselining-proof.sh passes under the configured test path"
+fi
+if [ "$PIVOT_REBASELINING_EXIT" -eq 0 ] && echo "$PIVOT_REBASELINING_OUTPUT" | grep -Fq "COVERAGE: pivot.rebaselining-proof"; then
+  pass "pivot rebaselining proof output includes coverage marker"
+else
+  fail "pivot rebaselining proof output missing coverage marker"
+fi
+
+echo ""
+echo "=== Supplemental regression: Branch freshness reconcile loop ==="
+
+if [ -x "$BRANCH_FRESHNESS_RECONCILE_LOOP_TEST" ]; then
+  pass "tests/test-branch-freshness-reconcile-loop.sh is executable"
+else
+  fail "tests/test-branch-freshness-reconcile-loop.sh is missing or not executable"
+fi
+
+BRANCH_FRESHNESS_RECONCILE_LOOP_EXIT=0
+BRANCH_FRESHNESS_RECONCILE_LOOP_OUTPUT="$(bash "$BRANCH_FRESHNESS_RECONCILE_LOOP_TEST" 2>&1)" || BRANCH_FRESHNESS_RECONCILE_LOOP_EXIT=$?
+
+if [ "$BRANCH_FRESHNESS_RECONCILE_LOOP_EXIT" -ne 0 ]; then
+  fail "tests/test-branch-freshness-reconcile-loop.sh fails under the configured test path"
+  echo "  Regression output:"
+  printf '    %s\n' "${BRANCH_FRESHNESS_RECONCILE_LOOP_OUTPUT//$'\n'/$'\n    '}"
+else
+  pass "tests/test-branch-freshness-reconcile-loop.sh passes under the configured test path"
+fi
+if [ "$BRANCH_FRESHNESS_RECONCILE_LOOP_EXIT" -eq 0 ] && echo "$BRANCH_FRESHNESS_RECONCILE_LOOP_OUTPUT" | grep -Fq "COVERAGE: freshness.recovery-surfaces"; then
+  pass "branch freshness reconcile loop output includes coverage marker"
+else
+  fail "branch freshness reconcile loop output missing coverage marker"
 fi
 
 echo ""

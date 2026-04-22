@@ -129,6 +129,21 @@ assert_file_contains \
   'Status not `?planning`?, `?building`?, or `?verifying`?' \
   "sw-pivot still has explicit state-gating for the broadened entry states"
 
+assert_file_contains \
+  "core/skills/sw-pivot/SKILL.md" \
+  'Optional recent retro or research inputs when available and relevant' \
+  "sw-pivot keeps retro and research as optional context, not hard prerequisites"
+
+assert_file_contains \
+  "core/skills/sw-pivot/SKILL.md" \
+  'tasks and shipped units are immutable baseline scope' \
+  "sw-pivot preserves completed tasks and shipped units as immutable baseline scope"
+
+assert_file_contains \
+  "core/skills/sw-pivot/SKILL.md" \
+  'remaining-tasks-only rewrite' \
+  "sw-pivot explicitly rejects remaining-tasks-only rewrite framing"
+
 # AC-6: recommendations in free text are allowed
 echo ""
 echo "AC-6: sw-ship recommendation language is free-text, not enforcement"

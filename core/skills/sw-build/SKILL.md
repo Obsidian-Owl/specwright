@@ -46,7 +46,7 @@ Implement the current work unit with TDD. The per-task loop is RED → GREEN →
 
 **Branch setup (LOW freedom):** First action before coding: resolve the session-selected work from the current worktree, verify that no other live top-level worktree owns it, then check out the feature branch from `config.git.branchPrefix` and sync it per `protocols/git.md`. The selected work's recorded `targetRef`, when present, is the first branch-resolution input via `protocols/git.md`; repo config defaults and the `baseBranch` compatibility alias are fallbacks only. Use `{git.branchPrefix}{selectedWork.unitId}` for multi-unit work and never commit to the base branch. If the selected work is already owned elsewhere, STOP with explicit `/sw-adopt` guidance instead of mutating it silently; do not fall back to implicit adopt/takeover behavior.
 
-**Build freshness checkpoint (LOW freedom) — after branch setup:** Evaluate the build checkpoint via `protocols/git-freshness.md` using the selected work's recorded `targetRef` and `freshness`. `require` blocks stale, diverged, and blocked freshness results; `warn` surfaces advisory drift; queue-managed results do not trigger hidden rebases or other branch rewrites. When branch-head validation plus `manual` reconcile blocks entry, STOP with manual reconcile guidance: reconcile the current branch against the recorded target in the owning worktree, or run `/sw-adopt` first if a linked-worktree ownership conflict exists, then rerun `/sw-build`. Do not clear the block by silently rewriting `targetRef` or freshness metadata.
+**Build freshness checkpoint (LOW freedom) — after branch setup:** Evaluate the build checkpoint via `protocols/git-freshness.md` using the selected work's recorded `targetRef` and `freshness`. `require` blocks stale, diverged, and blocked freshness results; `warn` surfaces advisory drift; queue-managed results stay distinct and do not trigger implicit local rewrites. When branch-head validation is blocked and `rebase` or `merge` reconcile is configured, run `protocols/git-reconcile.md` in the owning worktree and continue in the same stage after a successful reconcile. `manual` remains an explicit fallback: stop with manual reconcile guidance, reconcile the current branch against the recorded target in the owning worktree, or run `/sw-adopt` first if a linked-worktree ownership conflict exists, then rerun `/sw-build`. Do not clear the block by silently rewriting `targetRef` or freshness metadata.
 
 **Approval checkpoint (LOW freedom) — before task loop:** Use `protocols/approvals.md` and the shared helper with the current unit artifact set (`spec.md`, `plan.md`, `context.md`). When `sw-pivot` or replanning regenerated the current unit artifacts, that regenerated artifact set becomes the current approval surface. Interactive `/sw-build` runs may record an `APPROVED` `unit-spec` entry in `{workArtifactsRoot}/{selectedWork.id}/approvals.md` with source classification `command`, and they must refresh or record that approval for the regenerated surface before any task executes. Headless runs must validate existing human approval instead. Approval refresh does not replace branch reconciliation and must not be used to clear a separate freshness block. Never move approval truth into `workflow.json`.
 
@@ -90,6 +90,7 @@ Per-task integration and regression runs do not happen inside this loop.
 - `protocols/stage-boundary.md` -- scope and final handoff
 - `protocols/git.md` -- branch lifecycle and commit discipline
 - `protocols/git-freshness.md` -- build-entry freshness checkpoint
+- `protocols/git-reconcile.md` -- lifecycle-owned branch reconcile
 - `protocols/approvals.md` -- spec approval capture and validation
 - `protocols/review-packet.md` -- rationale artifact contract consumed by the reviewer packet
 - `protocols/delegation.md` -- tester/executor/build-fixer context handoff
@@ -106,6 +107,7 @@ Per-task integration and regression runs do not happen inside this loop.
 | No active work unit | STOP: "Run /sw-design and /sw-plan first" |
 | Selected work owned by another live top-level worktree | STOP with explicit `/sw-adopt` guidance |
 | Build/test command not configured | STOP: "Configure commands in config.json or run /sw-init" |
+| Build freshness reconcile under branch-head `require` + `rebase` or `merge` fails | STOP and surface the reconcile failure; keep the recorded target/freshness metadata intact. |
 | Build freshness checkpoint is blocked under branch-head `require` + `manual` | STOP with manual reconcile guidance, keep the recorded target/freshness metadata, then rerun `/sw-build`. |
 | Tester writes tests that pass immediately | Re-delegate RED with stronger failing cases |
 | Executor reports a pre-existing type/signature mismatch | STOP and surface the plan mismatch |

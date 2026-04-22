@@ -69,9 +69,11 @@ def build(instructions: str = "") -> str:
 
 Implement per the spec and plan in the selected work directory.
 Follow TDD strictly. Commit after each completed task.
-If branch-head freshness blocks entry under manual reconcile, reconcile the
-current branch against the recorded target in the owning worktree, then rerun
-/sw-build. Do not rewrite target metadata to bypass the block.
+If branch-head freshness blocks entry and reconcile is rebase or merge, recover
+in the same stage. If policy is manual, treat it as explicit fallback:
+reconcile the current branch against the recorded target in the owning
+worktree, then rerun /sw-build. Do not rewrite target metadata to bypass the
+block.
 Do not ask for confirmation — proceed through all tasks.
 Write the stage report before the terminal handoff.
 The stage report must begin with `Attention required:` and stay concise.""" + _format_instructions(instructions) + """
@@ -93,9 +95,11 @@ def verify(gate: str = "", instructions: str = "") -> str:
         return f"""Run /sw-verify --gate={gate}
 
 Run only the {gate} quality gate. Report results.
-If branch-head freshness blocks entry under manual reconcile, reconcile the
-current branch against the recorded target in the owning worktree, then rerun
-/sw-verify. Do not go back to /sw-build solely to clear freshness.
+If branch-head freshness blocks entry and reconcile is rebase or merge, recover
+in the same verify run. If policy is manual, treat it as explicit fallback:
+reconcile the current branch against the recorded target in the owning
+worktree, then rerun /sw-verify. Do not go back to /sw-build solely to clear
+freshness.
 Accept all defaults.
 Write the stage report before the terminal handoff.
 The stage report must begin with `Attention required:` and stay concise.{_format_instructions(instructions)}
@@ -107,9 +111,11 @@ Next: /sw-build or /sw-ship"""
     return """Run /sw-verify.
 
 Run all enabled quality gates. Report results.
-If branch-head freshness blocks entry under manual reconcile, reconcile the
-current branch against the recorded target in the owning worktree, then rerun
-/sw-verify. Do not go back to /sw-build solely to clear freshness.
+If branch-head freshness blocks entry and reconcile is rebase or merge, recover
+in the same verify run. If policy is manual, treat it as explicit fallback:
+reconcile the current branch against the recorded target in the owning
+worktree, then rerun /sw-verify. Do not go back to /sw-build solely to clear
+freshness.
 Do not skip any gates. Accept all defaults.
 Write the stage report before the terminal handoff.
 The stage report must begin with `Attention required:` and stay concise.""" + _format_instructions(instructions) + """
@@ -128,9 +134,10 @@ This is a constrained non-interactive ship eval. Execute only the ship flow.
 Do not reopen `core/skills/sw-ship/SKILL.md` unless execution is blocked.
 Read only the selected workflow state, `.specwright/config.json`,
 `{workDir}/spec.md`, `{workDir}/plan.md`, and `{workDir}/evidence/`.
-If shipping freshness blocks under manual reconcile, STOP and report that the
-operator must reconcile the current branch against the recorded target in the
-owning worktree, then rerun /sw-verify followed by /sw-ship in a separate
+If shipping freshness blocks and reconcile is rebase or merge, recover in the
+same run. If policy is manual, STOP and report that this is explicit fallback:
+the operator must reconcile the current branch against the recorded target in
+the owning worktree, then rerun /sw-verify followed by /sw-ship in a separate
 invocation.
 If pre-flight passes, set status to `shipping`, run exactly one
 `gh pr create`, then on success write `prNumber`, keep `prMergedAt` null,

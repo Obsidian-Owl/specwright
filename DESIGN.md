@@ -74,10 +74,11 @@ Validated, referenced findings about external systems: API documentation, SDK co
 Pivot escalation stays explicit at the architecture level. If a requested
 change would rewrite shipped scope, discard history, or needs a brand-new
 direction, route back through `/sw-design <changes>` instead of forcing
-`/sw-pivot`. If manual reconcile blocks `/sw-build`, `/sw-verify`, or
-`/sw-ship`, reconcile the current branch against the recorded target in the
-owning worktree, then rerun `/sw-build`, rerun `/sw-verify`, or rerun
-`/sw-verify` followed by `/sw-ship`.
+`/sw-pivot`. If branch-head freshness blocks `/sw-build`, `/sw-verify`, or
+`/sw-ship` and `rebase`/`merge` reconcile is configured, Specwright recovers
+in the same stage or run. `manual` remains the explicit fallback: reconcile
+the current branch against the recorded target in the owning worktree, then
+rerun the blocked stage; shipping still reruns `/sw-verify` before `/sw-ship`.
 
 ### Internal Gate Skills (6)
 

@@ -33,7 +33,8 @@ Spec-driven app development with quality gates. Ensures the user gets what they 
 - `/sw-pivot` is research-backed rebaselining for work in `planning`, `building`, or `verifying`.
 - It can revise design, plan, and in-progress work while preserving completed scope and shipped scope as the baseline.
 - If a requested change would rewrite shipped scope, discard history, or needs a brand-new direction, use `/sw-design <changes>` instead of forcing `/sw-pivot`.
-- If manual reconcile blocks `/sw-build`, `/sw-verify`, or `/sw-ship`, reconcile the current branch against the recorded target in the owning worktree, then rerun `/sw-build`, rerun `/sw-verify`, or rerun `/sw-verify` followed by `/sw-ship`.
+- If branch-head freshness blocks `/sw-build`, `/sw-verify`, or `/sw-ship` and `rebase`/`merge` reconcile is configured, Specwright recovers in the same stage or run.
+- `manual` is the explicit fallback: reconcile the current branch against the recorded target in the owning worktree, then rerun the blocked stage; shipping still reruns `/sw-verify` before `/sw-ship`.
 
 ## Anchor Documents
 
