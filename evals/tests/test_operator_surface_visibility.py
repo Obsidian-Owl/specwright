@@ -14,6 +14,7 @@ from evals.tests._text_helpers import assert_multiline_regex, load_text
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 SESSION_START_HOOK = ROOT_DIR / "adapters" / "claude-code" / "hooks" / "session-start.mjs"
+CODEX_SESSION_START_HOOK = ROOT_DIR / "adapters" / "codex" / "hooks" / "session-start.mjs"
 APPROVALS_MODULE = ROOT_DIR / "adapters" / "shared" / "specwright-approvals.mjs"
 PLUGIN_PATH = ROOT_DIR / "adapters" / "opencode" / "plugin.ts"
 STATUS_SKILL = ROOT_DIR / "core" / "skills" / "sw-status" / "SKILL.md"
@@ -228,6 +229,19 @@ def _run_session_start(repo_path: Path) -> str:
     return result.stdout
 
 
+def _run_codex_session_start(repo_path: Path) -> str:
+    result = subprocess.run(
+        ["node", str(CODEX_SESSION_START_HOOK)],
+        cwd=repo_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise AssertionError(result.stderr or result.stdout or "codex session-start hook failed")
+    return result.stdout
+
+
 def _run_opencode_event(repo_path: Path, event: str) -> str:
     script = f"""
 import plugin from {json.dumps(str(PLUGIN_PATH))};
@@ -272,6 +286,25 @@ def _fresh_timestamp() -> str:
 
 
 class TestSessionStartSurface(unittest.TestCase):
+    def test_primary_operator_surfaces_show_branch_approval_and_next_without_closeout(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            _write_shared_state(repo_path)
+
+            outputs = (
+                _run_session_start(repo_path),
+                _run_codex_session_start(repo_path),
+                _run_opencode_event(repo_path, "session.created"),
+            )
+
+            for output in outputs:
+                with self.subTest(surface=output.splitlines()[0] if output else "empty"):
+                    self.assertIn("Branch: main (match)", output)
+                    self.assertIn("Closeout: none yet", output)
+                    self.assertIn("Approval: unit-spec MISSING (missing-entry)", output)
+                    self.assertIn("Next: /sw-build", output)
+
     def test_shared_state_writes_ignore_outer_hook_context(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             outer_repo_path = Path(tmpdir) / "outer-repo"
@@ -328,6 +361,27 @@ class TestSessionStartSurface(unittest.TestCase):
             self.assertIn("Closeout: stage-report", output)
             self.assertIn("Attention required: Operator surface summary is available.", output)
             self.assertIn("Approval: unit-spec APPROVED (approved)", output)
+
+    def test_codex_session_start_replays_shared_digest_and_approval_summary(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_path = Path(tmpdir)
+            _init_git_repo(repo_path)
+            state = _write_shared_state(repo_path)
+            _write_stage_report(
+                state["workDir"],
+                state["repoStateRoot"],
+                state["workId"],
+                state["unitId"],
+            )
+            _write_approvals(state["workDir"], state["unitId"])
+
+            output = _run_codex_session_start(repo_path)
+
+            self.assertIn("Branch: main (match)", output)
+            self.assertIn("Closeout: stage-report", output)
+            self.assertIn("Attention required: Operator surface summary is available.", output)
+            self.assertIn("Approval: unit-spec APPROVED (approved)", output)
+            self.assertIn("Next: /sw-build", output)
 
 
 @unittest.skipUnless(shutil.which("bun"), "bun is required for Opencode plugin runtime tests")
