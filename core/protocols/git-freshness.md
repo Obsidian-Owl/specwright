@@ -18,6 +18,8 @@ This protocol defines:
 
 It does not define user-facing lifecycle policy on its own. Later skills apply
 their checkpoint severity rules to the helper result.
+Mutation-owning recovery is intentionally separate and lives in
+`protocols/git-reconcile.md`.
 
 ## Storage Boundary Model
 
@@ -96,6 +98,8 @@ The helper operates from recorded work state and resolved roots.
 
 The helper reports which mode is configured. It does not execute the
 reconciliation itself.
+Lifecycle-owned mutation, when allowed, belongs to the separate reconcile
+contract.
 
 ## Result Categories
 
@@ -165,6 +169,9 @@ The helper is an assessor, not a mutator.
 ## Caller Responsibilities
 
 - lifecycle skills decide whether a result blocks, warns, or proceeds
+- when `validation = branch-head` and `reconcile = rebase | merge`, lifecycle
+  skills may invoke `git-reconcile` inside the blocked stage instead of
+  routing the operator through a separate manual branch-sync step
 - when `validation = branch-head`, `reconcile = manual`, and the active
   checkpoint is `require`, callers use one shared manual reconcile contract:
   stop, tell the operator to manually reconcile the current branch against the

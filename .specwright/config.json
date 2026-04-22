@@ -30,7 +30,7 @@
     },
     "freshness": {
       "validation": "branch-head",
-      "reconcile": "manual",
+      "reconcile": "rebase",
       "checkpoints": {
         "build": "require",
         "verify": "require",

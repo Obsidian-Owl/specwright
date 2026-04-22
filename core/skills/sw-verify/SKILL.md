@@ -81,15 +81,15 @@ Use `protocols/git-freshness.md` to assess the selected work's verify
 checkpoint from the recorded target and policy. For branch-head validation,
 branch-head `require` blocks stale, diverged, and blocked freshness results.
 Queue-managed mode remains a distinct validation path and does not prescribe a
-local rebase before verification. When branch-head validation plus `manual`
-reconcile blocks entry, STOP with manual reconcile guidance: reconcile the
-current branch against the recorded target in the
-owning worktree, or run `/sw-adopt` first if a linked-worktree ownership
-conflict exists, then rerun `/sw-verify`. Do not redirect to `/sw-build` solely
-to clear freshness, and do not silently rewrite `targetRef` or freshness
-metadata. In headless mode, follow
-`protocols/headless.md`: skip freshness blocking, continue gate execution, and
-report the freshness result with the gate findings.
+local rebase before verification. When branch-head validation is blocked and
+`rebase` or `merge` reconcile is configured, run `protocols/git-reconcile.md`
+in the owning worktree and continue gate execution in that same verify run
+after a successful reconcile. `manual` remains an explicit fallback: stop with
+manual reconcile guidance, reconcile the current branch against the recorded
+target in the owning worktree, or run `/sw-adopt` first if a linked-worktree
+ownership conflict exists, then rerun `/sw-verify`. Do not redirect to
+`/sw-build` solely to clear freshness, and do not silently rewrite `targetRef`
+or freshness metadata. In headless mode, follow `protocols/headless.md`: skip freshness blocking, continue gate execution, and report the freshness result with the gate findings.
 
 **Gate execution order (LOW freedom):**
 Determine enabled gates from config. Support both formats:
@@ -206,6 +206,7 @@ the selected work's `gates` section after each gate completes. Do NOT set
 - `protocols/decision.md` -- autonomous decision framework and gate handoff
 - `protocols/state.md` -- workflow state
 - `protocols/git-freshness.md` -- pre-gate freshness checkpoint
+- `protocols/git-reconcile.md` -- lifecycle-owned branch reconcile
 - `protocols/approvals.md` -- approval lineage validation
 - `protocols/review-packet.md` -- packet synthesis
 - `protocols/evidence.md` -- evidence storage
@@ -219,6 +220,7 @@ the selected work's `gates` section after each gate completes. Do NOT set
 |-----------|--------|
 | No active work unit | STOP: "Run /sw-design, /sw-plan, and /sw-build first." |
 | Selected work owned by another live top-level worktree | STOP with explicit `/sw-adopt` guidance |
+| Verify freshness reconcile under branch-head `require` + `rebase` or `merge` fails | STOP with the reconcile failure and rerun `/sw-verify` after fixing the blocked worktree state. |
 | Verify freshness checkpoint is blocked under branch-head `require` + `manual` | STOP with manual reconcile guidance and rerun `/sw-verify`, not `/sw-build`. |
 | No gates enabled / all skipped | WARN, proceed to ready-to-ship |
 | Gate skill file not found | ERROR for that gate, continue remaining |
