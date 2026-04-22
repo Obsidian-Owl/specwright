@@ -118,6 +118,8 @@ Missing evidence, lane failure, or skipped prerequisite state must keep the
 aggregate verify result fail-closed. Parallel lanes may speed up evidence
 collection, but they must not upgrade the overall outcome to an aggregate PASS
 when prerequisite or lane evidence is incomplete.
+Verify must never report a soft success or soft PASS when required evidence is
+missing.
 
 **Gate invocation (MEDIUM freedom):**
 Gates are internal skills — load SKILL.md and execute inline. Pass work unit context.

@@ -46,8 +46,8 @@ When verification borrows concurrency, the same boundary applies:
   aggregate result fail-closed
 
 This protocol does not grant subordinate helpers or read-only lanes permission
-to write `workflow.json`, mutate `session.json`, or self-report a passing
-aggregate verdict.
+to directly write `workflow.json`, directly write `session.json`, or
+self-report a passing aggregate verdict.
 
 ## Independence Analysis
 
