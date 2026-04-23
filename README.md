@@ -17,6 +17,14 @@
 
 ---
 
+> ### Project status: unmaintained
+>
+> Specwright is no longer under active development. The concepts — spec-driven flow, quality gates, auditable evidence, and learning capture — validated well in practice, but the plugin/skills implementation hit structural limits that prevented taking them further. Subsequent work on auditability, gating, and guardrails has moved into a purpose-built harness rather than a plugin.
+>
+> The repository remains public as a reference. Occasional minor fixes may still land, and the project could be revived in the future, but no roadmap work, feature requests, or support should be expected. Issues and pull requests may not receive a response.
+
+---
+
 ## Why Specwright?
 
 AI agents optimise for "done." That's the problem. Code compiles, tests pass, CI is green — and three days later you find an export nobody imports, a handler that's never called, a validation rule that exists in the spec but not in the code. **The hard part isn't writing code. It's proving it works.**
@@ -415,10 +423,9 @@ worktree's Git admin dir.
 
 Specwright is open source under the MIT license.
 
-1. Fork at [github.com/Obsidian-Owl/specwright](https://github.com/Obsidian-Owl/specwright)
-2. Create a feature branch
-3. See `CLAUDE.md` for development guidelines
-4. Submit a pull request
+The project is **unmaintained** (see the notice at the top of this README). Issues and pull requests may not be reviewed or merged. Forks are welcome — the MIT license places no restrictions on adapting the code for your own use.
+
+If you want to build on the ideas here, the `core/` skills, protocols, and agent definitions are the most reusable pieces.
 
 ---
 
